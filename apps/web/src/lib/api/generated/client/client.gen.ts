@@ -104,7 +104,7 @@ export const createClient = (config: Config = {}): Client => {
       }
     }
 
-    finalError = finalError || ({});
+    finalError = finalError || ({} as string);
 
     if (opts.throwOnError) {
       throw finalError;
@@ -129,7 +129,7 @@ export const createClient = (config: Config = {}): Client => {
     try {
       const { opts, url } = await beforeRequest(options);
 
-      const kyInstance = opts.ky;
+      const kyInstance = opts.ky!;
 
       const validBody = getValidRequestBody(opts);
 
@@ -290,7 +290,7 @@ export const createClient = (config: Config = {}): Client => {
           }
         }
 
-        finalError = finalError || ({});
+        finalError = finalError || ({} as string);
       }
 
       if (throwOnError) {

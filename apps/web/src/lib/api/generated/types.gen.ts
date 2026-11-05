@@ -5,6 +5,271 @@ export type ClientOptions = {
     baseUrl: string;
 };
 
+export type SignInDto = {
+    email: string;
+    password: string;
+};
+
+export type SignInResultDto = {
+    totpRequired: boolean;
+    user?: {
+        id: string;
+        email: string;
+        displayName: string;
+        locale: string;
+        avatarColor: string;
+        totpEnabled: boolean;
+        createdAt: string;
+        defaultProject: string | null;
+        workspaces: Array<{
+            id: string;
+            slug: string;
+            name: string;
+            keyPrefix: string;
+            status: string;
+            roles: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+            timezone: string;
+            defaultLocale: string;
+            totpRequired: boolean;
+        }>;
+    };
+    challenge?: string;
+};
+
+export type TotpVerifyDto = {
+    challenge: string;
+    code: string;
+};
+
+export type TotpRecoverDto = {
+    challenge: string;
+    recoveryCode: string;
+};
+
+export type RefreshResultDto = {
+    expiresAt: string;
+};
+
+export type MeDto = {
+    id: string;
+    email: string;
+    displayName: string;
+    locale: string;
+    avatarColor: string;
+    totpEnabled: boolean;
+    createdAt: string;
+    defaultProject: string | null;
+    workspaces: Array<{
+        id: string;
+        slug: string;
+        name: string;
+        keyPrefix: string;
+        status: string;
+        roles: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        timezone: string;
+        defaultLocale: string;
+        totpRequired: boolean;
+    }>;
+};
+
+export type PasswordForgotDto = {
+    email: string;
+};
+
+export type PasswordResetDto = {
+    token: string;
+    password: string;
+};
+
+export type PasswordChangeDto = {
+    current: string;
+    next: string;
+};
+
+export type TotpSetupResultDto = {
+    secret: string;
+    otpauthUrl: string;
+    qrDataUrl: string;
+};
+
+export type TotpCodeDto = {
+    code: string;
+};
+
+export type TotpConfirmResultDto = {
+    recoveryCodes: Array<string>;
+};
+
+export type SessionRowDto = {
+    familyId: string;
+    userAgent: string | null;
+    ip: string | null;
+    createdAt: string;
+    lastUsedAt: string;
+    current: boolean;
+};
+
+export type UpdateProfileDto = {
+    displayName?: string;
+    locale?: 'ar' | 'en';
+    avatarColor?: 'teal' | 'indigo' | 'amber' | 'rose' | 'emerald' | 'sky' | 'violet' | 'orange' | 'lime' | 'pink' | 'cyan' | 'slate';
+};
+
+export type SetDefaultProjectDto = {
+    slug: string;
+};
+
+export type ApiTokenRowDto = {
+    id: string;
+    name: string;
+    kind: 'mcp' | 'hook';
+    prefix: string;
+    lastUsedAt: string | null;
+    createdAt: string;
+    revokedAt: string | null;
+};
+
+export type CreateApiTokenDto = {
+    name: string;
+    kind?: 'mcp' | 'hook';
+};
+
+export type ApiTokenCreatedDto = {
+    id: string;
+    token: string;
+    prefix: string;
+    name: string;
+    kind: 'mcp' | 'hook';
+};
+
+export type InvitePreviewDto = {
+    email: string;
+    workspace: {
+        slug: string;
+        name: string;
+    };
+    roles: Array<string>;
+    expiresAt: string;
+    invitedBy: string;
+};
+
+export type AcceptInviteDto = {
+    displayName?: string;
+    password?: string;
+    locale?: 'ar' | 'en';
+};
+
+export type InviteAcceptedDto = {
+    user: {
+        id: string;
+        email: string;
+        displayName: string;
+        locale: string;
+        avatarColor: string;
+        totpEnabled: boolean;
+        createdAt: string;
+        defaultProject: string | null;
+        workspaces: Array<{
+            id: string;
+            slug: string;
+            name: string;
+            keyPrefix: string;
+            status: string;
+            roles: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+            timezone: string;
+            defaultLocale: string;
+            totpRequired: boolean;
+        }>;
+    };
+    workspace: {
+        slug: string;
+    };
+};
+
+export type InviteRowDto = {
+    id: string;
+    email: string;
+    roles: Array<string>;
+    createdBy: string;
+    expiresAt: string;
+    acceptedAt: string | null;
+};
+
+export type CreateInviteDto = {
+    email: string;
+    roles: Array<string>;
+};
+
+export type InviteCreatedDto = {
+    id: string;
+    email: string;
+    roles: Array<string>;
+    expiresAt: string;
+    url: string;
+};
+
+export type OneTimeUrlDto = {
+    url: string;
+};
+
+export type AuditRowDto = {
+    id: string;
+    actor: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    via: string;
+    action: string;
+    targetType: string;
+    targetId: string | null;
+    summary: string;
+    ip: string | null;
+    userAgent: string | null;
+    createdAt: string;
+};
+
+export type CardSummaryDto = {
+    id: string;
+    key: string;
+    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+    title: string;
+    status: string;
+    priority: 'P0' | 'P1' | 'P2' | 'P3';
+    ownerRole: string | null;
+    assignee: {
+        id: string;
+        displayName: string;
+        avatarColor: string;
+    } | null;
+    module: string | null;
+    repo: string | null;
+    branch: string | null;
+    tags: Array<string>;
+    dueAt: string | null;
+    closedAt: string | null;
+    archivedAt: string | null;
+    commentCount: number;
+    lastEventAt: string;
+    createdAt: string;
+    createdBy: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    source: string;
+    flags: {
+        blocked: boolean;
+        overdue: boolean;
+        escalated: boolean;
+        stale: boolean;
+        noSummary: boolean;
+    };
+    awaiting: string | null;
+};
+
 export type CreateCardDto = {
     title: string;
     body?: string;
@@ -14,6 +279,10 @@ export type CreateCardDto = {
     tags?: Array<string>;
     module?: string;
     repo?: string;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
     detail: {
         specialty: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
         effort?: 'S' | 'M' | 'L' | 'XL';
@@ -22,20 +291,425 @@ export type CreateCardDto = {
         origin?: 'manual' | 'import_suggestion' | 'session_followup' | 'redesign_port' | 'decision' | 'handoff' | 'plan';
     };
     type: 'task';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    dueAt?: string;
+    tags?: Array<string>;
+    module?: string;
+    repo?: string;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        kind: 'product' | 'technical' | 'financial' | 'design';
+        question: string;
+        options: Array<{
+            id?: string;
+            title: string;
+            pros?: Array<string>;
+            cons?: Array<string>;
+            cost?: string;
+            recommended?: boolean;
+        }>;
+        deciderRole: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        adrRepoSourceId?: string;
+    };
+    type: 'decision';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    dueAt?: string;
+    tags?: Array<string>;
+    module?: string;
+    repo?: string;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        kind: 'token' | 'account' | 'contract' | 'value_check' | 'file' | 'access' | 'other';
+        responsibleRole: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+    };
+    type: 'need';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    dueAt?: string;
+    tags?: Array<string>;
+    module?: string;
+    repo?: string;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        kind: 'contract' | 'component' | 'design' | 'data' | 'other';
+        fromRole: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        toRole: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        severity?: 'breaking' | 'notable' | 'info';
+        summary: string;
+        prompt?: string;
+        payload?: {
+            [key: string]: unknown;
+        };
+        sourceKey?: string;
+    };
+    type: 'handoff';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    dueAt?: string;
+    tags?: Array<string>;
+    module?: string;
+    repo?: string;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        version: string;
+        repo?: string;
+        tag?: string;
+        includedKeys?: Array<string>;
+    };
+    type: 'release';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    tags?: Array<string>;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        problem?: string;
+        notes?: string;
+        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+    };
+    type: 'idea';
+} | {
+    title: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    tags?: Array<string>;
+    links?: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        key: string;
+    }>;
+    detail: {
+        steps?: Array<{
+            id?: string;
+            title: string;
+            role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+            taskKey?: string;
+            done?: boolean;
+        }>;
+        sourceIdeaKey?: string;
+    };
+    type: 'plan';
+} | {
+    type: 'change' | 'redesign' | 'doc';
 };
 
-export type CardWrittenDto = {
+export type CardWrittenResponseDto = {
     id: string;
     key: string;
     type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
     title: string;
-    body: string | null;
     status: string;
-    priority: string;
+    priority: 'P0' | 'P1' | 'P2' | 'P3';
     ownerRole: string | null;
-    assigneeId: string | null;
+    assignee: {
+        id: string;
+        displayName: string;
+        avatarColor: string;
+    } | null;
+    module: string | null;
+    repo: string | null;
+    branch: string | null;
+    tags: Array<string>;
+    dueAt: string | null;
+    closedAt: string | null;
+    archivedAt: string | null;
+    commentCount: number;
     lastEventAt: string;
     createdAt: string;
+    createdBy: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    source: string;
+    flags: {
+        blocked: boolean;
+        overdue: boolean;
+        escalated: boolean;
+        stale: boolean;
+        noSummary: boolean;
+    };
+    awaiting: string | null;
+    detail: {
+        cardId: string;
+        specialty: string;
+        effort: string | null;
+        acceptance: string | null;
+        prompt: string | null;
+        origin: string;
+        claimedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        claimedAt: string | null;
+        branch: string | null;
+        prUrl: string | null;
+        startedAt: string | null;
+        doneAt: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        question: string;
+        options: Array<{
+            id: string;
+            title: string;
+            pros: Array<string>;
+            cons: Array<string>;
+            cost: string | null;
+            recommended: boolean;
+        }>;
+        deciderRole: string;
+        chosenOptionId: string | null;
+        rationale: string | null;
+        decidedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        decidedAt: string | null;
+        remindersSent: Array<number>;
+        escalatedAt: string | null;
+        escalatedToRole: string | null;
+        adrRepoSourceId: string | null;
+        adrPath: string | null;
+        adrPrUrl: string | null;
+        adrStatus: string;
+        adrBody: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        responsibleRole: string;
+        location: string | null;
+        deliveredBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        deliveredAt: string | null;
+        verifiedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        verifiedAt: string | null;
+        verificationNote: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        authorLogin: string | null;
+        commitCount: number;
+        filesChanged: number;
+        additions: number;
+        deletions: number;
+        prNumber: number | null;
+        prState: string | null;
+        prUrl: string | null;
+        session: {
+            [key: string]: unknown;
+        } | null;
+    } | {
+        cardId: string;
+        fromRole: string;
+        toRole: string;
+        kind: string;
+        severity: string;
+        summary: string;
+        prompt: string | null;
+        payload: {
+            [key: string]: unknown;
+        };
+        sourceCardId: string | null;
+        acknowledgedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        acknowledgedAt: string | null;
+        appliedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        appliedAt: string | null;
+        appliedTaskId: string | null;
+    } | {
+        cardId: string;
+        app: string;
+        page: string;
+        version: string;
+        labPath: string;
+        labUrl: string;
+        base: string | null;
+        touchesComponents: Array<string>;
+        reviewScore: number | null;
+        reviewSummary: string | null;
+        frontMatter: {
+            [key: string]: unknown;
+        };
+        approvedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        approvedAt: string | null;
+        rejectedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        rejectedAt: string | null;
+        decisionNote: string | null;
+        portTaskId: string | null;
+        portedRef: string | null;
+    } | {
+        cardId: string;
+        sourceId: string;
+        path: string;
+        kind: string;
+        lang: string;
+        headings: Array<{
+            level: number;
+            text: string;
+            anchor: string;
+        }>;
+        wordCount: number;
+        lastCommitSha: string | null;
+        contentHash: string | null;
+        lastIndexedAt: string;
+    } | {
+        cardId: string;
+        version: string;
+        repo: string | null;
+        tag: string | null;
+        releasedAt: string | null;
+        includedIds: Array<string>;
+        notes: {
+            team?: string | null;
+            owner?: string | null;
+            accountant?: string | null;
+        };
+    } | {
+        cardId: string;
+        problem: string | null;
+        notes: string | null;
+        role: string | null;
+        planCardId: string | null;
+    } | {
+        cardId: string;
+        steps: Array<{
+            id: string;
+            title: string;
+            role?: string;
+            taskKey?: string;
+            done: boolean;
+        }>;
+        revision: number;
+        sourceIdeaId: string | null;
+        approvedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        approvedAt: string | null;
+    } | null;
+    body: string | null;
+    links: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        card: {
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            awaiting: string | null;
+        };
+    }>;
+    watchers: Array<{
+        userId: string;
+        displayName: string;
+        reason: string;
+    }>;
+    attachments: Array<{
+        id: string;
+        kind: string;
+        name: string;
+        url: string;
+        width: number | null;
+        height: number | null;
+    }>;
+    watching: boolean;
+    allowedActions: Array<string>;
+    actions: Array<{
+        action: string;
+        permission: string;
+        enabled: boolean;
+        needsRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        mode: 'form' | 'confirm' | 'now';
+        destructive?: boolean;
+        reason?: boolean;
+        selfVerify?: boolean;
+        targetKey?: string;
+    }>;
+    awaitedAction: {
+        action: string;
+        permission: string;
+        enabled: boolean;
+        needsRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        mode: 'form' | 'confirm' | 'now';
+        destructive?: boolean;
+        reason?: boolean;
+        selfVerify?: boolean;
+        targetKey?: string;
+    } | null;
     event: {
         id: string;
         seq: number;
@@ -43,20 +717,2376 @@ export type CardWrittenDto = {
     };
 };
 
+export type CardFullResponseDto = {
+    id: string;
+    key: string;
+    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+    title: string;
+    status: string;
+    priority: 'P0' | 'P1' | 'P2' | 'P3';
+    ownerRole: string | null;
+    assignee: {
+        id: string;
+        displayName: string;
+        avatarColor: string;
+    } | null;
+    module: string | null;
+    repo: string | null;
+    branch: string | null;
+    tags: Array<string>;
+    dueAt: string | null;
+    closedAt: string | null;
+    archivedAt: string | null;
+    commentCount: number;
+    lastEventAt: string;
+    createdAt: string;
+    createdBy: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    source: string;
+    flags: {
+        blocked: boolean;
+        overdue: boolean;
+        escalated: boolean;
+        stale: boolean;
+        noSummary: boolean;
+    };
+    awaiting: string | null;
+    detail: {
+        cardId: string;
+        specialty: string;
+        effort: string | null;
+        acceptance: string | null;
+        prompt: string | null;
+        origin: string;
+        claimedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        claimedAt: string | null;
+        branch: string | null;
+        prUrl: string | null;
+        startedAt: string | null;
+        doneAt: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        question: string;
+        options: Array<{
+            id: string;
+            title: string;
+            pros: Array<string>;
+            cons: Array<string>;
+            cost: string | null;
+            recommended: boolean;
+        }>;
+        deciderRole: string;
+        chosenOptionId: string | null;
+        rationale: string | null;
+        decidedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        decidedAt: string | null;
+        remindersSent: Array<number>;
+        escalatedAt: string | null;
+        escalatedToRole: string | null;
+        adrRepoSourceId: string | null;
+        adrPath: string | null;
+        adrPrUrl: string | null;
+        adrStatus: string;
+        adrBody: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        responsibleRole: string;
+        location: string | null;
+        deliveredBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        deliveredAt: string | null;
+        verifiedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        verifiedAt: string | null;
+        verificationNote: string | null;
+    } | {
+        cardId: string;
+        kind: string;
+        authorLogin: string | null;
+        commitCount: number;
+        filesChanged: number;
+        additions: number;
+        deletions: number;
+        prNumber: number | null;
+        prState: string | null;
+        prUrl: string | null;
+        session: {
+            [key: string]: unknown;
+        } | null;
+    } | {
+        cardId: string;
+        fromRole: string;
+        toRole: string;
+        kind: string;
+        severity: string;
+        summary: string;
+        prompt: string | null;
+        payload: {
+            [key: string]: unknown;
+        };
+        sourceCardId: string | null;
+        acknowledgedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        acknowledgedAt: string | null;
+        appliedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        appliedAt: string | null;
+        appliedTaskId: string | null;
+    } | {
+        cardId: string;
+        app: string;
+        page: string;
+        version: string;
+        labPath: string;
+        labUrl: string;
+        base: string | null;
+        touchesComponents: Array<string>;
+        reviewScore: number | null;
+        reviewSummary: string | null;
+        frontMatter: {
+            [key: string]: unknown;
+        };
+        approvedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        approvedAt: string | null;
+        rejectedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        rejectedAt: string | null;
+        decisionNote: string | null;
+        portTaskId: string | null;
+        portedRef: string | null;
+    } | {
+        cardId: string;
+        sourceId: string;
+        path: string;
+        kind: string;
+        lang: string;
+        headings: Array<{
+            level: number;
+            text: string;
+            anchor: string;
+        }>;
+        wordCount: number;
+        lastCommitSha: string | null;
+        contentHash: string | null;
+        lastIndexedAt: string;
+    } | {
+        cardId: string;
+        version: string;
+        repo: string | null;
+        tag: string | null;
+        releasedAt: string | null;
+        includedIds: Array<string>;
+        notes: {
+            team?: string | null;
+            owner?: string | null;
+            accountant?: string | null;
+        };
+    } | {
+        cardId: string;
+        problem: string | null;
+        notes: string | null;
+        role: string | null;
+        planCardId: string | null;
+    } | {
+        cardId: string;
+        steps: Array<{
+            id: string;
+            title: string;
+            role?: string;
+            taskKey?: string;
+            done: boolean;
+        }>;
+        revision: number;
+        sourceIdeaId: string | null;
+        approvedBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        approvedAt: string | null;
+    } | null;
+    body: string | null;
+    links: Array<{
+        kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+        card: {
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            awaiting: string | null;
+        };
+    }>;
+    watchers: Array<{
+        userId: string;
+        displayName: string;
+        reason: string;
+    }>;
+    attachments: Array<{
+        id: string;
+        kind: string;
+        name: string;
+        url: string;
+        width: number | null;
+        height: number | null;
+    }>;
+    watching: boolean;
+    allowedActions: Array<string>;
+    actions: Array<{
+        action: string;
+        permission: string;
+        enabled: boolean;
+        needsRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        mode: 'form' | 'confirm' | 'now';
+        destructive?: boolean;
+        reason?: boolean;
+        selfVerify?: boolean;
+        targetKey?: string;
+    }>;
+    awaitedAction: {
+        action: string;
+        permission: string;
+        enabled: boolean;
+        needsRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        mode: 'form' | 'confirm' | 'now';
+        destructive?: boolean;
+        reason?: boolean;
+        selfVerify?: boolean;
+        targetKey?: string;
+    } | null;
+};
+
+export type UpdateCardDto = {
+    title?: string;
+    body?: string | null;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    ownerRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa' | null;
+    dueAt?: string | null;
+    tags?: Array<string>;
+    module?: string | null;
+    assignee?: string | null;
+    repo?: string | null;
+    branch?: string | null;
+};
+
+export type TransitionDto = {
+    to: string;
+    reason?: string;
+};
+
+export type DeleteCardDto = {
+    reason?: string;
+};
+
+export type EventResponseDto = {
+    id: string;
+    seq: number;
+    kind: string;
+    actor: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    via: string;
+    data: {
+        [key: string]: unknown;
+    };
+    createdAt: string;
+};
+
+export type CommentResponseDto = {
+    id: string;
+    author: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    };
+    via: string;
+    body: string | null;
+    redacted: boolean;
+    createdAt: string;
+    editedAt: string | null;
+};
+
+export type CommentBodyDto = {
+    body: string;
+};
+
+export type LinkDto = {
+    kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates';
+    key: string;
+};
+
+export type TimelineRowDto = {
+    event: {
+        id: string;
+        seq: number;
+        kind: string;
+        actor: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        via: string;
+        data: {
+            [key: string]: unknown;
+        };
+        createdAt: string;
+    };
+    card: {
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    };
+    collapsed: number;
+    collapsedKinds: Array<string>;
+};
+
+export type TaskPromptDto = {
+    markdown: string;
+};
+
+export type EditDetailDto = {
+    specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+    effort?: 'S' | 'M' | 'L' | 'XL' | null;
+    acceptance?: string | null;
+    prompt?: string | null;
+    branch?: string | null;
+    prUrl?: string | null;
+};
+
+export type ClaimDto = {
+    branch?: string;
+};
+
+export type SubmitDto = {
+    prUrl?: string;
+    note?: string;
+};
+
+export type OptionalReasonDto = {
+    reason?: string;
+};
+
+export type CompleteDto = {
+    note?: string;
+};
+
+export type ReasonDto = {
+    reason: string;
+};
+
+export type OptionsDto = {
+    options: Array<{
+        id?: string;
+        title: string;
+        pros?: Array<string>;
+        cons?: Array<string>;
+        cost?: string;
+        recommended?: boolean;
+    }>;
+};
+
+export type DecideDto = {
+    optionId: string;
+    rationale: string;
+};
+
+export type SupersedeDto = {
+    byKey: string;
+};
+
+export type DraftAdrDto = {
+    body: string;
+    path?: string;
+};
+
+export type DeliverDto = {
+    location?: string;
+    note?: string;
+};
+
+export type VerifyDto = {
+    note?: string;
+};
+
+export type AcknowledgeDto = {
+    note?: string;
+};
+
+export type ApplyDto = {
+    taskKey?: string;
+    createTask?: {
+        title?: string;
+        specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+    };
+    note?: string;
+};
+
+export type ApproveDto = {
+    note?: string;
+    createPortTask?: boolean;
+};
+
+export type NoteDto = {
+    note: string;
+};
+
+export type MarkPortedDto = {
+    ref: string;
+};
+
+export type EditDto = {
+    version?: string;
+    repo?: string | null;
+    tag?: string | null;
+    includedKeys?: Array<string>;
+    notes?: {
+        team?: string | null;
+        owner?: string | null;
+        accountant?: string | null;
+    };
+};
+
+export type ReleaseDto = {
+    releasedAt?: string;
+};
+
+export type UpdateDto = {
+    title?: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    tags?: Array<string>;
+    steps?: Array<{
+        id?: string;
+        title: string;
+        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        taskKey?: string;
+        done?: boolean;
+    }>;
+};
+
+export type ToPlanDto = {
+    title?: string;
+    body?: string;
+};
+
+export type PlanRevisionDto = {
+    revision: number;
+    body: string | null;
+    savedAt: string | null;
+    actor: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    } | null;
+    current: boolean;
+};
+
+export type RestoreDto = {
+    revision: number;
+};
+
+export type ToTasksDto = {
+    defaultSpecialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+};
+
+export type ProjectListItemDto = {
+    id: string;
+    slug: string;
+    name: string;
+    keyPrefix: string;
+    status: string;
+    roles: Array<string>;
+    timezone: string;
+    defaultLocale: string;
+    totpRequired: boolean;
+    isDefault: boolean;
+    counts: {
+        openDecisions: number;
+        pendingHandoffs: number;
+        openNeeds: number;
+        readyTasks: number;
+    };
+};
+
+export type CreateProjectDto = {
+    slug: string;
+    name: string;
+    keyPrefix: string;
+    timezone?: string;
+    defaultLocale?: 'ar' | 'en';
+    description?: string;
+    goals?: string;
+    links?: Array<{
+        label: string;
+        url: string;
+    }>;
+    repoPaths?: Array<string>;
+    docsPath?: string;
+};
+
+export type ProjectDto = {
+    id: string;
+    slug: string;
+    name: string;
+    keyPrefix: string;
+    timezone: string;
+    defaultLocale: string;
+    description: string | null;
+    goals: string | null;
+    links: Array<{
+        label: string;
+        url: string;
+    }>;
+    repoPaths: Array<string>;
+    status: 'active' | 'paused' | 'closed';
+    closedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type ProjectDetailDto = {
+    id: string;
+    slug: string;
+    name: string;
+    keyPrefix: string;
+    timezone: string;
+    defaultLocale: string;
+    description: string | null;
+    goals: string | null;
+    links: Array<{
+        label: string;
+        url: string;
+    }>;
+    repoPaths: Array<string>;
+    status: 'active' | 'paused' | 'closed';
+    closedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    myRoles: Array<string>;
+    counts: {
+        openDecisions: number;
+        pendingHandoffs: number;
+        openNeeds: number;
+        readyTasks: number;
+    };
+};
+
+export type UpdateProjectDto = {
+    name?: string;
+    timezone?: string;
+    defaultLocale?: 'ar' | 'en';
+    description?: string | null;
+    goals?: string | null;
+    links?: Array<{
+        label: string;
+        url: string;
+    }>;
+    repoPaths?: Array<string>;
+    status?: 'active' | 'paused';
+};
+
+export type MemberRowDto = {
+    userId: string;
+    email: string;
+    displayName: string;
+    avatarColor: string;
+    roles: Array<string>;
+    status: string;
+    joinedAt: string;
+    lastSeenAt: string | null;
+    githubLogins: Array<string>;
+    totpEnabled: boolean;
+};
+
+export type UpdateMemberRolesDto = {
+    roles: Array<string>;
+};
+
+export type GithubLoginsDto = {
+    logins: Array<string>;
+};
+
+export type SettingRowDto = {
+    key: string;
+    value: unknown;
+    default: unknown;
+    isDefault: boolean;
+    updatedAt: string | null;
+    updatedBy: string | null;
+};
+
+export type SettingCatalogueRowDto = {
+    key: string;
+    type: string;
+    schema: {
+        [key: string]: unknown;
+    };
+    description: {
+        ar: string;
+        en: string;
+    };
+    group: string;
+};
+
+export type PutSettingDto = {
+    value: unknown;
+};
+
+export type SourceDtoHttp = {
+    id: string;
+    kind: string;
+    name: string;
+    config: {
+        [key: string]: unknown;
+    };
+    hasSecret: boolean;
+    enabled: boolean;
+    cursor: {
+        [key: string]: unknown;
+    };
+    lastRunAt: string | null;
+    lastSuccessAt: string | null;
+    lastError: string | null;
+    lagSec: number | null;
+    createdAt: string;
+};
+
+export type CreateSourceDto = {
+    kind: string;
+    name: string;
+    config: {
+        [key: string]: unknown;
+    };
+    secret?: string;
+};
+
+export type UpdateSourceDto = {
+    name?: string;
+    config?: {
+        [key: string]: unknown;
+    };
+    secret?: string | null;
+    enabled?: boolean;
+};
+
+export type SourceTestResultDto = {
+    ok: boolean;
+    details: {
+        filesFound?: number;
+    };
+};
+
+export type OnboardingGroupDto = {
+    role: string;
+    items: Array<{
+        id: string;
+        kind: string;
+        title: string;
+        ref: string;
+        done: boolean;
+        doneAt: string | null;
+    }>;
+};
+
+export type AuthControllerSignInData = {
+    body: SignInDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/sign-in';
+};
+
+export type AuthControllerSignInResponses = {
+    200: SignInResultDto;
+};
+
+export type AuthControllerSignInResponse = AuthControllerSignInResponses[keyof AuthControllerSignInResponses];
+
+export type AuthControllerVerifyTotpData = {
+    body: TotpVerifyDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/totp/verify';
+};
+
+export type AuthControllerVerifyTotpResponses = {
+    200: SignInResultDto;
+};
+
+export type AuthControllerVerifyTotpResponse = AuthControllerVerifyTotpResponses[keyof AuthControllerVerifyTotpResponses];
+
+export type AuthControllerRecoverData = {
+    body: TotpRecoverDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/totp/recover';
+};
+
+export type AuthControllerRecoverResponses = {
+    200: SignInResultDto;
+};
+
+export type AuthControllerRecoverResponse = AuthControllerRecoverResponses[keyof AuthControllerRecoverResponses];
+
+export type AuthControllerRefreshData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/refresh';
+};
+
+export type AuthControllerRefreshResponses = {
+    200: RefreshResultDto;
+};
+
+export type AuthControllerRefreshResponse = AuthControllerRefreshResponses[keyof AuthControllerRefreshResponses];
+
+export type AuthControllerSignOutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/sign-out';
+};
+
+export type AuthControllerSignOutResponses = {
+    204: void;
+};
+
+export type AuthControllerSignOutResponse = AuthControllerSignOutResponses[keyof AuthControllerSignOutResponses];
+
+export type AuthControllerGetMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/me';
+};
+
+export type AuthControllerGetMeResponses = {
+    200: MeDto;
+};
+
+export type AuthControllerGetMeResponse = AuthControllerGetMeResponses[keyof AuthControllerGetMeResponses];
+
+export type AuthControllerForgotData = {
+    body: PasswordForgotDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/forgot';
+};
+
+export type AuthControllerForgotResponses = {
+    202: unknown;
+};
+
+export type AuthControllerResetData = {
+    body: PasswordResetDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/reset';
+};
+
+export type AuthControllerResetResponses = {
+    204: void;
+};
+
+export type AuthControllerResetResponse = AuthControllerResetResponses[keyof AuthControllerResetResponses];
+
+export type AuthControllerChangeData = {
+    body: PasswordChangeDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/change';
+};
+
+export type AuthControllerChangeResponses = {
+    204: void;
+};
+
+export type AuthControllerChangeResponse = AuthControllerChangeResponses[keyof AuthControllerChangeResponses];
+
+export type AuthControllerSetupTotpData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/totp/setup';
+};
+
+export type AuthControllerSetupTotpResponses = {
+    201: TotpSetupResultDto;
+};
+
+export type AuthControllerSetupTotpResponse = AuthControllerSetupTotpResponses[keyof AuthControllerSetupTotpResponses];
+
+export type AuthControllerConfirmTotpData = {
+    body: TotpCodeDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/totp/confirm';
+};
+
+export type AuthControllerConfirmTotpResponses = {
+    200: TotpConfirmResultDto;
+};
+
+export type AuthControllerConfirmTotpResponse = AuthControllerConfirmTotpResponses[keyof AuthControllerConfirmTotpResponses];
+
+export type AuthControllerDisableTotpData = {
+    body: TotpCodeDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/totp';
+};
+
+export type AuthControllerDisableTotpResponses = {
+    204: void;
+};
+
+export type AuthControllerDisableTotpResponse = AuthControllerDisableTotpResponses[keyof AuthControllerDisableTotpResponses];
+
+export type AuthControllerListSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/sessions';
+};
+
+export type AuthControllerListSessionsResponses = {
+    200: Array<SessionRowDto>;
+};
+
+export type AuthControllerListSessionsResponse = AuthControllerListSessionsResponses[keyof AuthControllerListSessionsResponses];
+
+export type AuthControllerRevokeAllData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/sessions/revoke-all';
+};
+
+export type AuthControllerRevokeAllResponses = {
+    204: void;
+};
+
+export type AuthControllerRevokeAllResponse = AuthControllerRevokeAllResponses[keyof AuthControllerRevokeAllResponses];
+
+export type AuthControllerRevokeSessionData = {
+    body?: never;
+    path: {
+        familyId: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/sessions/{familyId}';
+};
+
+export type AuthControllerRevokeSessionResponses = {
+    204: void;
+};
+
+export type AuthControllerRevokeSessionResponse = AuthControllerRevokeSessionResponses[keyof AuthControllerRevokeSessionResponses];
+
+export type MeControllerUpdateData = {
+    body: UpdateProfileDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type MeControllerUpdateResponses = {
+    200: MeDto;
+};
+
+export type MeControllerUpdateResponse = MeControllerUpdateResponses[keyof MeControllerUpdateResponses];
+
+export type MeControllerSetDefaultProjectData = {
+    body: SetDefaultProjectDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/default-project';
+};
+
+export type MeControllerSetDefaultProjectResponses = {
+    200: MeDto;
+};
+
+export type MeControllerSetDefaultProjectResponse = MeControllerSetDefaultProjectResponses[keyof MeControllerSetDefaultProjectResponses];
+
+export type MeControllerListTokensData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/tokens';
+};
+
+export type MeControllerListTokensResponses = {
+    200: Array<ApiTokenRowDto>;
+};
+
+export type MeControllerListTokensResponse = MeControllerListTokensResponses[keyof MeControllerListTokensResponses];
+
+export type MeControllerCreateTokenData = {
+    body: CreateApiTokenDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/tokens';
+};
+
+export type MeControllerCreateTokenResponses = {
+    201: ApiTokenCreatedDto;
+};
+
+export type MeControllerCreateTokenResponse = MeControllerCreateTokenResponses[keyof MeControllerCreateTokenResponses];
+
+export type MeControllerRevokeTokenData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/tokens/{id}';
+};
+
+export type MeControllerRevokeTokenResponses = {
+    204: void;
+};
+
+export type MeControllerRevokeTokenResponse = MeControllerRevokeTokenResponses[keyof MeControllerRevokeTokenResponses];
+
+export type PublicInvitesControllerPreviewData = {
+    body?: never;
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/invites/{token}';
+};
+
+export type PublicInvitesControllerPreviewResponses = {
+    200: InvitePreviewDto;
+};
+
+export type PublicInvitesControllerPreviewResponse = PublicInvitesControllerPreviewResponses[keyof PublicInvitesControllerPreviewResponses];
+
+export type PublicInvitesControllerAcceptData = {
+    body: AcceptInviteDto;
+    path: {
+        token: string;
+    };
+    query?: never;
+    url: '/api/v1/auth/invites/{token}/accept';
+};
+
+export type PublicInvitesControllerAcceptResponses = {
+    201: InviteAcceptedDto;
+};
+
+export type PublicInvitesControllerAcceptResponse = PublicInvitesControllerAcceptResponses[keyof PublicInvitesControllerAcceptResponses];
+
+export type WorkspaceInvitesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/invites';
+};
+
+export type WorkspaceInvitesControllerListResponses = {
+    200: Array<InviteRowDto>;
+};
+
+export type WorkspaceInvitesControllerListResponse = WorkspaceInvitesControllerListResponses[keyof WorkspaceInvitesControllerListResponses];
+
+export type WorkspaceInvitesControllerCreateData = {
+    body: CreateInviteDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/invites';
+};
+
+export type WorkspaceInvitesControllerCreateResponses = {
+    201: InviteCreatedDto;
+};
+
+export type WorkspaceInvitesControllerCreateResponse = WorkspaceInvitesControllerCreateResponses[keyof WorkspaceInvitesControllerCreateResponses];
+
+export type WorkspaceInvitesControllerResendData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/invites/{id}/resend';
+};
+
+export type WorkspaceInvitesControllerResendResponses = {
+    200: OneTimeUrlDto;
+};
+
+export type WorkspaceInvitesControllerResendResponse = WorkspaceInvitesControllerResendResponses[keyof WorkspaceInvitesControllerResendResponses];
+
+export type WorkspaceInvitesControllerRevokeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/invites/{id}';
+};
+
+export type WorkspaceInvitesControllerRevokeResponses = {
+    204: void;
+};
+
+export type WorkspaceInvitesControllerRevokeResponse = WorkspaceInvitesControllerRevokeResponses[keyof WorkspaceInvitesControllerRevokeResponses];
+
+export type AuditControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        actor?: string;
+        action?: string;
+        targetType?: string;
+        from?: string;
+        to?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/audit';
+};
+
+export type AuditControllerListResponses = {
+    200: Array<AuditRowDto>;
+};
+
+export type AuditControllerListResponse = AuditControllerListResponses[keyof AuditControllerListResponses];
+
+export type CardsListCardsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        type?: Array<'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan'>;
+        status?: Array<string>;
+        role?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        assignee?: string;
+        createdBy?: string;
+        repo?: Array<string>;
+        module?: Array<string>;
+        tag?: Array<string>;
+        q?: string;
+        dueBefore?: string;
+        flags?: Array<'blocked' | 'overdue' | 'escalated' | 'stale' | 'noSummary'>;
+        awaiting?: 'me';
+        sort?: 'lastEvent' | 'created' | 'due' | 'priority';
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/cards';
+};
+
+export type CardsListCardsResponses = {
+    200: Array<CardSummaryDto>;
+};
+
+export type CardsListCardsResponse = CardsListCardsResponses[keyof CardsListCardsResponses];
+
 export type CardsControllerCreateData = {
     body: CreateCardDto;
-    path: {
-        ws: string;
-    };
+    path?: never;
     query?: never;
     url: '/api/v1/workspaces/{ws}/cards';
 };
 
 export type CardsControllerCreateResponses = {
-    201: CardWrittenDto;
+    201: CardWrittenResponseDto;
 };
 
 export type CardsControllerCreateResponse = CardsControllerCreateResponses[keyof CardsControllerCreateResponses];
+
+export type CardsControllerDeletedData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/cards/deleted';
+};
+
+export type CardsControllerDeletedResponses = {
+    200: Array<CardSummaryDto>;
+};
+
+export type CardsControllerDeletedResponse = CardsControllerDeletedResponses[keyof CardsControllerDeletedResponses];
+
+export type CardsControllerGetData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}';
+};
+
+export type CardsControllerGetResponses = {
+    200: CardFullResponseDto;
+};
+
+export type CardsControllerGetResponse = CardsControllerGetResponses[keyof CardsControllerGetResponses];
+
+export type CardsControllerUpdateData = {
+    body: UpdateCardDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}';
+};
+
+export type CardsControllerUpdateResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type CardsControllerUpdateResponse = CardsControllerUpdateResponses[keyof CardsControllerUpdateResponses];
+
+export type CardsControllerTransitionData = {
+    body: TransitionDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/transition';
+};
+
+export type CardsControllerTransitionResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type CardsControllerTransitionResponse = CardsControllerTransitionResponses[keyof CardsControllerTransitionResponses];
+
+export type CardsControllerDeleteData = {
+    body: DeleteCardDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/delete';
+};
+
+export type CardsControllerDeleteResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type CardsControllerDeleteResponse = CardsControllerDeleteResponses[keyof CardsControllerDeleteResponses];
+
+export type CardsControllerRestoreData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/restore';
+};
+
+export type CardsControllerRestoreResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type CardsControllerRestoreResponse = CardsControllerRestoreResponses[keyof CardsControllerRestoreResponses];
+
+export type CardsControllerEventsData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/cards/{key}/events';
+};
+
+export type CardsControllerEventsResponses = {
+    200: Array<EventResponseDto>;
+};
+
+export type CardsControllerEventsResponse = CardsControllerEventsResponses[keyof CardsControllerEventsResponses];
+
+export type CardsControllerCommentsData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/cards/{key}/comments';
+};
+
+export type CardsControllerCommentsResponses = {
+    200: Array<CommentResponseDto>;
+};
+
+export type CardsControllerCommentsResponse = CardsControllerCommentsResponses[keyof CardsControllerCommentsResponses];
+
+export type CardsControllerAddCommentData = {
+    body: CommentBodyDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/comments';
+};
+
+export type CardsControllerAddCommentResponses = {
+    201: CommentResponseDto;
+};
+
+export type CardsControllerAddCommentResponse = CardsControllerAddCommentResponses[keyof CardsControllerAddCommentResponses];
+
+export type CardsControllerEditCommentData = {
+    body: CommentBodyDto;
+    path: {
+        key: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/comments/{id}';
+};
+
+export type CardsControllerEditCommentResponses = {
+    200: CommentResponseDto;
+};
+
+export type CardsControllerEditCommentResponse = CardsControllerEditCommentResponses[keyof CardsControllerEditCommentResponses];
+
+export type CardsControllerRedactCommentData = {
+    body?: never;
+    path: {
+        key: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/comments/{id}/redact';
+};
+
+export type CardsControllerRedactCommentResponses = {
+    200: CommentResponseDto;
+};
+
+export type CardsControllerRedactCommentResponse = CardsControllerRedactCommentResponses[keyof CardsControllerRedactCommentResponses];
+
+export type CardsControllerUnlinkData = {
+    body: LinkDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/links';
+};
+
+export type CardsControllerUnlinkResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type CardsControllerUnlinkResponse = CardsControllerUnlinkResponses[keyof CardsControllerUnlinkResponses];
+
+export type CardsControllerLinkData = {
+    body: LinkDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/links';
+};
+
+export type CardsControllerLinkResponses = {
+    201: CardWrittenResponseDto;
+};
+
+export type CardsControllerLinkResponse = CardsControllerLinkResponses[keyof CardsControllerLinkResponses];
+
+export type CardsControllerUnwatchData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/watch';
+};
+
+export type CardsControllerUnwatchResponses = {
+    204: void;
+};
+
+export type CardsControllerUnwatchResponse = CardsControllerUnwatchResponses[keyof CardsControllerUnwatchResponses];
+
+export type CardsControllerWatchData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/watch';
+};
+
+export type CardsControllerWatchResponses = {
+    204: void;
+};
+
+export type CardsControllerWatchResponse = CardsControllerWatchResponses[keyof CardsControllerWatchResponses];
+
+export type CardsControllerAttachmentsData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/attachments';
+};
+
+export type CardsControllerAttachmentsResponses = {
+    200: unknown;
+};
+
+export type TimelineControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        from?: string;
+        to?: string;
+        types?: Array<'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan'>;
+        roles?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        repos?: Array<string>;
+        modules?: Array<string>;
+        actors?: Array<string>;
+        kinds?: Array<string>;
+        q?: string;
+        mine?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/timeline';
+};
+
+export type TimelineControllerListResponses = {
+    200: Array<TimelineRowDto>;
+};
+
+export type TimelineControllerListResponse = TimelineControllerListResponses[keyof TimelineControllerListResponses];
+
+export type TasksControllerReadyData = {
+    body?: never;
+    path?: never;
+    query?: {
+        specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/tasks/ready';
+};
+
+export type TasksControllerReadyResponses = {
+    200: unknown;
+};
+
+export type TasksControllerMineData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/mine';
+};
+
+export type TasksControllerMineResponses = {
+    200: unknown;
+};
+
+export type TasksControllerPromptData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/prompt';
+};
+
+export type TasksControllerPromptResponses = {
+    200: TaskPromptDto;
+};
+
+export type TasksControllerPromptResponse = TasksControllerPromptResponses[keyof TasksControllerPromptResponses];
+
+export type TasksControllerEditData = {
+    body: EditDetailDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}';
+};
+
+export type TasksControllerEditResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerEditResponse = TasksControllerEditResponses[keyof TasksControllerEditResponses];
+
+export type TasksControllerClaimData = {
+    body: ClaimDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/claim';
+};
+
+export type TasksControllerClaimResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerClaimResponse = TasksControllerClaimResponses[keyof TasksControllerClaimResponses];
+
+export type TasksControllerUnclaimData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/unclaim';
+};
+
+export type TasksControllerUnclaimResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerUnclaimResponse = TasksControllerUnclaimResponses[keyof TasksControllerUnclaimResponses];
+
+export type TasksControllerStartData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/start';
+};
+
+export type TasksControllerStartResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerStartResponse = TasksControllerStartResponses[keyof TasksControllerStartResponses];
+
+export type TasksControllerSubmitData = {
+    body: SubmitDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/submit-review';
+};
+
+export type TasksControllerSubmitResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerSubmitResponse = TasksControllerSubmitResponses[keyof TasksControllerSubmitResponses];
+
+export type TasksControllerResumeData = {
+    body: OptionalReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/resume';
+};
+
+export type TasksControllerResumeResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerResumeResponse = TasksControllerResumeResponses[keyof TasksControllerResumeResponses];
+
+export type TasksControllerDoneData = {
+    body: CompleteDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/done';
+};
+
+export type TasksControllerDoneResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerDoneResponse = TasksControllerDoneResponses[keyof TasksControllerDoneResponses];
+
+export type TasksControllerCancelData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/cancel';
+};
+
+export type TasksControllerCancelResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerCancelResponse = TasksControllerCancelResponses[keyof TasksControllerCancelResponses];
+
+export type TasksControllerReopenData = {
+    body: OptionalReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/reopen';
+};
+
+export type TasksControllerReopenResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerReopenResponse = TasksControllerReopenResponses[keyof TasksControllerReopenResponses];
+
+export type TasksControllerMarkReadyData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/mark-ready';
+};
+
+export type TasksControllerMarkReadyResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerMarkReadyResponse = TasksControllerMarkReadyResponses[keyof TasksControllerMarkReadyResponses];
+
+export type TasksControllerMarkBacklogData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/tasks/{key}/mark-backlog';
+};
+
+export type TasksControllerMarkBacklogResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type TasksControllerMarkBacklogResponse = TasksControllerMarkBacklogResponses[keyof TasksControllerMarkBacklogResponses];
+
+export type DecisionsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'open' | 'decided' | 'withdrawn' | 'superseded'>;
+        deciderRole?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        mine?: boolean;
+        overdue?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/decisions';
+};
+
+export type DecisionsControllerListResponses = {
+    200: unknown;
+};
+
+export type DecisionsControllerOptionsData = {
+    body: OptionsDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/decisions/{key}/options';
+};
+
+export type DecisionsControllerOptionsResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type DecisionsControllerOptionsResponse = DecisionsControllerOptionsResponses[keyof DecisionsControllerOptionsResponses];
+
+export type DecisionsControllerDecideData = {
+    body: DecideDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/decisions/{key}/decide';
+};
+
+export type DecisionsControllerDecideResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type DecisionsControllerDecideResponse = DecisionsControllerDecideResponses[keyof DecisionsControllerDecideResponses];
+
+export type DecisionsControllerWithdrawData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/decisions/{key}/withdraw';
+};
+
+export type DecisionsControllerWithdrawResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type DecisionsControllerWithdrawResponse = DecisionsControllerWithdrawResponses[keyof DecisionsControllerWithdrawResponses];
+
+export type DecisionsControllerSupersedeData = {
+    body: SupersedeDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/decisions/{key}/supersede';
+};
+
+export type DecisionsControllerSupersedeResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type DecisionsControllerSupersedeResponse = DecisionsControllerSupersedeResponses[keyof DecisionsControllerSupersedeResponses];
+
+export type DecisionsControllerAdrData = {
+    body: DraftAdrDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/decisions/{key}/adr';
+};
+
+export type DecisionsControllerAdrResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type DecisionsControllerAdrResponse = DecisionsControllerAdrResponses[keyof DecisionsControllerAdrResponses];
+
+export type NeedsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'requested' | 'in_progress' | 'delivered' | 'verified' | 'cancelled'>;
+        responsibleRole?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        mine?: boolean;
+        stale?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/needs';
+};
+
+export type NeedsControllerListResponses = {
+    200: unknown;
+};
+
+export type NeedsControllerStartData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/needs/{key}/start';
+};
+
+export type NeedsControllerStartResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type NeedsControllerStartResponse = NeedsControllerStartResponses[keyof NeedsControllerStartResponses];
+
+export type NeedsControllerDeliverData = {
+    body: DeliverDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/needs/{key}/deliver';
+};
+
+export type NeedsControllerDeliverResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type NeedsControllerDeliverResponse = NeedsControllerDeliverResponses[keyof NeedsControllerDeliverResponses];
+
+export type NeedsControllerVerifyData = {
+    body: VerifyDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/needs/{key}/verify';
+};
+
+export type NeedsControllerVerifyResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type NeedsControllerVerifyResponse = NeedsControllerVerifyResponses[keyof NeedsControllerVerifyResponses];
+
+export type NeedsControllerRejectData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/needs/{key}/reject-delivery';
+};
+
+export type NeedsControllerRejectResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type NeedsControllerRejectResponse = NeedsControllerRejectResponses[keyof NeedsControllerRejectResponses];
+
+export type NeedsControllerCancelData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/needs/{key}/cancel';
+};
+
+export type NeedsControllerCancelResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type NeedsControllerCancelResponse = NeedsControllerCancelResponses[keyof NeedsControllerCancelResponses];
+
+export type HandoffsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'pending' | 'acknowledged' | 'applied' | 'dismissed'>;
+        toRole?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        fromRole?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        mine?: boolean;
+        severity?: Array<'breaking' | 'notable' | 'info'>;
+        stale?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/handoffs';
+};
+
+export type HandoffsControllerListResponses = {
+    200: unknown;
+};
+
+export type HandoffsControllerAcknowledgeData = {
+    body: AcknowledgeDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/handoffs/{key}/acknowledge';
+};
+
+export type HandoffsControllerAcknowledgeResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type HandoffsControllerAcknowledgeResponse = HandoffsControllerAcknowledgeResponses[keyof HandoffsControllerAcknowledgeResponses];
+
+export type HandoffsControllerApplyData = {
+    body: ApplyDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/handoffs/{key}/apply';
+};
+
+export type HandoffsControllerApplyResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type HandoffsControllerApplyResponse = HandoffsControllerApplyResponses[keyof HandoffsControllerApplyResponses];
+
+export type HandoffsControllerDismissData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/handoffs/{key}/dismiss';
+};
+
+export type HandoffsControllerDismissResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type HandoffsControllerDismissResponse = HandoffsControllerDismissResponses[keyof HandoffsControllerDismissResponses];
+
+export type RedesignControllerVersionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        app?: string;
+        page?: string;
+        status?: Array<'draft' | 'review' | 'approved' | 'rejected' | 'ported' | 'reference'>;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/redesign/versions';
+};
+
+export type RedesignControllerVersionsResponses = {
+    200: unknown;
+};
+
+export type RedesignControllerSubmitData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/submit-review';
+};
+
+export type RedesignControllerSubmitResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerSubmitResponse = RedesignControllerSubmitResponses[keyof RedesignControllerSubmitResponses];
+
+export type RedesignControllerApproveData = {
+    body: ApproveDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/approve';
+};
+
+export type RedesignControllerApproveResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerApproveResponse = RedesignControllerApproveResponses[keyof RedesignControllerApproveResponses];
+
+export type RedesignControllerRejectData = {
+    body: NoteDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/reject';
+};
+
+export type RedesignControllerRejectResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerRejectResponse = RedesignControllerRejectResponses[keyof RedesignControllerRejectResponses];
+
+export type RedesignControllerRequestChangesData = {
+    body: NoteDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/request-changes';
+};
+
+export type RedesignControllerRequestChangesResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerRequestChangesResponse = RedesignControllerRequestChangesResponses[keyof RedesignControllerRequestChangesResponses];
+
+export type RedesignControllerMarkPortedData = {
+    body: MarkPortedDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/mark-ported';
+};
+
+export type RedesignControllerMarkPortedResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerMarkPortedResponse = RedesignControllerMarkPortedResponses[keyof RedesignControllerMarkPortedResponses];
+
+export type DocsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: Array<string>;
+        kind?: Array<'doc' | 'adr' | 'status' | 'readme' | 'other'>;
+        q?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/docs';
+};
+
+export type DocsControllerListResponses = {
+    200: unknown;
+};
+
+export type DocsControllerGetData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/{key}';
+};
+
+export type DocsControllerGetResponses = {
+    200: unknown;
+};
+
+export type ReleasesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'planned' | 'released'>;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/releases';
+};
+
+export type ReleasesControllerListResponses = {
+    200: unknown;
+};
+
+export type ReleasesControllerEditData = {
+    body: EditDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/releases/{key}';
+};
+
+export type ReleasesControllerEditResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type ReleasesControllerEditResponse = ReleasesControllerEditResponses[keyof ReleasesControllerEditResponses];
+
+export type ReleasesControllerGenerateData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/releases/{key}/generate-notes';
+};
+
+export type ReleasesControllerGenerateResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type ReleasesControllerGenerateResponse = ReleasesControllerGenerateResponses[keyof ReleasesControllerGenerateResponses];
+
+export type ReleasesControllerReleaseData = {
+    body: ReleaseDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/releases/{key}/release';
+};
+
+export type ReleasesControllerReleaseResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type ReleasesControllerReleaseResponse = ReleasesControllerReleaseResponses[keyof ReleasesControllerReleaseResponses];
+
+export type IdeasControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'open' | 'exploring' | 'accepted' | 'parked' | 'rejected'>;
+        q?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/ideas';
+};
+
+export type IdeasControllerListResponses = {
+    200: unknown;
+};
+
+export type IdeasControllerUpdateData = {
+    body: UpdateDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}';
+};
+
+export type IdeasControllerUpdateResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerUpdateResponse = IdeasControllerUpdateResponses[keyof IdeasControllerUpdateResponses];
+
+export type IdeasControllerExploreData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/explore';
+};
+
+export type IdeasControllerExploreResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerExploreResponse = IdeasControllerExploreResponses[keyof IdeasControllerExploreResponses];
+
+export type IdeasControllerAcceptData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/accept';
+};
+
+export type IdeasControllerAcceptResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerAcceptResponse = IdeasControllerAcceptResponses[keyof IdeasControllerAcceptResponses];
+
+export type IdeasControllerParkData = {
+    body: OptionalReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/park';
+};
+
+export type IdeasControllerParkResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerParkResponse = IdeasControllerParkResponses[keyof IdeasControllerParkResponses];
+
+export type IdeasControllerRejectData = {
+    body: OptionalReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/reject';
+};
+
+export type IdeasControllerRejectResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerRejectResponse = IdeasControllerRejectResponses[keyof IdeasControllerRejectResponses];
+
+export type IdeasControllerReopenData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/reopen';
+};
+
+export type IdeasControllerReopenResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerReopenResponse = IdeasControllerReopenResponses[keyof IdeasControllerReopenResponses];
+
+export type IdeasControllerToPlanData = {
+    body: ToPlanDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/ideas/{key}/to-plan';
+};
+
+export type IdeasControllerToPlanResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type IdeasControllerToPlanResponse = IdeasControllerToPlanResponses[keyof IdeasControllerToPlanResponses];
+
+export type PlansControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'draft' | 'in_review' | 'approved' | 'in_progress' | 'done' | 'abandoned'>;
+        q?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/plans';
+};
+
+export type PlansControllerListResponses = {
+    200: unknown;
+};
+
+export type PlansControllerRevisionsData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/revisions';
+};
+
+export type PlansControllerRevisionsResponses = {
+    200: Array<PlanRevisionDto>;
+};
+
+export type PlansControllerRevisionsResponse = PlansControllerRevisionsResponses[keyof PlansControllerRevisionsResponses];
+
+export type PlansControllerUpdateData = {
+    body: UpdateDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}';
+};
+
+export type PlansControllerUpdateResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerUpdateResponse = PlansControllerUpdateResponses[keyof PlansControllerUpdateResponses];
+
+export type PlansControllerRestoreData = {
+    body: RestoreDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/restore';
+};
+
+export type PlansControllerRestoreResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerRestoreResponse = PlansControllerRestoreResponses[keyof PlansControllerRestoreResponses];
+
+export type PlansControllerSubmitData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/submit-review';
+};
+
+export type PlansControllerSubmitResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerSubmitResponse = PlansControllerSubmitResponses[keyof PlansControllerSubmitResponses];
+
+export type PlansControllerApproveData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/approve';
+};
+
+export type PlansControllerApproveResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerApproveResponse = PlansControllerApproveResponses[keyof PlansControllerApproveResponses];
+
+export type PlansControllerStartData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/start';
+};
+
+export type PlansControllerStartResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerStartResponse = PlansControllerStartResponses[keyof PlansControllerStartResponses];
+
+export type PlansControllerFinishData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/finish';
+};
+
+export type PlansControllerFinishResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerFinishResponse = PlansControllerFinishResponses[keyof PlansControllerFinishResponses];
+
+export type PlansControllerAbandonData = {
+    body: OptionalReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/abandon';
+};
+
+export type PlansControllerAbandonResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerAbandonResponse = PlansControllerAbandonResponses[keyof PlansControllerAbandonResponses];
+
+export type PlansControllerToTasksData = {
+    body: ToTasksDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/to-tasks';
+};
+
+export type PlansControllerToTasksResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerToTasksResponse = PlansControllerToTasksResponses[keyof PlansControllerToTasksResponses];
+
+export type EventsControllerStreamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/events/stream';
+};
+
+export type EventsControllerStreamResponses = {
+    200: unknown;
+};
 
 export type HealthControllerLiveData = {
     body?: never;
@@ -79,3 +3109,374 @@ export type HealthControllerReadyData = {
 export type HealthControllerReadyResponses = {
     200: unknown;
 };
+
+export type WorkspacesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces';
+};
+
+export type WorkspacesControllerListResponses = {
+    200: Array<ProjectListItemDto>;
+};
+
+export type WorkspacesControllerListResponse = WorkspacesControllerListResponses[keyof WorkspacesControllerListResponses];
+
+export type WorkspacesControllerCreateData = {
+    body: CreateProjectDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces';
+};
+
+export type WorkspacesControllerCreateResponses = {
+    201: ProjectDto;
+};
+
+export type WorkspacesControllerCreateResponse = WorkspacesControllerCreateResponses[keyof WorkspacesControllerCreateResponses];
+
+export type WorkspacesControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}';
+};
+
+export type WorkspacesControllerGetResponses = {
+    200: ProjectDetailDto;
+};
+
+export type WorkspacesControllerGetResponse = WorkspacesControllerGetResponses[keyof WorkspacesControllerGetResponses];
+
+export type WorkspacesControllerUpdateData = {
+    body: UpdateProjectDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}';
+};
+
+export type WorkspacesControllerUpdateResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerUpdateResponse = WorkspacesControllerUpdateResponses[keyof WorkspacesControllerUpdateResponses];
+
+export type WorkspacesControllerCloseData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/close';
+};
+
+export type WorkspacesControllerCloseResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerCloseResponse = WorkspacesControllerCloseResponses[keyof WorkspacesControllerCloseResponses];
+
+export type WorkspacesControllerReopenData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/reopen';
+};
+
+export type WorkspacesControllerReopenResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerReopenResponse = WorkspacesControllerReopenResponses[keyof WorkspacesControllerReopenResponses];
+
+export type MembersControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/members';
+};
+
+export type MembersControllerListResponses = {
+    200: Array<MemberRowDto>;
+};
+
+export type MembersControllerListResponse = MembersControllerListResponses[keyof MembersControllerListResponses];
+
+export type MembersControllerChangeRolesData = {
+    body: UpdateMemberRolesDto;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}';
+};
+
+export type MembersControllerChangeRolesResponses = {
+    200: MemberRowDto;
+};
+
+export type MembersControllerChangeRolesResponse = MembersControllerChangeRolesResponses[keyof MembersControllerChangeRolesResponses];
+
+export type MembersControllerRemoveData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/remove';
+};
+
+export type MembersControllerRemoveResponses = {
+    204: void;
+};
+
+export type MembersControllerRemoveResponse = MembersControllerRemoveResponses[keyof MembersControllerRemoveResponses];
+
+export type MembersControllerDisableData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/disable';
+};
+
+export type MembersControllerDisableResponses = {
+    204: void;
+};
+
+export type MembersControllerDisableResponse = MembersControllerDisableResponses[keyof MembersControllerDisableResponses];
+
+export type MembersControllerEnableData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/enable';
+};
+
+export type MembersControllerEnableResponses = {
+    204: void;
+};
+
+export type MembersControllerEnableResponse = MembersControllerEnableResponses[keyof MembersControllerEnableResponses];
+
+export type MembersControllerPasswordResetLinkData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/password-reset-link';
+};
+
+export type MembersControllerPasswordResetLinkResponses = {
+    201: {
+        url?: string;
+    };
+};
+
+export type MembersControllerPasswordResetLinkResponse = MembersControllerPasswordResetLinkResponses[keyof MembersControllerPasswordResetLinkResponses];
+
+export type MembersControllerSetGithubLoginsData = {
+    body: GithubLoginsDto;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/github-logins';
+};
+
+export type MembersControllerSetGithubLoginsResponses = {
+    200: GithubLoginsDto;
+};
+
+export type MembersControllerSetGithubLoginsResponse = MembersControllerSetGithubLoginsResponses[keyof MembersControllerSetGithubLoginsResponses];
+
+export type SettingsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings';
+};
+
+export type SettingsControllerListResponses = {
+    200: Array<SettingRowDto>;
+};
+
+export type SettingsControllerListResponse = SettingsControllerListResponses[keyof SettingsControllerListResponses];
+
+export type SettingsControllerCatalogueData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/catalogue';
+};
+
+export type SettingsControllerCatalogueResponses = {
+    200: Array<SettingCatalogueRowDto>;
+};
+
+export type SettingsControllerCatalogueResponse = SettingsControllerCatalogueResponses[keyof SettingsControllerCatalogueResponses];
+
+export type SettingsControllerResetData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/{key}';
+};
+
+export type SettingsControllerResetResponses = {
+    200: SettingRowDto;
+};
+
+export type SettingsControllerResetResponse = SettingsControllerResetResponses[keyof SettingsControllerResetResponses];
+
+export type SettingsControllerPutData = {
+    body: PutSettingDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/{key}';
+};
+
+export type SettingsControllerPutResponses = {
+    200: SettingRowDto;
+};
+
+export type SettingsControllerPutResponse = SettingsControllerPutResponses[keyof SettingsControllerPutResponses];
+
+export type SourcesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources';
+};
+
+export type SourcesControllerListResponses = {
+    200: Array<SourceDtoHttp>;
+};
+
+export type SourcesControllerListResponse = SourcesControllerListResponses[keyof SourcesControllerListResponses];
+
+export type SourcesControllerCreateData = {
+    body: CreateSourceDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources';
+};
+
+export type SourcesControllerCreateResponses = {
+    201: SourceDtoHttp;
+};
+
+export type SourcesControllerCreateResponse = SourcesControllerCreateResponses[keyof SourcesControllerCreateResponses];
+
+export type SourcesControllerRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerRemoveResponses = {
+    204: void;
+};
+
+export type SourcesControllerRemoveResponse = SourcesControllerRemoveResponses[keyof SourcesControllerRemoveResponses];
+
+export type SourcesControllerGetData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerGetResponses = {
+    200: SourceDtoHttp;
+};
+
+export type SourcesControllerGetResponse = SourcesControllerGetResponses[keyof SourcesControllerGetResponses];
+
+export type SourcesControllerUpdateData = {
+    body: UpdateSourceDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerUpdateResponses = {
+    200: SourceDtoHttp;
+};
+
+export type SourcesControllerUpdateResponse = SourcesControllerUpdateResponses[keyof SourcesControllerUpdateResponses];
+
+export type SourcesControllerTestData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}/test';
+};
+
+export type SourcesControllerTestResponses = {
+    200: SourceTestResultDto;
+};
+
+export type SourcesControllerTestResponse = SourcesControllerTestResponses[keyof SourcesControllerTestResponses];
+
+export type OnboardingControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding';
+};
+
+export type OnboardingControllerGetResponses = {
+    200: Array<OnboardingGroupDto>;
+};
+
+export type OnboardingControllerGetResponse = OnboardingControllerGetResponses[keyof OnboardingControllerGetResponses];
+
+export type OnboardingControllerUntickData = {
+    body?: never;
+    path: {
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
+};
+
+export type OnboardingControllerUntickResponses = {
+    204: void;
+};
+
+export type OnboardingControllerUntickResponse = OnboardingControllerUntickResponses[keyof OnboardingControllerUntickResponses];
+
+export type OnboardingControllerTickData = {
+    body?: never;
+    path: {
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
+};
+
+export type OnboardingControllerTickResponses = {
+    204: void;
+};
+
+export type OnboardingControllerTickResponse = OnboardingControllerTickResponses[keyof OnboardingControllerTickResponses];
