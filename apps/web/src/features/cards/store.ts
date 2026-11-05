@@ -138,8 +138,11 @@ export function getCard(key: string, slug: string = ws()): CardListItem | HubCar
   const client = getQueryClient();
   const full = client.getQueryData<HubCard>(qk.card(slug, key));
   if (full) return full;
-  for (const [, data] of client.getQueriesData<Paginated<CardListItem>>({ queryKey: qk.cards(slug) })) {
-    const row = data?.items?.find((c) => c.key === key);
+  // A list is a page or, like Ready, a plain array.
+  for (const [, data] of client.getQueriesData<Paginated<CardListItem> | CardListItem[]>({
+    queryKey: qk.cards(slug),
+  })) {
+    const row = (Array.isArray(data) ? data : data?.items)?.find((c) => c.key === key);
     if (row) return row;
   }
   return undefined;
