@@ -41,6 +41,27 @@ export class RedisClients implements OnApplicationShutdown {
   }
 }
 
+export type ProjectChangeScope = 'members' | 'invites' | 'settings' | 'sources' | 'project';
+
+/**
+ * Publishes `project.updated` once the decorated method has resolved, so after its transaction committed, and for
+ * REST and MCP alike. The method's first argument is the actor; its class has `realtime: RealtimePublisher`.
+ */
+export function PublishesProjectChange(scope: ProjectChangeScope): MethodDecorator {
+  return (_target, _key, descriptor: PropertyDescriptor) => {
+    const original = descriptor.value as (...args: unknown[]) => Promise<unknown>;
+    descriptor.value = async function (
+      this: { realtime: RealtimePublisher },
+      actor: { workspaceId: string },
+      ...rest: unknown[]
+    ) {
+      const result = await original.call(this, actor, ...rest);
+      await this.realtime.publishProjectChange(actor.workspaceId, scope);
+      return result;
+    };
+  };
+}
+
 @Injectable()
 export class RealtimePublisher {
   private readonly logger = new Logger(RealtimePublisher.name);
@@ -50,6 +71,11 @@ export class RealtimePublisher {
   /** Never throws: the mutation has committed, and a lost message is caught up on reconnect. */
   async publishCardEvent(event: RealtimeCardEvent): Promise<void> {
     await this.send(event.workspaceId, event, event.cardKey);
+  }
+
+  /** Members, invites, settings, sources or project details changed: every open page rereads them (docs/15 §7). */
+  async publishProjectChange(workspaceId: string, scope: ProjectChangeScope): Promise<void> {
+    await this.publishEnvelope(workspaceId, { event: 'project.updated', data: { scope }, audience: 'all' });
   }
 
   /** Anything else for the open pages: `inbox.new`, `brief.ready`, `source.run` (docs/04 §4). Never throws. */

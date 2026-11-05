@@ -1037,6 +1037,7 @@ Every message: `id: <redis stream id>`, `event: <name>`, `data: <json>`.
 | `brief.ready` | `{ kind, date }` | morning/weekly brief stored for this member |
 | `source.run` | `{ sourceId, status: 'running' | 'ok' | 'failed', created, updated, lagSec }` | owner/pm only |
 | `workspace.updated` | `{ counts: Workspace['counts'] }` | throttled to 1/5 s |
+| `project.updated` | `{ scope: 'members' \| 'invites' \| 'settings' \| 'sources' \| 'project' }` | after any change to them, from REST or MCP; open pages reread |
 
 Routing: the worker/API publishes to Redis channel `ws:<workspaceId>:events` through `RealtimePublisher`. A card event is
 for every member. Anything else uses `publishEnvelope` with `{ event, data, audience: 'all' | { userIds: string[] } | { roles: Role[] } }`;

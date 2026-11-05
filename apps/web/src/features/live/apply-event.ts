@@ -105,6 +105,13 @@ export function applyLiveMessage(client: QueryClient, ws: string, message: LiveM
   if (event === 'workspace.updated' || event === 'project.updated') {
     void client.invalidateQueries({ queryKey: qk.workspace(ws) });
     void client.invalidateQueries({ queryKey: qk.workspaces });
+    if (event === 'project.updated') {
+      // Members, invites, settings, sources: an outside change, from another tab or from MCP (docs/15 §7).
+      void client.invalidateQueries({ queryKey: qk.admin(ws) });
+      void client.invalidateQueries({ queryKey: qk.members(ws) });
+      // My own roles may be what changed, and the shell's permissions read them.
+      void client.invalidateQueries({ queryKey: qk.me });
+    }
     return true;
   }
   const card = asCardEvent(data);

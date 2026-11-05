@@ -18,6 +18,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 
 import { Prisma } from '@/generated/prisma/client';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
+import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
 import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
@@ -33,6 +34,7 @@ export class SettingsService {
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimePublisher,
     private readonly gate: ProjectGate,
   ) {}
 
@@ -62,6 +64,7 @@ export class SettingsService {
     });
   }
 
+  @PublishesProjectChange('settings')
   async put(actor: MemberActor, key: string, value: unknown): Promise<SettingRow> {
     assertKey(key);
     await this.gate.assertOpen(actor.workspaceId);
@@ -103,6 +106,7 @@ export class SettingsService {
   }
 
   /** Back to the catalogue's default. */
+  @PublishesProjectChange('settings')
   async reset(actor: MemberActor, key: string): Promise<SettingRow> {
     assertKey(key);
     await this.gate.assertOpen(actor.workspaceId);

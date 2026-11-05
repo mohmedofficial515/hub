@@ -21,6 +21,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { Prisma } from '@/generated/prisma/client';
 import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
+import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
 import { AppException } from '@/shared/errors';
 import { SecretCipher } from '@/shared/security/secret-cipher';
@@ -76,6 +77,7 @@ export class SourcesService {
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimePublisher,
     private readonly gate: ProjectGate,
     private readonly cipher: SecretCipher,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -93,6 +95,7 @@ export class SourcesService {
     return this.toDto(await this.found(workspaceId, id));
   }
 
+  @PublishesProjectChange('sources')
   async create(actor: MemberActor, input: CreateSourceInput): Promise<SourceDto> {
     this.assertMaySetSecret(actor, input.secret);
     await this.gate.assertOpen(actor.workspaceId);
@@ -120,6 +123,7 @@ export class SourcesService {
     });
   }
 
+  @PublishesProjectChange('sources')
   async update(actor: MemberActor, id: string, input: UpdateSourceInput): Promise<SourceDto> {
     this.assertMaySetSecret(actor, input.secret);
     await this.gate.assertOpen(actor.workspaceId);
@@ -154,6 +158,7 @@ export class SourcesService {
   }
 
   /** Soft: the row stays for its capture history, and the name becomes free again. */
+  @PublishesProjectChange('sources')
   async remove(actor: MemberActor, id: string): Promise<void> {
     await this.gate.assertOpen(actor.workspaceId);
     const current = await this.found(actor.workspaceId, id);

@@ -18,5 +18,7 @@ export const qk = {
   today: (ws: string) => ['today', ws] as const,
   timeline: (ws: string) => ['timeline', ws] as const,
   inbox: (ws: string) => ['inbox', ws] as const,
+  /** Members, invites, settings, sources, audit: `project.updated` on the stream rereads all of them. */
+  admin: (ws: string, ...part: readonly unknown[]) => ['admin', ws, ...part] as const,
   search: (ws: string, q: string) => ['search', ws, q] as const,
 };

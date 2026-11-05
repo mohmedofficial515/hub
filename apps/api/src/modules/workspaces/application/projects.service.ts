@@ -18,6 +18,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 
 import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
+import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
 import { TotpPolicy } from '@/modules/identity';
 import { AppException } from '@/shared/errors';
@@ -91,6 +92,7 @@ export class ProjectsService {
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimePublisher,
     private readonly totp: TotpPolicy,
     private readonly gate: ProjectGate,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -195,6 +197,7 @@ export class ProjectsService {
     }
   }
 
+  @PublishesProjectChange('project')
   async update(actor: MemberActor, input: UpdateProjectInput): Promise<Project> {
     assertNoSecrets(input);
     assertTimezone(input.timezone);
@@ -223,11 +226,13 @@ export class ProjectsService {
     });
   }
 
+  @PublishesProjectChange('project')
   async close(actor: MemberActor): Promise<Project> {
     await this.gate.assertOpen(actor.workspaceId);
     return this.setClosed(actor, this.clock.now());
   }
 
+  @PublishesProjectChange('project')
   async reopen(actor: MemberActor): Promise<Project> {
     const workspace = await this.txHost.tx.workspace.findUniqueOrThrow({
       where: { id: actor.workspaceId },

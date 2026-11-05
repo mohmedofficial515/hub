@@ -14,6 +14,7 @@ import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { NotificationOutbox } from '@/infra/outbox/outbox';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { runUnscoped } from '@/infra/prisma/workspace-scope';
+import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
 import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
@@ -56,6 +57,7 @@ export class InviteService {
     private readonly sessions: SessionService,
     private readonly me: MeService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimePublisher,
     private readonly mailer: Mailer,
     private readonly outbox: NotificationOutbox,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
@@ -82,6 +84,7 @@ export class InviteService {
     }));
   }
 
+  @PublishesProjectChange('invites')
   async create(actor: MemberActor, rawEmail: string, roles: readonly string[]) {
     assertKnownRoles(roles);
     this.assertMayGrant(actor, roles);
@@ -135,6 +138,7 @@ export class InviteService {
   }
 
   /** A new token replaces the old one, which stops working. */
+  @PublishesProjectChange('invites')
   async resend(actor: MemberActor, id: string): Promise<{ url: string }> {
     const workspace = await this.openWorkspace(actor.workspaceId);
     const invite = await this.txHost.tx.invite.findFirst({ where: { id, workspaceId: actor.workspaceId } });
@@ -161,6 +165,7 @@ export class InviteService {
     return { url };
   }
 
+  @PublishesProjectChange('invites')
   async revoke(actor: MemberActor, id: string): Promise<void> {
     await this.openWorkspace(actor.workspaceId);
     await this.txHost.withTransaction(async () => {
@@ -247,6 +252,7 @@ export class InviteService {
       await this.notifyLeads(invite.workspaceId, user.id, user.displayName);
       return { userId: user.id, session: principal ? null : await this.sessions.start(user.id) };
     });
+    await this.realtime.publishProjectChange(invite.workspaceId, 'members');
     return { user: await this.me.get(userId), workspace: { slug: workspace.slug }, session };
   }
 

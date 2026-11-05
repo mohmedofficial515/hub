@@ -10,6 +10,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 
 import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
+import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
 import { AccountAdmin, assertKnownRoles, InviteService } from '@/modules/identity';
 import { AppException } from '@/shared/errors';
@@ -23,6 +24,7 @@ export class MembersService {
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimePublisher,
     private readonly gate: ProjectGate,
     private readonly accounts: AccountAdmin,
     private readonly invites: InviteService,
@@ -73,6 +75,7 @@ export class MembersService {
     };
   }
 
+  @PublishesProjectChange('members')
   async changeRoles(actor: MemberActor, userId: string, roles: readonly string[]): Promise<MemberRow> {
     assertKnownRoles(roles);
     await this.gate.assertOpen(actor.workspaceId);
@@ -97,6 +100,7 @@ export class MembersService {
     return this.row(actor, userId);
   }
 
+  @PublishesProjectChange('members')
   async remove(actor: MemberActor, userId: string): Promise<void> {
     await this.gate.assertOpen(actor.workspaceId);
     await this.txHost.withTransaction(() => this.deactivate(actor, userId, 'members.remove'));
@@ -107,6 +111,7 @@ export class MembersService {
    * Disables the account when this was the member's only project; otherwise only removes them here, because
    * one project's owner must not lock someone out of another project (docs/04 §3.23).
    */
+  @PublishesProjectChange('members')
   async disable(actor: MemberActor, userId: string): Promise<void> {
     await this.gate.assertOpen(actor.workspaceId);
     await this.txHost.withTransaction(async () => {
@@ -119,6 +124,7 @@ export class MembersService {
     await this.removal.run(actor, userId);
   }
 
+  @PublishesProjectChange('members')
   async enable(actor: MemberActor, userId: string): Promise<void> {
     await this.gate.assertOpen(actor.workspaceId);
     await this.txHost.withTransaction(async () => {
@@ -156,6 +162,7 @@ export class MembersService {
     return { url };
   }
 
+  @PublishesProjectChange('members')
   async setGithubLogins(
     actor: MemberActor,
     userId: string,
