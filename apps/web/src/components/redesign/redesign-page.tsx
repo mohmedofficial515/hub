@@ -554,8 +554,8 @@ function LeadVersion({
             >
               <Ltr>{num(r.reviewScore, locale)}</Ltr>
             </p>
-            <p className="min-w-0 text-body-sm text-muted-foreground">
-              {r.reviewSummary && <Bidi>{r.reviewSummary}</Bidi>}
+            <p className="line-clamp-4 min-w-0 text-body-sm text-muted-foreground">
+              {r.reviewSummary && <Bidi>{r.reviewSummary.replace(/[*`]/g, '')}</Bidi>}
             </p>
           </div>
         )}

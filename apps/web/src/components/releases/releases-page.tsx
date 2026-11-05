@@ -30,6 +30,7 @@ import {
   LoadingRegion,
   type Locale,
   Ltr,
+  MarkdownView,
   num,
   PageContainer,
   PageHeader,
@@ -269,9 +270,7 @@ function Manifest({
               <Tabs.Content key={a} value={a} className="relative pt-3 pe-12 outline-none">
                 {r.notes[a] ? (
                   <>
-                    <p className="text-body whitespace-pre-line text-foreground">
-                      <Bidi>{r.notes[a]}</Bidi>
-                    </p>
+                    <MarkdownView source={r.notes[a]} headingOffset={3} copyCodeLabel={t.copyNote} />
                     <CopyButton
                       text={r.notes[a]}
                       showText={false}

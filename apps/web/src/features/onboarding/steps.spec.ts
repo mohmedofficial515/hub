@@ -30,11 +30,17 @@ describe('mergeGroups', () => {
         ],
       },
     ]);
-    expect(steps.map((s) => s.phase)).toEqual(['read', 'setup', 'work', 'setup', 'work']);
+    expect(steps.map((s) => [s.id, s.phase])).toEqual([
+      ['what', 'read'],
+      ['pack', 'setup'],
+      ['alerts', 'setup'],
+      ['claim', 'work'],
+      ['dec', 'work'],
+    ]);
   });
 
   it('lets an action tick itself, and gives the first session its command', () => {
-    const [session, read] = mergeGroups([
+    const [read, session] = mergeGroups([
       {
         role: 'qa',
         items: [{ id: 'session', kind: 'action', title: 'Run', ref: 'first_session' }, doc],

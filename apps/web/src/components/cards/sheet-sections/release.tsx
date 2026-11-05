@@ -10,7 +10,8 @@ import { ActorChip } from '@/components/cards/avatar';
 import { CardChip } from '@/components/cards/card-key';
 import { Fact, Facts, type SectionProps, SubHeading } from '@/components/cards/sheet-sections/shared';
 import { CopyButton } from '@/components/common/copy-button';
-import { Bidi, Ltr } from '@/components/common/text';
+import { MarkdownView } from '@/components/common/markdown';
+import { Ltr } from '@/components/common/text';
 import { tabTriggerClass } from '@/components/ui/tabs-class';
 import { useCardEvents } from '@/features/cards/store';
 import { useFinishedCards, useIncluded } from '@/features/releases/queries';
@@ -78,9 +79,7 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
             >
               {r.notes[note] ? (
                 <>
-                  <p className="text-body whitespace-pre-line text-foreground">
-                    <Bidi>{r.notes[note]}</Bidi>
-                  </p>
+                  <MarkdownView source={r.notes[note]} headingOffset={3} />
                   <CopyButton
                     text={r.notes[note]}
                     showText={false}

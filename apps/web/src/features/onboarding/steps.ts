@@ -55,6 +55,8 @@ const ACTIONS: Record<
   first_claim: { view: 'tasks', query: { status: 'ready' } },
 };
 
+const PHASE_ORDER: StepPhase[] = ['read', 'setup', 'work'];
+
 const phaseOf = (item: OnboardingItemDto): StepPhase => {
   if (item.phase) return item.phase;
   if (item.kind === 'doc') return 'read';
@@ -88,7 +90,8 @@ export function mergeGroups(groups: readonly OnboardingGroupDto[]): OnboardingSt
       });
     }
   }
-  return [...steps.values()];
+  // Read, then set up, then work, so the numbers on the trail run in order across the sections. The sort is stable.
+  return [...steps.values()].sort((a, b) => PHASE_ORDER.indexOf(a.phase) - PHASE_ORDER.indexOf(b.phase));
 }
 
 export type StepTarget =
