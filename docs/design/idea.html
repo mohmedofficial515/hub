@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مركز المشروع Hub</title>
+<meta name="description" content="الفكرة النهائية لأداة مركز المشروع: خط زمني موحّد، مهام اليوم، قرارات واحتياجات حسب الدور، وربط بالـ AI عبر MCP — قبل مرحلة التخطيط.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f1; --surface:#ffffff; --surface-2:#f0eee8; --border:#e2dfd6; --text:#1d1c19; --muted:#6b675e;
+  --accent:#0f6b5c; --accent-soft:#dcefe9; --accent-text:#0b5246;
+  --c-task:#2f6fd6; --c-decision:#b4531b; --c-need:#a3237a; --c-change:#4b5563; --c-design:#7c3aed; --c-doc:#0f766e; --c-release:#15803d;
+  --warn:#b45309; --warn-soft:#fdf0dc; --ok:#15803d; --ok-soft:#e1f3e6; --bad:#b91c1c;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+  --font:"IBM Plex Sans Arabic",system-ui,"Segoe UI",Tahoma,sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121311; --surface:#1b1c1a; --surface-2:#232421; --border:#32332f; --text:#ecebe6; --muted:#a3a097;
+    --accent:#4fc2a8; --accent-soft:#163a33; --accent-text:#8fe0cc;
+    --c-task:#6ea0f5; --c-decision:#f0915a; --c-need:#e46bbd; --c-change:#9ca3af; --c-design:#a78bfa; --c-doc:#4fd1c5; --c-release:#4ade80;
+    --warn:#f5b454; --warn-soft:#3a2c14; --ok:#4ade80; --ok-soft:#173222; --bad:#f87171;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121311; --surface:#1b1c1a; --surface-2:#232421; --border:#32332f; --text:#ecebe6; --muted:#a3a097;
+  --accent:#4fc2a8; --accent-soft:#163a33; --accent-text:#8fe0cc;
+  --c-task:#6ea0f5; --c-decision:#f0915a; --c-need:#e46bbd; --c-change:#9ca3af; --c-design:#a78bfa; --c-doc:#4fd1c5; --c-release:#4ade80;
+  --warn:#f5b454; --warn-soft:#3a2c14; --ok:#4ade80; --ok-soft:#173222; --bad:#f87171;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-text)}
+code,.mono{font-family:var(--mono);font-size:.86em;direction:ltr;unicode-bidi:isolate}
+code{background:var(--surface-2);border:1px solid var(--border);padding:.05em .4em;border-radius:6px}
+pre{direction:ltr;text-align:left;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.6;margin:12px 0}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:32px;max-width:1240px;margin:0 auto;padding:24px 24px 80px}
+nav.toc{position:sticky;top:16px;align-self:start;max-height:calc(100vh - 32px);overflow:auto;padding:4px 0}
+nav.toc .brand{font-weight:700;font-size:18px;margin-bottom:4px}
+nav.toc .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+nav.toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+nav.toc li a{display:flex;gap:8px;padding:5px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:14px}
+nav.toc li a::before{counter-increment:t;content:counter(t);font-family:var(--mono);font-size:12px;min-width:18px;opacity:.7;padding-top:2px}
+nav.toc li a:hover,nav.toc li a.active{background:var(--surface);color:var(--text)}
+.theme-btn{margin-top:16px;font:inherit;font-size:13px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer}
+main{min-width:0}
+header.hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;box-shadow:var(--shadow);margin-bottom:28px}
+.eyebrow{display:inline-block;font-size:13px;color:var(--accent-text);background:var(--accent-soft);padding:2px 10px;border-radius:99px;margin-bottom:12px}
+h1{font-size:34px;line-height:1.3;margin:0 0 10px;letter-spacing:-.01em}
+h2{font-size:24px;line-height:1.4;margin:0 0 6px}
+h3{font-size:18px;margin:22px 0 8px}
+.lead{font-size:18px;color:var(--muted);margin:0;max-width:62ch}
+section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:22px;box-shadow:var(--shadow)}
+section > .kicker{color:var(--muted);font-size:14px;margin:0 0 18px}
+p{margin:0 0 12px;max-width:75ch}
+ul,ol{padding-inline-start:22px;margin:0 0 12px}
+li{margin-bottom:4px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.card h4{margin:0 0 6px;font-size:16px}
+.card p{font-size:14.5px;color:var(--muted);margin:0}
+.card .tag{float:left}
+.stat{font-size:28px;font-weight:700;line-height:1.2}
+.stat-l{font-size:13px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{font:inherit;font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--text);padding:3px 12px;border-radius:99px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:1px 9px;border-radius:99px;border:1px solid var(--border);background:var(--surface);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:currentColor}
+.t-task{color:var(--c-task)} .t-decision{color:var(--c-decision)} .t-need{color:var(--c-need)} .t-change{color:var(--c-change)} .t-design{color:var(--c-design)} .t-doc{color:var(--c-doc)} .t-release{color:var(--c-release)}
+.decided{border-inline-start:4px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin:12px 0}
+.decided b{color:var(--accent-text)}
+.note{border-inline-start:4px solid var(--warn);background:var(--warn-soft);border-radius:10px;padding:12px 16px;margin:12px 0;font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl{overflow-x:auto;border:1px solid var(--border);border-radius:12px;margin:12px 0}
+th,td{text-align:start;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+th{background:var(--surface-2);font-weight:600;font-size:13.5px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.y{color:var(--ok);font-weight:600} td.n{color:var(--muted)}
+/* timeline demo */
+.demo{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:12px}
+.demo-bar{background:var(--surface-2);padding:12px 14px;border-bottom:1px solid var(--border)}
+.demo-bar .lbl{font-size:12.5px;color:var(--muted);margin-inline-end:6px}
+.tl{list-style:none;margin:0;padding:8px 18px 14px}
+.tl-day{font-size:12.5px;color:var(--muted);font-weight:600;padding:12px 0 4px}
+.tl-item{display:grid;grid-template-columns:14px minmax(0,1fr);gap:12px;padding:8px 0;position:relative}
+.tl-item::before{content:"";position:absolute;inset-inline-start:6px;top:26px;bottom:-8px;width:2px;background:var(--border)}
+.tl-item:last-child::before{display:none}
+.tl-item .dot{width:14px;height:14px;margin-top:6px;border:3px solid var(--surface)}
+.tl-head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.tl-title{font-weight:600}
+.tl-meta{font-size:13px;color:var(--muted)}
+.tl-body{font-size:14px;color:var(--muted);margin-top:2px}
+.tl-act{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;padding:3px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.btn.p{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.empty{padding:24px;text-align:center;color:var(--muted);font-size:14px}
+/* architecture */
+.arch{display:grid;grid-template-columns:1fr auto 1.4fr auto 1fr;gap:10px;align-items:stretch;margin:14px 0}
+.arch .col{display:flex;flex-direction:column;gap:8px}
+.arch .col h5{margin:0 0 2px;font-size:13px;color:var(--muted);font-weight:600}
+.arch .box{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:14px}
+.arch .box small{display:block;color:var(--muted);font-size:12.5px}
+.arch .hub{background:var(--accent-soft);border:2px solid var(--accent);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.arch .hub .box{background:var(--surface)}
+.arch .arrow{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:22px}
+/* steps */
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps > li{counter-increment:s;position:relative;padding:4px 44px 14px 0;margin:0}
+.steps > li::before{content:counter(s);position:absolute;inset-inline-start:0;top:2px;width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent-text);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+.steps > li b{display:block}
+.phase{display:grid;grid-template-columns:72px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.phase:last-child{border-bottom:0}
+.phase .ph{font-family:var(--mono);font-weight:500;font-size:20px;color:var(--accent-text)}
+.phase .ph small{display:block;font-family:var(--font);font-size:12px;color:var(--muted)}
+.phase h4{margin:0 0 4px;font-size:16px}
+.phase p{font-size:14.5px;color:var(--muted);margin:0}
+details{border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:8px 0;background:var(--surface-2)}
+details summary{cursor:pointer;font-weight:600}
+details[open] summary{margin-bottom:8px}
+.q{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;padding:10px 0;border-bottom:1px dashed var(--border)}
+.q:last-child{border-bottom:0}
+.q .n{font-family:var(--mono);color:var(--accent-text)}
+footer{color:var(--muted);font-size:13px;text-align:center;padding:12px}
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr;padding:16px 16px 60px;gap:16px}
+  nav.toc{position:static;max-height:none}
+  nav.toc ol{display:flex;flex-wrap:wrap;gap:4px}
+  nav.toc li a{background:var(--surface);border:1px solid var(--border);padding:3px 10px;font-size:13px}
+  .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .arch{grid-template-columns:1fr}
+  .arch .arrow{transform:rotate(90deg);height:24px}
+}
+@media (max-width:620px){
+  h1{font-size:26px}
+  header.hero,section{padding:20px 18px}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .phase{grid-template-columns:1fr;gap:4px}
+}
+@media print{nav.toc{display:none}.layout{grid-template-columns:1fr}section,header.hero{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc" aria-label="المحتويات">
+  <div class="brand">مركز المشروع</div>
+  <div class="sub">الفكرة النهائية · قبل التخطيط</div>
+  <ol id="toc">
+    <li><a href="#summary">الخلاصة</a></li>
+    <li><a href="#today">الوضع الحالي</a></li>
+    <li><a href="#model">البطاقة الموحّدة</a></li>
+    <li><a href="#screens">الصفحات</a></li>
+    <li><a href="#timeline">الخط الزمني تفاعليًا</a></li>
+    <li><a href="#roles">الأدوار والقرارات</a></li>
+    <li><a href="#capture">الالتقاط التلقائي</a></li>
+    <li><a href="#ai">الربط بالـ AI عبر MCP</a></li>
+    <li><a href="#day">يوم عمل بعد الإطلاق</a></li>
+    <li><a href="#tech">التقنية والمعمارية</a></li>
+    <li><a href="#oss">مفتوح المصدر</a></li>
+    <li><a href="#security">الأمان</a></li>
+    <li><a href="#reuse">التعميم لمشاريع أخرى</a></li>
+    <li><a href="#phases">مراحل التنفيذ</a></li>
+    <li><a href="#open">أسئلة قبل التخطيط</a></li>
+    <li><a href="#sources">المصادر</a></li>
+  </ol>
+  <button class="theme-btn" id="themeBtn" type="button">تبديل الوضع الليلي</button>
+</nav>
+
+<main>
+<header class="hero">
+  <span class="eyebrow">Goteav · 2026-11-03 · الفكرة المعتمدة — الخطة التفصيلية في docs/</span>
+  <h1>مركز المشروع: مكان واحد يعرف فيه الفريق وكل وكلاء الـ AI ما يحدث</h1>
+  <p class="lead">أداة داخلية تعمل على شبكة المكتب. تجمع الخط الزمني للمشروع ومهام اليوم والقرارات والاحتياجات وإعادة التصميم والتوثيق. يقرأ منها Claude Code عند كل عضو ويكتب فيها عبر MCP، فتنتقل التحديثات وحدها بدل أن يشرحها كل عضو للآخرين شفهيًا.</p>
+</header>
+
+<!-- 1 -->
+<section id="summary">
+  <h2>الخلاصة</h2>
+  <p class="kicker">المشكلة، والحل في جملة، وما تقرّر حتى الآن</p>
+  <div class="grid g2">
+    <div class="card"><h4>المشكلة</h4><p>كل عضو يعمل مع الـ AI في جلسة خاصة به، وما تعرفه الجلسة يضيع عند انتهائها. التحديثات تنتقل شفهيًا، والتوثيق الموجود غني لكنه للقراءة فقط: لا يستطيع أحد أن يوافق منه أو يطلب أو يحجز مهمة. والقرارات والاحتياجات (مثل توكنات مزودي الدفع) لا يتابعها أحد بوضوح.</p></div>
+    <div class="card"><h4>الحل</h4><p>كل شيء يصبح <b>بطاقة</b> لها نوع ومالك وحالة. الخط الزمني يعرض البطاقات بالترتيب. البطاقات تُلتقط تلقائيًا من Git وعقد الـ API وجلسات Claude Code والمختبر، وتُوجَّه القرارات إلى الشخص الذي يملك حق اتخاذها. والـ AI يدخل إلى كل ذلك عبر MCP.</p></div>
+  </div>
+  <h3>ما تقرّر في النقاش</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>النقطة</th><th>القرار</th></tr></thead>
+    <tbody>
+      <tr><td>طريقة البناء</td><td>أداة مخصّصة بتقنيات الفريق: NestJS + Next.js + Postgres، ومعها MCP server خاص بها</td></tr>
+      <tr><td>مصدر الحقيقة</td><td>هجين: الوثائق والـ ADR تبقى في Git، والمهام والقرارات والاحتياجات في Postgres</td></tr>
+      <tr><td>الاستضافة</td><td>محليًا على شبكة المكتب الآن، مع إمكانية الانتقال إلى VPS لاحقًا دون تغيير الكود</td></tr>
+      <tr><td>أداة الـ AI</td><td>Claude Code لكل الفريق</td></tr>
+      <tr><td>الالتقاط التلقائي</td><td>ملخص جلسات Claude Code، وCommits وPRs من GitHub، وتغيّرات عقد OpenAPI، ونسخ مختبر redesign</td></tr>
+      <tr><td>الأفكار الإضافية</td><td>ملخص صباحي لكل دور، ومهام بزر «نفّذ بالـ AI»، وغرفة قرارات بموعد نهائي، ووضع العضو الجديد مع «اسأل المشروع»</td></tr>
+      <tr><td>التنبيهات</td><td>داخل الأداة مع إشعار المتصفح، وTelegram، والبريد الإلكتروني</td></tr>
+      <tr><td>المكان</td><td><code>F:\Goteav\project-hub\</code>، وهو مجلد الأداة نفسها لاحقًا</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2 -->
+<section id="today">
+  <h2>الوضع الحالي: ما عندنا وما ينقصه</h2>
+  <p class="kicker">لن نبدأ من الصفر. عندنا أصول جيدة، والأداة ستجمعها وتضيف إليها التفاعل</p>
+  <div class="grid g4">
+    <div class="card"><div class="stat">26</div><div class="stat-l">وثيقة تصميم في <code>backend/docs</code> + 14 ADR</div></div>
+    <div class="card"><div class="stat">67</div><div class="stat-l">اقتراحًا في الخريطة لكل منها حالة وبرومبت تنفيذ</div></div>
+    <div class="card"><div class="stat">3</div><div class="stat-l">مستودعات: backend · web · Goteav-Dashboard</div></div>
+    <div class="card"><div class="stat">1</div><div class="stat-l">مختبر redesign بنسخ وحالات (draft ثم approved)</div></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>الأصل الموجود</th><th>ما يفعله اليوم</th><th>ما ينقصه</th><th>دوره في الأداة</th></tr></thead>
+    <tbody>
+      <tr><td><code>backend/docs/*.md</code> + <code>adr/</code></td><td>يشرح البزنس والمعمارية والقرارات الثابتة</td><td>لا بحث موحّد فيه، ولا يُقرأ من خارج مستودع الباك إند</td><td>مكتبة المعرفة: تُفهرَس وتُعرض، ويصل إليها الـ AI عبر <code>search_docs</code></td></tr>
+      <tr><td><code>docs/map</code> (YAML ثم HTML مولّد)</td><td>الملخص والقرارات والأبحاث والاقتراحات وحالة ربط لوحة التحكم</td><td>للقراءة فقط، والحالات تُحدَّث يدويًا في YAML</td><td>تُستورد القرارات والاقتراحات كبطاقات، وتبقى الخريطة عرضًا داخل الأداة</td></tr>
+      <tr><td><code>.goteav-ops/contract-changes.md</code></td><td>سجل يدوي لتغييرات العقد</td><td>يعتمد على أن يتذكّر أحد كتابته وأن يقرأه أحد</td><td>يحل محله التقاط آلي بـ oasdiff مع بطاقة تسليم لفريق الفرونت</td></tr>
+      <tr><td><code>docs/status/*</code></td><td>تقارير تقدم بتواريخ</td><td>متفرقة، ولا تظهر في مكان واحد</td><td>تُستورد كتاريخ في الخط الزمني</td></tr>
+      <tr><td><code>F:\Goteav\redesign</code></td><td>نسخ تصميم بحالات في front-matter</td><td>موافقة المالك تتم خارج المختبر</td><td>كل نسخة بطاقة تصميم، والموافقة من داخل الأداة</td></tr>
+      <tr><td>ذاكرة Claude وملفات handover</td><td>تحفظ السياق لجلسات المالك فقط</td><td>شخصية، ولا تصل إلى بقية الفريق</td><td>تتحول المعلومة المهمة إلى بطاقة مشتركة يقرؤها الجميع</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 3 -->
+<section id="model">
+  <h2>الفكرة الأساسية: البطاقة الموحّدة</h2>
+  <p class="kicker">سبعة أنواع، وكلها لها نفس الحقول الأساسية. لذلك يعرضها الخط الزمني والبحث والـ MCP بطريقة واحدة</p>
+  <div class="grid g3">
+    <div class="card"><span class="pill t-task"><span class="dot"></span>مهمة</span><h4 style="margin-top:8px">Task</h4><p>عمل له تخصص (باك أو فرونت أو تصميم أو QA)، وأولوية من P0 إلى P3، وحجم من S إلى XL، وبرومبت جاهز، ومعايير قبول، ومن حجزها، والفرع الذي تعمل عليه.</p></div>
+    <div class="card"><span class="pill t-decision"><span class="dot"></span>قرار</span><h4 style="margin-top:8px">Decision</h4><p>سؤال وخيارات، لكل خيار مميزاته وعيوبه. له دور مخوَّل بالقرار، وموعد نهائي، وقائمة بما يتوقف عليه. بعد القرار يُكتب ADR في Git.</p></div>
+    <div class="card"><span class="pill t-need"><span class="dot"></span>احتياج</span><h4 style="margin-top:8px">Need</h4><p>شيء مطلوب من شخص: توكن، أو حساب، أو قيمة للتحقق، أو ملف. تتابع الأداة <b>حالته فقط</b>: مطلوب، ثم قيد التنفيذ، ثم سُلِّم إلى الخزنة، ثم تم التحقق منه.</p></div>
+    <div class="card"><span class="pill t-change"><span class="dot"></span>تغيير</span><h4 style="margin-top:8px">Change</h4><p>Commit أو PR أو تغيير في عقد الـ API أو ملخص جلسة AI. يُنشأ تلقائيًا ولا يكتبه أحد بيده.</p></div>
+    <div class="card"><span class="pill t-design"><span class="dot"></span>إعادة تصميم</span><h4 style="margin-top:8px">Redesign</h4><p>نسخة من المختبر لها لقطات وتقرير ux-critic وحالة. تُعرض للموافقة، ثم تتحول إلى مهمة نقل (port) للمشروع.</p></div>
+    <div class="card"><span class="pill t-doc"><span class="dot"></span>وثيقة</span><h4 style="margin-top:8px">Doc</h4><p>مرآة لملف في Git. نصها لا يُحرَّر داخل الأداة، لكنها تُربط بالبطاقات ويُعلَّق عليها.</p></div>
+    <div class="card"><span class="pill t-release"><span class="dot"></span>إصدار</span><h4 style="margin-top:8px">Release</h4><p>مجموعة تغييرات تذهب إلى الإنتاج، ومعها ملاحظات تُولَّد بالـ AI لكل جمهور: الفريق والمالك والمحاسب.</p></div>
+  </div>
+  <h3>الحقول المشتركة</h3>
+  <pre><code>Card {
+  id, workspace, type, title, body (rich text),
+  status, priority, owner_role, assignee, created_by (human | agent:&lt;user&gt;),
+  links: [card | doc | commit | pr | url],   // "blocks / blocked-by / relates-to"
+  source: manual | git | openapi | claude-session | redesign | import,
+  due_at, decided_at, tags, watchers, comments, history (append-only)
+}</code></pre>
+  <p>القاعدة الأهم: <b>لا تُحذف أي بطاقة، ولا يُعاد كتابة تاريخها.</b> كل تغيير حالة يصبح حدثًا في الخط الزمني. بهذا يكون الخط الزمني سجلًا كاملًا موثوقًا.</p>
+</section>
+
+<!-- 4 -->
+<section id="screens">
+  <h2>الصفحات</h2>
+  <p class="kicker">واجهة عربية أولًا (RTL) مع الإنجليزية، وبوضع فاتح وليلي، وبنفس مكوّنات لوحة التحكم (shadcn + Tailwind v4)</p>
+  <div class="grid g3">
+    <div class="card"><h4>يومي</h4><p>أول ما يراه العضو: الملخص الصباحي، وما ينتظره مني (قرارات واحتياجات ومراجعات)، ومهام تخصصي الجاهزة للحجز، وما تغيّر منذ آخر دخول.</p></div>
+    <div class="card"><h4>الخط الزمني</h4><p>كل البطاقات بالترتيب، مع تصفية حسب الدور والنوع والمستودع والموديول والفترة. وعرض «ما الذي حدث هذا الأسبوع» بفقرة يكتبها الـ AI.</p></div>
+    <div class="card"><h4>المهام</h4><p>لوحة Kanban وقائمة. زر «احجز» وزر «انسخ البرومبت»، ورابط يفتح المهمة في Claude Code. والتصفية حسب التخصص.</p></div>
+    <div class="card"><h4>غرفة القرارات</h4><p>القرارات المفتوحة مرتبة حسب الموعد النهائي، ولكل قرار ما يتوقف عليه. صاحب القرار يختار ويكتب سببه، ثم يُفتح ADR تلقائيًا.</p></div>
+    <div class="card"><h4>الاحتياجات</h4><p>لوحة لما ينقصنا من الخارج: توكنات، حسابات، عقود، قيم يتحقق منها المحاسب. لكل احتياج مسؤول وموعد وما يتوقف عليه.</p></div>
+    <div class="card"><h4>التسليمات</h4><p>ما سلّمه فريق لآخر: تغيّر في العقد، أو endpoint جديد، أو تصميم معتمَد. يظهر ما لم يُستلم بعد، وكم مضى عليه.</p></div>
+    <div class="card"><h4>إعادة التصميم</h4><p>معرض نسخ المختبر جنبًا إلى جنب مع لقطات وتقرير المراجعة، وأزرار موافقة أو رفض أو طلب تعديل.</p></div>
+    <div class="card"><h4>المعرفة</h4><p>بوابة للوثائق: البزنس والمعمارية والـ API والـ ADR وخريطة المنصة، مع بحث واحد في كل شيء.</p></div>
+    <div class="card"><h4>اسأل المشروع والعضو الجديد</h4><p>خانة سؤال تجيب من الوثائق والبطاقات مع ذكر المصدر. ومسار تعريف تفاعلي بالبزنس والمشروع حسب التخصص.</p></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="timeline">
+  <h2>الخط الزمني: نموذج تفاعلي</h2>
+  <p class="kicker">بيانات توضيحية مبنية على وضعكم الحالي. جرّب التصفية حسب الدور والنوع</p>
+  <div class="demo">
+    <div class="demo-bar">
+      <div><span class="lbl">الدور:</span><span class="chips" id="roleChips" style="display:inline-flex"></span></div>
+      <div><span class="lbl">النوع:</span><span class="chips" id="typeChips" style="display:inline-flex"></span></div>
+    </div>
+    <ul class="tl" id="tl"></ul>
+  </div>
+  <p class="tl-meta" style="margin-top:10px">في الأداة الحقيقية تعمل الأزرار فعلًا: «وافِق» يسجّل القرار، و«احجز» يربط المهمة بك وبفرعك.</p>
+</section>
+
+<!-- 6 -->
+<section id="roles">
+  <h2>الأدوار ومن يقرّر ماذا</h2>
+  <p class="kicker">الأدوار قابلة للتعديل لكل مشروع. كل قرار أو احتياج يُوجَّه إلى دور، لا إلى شخص بعينه</p>
+  <div class="tbl"><table>
+    <thead><tr><th>الدور</th><th>يرى أولًا</th><th>يقرّر أو يوافق على</th><th>عبر MCP</th></tr></thead>
+    <tbody>
+      <tr><td>المالك</td><td>القرارات المفتوحة، والتصاميم المنتظرة، وملخص الأسبوع</td><td>إضافة ميزة أو تعديلها أو حذفها، والموافقة على التصاميم، والأولويات</td><td>اختياري</td></tr>
+      <tr><td>مدير المشروع</td><td>ما هو متوقف، والمواعيد، والتسليمات المتأخرة</td><td>توزيع المهام، وتغيير الأولويات، وقرارات النطاق المحدودة</td><td>نعم</td></tr>
+      <tr><td>المحاسب</td><td>القيم المطلوب التحقق منها، والاحتياجات المالية</td><td>العمولات والرسوم والضرائب وأسعار الصرف وأي قيمة مالية تحتاج تحققًا</td><td>لا (الواجهة فقط)</td></tr>
+      <tr><td>الباك إند</td><td>مهام تخصصه، والقرارات التقنية، والاحتياجات التي تعطّله</td><td>القرارات التقنية داخل حدود الـ ADR</td><td>نعم</td></tr>
+      <tr><td>الفرونت إند (web + dashboard)</td><td>تسليمات العقد، والتصاميم المعتمدة، ومهام تخصصه</td><td>القرارات التقنية للواجهة</td><td>نعم</td></tr>
+      <tr><td>المصمم / UX</td><td>نسخ المختبر وتقارير المراجعة</td><td>اقتراح النسخ (والموافقة النهائية للمالك)</td><td>نعم</td></tr>
+    </tbody>
+  </table></div>
+  <h3>دورة حياة القرار</h3>
+  <ol class="steps">
+    <li><b>يُفتح القرار</b>يفتحه إنسان أو وكيل AI عندما يحتاج اختيارًا لا يملكه، عبر الأداة <code>request_decision</code>. يحدد الخيارات ومن يقرّر والموعد وما يتوقف عليه.</li>
+    <li><b>التنبيه</b>يصل إلى صاحب الدور داخل الأداة وعبر إشعار المتصفح وTelegram، وبالبريد إن لم يتفاعل.</li>
+    <li><b>النقاش</b>تعليقات على البطاقة، ويمكن طلب رأي من الـ AI يقارن الخيارات من الوثائق.</li>
+    <li><b>القرار</b>صاحب الدور يختار ويكتب السبب في سطر واحد. البطاقات المتوقفة تتحرر وتُبلَّغ.</li>
+    <li><b>التوثيق</b>تكتب الأداة ADR بالصيغة المعتمدة وتفتح به PR في المستودع المناسب، ويظهر القرار لكل وكيل AI في المرة القادمة.</li>
+  </ol>
+  <div class="note">الموعد النهائي له أثر حقيقي: قبله بيوم يصل تذكير، وعند تجاوزه يُصعَّد القرار إلى مدير المشروع. هكذا لا يبقى قرار معلقًا بلا نهاية.</div>
+</section>
+
+<!-- 7 -->
+<section id="capture">
+  <h2>الالتقاط التلقائي: التحديثات تكتب نفسها</h2>
+  <p class="kicker">أربعة مصادر اخترتها، وكلها تعمل والأداة على شبكة المكتب دون أن يصل إليها أي اتصال من الخارج</p>
+  <div class="grid g2">
+    <div class="card"><h4>1 · ملخص جلسات Claude Code</h4><p>طبقتان. الأولى: قاعدة في <code>CLAUDE.md</code> تجعل الوكيل يستدعي <code>log_session</code> عند إنهاء أي مهمة، فيرسل ما تغيّر وما بقي وما يحتاجه الفريق الآخر. الثانية احتياطية: hook من نوع <code>SessionEnd</code> يرسل حقائق Git للجلسة (الفرع والـ commits والملفات). إذا لم يصل ملخص يكتبه الـ AI، تولّده الأداة من الـ diff.</p></div>
+    <div class="card"><h4>2 · Commits وPRs من GitHub</h4><p>لا يمكن لـ webhook من GitHub أن يصل إلى جهاز داخل الشبكة، لذلك يسأل عامل (worker) في الأداة GitHub كل 2 إلى 5 دقائق عن المستودعات الثلاثة. يحتاج توكنًا بصلاحية قراءة على الحسابين <code>mohmedofficial515</code> و<code>Alremaal-Co</code>. الـ commits المتتالية في نفس الفرع تُجمع في بطاقة واحدة.</p></div>
+    <div class="card"><h4>3 · تغيّرات عقد OpenAPI</h4><p>عندما يتغير <code>openapi/openapi.json</code> في الباك إند، يشغّل العامل <code>oasdiff</code> بين النسختين ويصنّف التغيير: كاسر أم غير كاسر. ثم يُنشئ بطاقة تسليم لفريق الفرونت فيها قائمة التغييرات وبرومبت «شغّل <code>pnpm api:sync</code> وأصلح الأنواع». هذا يلغي الحاجة إلى <code>contract-changes.md</code> اليدوي (ويُستورد السجل القديم كتاريخ).</p></div>
+    <div class="card"><h4>4 · نسخ مختبر redesign</h4><p>تراقب الأداة ملفات <code>README.md</code> في نسخ المختبر وتقرأ الحالة من الـ front-matter. أي نسخة جديدة أو تغيّر في الحالة يصبح بطاقة. وموافقة المالك من الأداة تكتب الحالة <code>approved</code> في الملف وتُنشئ مهمة نقل للـ redesign-porter.</p></div>
+  </div>
+  <div class="note">ملاحظة: مجلد <code>F:\Goteav\redesign</code> ليس مستودع Git الآن. إذا كانت الأداة على نفس جهاز المالك فستقرأه مباشرة. وإلا نحتاج رفعه إلى مستودع (انظر الأسئلة المفتوحة).</div>
+</section>
+
+<!-- 8 -->
+<section id="ai">
+  <h2>الربط بالـ AI عبر MCP</h2>
+  <p class="kicker">أسهل طريقة: سطر واحد لكل عضو، وبعده يعرف وكيله المشروع كله</p>
+  <h3>الإعداد عند كل عضو (مرة واحدة)</h3>
+  <pre><code># من صفحة "حسابي" في الأداة ينسخ العضو توكنه الشخصي، ثم:
+claude mcp add --transport http --scope user hub http://hub.goteav.lan:7310/mcp \
+  --header "Authorization: Bearer &lt;personal-token&gt;"
+
+# وتنزّل الأداة "حزمة الفريق" تلقائيًا: skill + hook + مقطع CLAUDE.md
+npx goteav-hub init     # (اسم مبدئي)</code></pre>
+  <h3>أدوات الـ MCP المقترحة</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>الأداة</th><th>ما تفعله</th><th>متى يستخدمها الوكيل</th></tr></thead>
+    <tbody>
+      <tr><td><code>get_project_brief</code></td><td>ملخص البزنس والمعمارية والقرارات الثابتة لهذا الدور</td><td>بداية كل جلسة</td></tr>
+      <tr><td><code>whats_new</code></td><td>ما تغيّر منذ آخر جلسة لي: تسليمات وقرارات وتغييرات</td><td>بداية كل جلسة</td></tr>
+      <tr><td><code>search_docs</code> / <code>get_doc</code></td><td>بحث في الوثائق والـ ADR والبطاقات مع روابط المصدر</td><td>عند الحاجة لمعلومة</td></tr>
+      <tr><td><code>list_tasks</code> / <code>claim_task</code> / <code>update_task</code></td><td>جلب مهام تخصصي، وحجز مهمة، وتحديث حالتها وفرعها وملاحظاتها</td><td>«ما مهمتي التالية؟»</td></tr>
+      <tr><td><code>log_session</code></td><td>كتابة ملخص الجلسة: ما تغيّر وما بقي وتسليمات للفريق الآخر</td><td>نهاية كل مهمة (إلزامي بقاعدة)</td></tr>
+      <tr><td><code>request_decision</code></td><td>فتح قرار بخيارات وموعد وما يتوقف عليه</td><td>عندما يواجه الوكيل اختيارًا لا يملكه</td></tr>
+      <tr><td><code>create_need</code></td><td>تسجيل احتياج (توكن أو قيمة أو حساب) بلا أي قيمة سرية</td><td>عندما يتوقف العمل على شيء من الخارج</td></tr>
+      <tr><td><code>create_handoff</code> / <code>list_handoffs</code></td><td>تسليم عمل لفريق آخر، أو استلام ما سُلِّم لي</td><td>بعد تغيير يؤثر على الفريق الآخر</td></tr>
+      <tr><td><code>get_decision</code></td><td>قراءة قرار ونتيجته وسببه</td><td>قبل تنفيذ شيء يرتبط بقرار</td></tr>
+    </tbody>
+  </table></div>
+  <p>إلى جانب الأدوات، يعرض الـ MCP برومبتات جاهزة مثل <code>/hub:start</code> (ابدأ يومك: الجديد ومهامي) و<code>/hub:next</code> (احجز المهمة التالية في تخصصي وابدأ) و<code>/hub:done</code> (أنهِ المهمة واكتب الملخص والتسليمات).</p>
+  <details><summary>مقطع CLAUDE.md الذي تضيفه حزمة الفريق</summary>
+<pre><code># Project Hub
+- At session start call hub.whats_new and read decisions that affect your task.
+- Never assume a business rule: hub.search_docs first, then hub.request_decision if still unclear.
+- When something blocks you from outside (token, account, value), call hub.create_need — never paste secrets.
+- When your change affects another team (API contract, shared component), call hub.create_handoff.
+- Before you finish, call hub.log_session with: changed, remaining, handoffs, follow-up tasks.</code></pre>
+  </details>
+</section>
+
+<!-- 9 -->
+<section id="day">
+  <h2>كيف يمر يوم العمل بعد الإطلاق</h2>
+  <p class="kicker">مثال واقعي من وضعكم الحالي: توكن مزود دفع وتغيير في العقد</p>
+  <ol class="steps">
+    <li><b>08:30: الملخص الصباحي</b>كل عضو يفتح «يومي». مطوّر الفرونت يقرأ: «أمس غيّر الباك إند عقد الاسترداد (تغيير كاسر). هناك تسليم ينتظرك، و3 مهام في تخصصك جاهزة للحجز».</li>
+    <li><b>08:40: حجز المهمة</b>يكتب في Claude Code: <code>/hub:next</code>. الوكيل يحجز مهمة مزامنة العقد، ويقرأ التسليم والـ diff والوثيقة المرتبطة، ثم يبدأ على الفرع الصحيح.</li>
+    <li><b>10:15: احتياج</b>وكيل الباك إند يصل إلى ربط Moyasar فيجد أن التوكن الحي غير موجود. يستدعي <code>create_need</code>: «توكن Moyasar الحي — المسؤول: المالك — يتوقف عليه: مهمة تفعيل الدفع». يصل التنبيه إلى المالك على Telegram.</li>
+    <li><b>11:00: قرار</b>الوكيل يجد أن رسوم Moyasar تُحسب إما على العميل أو على المنصة. يفتح <code>request_decision</code> موجّهًا إلى المحاسب وموعده غدًا. يكمل في جزء آخر من المهمة بدل أن يخمّن.</li>
+    <li><b>13:00: الموافقات</b>المحاسب يفتح غرفة القرارات من المتصفح ويختار «على المنصة حتى 2%» مع سطر السبب. الأداة تفتح PR بـ ADR جديد، وتُبلغ الوكيل الذي كان ينتظر.</li>
+    <li><b>15:30: التصميم</b>المالك يرى في «يومي» نسخة جديدة لصفحة الحجوزات مع لقطات وتقرير المراجعة. يوافق، فتظهر مهمة نقل في تخصص الفرونت.</li>
+    <li><b>17:00: نهاية اليوم</b>كل وكيل يستدعي <code>log_session</code> عند انتهاء المهمة. الخط الزمني يعرض ما حدث اليوم دون أن يكتب أحد تقريرًا، ولا يحتاج أحد أن يسأل غيره «ماذا فعلت؟».</li>
+  </ol>
+</section>
+
+<!-- 10 -->
+<section id="tech">
+  <h2>التقنية والمعمارية</h2>
+  <p class="kicker">نفس تقنيات Goteav، فتعمل نفس المهارات والوكلاء والأنماط دون تعلّم جديد</p>
+  <div class="arch" aria-label="مخطط المعمارية">
+    <div class="col">
+      <h5>المصادر</h5>
+      <div class="box">GitHub<small>3 مستودعات: polling</small></div>
+      <div class="box">openapi.json<small>oasdiff</small></div>
+      <div class="box">redesign/<small>مراقبة front-matter</small></div>
+      <div class="box">backend/docs<small>فهرسة Markdown</small></div>
+    </div>
+    <div class="arrow">←</div>
+    <div class="hub">
+      <h5 style="margin:0;font-size:13px;color:var(--accent-text)">Hub · جهاز واحد في الشبكة · Docker Compose</h5>
+      <div class="box">API: NestJS<small>REST للواجهة + MCP على <code>/mcp</code> (Streamable HTTP)</small></div>
+      <div class="box">Workers: BullMQ<small>الالتقاط، الملخصات، المواعيد، التنبيهات</small></div>
+      <div class="box">Postgres 16 + pgvector<small>البطاقات والتاريخ والفهرس الدلالي</small></div>
+      <div class="box">Redis · Caddy<small>الطوابير · HTTPS داخلي (tls internal)</small></div>
+    </div>
+    <div class="arrow">←</div>
+    <div class="col">
+      <h5>المستخدمون</h5>
+      <div class="box">الواجهة: Next.js<small>عربي/إنجليزي، فاتح/ليلي</small></div>
+      <div class="box">Claude Code<small>عند كل عضو، عبر MCP</small></div>
+      <div class="box">Telegram · البريد<small>تنبيهات وموافقات</small></div>
+      <div class="box">قوالب آلية (بلا AI على الخادم)<small>الملخص الصباحي والتسليمات</small></div>
+    </div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>الطبقة</th><th>الاختيار المقترح</th><th>لماذا</th></tr></thead>
+    <tbody>
+      <tr><td>الواجهة</td><td>Next.js + shadcn/ui + Tailwind v4، ومحرّر BlockNote أو Tiptap لنص البطاقة</td><td>نفس لوحة التحكم، وRTL جاهز، والفريق يعرفها</td></tr>
+      <tr><td>الـ API</td><td>NestJS، مع <code>@modelcontextprotocol/sdk</code> داخلها</td><td>MCP والـ REST يشتركان في نفس الصلاحيات ونفس الكود</td></tr>
+      <tr><td>البيانات</td><td>Prisma + Postgres 16 + pgvector</td><td>بحث دلالي في الوثائق والبطاقات دون خدمة إضافية</td></tr>
+      <tr><td>المهام الخلفية</td><td>BullMQ + Redis</td><td>polling وملخصات صباحية وتذكير المواعيد</td></tr>
+      <tr><td>الـ AI داخل الأداة</td><td><b>قرار نهائي (2026-11-03):</b> لا تستدعي الأداة أي نموذج على الخادم. كل نص يكتبه الـ AI يأتي من Claude Code عند كل عضو عبر MCP (أوامر <code>/hub:start</code> و<code>/hub:done</code> و<code>/hub:ask</code>)، والأداة تولّد ملخصات آلية من قوالب لمن لا يستخدم Claude Code</td><td>وثائق Claude Code تقصر تسجيل دخول الاشتراك على الاستخدام العادي، وتمنع تمرير الطلبات نيابة عن مستخدمين آخرين من خادم مشترك. التفاصيل في <code>docs/00-decisions.md</code> (D06)</td></tr>
+      <tr><td>التنبيهات</td><td><code>web-push</code> للمتصفح، و<code>grammY</code> لـ Telegram (long polling)، وResend أو SMTP للبريد</td><td>كلها اتصالات خارجة من الشبكة فقط، وتعمل دون فتح منافذ</td></tr>
+      <tr><td>الشبكة</td><td>Caddy بشهادة داخلية، مع اسم <code>hub.goteav.lan</code> واسم احتياطي بعنوان IP ثابت</td><td>إشعارات المتصفح تحتاج HTTPS، و<code>http://192.168…</code> لا يكفي</td></tr>
+      <tr><td>المنافذ</td><td>7300 للواجهة و7310 للـ API والـ MCP</td><td>بعيدًا عن المنافذ 6071–6170 التي يحجزها Windows، وعن منفذ المختبر 6200</td></tr>
+    </tbody>
+  </table></div>
+  <h3>من الشبكة المحلية إلى VPS لاحقًا</h3>
+  <p>نفس ملف <code>docker-compose.yml</code>. الذي يتغيّر فقط: اسم النطاق، وشهادة Let's Encrypt بدل الداخلية، واستبدال الـ polling بـ webhooks من GitHub، وتطبيق مهارة <code>secure-deploy</code> الموجودة عندكم.</p>
+</section>
+
+<!-- 11 -->
+<section id="oss">
+  <h2>المشاريع مفتوحة المصدر: هل نعتمد على شيء جاهز؟</h2>
+  <p class="kicker">النتيجة: لا يوجد مشروع يغطي الفكرة كاملة، لكن مكتبات جاهزة كثيرة توفّر معظم العمل</p>
+  <h3>منصات كاملة درسناها</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>المشروع</th><th>الترخيص</th><th>ما يغطيه</th><th>ما ينقصه لنا</th><th>الحكم</th></tr></thead>
+    <tbody>
+      <tr><td>Plane</td><td>AGPL-3.0</td><td>مهام، ودورات (cycles)، وموديولات، وصفحات، وMCP رسمي (makeplane/plane-mcp-server)</td><td>لا يوجد فيه خط زمني موحّد، ولا قرارات لها صاحب قرار وموعد، ولا احتياجات، ولا التقاط من جلسات AI. وبعض الـ APIs غير متاحة في نسخة Community</td><td>نستلهم منه نموذج الدورات وصندوق الطلبات (intake) فقط</td></tr>
+      <tr><td>Huly</td><td>EPL-2.0</td><td>مهام ووثائق ودردشة في منصة واحدة</td><td>ثقيل جدًا: من 8 إلى 16GB RAM، مع MongoDB وElastic وCockroachDB. وتخصيصه صعب</td><td>غير مناسب</td></tr>
+      <tr><td>OpenProject</td><td>GPL-3.0</td><td>إدارة مشاريع كلاسيكية (Gantt وwork packages)</td><td>مبني على Rails، وثقيل، ولا يرتبط بالـ AI</td><td>غير مناسب</td></tr>
+      <tr><td>Outline / Docmost</td><td>BSL 1.1 / AGPL-3.0</td><td>ويكي للتوثيق</td><td>قررنا أن الوثائق تبقى في Git، فلا نحتاج ويكي منفصلًا</td><td>غير لازم</td></tr>
+      <tr><td>Backstage</td><td>Apache-2.0</td><td>بوابة للمطورين: كتالوج وTechDocs</td><td>مصمَّم لشركات كبيرة، وإعداده وصيانته ثقيلان على فريق صغير</td><td>نستلهم منه فكرة الكتالوج</td></tr>
+      <tr><td>GitHub Projects + Issues</td><td>خدمة</td><td>مهام مرتبطة بالكود، وMCP رسمي</td><td>الأدوار والقرارات والعربية والخط الزمني كلها ضعيفة</td><td>نستخدمه مصدرًا فقط</td></tr>
+    </tbody>
+  </table></div>
+  <h3>المكتبات التي سنبني عليها</h3>
+  <div class="grid g3">
+    <div class="card"><h4>@modelcontextprotocol/sdk</h4><p>الـ SDK الرسمي لكتابة MCP server بـ TypeScript، ويدعم Streamable HTTP.</p></div>
+    <div class="card"><h4>Claude Code hooks + skills</h4><p><code>SessionEnd</code> للتسجيل الاحتياطي، وskill للبرومبتات الجاهزة. موجودة في Claude Code نفسه.</p></div>
+    <div class="card"><h4>oasdiff</h4><p>يقارن نسختين من OpenAPI ويكتشف التغييرات الكاسرة. له CLI وGitHub Action رسمي.</p></div>
+    <div class="card"><h4>Octokit</h4><p>للتعامل مع GitHub API: سحب الـ commits والـ PRs، وفتح PR للـ ADR.</p></div>
+    <div class="card"><h4>pgvector</h4><p>بحث دلالي داخل Postgres نفسه. لا نحتاج قاعدة بيانات متجهات منفصلة.</p></div>
+    <div class="card"><h4>BlockNote / Tiptap</h4><p>محرّر نص غني بنمط Notion لنص البطاقات والتعليقات.</p></div>
+    <div class="card"><h4>grammY + web-push</h4><p>بوت Telegram بأزرار موافقة، وإشعارات المتصفح عبر VAPID.</p></div>
+    <div class="card"><h4>gray-matter + chokidar</h4><p>لقراءة front-matter نسخ المختبر ومراقبة تغيّر الملفات.</p></div>
+    <div class="card"><h4>Infisical (اختياري)</h4><p>خزنة أسرار مفتوحة المصدر تُستضاف ذاتيًا. فيها تُحفظ قيم «الاحتياجات»، والأداة لا تخزنها أبدًا.</p></div>
+  </div>
+  <p class="tl-meta" style="margin-top:10px">ومن داخل مشروعكم نعيد استخدام: مولّد <code>docs/map</code> (يتحول إلى عرض داخل الأداة)، و<code>_suggestions.yaml</code> و<code>_decisions.yaml</code> (بيانات أولية)، والأنماط المعمارية للباك إند (DDD وCQRS وZod)، ومهارة graphify عند الحاجة لخريطة الكود.</p>
+</section>
+
+<!-- 12 -->
+<section id="security">
+  <h2>الأمان</h2>
+  <p class="kicker">أداة داخلية، لكنها ترى كل شيء عن المشروع، لذلك قواعدها صارمة من البداية</p>
+  <ul>
+    <li><b>لا أسرار في الأداة أبدًا.</b> الاحتياج يخزن الحالة واسم المكان في الخزنة فقط. وفلتر على كل نص وارد (بما فيه ملخصات الـ AI) يكتشف ما يشبه المفاتيح ويخفيه ويحذّر صاحبه.</li>
+    <li><b>توكن MCP شخصي لكل عضو.</b> له نفس صلاحيات دوره، ويُلغى من صفحة الحساب، ويُسجَّل كل استدعاء له. الوكيل لا يتخذ قرارًا ليس من حق صاحبه.</li>
+    <li><b>القرارات المالية والإدارية للبشر فقط.</b> الوكيل يستطيع أن يفتح قرارًا، لكن لا يستطيع أن يغلقه.</li>
+    <li><b>الشبكة:</b> الأداة لا تقبل إلا اتصالات من شبكة المكتب (قاعدة في جدار حماية Windows لـ Private network فقط)، وPostgres وRedis لا يُكشفان خارج Docker.</li>
+    <li><b>سجل تدقيق لا يُمحى:</b> كل تغيير يحفظ من فعله، وبأي وسيلة (الواجهة أو الـ MCP أو تلقائيًا)، ومتى.</li>
+    <li><b>نسخ احتياطي:</b> <code>pg_dump</code> يومي إلى قرص آخر. والوثائق محفوظة أصلًا في Git.</li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section id="reuse">
+  <h2>التعميم: نفس الأداة لأي مشروع لاحقًا</h2>
+  <p class="kicker">لأنك قلت إن المبدأ إذا نجح سيُطبَّق على مشاريع أخرى، فالتصميم متعدد المشاريع من اليوم الأول</p>
+  <div class="grid g3">
+    <div class="card"><h4>مساحة عمل لكل مشروع</h4><p>Goteav مساحة. ومشروع جديد مثل Bitaqaty مساحة أخرى، لها مستودعاتها وأدوارها ووثائقها، والبيانات معزولة بين المساحات.</p></div>
+    <div class="card"><h4>قوالب</h4><p>قالب أدوار (فريق ويب أو فريق موبايل)، وقالب أنواع قرارات، وقالب مصادر التقاط. مشروع جديد يبدأ في دقائق.</p></div>
+    <div class="card"><h4>محوّلات (adapters)</h4><p>كل مصدر التقاط (GitHub، OpenAPI، مجلد تصميم، GitLab لاحقًا) محوّل منفصل له نفس الواجهة. إضافة مصدر جديد لا تمس الباقي.</p></div>
+  </div>
+</section>
+
+<!-- 14 -->
+<section id="phases">
+  <h2>مراحل التنفيذ المقترحة</h2>
+  <p class="kicker">تقدير أولي لكل مرحلة، يُراجَع في مرحلة التخطيط. وكل مرحلة قابلة للاستخدام فعلًا عند انتهائها</p>
+  <div class="phase"><div class="ph">H0<small>~1 أسبوع</small></div><div><h4>الأساس</h4><p>مستودع الأداة، وDocker Compose، والحسابات والأدوار، ونموذج البطاقة، والخط الزمني، واستيراد القرارات والاقتراحات وتقارير الحالة الموجودة. <b>بعدها:</b> يرى الفريق تاريخ المشروع كله في مكان واحد.</p></div></div>
+  <div class="phase"><div class="ph">H1<small>~1 أسبوع</small></div><div><h4>MCP وClaude Code</h4><p>الـ MCP server، والتوكنات الشخصية، وحزمة الفريق (skill وhook ومقطع CLAUDE.md)، و<code>log_session</code> و<code>whats_new</code>. <b>بعدها:</b> تنتهي التحديثات الشفهية.</p></div></div>
+  <div class="phase"><div class="ph">H2<small>~1 أسبوع</small></div><div><h4>الالتقاط التلقائي</h4><p>polling لـ GitHub، وتسليمات العقد بـ oasdiff، ومراقبة المختبر. <b>بعدها:</b> لا يحتاج أحد أن يكتب <code>contract-changes.md</code> بيده.</p></div></div>
+  <div class="phase"><div class="ph">H3<small>~1 أسبوع</small></div><div><h4>القرارات والاحتياجات والتنبيهات</h4><p>غرفة القرارات بمواعيد وتصعيد، ولوحة الاحتياجات، وإشعارات المتصفح وTelegram والبريد، وفتح PR تلقائي للـ ADR. <b>بعدها:</b> لا يبقى قرار أو توكن معلقًا دون متابعة.</p></div></div>
+  <div class="phase"><div class="ph">H4<small>~1 أسبوع</small></div><div><h4>يومي والمهام والملخص الصباحي</h4><p>صفحة «يومي»، ولوحة المهام بالحجز، وزر «نفّذ بالـ AI»، والملخص الصباحي لكل دور.</p></div></div>
+  <div class="phase"><div class="ph">H5<small>1–2 أسبوع</small></div><div><h4>المعرفة والعضو الجديد</h4><p>بوابة الوثائق، والبحث الدلالي، وخانة «اسأل المشروع» مع ذكر المصادر، ومسار التعريف حسب التخصص.</p></div></div>
+  <div class="phase"><div class="ph">H6<small>لاحقًا</small></div><div><h4>التعميم والسحابة</h4><p>تعدد المساحات والقوالب، ثم الانتقال إلى VPS إذا احتجتم، مع تجربة الأداة على مشروع ثانٍ.</p></div></div>
+  <div class="note">الطريقة: نفس أسلوبكم، أي وثيقة تصميم توافق عليها أولًا، ثم كل مرحلة بفرع واختبارات. ويمكن أن تعمل الأداة نفسها مساحةَ عمل أولى لمشروعها، فنتابع بناءها من داخلها بدءًا من H1.</div>
+</section>
+
+<!-- 15 -->
+<section id="open">
+  <h2>أسئلة مفتوحة قبل مرحلة التخطيط</h2>
+  <p class="kicker">لا تمنع الفكرة، لكن نحتاج إجاباتها قبل كتابة وثيقة التصميم</p>
+  <div class="q"><span class="n">1</span><div><b>أي جهاز يستضيف الأداة؟</b> جهاز المالك أسهل (يرى مجلد redesign مباشرة) لكنه يجب أن يبقى مفتوحًا. وجهاز صغير مخصص أكثر ثباتًا.</div></div>
+  <div class="q"><span class="n">2</span><div><b>مجلد redesign:</b> هل نرفعه إلى مستودع Git حتى تقرأه الأداة من أي جهاز، أم تبقى الأداة على نفس جهازه؟</div></div>
+  <div class="q"><span class="n">3</span><div><b>مفتاح Claude API للأداة:</b> الملخصات و«اسأل المشروع» تحتاج مفتاحًا وميزانية شهرية. ما الحد المقبول؟ أو نؤجلها ونعتمد على Claude Code وحده في البداية؟</div></div>
+  <div class="q"><span class="n">4</span><div><b>البحث الدلالي بالعربية:</b> نماذج embeddings عبر خدمة (مثل Voyage)، أم نموذج محلي (مثل bge-m3 عبر Ollama) مجاني لكنه يحتاج موارد من الجهاز؟</div></div>
+  <div class="q"><span class="n">5</span><div><b>الفريق:</b> كم عضوًا، وما أدوار كل منهم بالضبط؟ وهل المحاسب ومدير المشروع شخصان مختلفان؟</div></div>
+  <div class="q"><span class="n">6</span><div><b>الاسم:</b> «مركز المشروع» اسم مبدئي. هل تريد اسمًا عامًا يناسب كل المشاريع؟</div></div>
+  <div class="q"><span class="n">7</span><div><b>خزنة الأسرار:</b> هل نضيف Infisical الآن ضمن H3، أم تبقى الأسرار في طريقتكم الحالية والأداة تتابع الحالة فقط؟</div></div>
+</section>
+
+<!-- 16 -->
+<section id="sources">
+  <h2>المصادر</h2>
+  <p class="kicker">ما تحققنا منه بتاريخ 2026-11-03، ويُراجع مرة أخرى قبل التنفيذ</p>
+  <ul>
+    <li>Plane MCP server: <a href="https://mcp.directory/blog/plane-mcp-complete-guide-2026">mcp.directory</a> · <a href="https://www.developersdigest.tech/mcp-servers/plane">developersdigest</a> · <a href="https://pypi.org/project/plane-mcp-oss/0.1.0/">pypi plane-mcp-oss</a></li>
+    <li>Huly (EPL-2.0، متطلبات الاستضافة): <a href="https://dupple.com/reviews/huly">dupple review</a> · <a href="https://www.opensourcealternatives.to/item/huly">opensourcealternatives</a> · <a href="https://dev.co/crm/open-source/platform">dev.co</a></li>
+    <li>oasdiff: <a href="https://github.com/oasdiff/oasdiff">github.com/oasdiff/oasdiff</a> · <a href="https://github.com/oasdiff/oasdiff-action">oasdiff-action</a></li>
+    <li>Claude Code hooks (SessionEnd وStop): <a href="https://code.claude.com/docs/de/hooks">code.claude.com hooks</a> · <a href="https://docs.claude.com/zh-CN/docs/claude-code/hooks">docs.claude.com</a></li>
+    <li>داخلي: <code>backend/docs/README.md</code> · <code>backend/docs/map/README.md</code> · <code>.goteav-ops/contract-changes.md</code> · <code>redesign/README.md</code></li>
+  </ul>
+</section>
+
+<footer>مسودة فكرة · لا كود قبل الموافقة على وثيقة التصميم</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  // theme toggle
+  var root=document.documentElement, btn=document.getElementById('themeBtn');
+  try{var saved=localStorage.getItem('hub-theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    var next=cur==='dark'?'light':'dark'; root.setAttribute('data-theme',next);
+    try{localStorage.setItem('hub-theme',next);}catch(e){}
+  });
+
+  // timeline demo
+  var TYPES={task:'مهمة',decision:'قرار',need:'احتياج',change:'تغيير',design:'تصميم',doc:'وثيقة',release:'إصدار'};
+  var ROLES={all:'الكل',owner:'المالك',pm:'مدير المشروع',accountant:'المحاسب',backend:'الباك إند',frontend:'الفرونت إند'};
+  var items=[
+    {day:'اليوم',time:'11:00',type:'decision',roles:['accountant','owner','backend'],title:'رسوم Moyasar: على العميل أم على المنصة؟',meta:'فتحه: وكيل الباك إند · يقرّر: المحاسب · الموعد: غدًا 12:00',body:'يتوقف عليه: مهمة تفعيل الدفع عبر Moyasar. خياران مع المقارنة من وثيقة الرحلات والمدفوعات (05).',act:['وافِق على خيار','علّق']},
+    {day:'اليوم',time:'10:15',type:'need',roles:['owner','backend','pm'],title:'توكن Moyasar الحي (live)',meta:'مطلوب من: المالك · الحالة: مطلوب · تنبيه Telegram أُرسل',body:'لا يُلصق التوكن هنا. يُحفظ في الخزنة تحت payments/moyasar/live ثم تُغيَّر الحالة إلى «سُلِّم».',act:['سلّمته إلى الخزنة']},
+    {day:'اليوم',time:'09:02',type:'change',roles:['frontend','backend','pm'],title:'تغيير كاسر في العقد: POST /admin/payments/{id}/refund',meta:'oasdiff · backend@feat/refunds · تسليم إلى الفرونت',body:'حقل amount أصبح يتبع الوحدة الصغرى للعملة. برومبت المزامنة جاهز: pnpm api:sync ثم إصلاح الأنواع.',act:['استلمت التسليم']},
+    {day:'اليوم',time:'08:40',type:'task',roles:['frontend'],title:'مزامنة عقد الاسترداد في لوحة التحكم',meta:'P1 · M · حجزها: مطوّر الفرونت عبر Claude Code',body:'مرتبطة بالتسليم أعلاه وبوثيقة خدمات ما بعد الحجز (18).',act:['انسخ البرومبت']},
+    {day:'أمس',time:'17:20',type:'change',roles:['backend','pm','frontend'],title:'ملخص جلسة: إصلاح سباق الاسترداد المزدوج',meta:'Claude Code · مطوّر الباك إند · 4 commits',body:'تم: قفل FOR UPDATE على الدفع. بقي: اختبار e2e للحالة المتزامنة. تسليم: لا يوجد تغيير كاسر.',act:[]},
+    {day:'أمس',time:'15:30',type:'design',roles:['owner','frontend'],title:'dashboard/bookings-list · v3-dense-table',meta:'المختبر · الحالة: review · تقرير ux-critic: 86/100',body:'لقطات بثلاثة أحجام شاشة، بالعربية والإنجليزية، والوضعين الفاتح والليلي.',act:['وافِق','اطلب تعديلًا']},
+    {day:'أمس',time:'12:05',type:'decision',roles:['owner','pm'],title:'إضافة الفنادق: البدء بتركيا ومصر أولًا؟',meta:'تقرّر: المالك · النتيجة: نعم · ADR-0017 في PR',body:'السبب: الطلب الأعلى من بيانات البحث. القرار يحرر 3 مهام بحث موردين.',act:[]},
+    {day:'الأسبوع الماضي',time:'—',type:'release',roles:['owner','pm','backend','frontend','accountant'],title:'إصدار 2026-10-30: الحجز من لوحة التحكم',meta:'12 تغييرًا · ملاحظات مولّدة لكل جمهور',body:'للمحاسب: المحفظة تدعم الدفع المقسّم، وحدود الرسوم في الإعدادات.',act:[]},
+    {day:'الأسبوع الماضي',time:'—',type:'doc',roles:['backend','frontend','pm'],title:'تحديث وثيقة أمان التأكيد (21)',meta:'Git · backend/docs',body:'أُضيف قسم الحجز قبل الخصم وخيار الاسترداد إلى المحفظة.',act:[]}
+  ];
+  var state={role:'all',type:'all'};
+  function chips(el,map,key,withAll){
+    var keys=Object.keys(map); if(withAll) keys=['all'].concat(keys);
+    keys.forEach(function(k){
+      var b=document.createElement('button'); b.type='button'; b.className='chip';
+      b.textContent=k==='all'&&key==='type'?'الكل':map[k]; b.dataset.k=k;
+      b.setAttribute('aria-pressed',state[key]===k?'true':'false');
+      b.addEventListener('click',function(){state[key]=k; Array.prototype.forEach.call(el.children,function(c){c.setAttribute('aria-pressed',c.dataset.k===k?'true':'false')}); render();});
+      el.appendChild(b);
+    });
+  }
+  chips(document.getElementById('roleChips'),ROLES,'role',false);
+  chips(document.getElementById('typeChips'),TYPES,'type',true);
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function render(){
+    var tl=document.getElementById('tl'); tl.innerHTML=''; var lastDay=null, n=0;
+    items.forEach(function(it){
+      if(state.role!=='all'&&it.roles.indexOf(state.role)<0) return;
+      if(state.type!=='all'&&it.type!==state.type) return;
+      n++;
+      if(it.day!==lastDay){var d=document.createElement('li'); d.className='tl-day'; d.textContent=it.day; tl.appendChild(d); lastDay=it.day;}
+      var li=document.createElement('li'); li.className='tl-item';
+      var acts=it.act.map(function(a,i){return '<button type="button" class="btn'+(i===0?' p':'')+'">'+esc(a)+'</button>'}).join('');
+      li.innerHTML='<span class="dot t-'+it.type+'"></span><div><div class="tl-head"><span class="pill t-'+it.type+'"><span class="dot"></span>'+TYPES[it.type]+'</span><span class="tl-title">'+esc(it.title)+'</span></div><div class="tl-meta">'+esc(it.time)+' · '+esc(it.meta)+'</div><div class="tl-body">'+esc(it.body)+'</div>'+(acts?'<div class="tl-act">'+acts+'</div>':'')+'</div>';
+      tl.appendChild(li);
+    });
+    if(!n){tl.innerHTML='<li class="empty">لا توجد بطاقات بهذه التصفية في البيانات التوضيحية.</li>'}
+  }
+  render();
+
+  // active toc link
+  var links=document.querySelectorAll('#toc a'), map={};
+  links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a});
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(l){l.classList.remove('active')}); var a=map[e.target.id]; if(a) a.classList.add('active');}})},{rootMargin:'-20% 0px -70% 0px'});
+    document.querySelectorAll('main section').forEach(function(s){io.observe(s)});
+  }
+})();
+</script>
+</body>
+</html>
