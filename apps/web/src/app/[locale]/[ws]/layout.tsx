@@ -3,7 +3,7 @@
  */
 import type { ReactNode } from 'react';
 
-import { WorkspaceGate } from '@/components/shell/workspace-gate';
+import { WorkspaceGate } from '@/components/shell/workspace-gate-loader';
 
 export default async function WorkspaceLayout({
   children,

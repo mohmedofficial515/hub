@@ -4,7 +4,7 @@
  * @file workspace-gate.tsx
  * @description Mounts the shell for a project the member belongs to, and says so plainly when they do not (docs/09 §3).
  */
-import { type ReactNode, Suspense } from 'react';
+import type { ReactNode } from 'react';
 
 import { Button, ErrorState } from '@/components/kit';
 import { LiveProvider } from '@/features/live/live-provider';
@@ -46,10 +46,8 @@ export function WorkspaceGate({ ws, children }: { ws: string; children: ReactNod
     );
   }
   return (
-    <Suspense>
-      <LiveProvider ws={ws}>
-        <Shell>{children}</Shell>
-      </LiveProvider>
-    </Suspense>
+    <LiveProvider ws={ws}>
+      <Shell>{children}</Shell>
+    </LiveProvider>
   );
 }
