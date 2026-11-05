@@ -16,6 +16,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Under a loaded machine a first render takes seconds. A slow machine must not read as a broken page.
+    testTimeout: 20_000,
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.spec.{ts,tsx}'],

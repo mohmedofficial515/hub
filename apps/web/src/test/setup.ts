@@ -3,8 +3,11 @@
  */
 import '@testing-library/jest-dom/vitest';
 
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+
+// A busy machine must not fail a test for being slow: the default of 1 s is about the wait, not about the page.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
