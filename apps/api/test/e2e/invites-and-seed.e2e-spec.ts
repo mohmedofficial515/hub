@@ -7,7 +7,7 @@ import type { FakeClock } from '@/infra/clock/clock';
 import { OwnerSeed } from '@/modules/identity';
 
 import { aWorkspace } from '../factories';
-import { anAccount, Browser, join, PASSWORD, totpCode } from '../helpers/auth';
+import { anAccount, Browser, join, PASSWORD } from '../helpers/auth';
 import { createTestApp, type RecordingMailer } from '../setup/create-test-app';
 import { maintenanceClients } from '../setup/per-test-setup';
 
@@ -213,7 +213,7 @@ describe('invites and seed', () => {
     const seed = () => app.get(OwnerSeed, { strict: false });
     const input = { email: 'Owner@Example.test', password: 'a generated long password', name: 'The Owner' };
 
-    it('creates the owner in both projects with the three roles, and can sign in with TOTP next', async () => {
+    it('creates the owner in both projects with the three roles, who can work with no TOTP step (D34)', async () => {
       const result = await seed().run(input);
       expect(result.createdUser).toBe(true);
       expect(result.projects).toEqual(['goteav', 'hub']);
@@ -230,11 +230,6 @@ describe('invites and seed', () => {
       const owner = browser();
       const signedIn = await owner.signIn('owner@example.test', input.password);
       expect(signedIn.body.data.user.defaultProject).toBe('goteav');
-      await owner.get('/workspaces/goteav').expect(403); // Must enrol first.
-      const setup = await owner.post('/auth/totp/setup').expect(201);
-      await owner
-        .post('/auth/totp/confirm', { code: totpCode(setup.body.data.secret as string, clock) })
-        .expect(200);
       await owner.get('/workspaces/goteav').expect(200);
     });
 
