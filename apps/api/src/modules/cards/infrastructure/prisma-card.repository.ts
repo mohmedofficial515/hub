@@ -10,7 +10,13 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { type Prisma } from '@/generated/prisma/client';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 
-import { CardRepository, type Recipient, type WorkspaceHeader } from '../application/ports/card.repository';
+import {
+  CardRepository,
+  type CommentRow,
+  type LinkEdge,
+  type Recipient,
+  type WorkspaceHeader,
+} from '../application/ports/card.repository';
 import type {
   CardCreateFields,
   CardEventView,
@@ -33,7 +39,7 @@ const DETAIL_RELATION: Record<CardType, keyof Prisma.CardInclude> = {
   plan: 'plan',
 };
 
-const INCLUDE_DETAILS = Object.fromEntries(
+export const INCLUDE_DETAILS = Object.fromEntries(
   Object.values(DETAIL_RELATION).map((relation) => [relation, true]),
 ) as Prisma.CardInclude;
 
@@ -64,7 +70,7 @@ function targetWhere(workspaceId: string, target: CardTarget): Prisma.CardWhereI
   return 'cardId' in target ? { workspaceId, id: target.cardId } : { workspaceId, key: target.cardKey };
 }
 
-function toView(row: Record<string, unknown> & { type: string }): CardView {
+export function toView(row: Record<string, unknown> & { type: string }): CardView {
   const { searchVector: _ignored, ...rest } = row;
   const details = Object.values(DETAIL_RELATION).map((relation) => {
     const value = rest[relation];
@@ -93,7 +99,7 @@ export class PrismaCardRepository extends CardRepository {
   async findWorkspace(workspaceId: string): Promise<WorkspaceHeader | null> {
     return this.tx.workspace.findUnique({
       where: { id: workspaceId },
-      select: { id: true, status: true },
+      select: { id: true, status: true, slug: true, defaultLocale: true },
     });
   }
 
@@ -253,6 +259,199 @@ export class PrismaCardRepository extends CardRepository {
       select: { userId: true, user: { select: { locale: true } } },
     });
     return rows.map((row) => ({ userId: row.userId, locale: row.user.locale }));
+  }
+
+  async findCardsByKeys(workspaceId: string, keys: readonly string[]): Promise<CardView[]> {
+    if (keys.length === 0) return [];
+    const rows = await this.tx.card.findMany({
+      where: { workspaceId, key: { in: [...keys] } },
+      include: INCLUDE_DETAILS,
+    });
+    return rows.map((row) => toView(row));
+  }
+
+  async findLastEvent(card: CardView): Promise<CardEventView> {
+    const row = await this.tx.cardEvent.findFirstOrThrow({
+      where: { workspaceId: card.workspaceId, cardId: card.id },
+      orderBy: { seq: 'desc' },
+    });
+    return {
+      id: row.id,
+      cardId: row.cardId,
+      seq: row.seq,
+      kind: row.kind as EventKind,
+      data: row.data as JsonObject,
+      createdAt: row.createdAt,
+    };
+  }
+
+  async updateDetail(card: CardView, detail: JsonObject): Promise<void> {
+    await this.detailDelegate(card.type).update({ where: { cardId: card.id }, data: detail });
+  }
+
+  async findDependants(card: CardView): Promise<CardView[]> {
+    const rows = await this.tx.card.findMany({
+      where: {
+        workspaceId: card.workspaceId,
+        closedAt: null,
+        archivedAt: null,
+        linksTo: { some: { kind: 'blocks', fromCardId: card.id } },
+      },
+      include: INCLUDE_DETAILS,
+    });
+    return rows.map((row) => toView(row));
+  }
+
+  async hasOpenBlockers(card: CardView): Promise<boolean> {
+    const found = await this.tx.cardLink.findFirst({
+      where: {
+        workspaceId: card.workspaceId,
+        toCardId: card.id,
+        kind: 'blocks',
+        from: { closedAt: null, archivedAt: null },
+      },
+      select: { id: true },
+    });
+    return found !== null;
+  }
+
+  async findWatcherIds(cardId: string): Promise<string[]> {
+    const rows = await this.tx.cardWatcher.findMany({ where: { cardId }, select: { userId: true } });
+    return rows.map((row) => row.userId);
+  }
+
+  async removeWatcher(cardId: string, userId: string): Promise<boolean> {
+    const { count } = await this.tx.cardWatcher.deleteMany({ where: { cardId, userId } });
+    return count > 0;
+  }
+
+  async isWatching(cardId: string, userId: string): Promise<boolean> {
+    const found = await this.tx.cardWatcher.findUnique({
+      where: { cardId_userId: { cardId, userId } },
+      select: { userId: true },
+    });
+    return found !== null;
+  }
+
+  async findUserNames(ids: readonly string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return new Map();
+    const rows = await this.tx.user.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, displayName: true },
+    });
+    return new Map(rows.map((row) => [row.id, row.displayName]));
+  }
+
+  async readSetting(workspaceId: string, key: string): Promise<unknown> {
+    const row = await this.tx.workspaceSetting.findUnique({
+      where: { workspaceId_key: { workspaceId, key } },
+      select: { value: true },
+    });
+    return row?.value ?? undefined;
+  }
+
+  async insertComment(input: { actor: Actor; card: CardView; body: string; now: Date }): Promise<CommentRow> {
+    const { actor, card, now } = input;
+    if (!actor.userId) throw new Error('A comment needs a member behind it');
+    const row = await this.tx.cardComment.create({
+      data: {
+        workspaceId: card.workspaceId,
+        cardId: card.id,
+        authorKind: storedActorKind(actor),
+        authorId: actor.userId,
+        via: actor.via,
+        body: input.body,
+        createdAt: now,
+      },
+    });
+    await this.tx.card.update({
+      where: { id: card.id, workspaceId: card.workspaceId },
+      data: { commentCount: { increment: 1 } },
+    });
+    return row;
+  }
+
+  async findComment(card: CardView, commentId: string): Promise<CommentRow | null> {
+    return this.tx.cardComment.findFirst({
+      where: { id: commentId, workspaceId: card.workspaceId, cardId: card.id },
+    });
+  }
+
+  async updateCommentBody(card: CardView, commentId: string, body: string, now: Date): Promise<void> {
+    await this.tx.cardComment.updateMany({
+      where: { id: commentId, workspaceId: card.workspaceId, cardId: card.id },
+      data: { body, editedAt: now },
+    });
+  }
+
+  async redactComment(card: CardView, commentId: string, now: Date): Promise<void> {
+    await this.tx.cardComment.updateMany({
+      where: { id: commentId, workspaceId: card.workspaceId, cardId: card.id },
+      data: { body: '', bodyRedactedAt: now },
+    });
+    await this.tx.$executeRaw`
+      UPDATE card_events SET data = data - 'excerpt'
+      WHERE workspace_id = ${card.workspaceId}::uuid AND card_id = ${card.id}::uuid
+        AND kind = 'commented' AND data->>'commentId' = ${commentId}`;
+  }
+
+  async findLink(card: CardView, edge: LinkEdge): Promise<boolean> {
+    const found = await this.tx.cardLink.findFirst({
+      where: { workspaceId: card.workspaceId, ...edge },
+      select: { id: true },
+    });
+    return found !== null;
+  }
+
+  async insertLink(card: CardView, edge: LinkEdge, createdById: string | null): Promise<void> {
+    await this.tx.cardLink.create({ data: { workspaceId: card.workspaceId, ...edge, createdById } });
+  }
+
+  async deleteLink(card: CardView, edge: LinkEdge): Promise<void> {
+    await this.tx.cardLink.deleteMany({ where: { workspaceId: card.workspaceId, ...edge } });
+  }
+
+  async findLinkTargets(card: CardView, ids: readonly string[], kind: string): Promise<string[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.tx.cardLink.findMany({
+      where: { workspaceId: card.workspaceId, fromCardId: { in: [...ids] }, kind },
+      select: { toCardId: true },
+    });
+    return rows.map((row) => row.toCardId);
+  }
+
+  async findParents(card: CardView): Promise<CardView[]> {
+    const rows = await this.tx.card.findMany({
+      where: {
+        workspaceId: card.workspaceId,
+        archivedAt: null,
+        linksTo: { some: { kind: 'parent', fromCardId: card.id } },
+      },
+      include: INCLUDE_DETAILS,
+    });
+    return rows.map((row) => toView(row));
+  }
+
+  async findRevisionEvent(card: CardView, revision: number): Promise<CardEventView | null> {
+    const row = await this.tx.cardEvent.findFirst({
+      where: {
+        workspaceId: card.workspaceId,
+        cardId: card.id,
+        kind: 'plan_revised',
+        data: { path: ['revision'], equals: revision + 1 },
+      },
+    });
+    return row
+      ? {
+          id: row.id,
+          cardId: row.cardId,
+          seq: row.seq,
+          kind: row.kind as EventKind,
+          data: row.data as JsonObject,
+          createdAt: row.createdAt,
+        }
+      : null;
   }
 
   private async reload(workspaceId: string, cardId: string): Promise<CardView> {

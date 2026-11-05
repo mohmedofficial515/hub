@@ -64,6 +64,7 @@
     "tasks": {
       "already_claimed": "This task is already claimed.",
       "not_claimer": "Only the member who claimed this task can do this.",
+      "blocked": "This task is blocked by an open card.",
       "specialty_role_mismatch": "This task is outside your roles."
     },
     "decisions": {

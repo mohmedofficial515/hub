@@ -41,6 +41,23 @@ describe('isAllowed', () => {
     expect(isAllowed('redesign.approve', ['owner'])).toBe(true);
   });
 
+  it('D24: a need is verified by its routed role, its requester or whoever delivered it', () => {
+    expect(isAllowed('need.verify', ['accountant'], { routedRoles: ['accountant'] })).toBe(true);
+    expect(isAllowed('need.verify', ['qa'], { isCreator: true })).toBe(true);
+    expect(isAllowed('need.verify', ['qa'], { isDeliverer: true })).toBe(true);
+    expect(isAllowed('need.verify', ['qa'], { routedRoles: ['accountant'] })).toBe(false);
+  });
+
+  it('a task in review moves for qa, but qa cannot complete work still in progress', () => {
+    expect(isAllowed('task.review', ['qa'])).toBe(true);
+    expect(isAllowed('task.complete', ['qa'])).toBe(false);
+  });
+
+  it('system rows belong to nobody and have no surface', () => {
+    for (const role of ROLES) expect(isAllowed('card.unblock', [role])).toBe(false);
+    expect(surfaceOf('card.unblock')).toBe('system');
+  });
+
   it('any member may create a project (D30)', () => {
     for (const role of ROLES) expect(isAllowed('project.create', [role])).toBe(true);
   });
@@ -48,18 +65,32 @@ describe('isAllowed', () => {
   it('any of the actor roles may satisfy the row', () => {
     expect(isAllowed('card.delete', ['qa', 'pm'])).toBe(true);
   });
+
+  it.each(['card.delete', 'card.restore'] as const)(
+    '%s is for owner, pm and the card creator (D28)',
+    (action) => {
+      expect(isAllowed(action, ['owner'])).toBe(true);
+      expect(isAllowed(action, ['pm'])).toBe(true);
+      for (const role of ['accountant', 'backend', 'frontend', 'designer', 'qa'] as const) {
+        expect(isAllowed(action, [role])).toBe(false);
+        expect(isAllowed(action, [role], { isCreator: true })).toBe(true);
+      }
+    },
+  );
 });
 
 describe('isPossible and allowedActions', () => {
   it('isPossible ignores card facts, and refuses a row that is N for all held roles', () => {
     expect(isPossible('task.start', ['backend'])).toBe(true);
-    expect(isPossible('card.delete', ['backend'])).toBe(false);
+    expect(isPossible('card.edit_routing', ['backend'])).toBe(false);
   });
 
   it('allowedActions lists what holds', () => {
     const actions = allowedActions(['qa'], { isCreator: true });
     expect(actions).toContain('card.edit_content');
-    expect(actions).not.toContain('card.delete');
+    expect(actions).toContain('card.delete');
+    expect(actions).not.toContain('card.edit_routing');
+    expect(allowedActions(['qa'], {})).not.toContain('card.delete');
   });
 });
 

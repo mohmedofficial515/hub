@@ -55,5 +55,24 @@ export const tagsSchema = z
 export const CARD_LINK_KINDS = ['blocks', 'relates', 'parent', 'duplicates'] as const;
 export type CardLinkKind = (typeof CARD_LINK_KINDS)[number];
 
+/** What a client may send: `blocked_by` and `child` are stored as the inverse row of `blocks` and `parent`. */
+export const LINK_INPUT_KINDS = ['blocks', 'blocked_by', 'relates', 'parent', 'child', 'duplicates'] as const;
+export type LinkInputKind = (typeof LINK_INPUT_KINDS)[number];
+export const linkInputSchema = z.object({ kind: z.enum(LINK_INPUT_KINDS), key: cardKeySchema });
+export type LinkInput = z.infer<typeof linkInputSchema>;
+export const createLinksSchema = z.array(linkInputSchema).max(10);
+
+/** Fields a create payload shares. */
+export const cardCreateBaseSchema = z.object({
+  title: titleSchema,
+  body: bodySchema.optional(),
+  priority: prioritySchema.optional(),
+  dueAt: z.iso.datetime().optional(),
+  tags: tagsSchema.optional(),
+  module: z.string().max(CARD_LIMITS.module).optional(),
+  repo: z.string().max(80).optional(),
+  links: createLinksSchema.optional(),
+});
+
 export const CARD_SOURCES = ['manual', 'github', 'openapi', 'session', 'lab', 'docs', 'import'] as const;
 export type CardSource = (typeof CARD_SOURCES)[number];

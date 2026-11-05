@@ -37,7 +37,7 @@ export const MCP_TOOLS: readonly McpToolEntry[] = [
   { name: 'unclaim_task', actions: ['task.unclaim'] },
   { name: 'start_task', actions: ['task.start'] },
   { name: 'submit_task', actions: ['task.submit_review'] },
-  { name: 'complete_task', actions: ['task.complete'] },
+  { name: 'complete_task', actions: ['task.complete', 'task.review'] },
   { name: 'reopen_task', actions: ['task.reopen'] },
   { name: 'cancel_task', actions: ['task.cancel'], destructive: true },
 
@@ -98,6 +98,7 @@ export const MCP_TOOLS: readonly McpToolEntry[] = [
     name: 'update_plan',
     actions: [
       'plan.update',
+      'plan.restore_revision',
       'plan.submit_review',
       'plan.approve',
       'plan.start',

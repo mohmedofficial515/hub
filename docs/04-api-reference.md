@@ -489,7 +489,7 @@ effects: audit; the member's open MCP tokens pick up the new roles on the next c
 
 POST /workspaces/{ws}/members/{userId}/remove    auth: session   role: owner|pm   HO: yes
 204    errors: workspaces.last_owner 409
-effects: status=removed, which ends the member's access here at once (a token belongs to the member, 15 §5, so it stays valid for their other projects); no longer their default project; their claimed tasks → unclaimed by the system actor (event unclaimed); audit
+effects: status=removed, which ends the member's access here at once (a token belongs to the member, 15 §5, so it stays valid for their other projects); no longer their default project; their claimed tasks → unclaimed by whoever removed them (event unclaimed); audit
 
 PUT /workspaces/{ws}/members/{userId}/github-logins      auth: session   role: owner|pm   HO: yes
 body: { logins: string[] }

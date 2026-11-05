@@ -192,8 +192,11 @@ expressions recomputed on setting change) run on the same queue.
 
 ## 6. Digests and templates
 
-All templates are Handlebars files under `apps/api/src/modules/digests/templates/<kind>.md.hbs`
-with i18n keys resolved before rendering (`{{t "digests.brief.awaiting"}}`). Dates are formatted
+The templates below are written in Handlebars notation to show their shape. Those the card types own are typed functions in
+their module, each with golden files in `apps/api/test/golden`, and hold their `ar` and `en` strings beside the code: `adr.template.ts`
+(decisions), `task-prompt.template.ts` (tasks), `handoff-contract.template.ts` (handoffs), `port-task.template.ts` (redesign),
+`release-notes.template.ts` (releases). A plain function needs no asset copying at build and fails the type check when a
+field goes missing. Briefs and weekly summaries belong to `modules/digests`. Dates are formatted
 in the workspace timezone; card references are rendered as `GTV-123 · title` with links in HTML
 contexts and as plain `GTV-123` in Markdown for agents.
 

@@ -2,9 +2,16 @@
  * @file Redis client and the realtime publisher.
  * @description The client connects on first command, so building the module opens nothing.
  * `RealtimePublisher.publishCardEvent` is what `CardService` calls after commit; the SSE module subscribes
- * through `RedisClients.createSubscriber()`.
+ * through `RedisClients.createSubscriber()`. Each message also joins a capped stream, which is what a reconnect
+ * replays with `Last-Event-ID` (docs/04 §3.22).
  */
-import { type RealtimeCardEvent, workspaceEventsChannel } from '@hub/contracts';
+import {
+  REALTIME_REPLAY,
+  type RealtimeCardEvent,
+  type RealtimeEnvelope,
+  workspaceEventsChannel,
+  workspaceEventsStream,
+} from '@hub/contracts';
 import { Global, Inject, Injectable, Logger, Module, type OnApplicationShutdown } from '@nestjs/common';
 import Redis from 'ioredis';
 
@@ -42,10 +49,35 @@ export class RealtimePublisher {
 
   /** Never throws: the mutation has committed, and a lost message is caught up on reconnect. */
   async publishCardEvent(event: RealtimeCardEvent): Promise<void> {
+    await this.send(event.workspaceId, event, event.cardKey);
+  }
+
+  /** Anything else for the open pages: `inbox.new`, `brief.ready`, `source.run` (docs/04 §4). Never throws. */
+  async publishEnvelope(workspaceId: string, envelope: RealtimeEnvelope): Promise<void> {
+    await this.send(workspaceId, envelope, envelope.event);
+  }
+
+  private async send(
+    workspaceId: string,
+    message: RealtimeCardEvent | RealtimeEnvelope,
+    label: string,
+  ): Promise<void> {
     try {
-      await this.redis.main.publish(workspaceEventsChannel(event.workspaceId), JSON.stringify(event));
+      const stream = workspaceEventsStream(workspaceId);
+      const { main } = this.redis;
+      const streamId = await main.xadd(
+        stream,
+        'MAXLEN',
+        '~',
+        REALTIME_REPLAY.maxEntries,
+        '*',
+        'message',
+        JSON.stringify(message),
+      );
+      await main.pexpire(stream, REALTIME_REPLAY.maxAgeMs * 2);
+      await main.publish(workspaceEventsChannel(workspaceId), JSON.stringify({ ...message, streamId }));
     } catch (error) {
-      this.logger.warn(`Realtime publish failed for ${event.cardKey}: ${String(error)}`);
+      this.logger.warn(`Realtime publish failed for ${label}: ${String(error)}`);
     }
   }
 }

@@ -63,3 +63,24 @@ export interface RealtimeCardEvent {
   readonly via: Via;
   readonly at: string;
 }
+
+/**
+ * Anything else on the same channel: notifications, briefs, source runs (docs/04 §4). `audience` picks the
+ * connections; card events go to every member of the project.
+ */
+export interface RealtimeEnvelope {
+  readonly event: string;
+  readonly data: unknown;
+  readonly audience: 'all' | { readonly userIds: readonly string[] } | { readonly roles: readonly string[] };
+}
+
+/** What travels on the channel. `streamId` is the id of the entry in the replay buffer, the SSE `id:`. */
+export type RealtimeMessage = (RealtimeCardEvent | RealtimeEnvelope) & { readonly streamId: string };
+
+/** The Redis stream holding a project's last events, for `Last-Event-ID`. */
+export function workspaceEventsStream(workspaceId: string): string {
+  return `ws:${workspaceId}:stream`;
+}
+
+/** How much of the stream a reconnect may replay (docs/04 §3.22). */
+export const REALTIME_REPLAY = { maxEntries: 500, maxAgeMs: 10 * 60 * 1000 } as const;

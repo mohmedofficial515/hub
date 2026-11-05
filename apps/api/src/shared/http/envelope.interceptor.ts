@@ -38,7 +38,7 @@ export class EnvelopeInterceptor implements NestInterceptor {
         const requestId = this.cls.isActive() ? this.cls.getId() : undefined;
         const meta = requestId === undefined ? {} : { requestId };
         if (isPaginated(result)) {
-          return { data: result.items, meta: { ...meta, pagination: result.pagination } };
+          return { data: result.items, meta: { ...meta, ...result.meta, pagination: result.pagination } };
         }
         return { data: result === undefined ? null : result, meta };
       }),

@@ -14,6 +14,8 @@ export interface Pagination {
 export interface Paginated<T> {
   readonly items: readonly T[];
   readonly pagination: Pagination;
+  /** More page-level facts for `meta`, such as the timeline's day counts. */
+  readonly meta?: Readonly<Record<string, unknown>>;
 }
 
 export function isPaginated(value: unknown): value is Paginated<unknown> {

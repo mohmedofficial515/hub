@@ -1,9 +1,15 @@
 /**
- * @file Audit module. The read endpoint (`GET /workspaces/:ws/audit`) belongs to H5-04.
+ * @file Audit: every module writes through `AuditService`; owner and pm read through the list endpoint.
  */
 import { Module } from '@nestjs/common';
 
 import { AuditService } from './application/audit.service';
+import { AuditQueryService } from './application/audit-query.service';
+import { AuditController } from './presentation/http/audit.controller';
 
-@Module({ providers: [AuditService], exports: [AuditService] })
+@Module({
+  controllers: [AuditController],
+  providers: [AuditService, AuditQueryService],
+  exports: [AuditService],
+})
 export class AuditModule {}

@@ -6,7 +6,7 @@
 import { z } from 'zod';
 
 import { roleSchema, specialtySchema } from '../roles';
-import { bodySchema, effortSchema, prioritySchema, tagsSchema, titleSchema } from './card';
+import { bodySchema, createLinksSchema, effortSchema, prioritySchema, tagsSchema, titleSchema } from './card';
 import { defineMachine } from './machine';
 
 export const TASK_STATUSES = [
@@ -35,6 +35,8 @@ export const TASK_MACHINE = defineMachine<TaskStatus>({
     complete: { from: ['claimed', 'in_progress', 'in_review'], to: 'done' },
     cancel: { from: ['backlog', 'ready', 'claimed', 'in_progress', 'in_review'], to: 'cancelled' },
     reopen: { from: ['done', 'cancelled'], to: 'ready' },
+    // A port task follows its redesign: marking the redesign ported closes the task from wherever it is.
+    close_as_ported: { from: ['backlog', 'ready', 'claimed', 'in_progress', 'in_review'], to: 'done' },
   },
 });
 
@@ -57,6 +59,7 @@ export const createTaskSchema = z.object({
   tags: tagsSchema.optional(),
   module: z.string().max(40).optional(),
   repo: z.string().max(80).optional(),
+  links: createLinksSchema.optional(),
   detail: z.object({
     specialty: specialtySchema,
     effort: effortSchema.optional(),
@@ -66,3 +69,25 @@ export const createTaskSchema = z.object({
   }),
 });
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
+
+export const claimTaskSchema = z.object({ branch: z.string().max(200).optional() });
+export type ClaimTaskInput = z.infer<typeof claimTaskSchema>;
+
+export const submitTaskSchema = z.object({
+  prUrl: z.url().max(500).optional(),
+  note: z.string().max(2000).optional(),
+});
+export type SubmitTaskInput = z.infer<typeof submitTaskSchema>;
+
+export const completeTaskSchema = z.object({ note: z.string().max(2000).optional() });
+export type CompleteTaskInput = z.infer<typeof completeTaskSchema>;
+
+export const editTaskDetailSchema = z.object({
+  specialty: specialtySchema.optional(),
+  effort: effortSchema.nullable().optional(),
+  acceptance: bodySchema.nullable().optional(),
+  prompt: bodySchema.nullable().optional(),
+  branch: z.string().max(200).nullable().optional(),
+  prUrl: z.url().max(500).nullable().optional(),
+});
+export type EditTaskDetailInput = z.infer<typeof editTaskDetailSchema>;

@@ -114,6 +114,11 @@ export interface FollowUp {
   readonly action: PermissionAction;
   readonly target: CardTarget | null;
   readonly payload: unknown;
+  /**
+   * The outer action was permitted, and this is its consequence: the matrix is not asked again. The actor is
+   * still recorded. Required for a `system` row, such as `card.unblock`.
+   */
+  readonly trusted?: boolean;
 }
 
 export interface CardActionPlan {
@@ -135,11 +140,21 @@ export interface CardActionPlan {
   readonly watchers?: readonly { readonly userId: string; readonly reason: string }[];
   /**
    * Extra writes in the same transaction, such as a comment or link row, through your own repository (it
-   * joins through TransactionHost). What it returns is merged into the event's data.
+   * joins through TransactionHost). What it returns is merged into the event's data. `prepared` holds the
+   * results of `prepare`.
    */
-  readonly write?: (card: CardView) => Promise<JsonObject | void>;
+  readonly write?: (card: CardView, prepared: readonly ApplyResult[]) => Promise<JsonObject | void>;
+  /**
+   * Actions to run before `write` and before this mutation's event, for when the event or a write needs what
+   * they create: "create tasks from steps" records the new keys.
+   */
+  readonly prepare?: (card: CardView) => readonly FollowUp[];
   /** Runs after this mutation, in the same transaction, given the written card. */
   readonly followUps?: (card: CardView) => readonly FollowUp[];
+  /** Nothing to change: no event, no audit row, no publish. The result carries the card's last event. */
+  readonly noop?: boolean;
+  /** Treat the card as closed for its dependants, as deleting does. Reaching a terminal status already counts. */
+  readonly releasesDependants?: boolean;
 }
 
 export interface CardActionContext<P> {

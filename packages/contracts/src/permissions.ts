@@ -10,10 +10,11 @@ import { ROLES, type Specialty, SPECIALTY_ROLES } from './roles';
 /**
  * Y allowed · N not allowed · R the card's routed role is one of the actor's roles ·
  * S the task's specialty maps to one of the actor's roles · A the actor is the assignee ·
- * C the actor created the card.
+ * C the actor created the card · V a need's verifier: its routed role, its requester, or whoever delivered it (D24).
  */
-export type Grant = 'Y' | 'N' | 'R' | 'S' | 'A' | 'C';
-export type Surface = 'any' | 'web_only';
+export type Grant = 'Y' | 'N' | 'R' | 'S' | 'A' | 'C' | 'V';
+/** `system` rows have no route and no tool: adapters, and follow-ups inside an action that was already permitted. */
+export type Surface = 'any' | 'web_only' | 'system';
 
 /** Grants in the order of ROLES: owner, pm, accountant, backend, frontend, designer, qa. */
 type Row = readonly [Grant, Grant, Grant, Grant, Grant, Grant, Grant];
@@ -26,6 +27,10 @@ const OWNER_PM_ROUTED: Row = ['Y', 'Y', 'R', 'R', 'R', 'R', 'R'];
 const OWNER_PM_SPECIALTY: Row = ['Y', 'Y', 'N', 'S', 'S', 'S', 'S'];
 const OWNER_PM_ASSIGNEE: Row = ['Y', 'Y', 'N', 'A', 'A', 'A', 'A'];
 const OWNER_PM_TASK_CREATOR: Row = ['Y', 'Y', 'N', 'C', 'C', 'C', 'C'];
+const OWNER_PM_VERIFIER: Row = ['Y', 'Y', 'V', 'V', 'V', 'V', 'V'];
+/** A task in review moves for its reviewers, as well as for the assignee (docs/09 §6, approved design `actionsFor`). */
+const REVIEWERS: Row = ['Y', 'Y', 'N', 'A', 'A', 'A', 'Y'];
+const SYSTEM_ONLY: Row = ['N', 'N', 'N', 'N', 'N', 'N', 'N'];
 
 const MATRIX = {
   // Any card
@@ -33,13 +38,14 @@ const MATRIX = {
   'card.read_deleted': OWNER_PM,
   'card.edit_content': OWNER_PM_CREATOR,
   'card.edit_routing': OWNER_PM,
-  'card.delete': OWNER_PM,
-  'card.restore': OWNER_PM,
+  'card.delete': OWNER_PM_CREATOR,
+  'card.restore': OWNER_PM_CREATOR,
   'card.comment': EVERYONE,
   'card.comment_edit': ['C', 'C', 'C', 'C', 'C', 'C', 'C'],
   'card.comment_redact': OWNER_PM,
   'card.link': EVERYONE,
   'card.watch': EVERYONE,
+  'card.unblock': SYSTEM_ONLY,
 
   // Tasks
   'task.create': EVERYONE,
@@ -50,10 +56,12 @@ const MATRIX = {
   'task.unclaim': OWNER_PM_SPECIALTY,
   'task.start': OWNER_PM_ASSIGNEE,
   'task.submit_review': OWNER_PM_ASSIGNEE,
-  'task.resume': OWNER_PM_ASSIGNEE,
+  'task.resume': REVIEWERS,
   'task.complete': OWNER_PM_ASSIGNEE,
+  'task.review': REVIEWERS,
   'task.cancel': OWNER_PM_TASK_CREATOR,
   'task.reopen': OWNER_PM_TASK_CREATOR,
+  'task.close_as_ported': SYSTEM_ONLY,
 
   // Decisions
   'decision.create': EVERYONE,
@@ -68,8 +76,8 @@ const MATRIX = {
   'need.create': EVERYONE,
   'need.start': OWNER_PM_ROUTED,
   'need.deliver': OWNER_PM_ROUTED,
-  'need.verify': OWNER_PM_ROUTED,
-  'need.reject_delivery': OWNER_PM_ROUTED,
+  'need.verify': OWNER_PM_VERIFIER,
+  'need.reject_delivery': OWNER_PM_VERIFIER,
   'need.cancel': OWNER_PM_CREATOR,
 
   // Handoffs (D25: owner and pm may acknowledge any; apply stays with the receiving role)
@@ -79,6 +87,7 @@ const MATRIX = {
   'handoff.dismiss': OWNER_PM_ROUTED,
 
   // Redesign
+  'redesign.create': SYSTEM_ONLY,
   'redesign.send_to_review': ['Y', 'Y', 'N', 'N', 'Y', 'Y', 'N'],
   'redesign.approve': OWNER_ONLY,
   'redesign.reject': OWNER_ONLY,
@@ -110,8 +119,12 @@ const MATRIX = {
   'plan.finish': OWNER_PM_CREATOR,
   'plan.abandon': OWNER_PM_CREATOR,
   'plan.to_tasks': OWNER_PM_CREATOR,
+  'plan.sync_step': SYSTEM_ONLY,
+  'plan.restore_revision': OWNER_PM_CREATOR,
 
   // Facts
+  'change.create': SYSTEM_ONLY,
+  'doc.create': SYSTEM_ONLY,
   'session.log': EVERYONE,
   'brief.save': EVERYONE,
   'brief.save_weekly': OWNER_PM,
@@ -157,6 +170,7 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {
+  if (MATRIX[action] === SYSTEM_ONLY) return 'system';
   return WEB_ONLY.has(action) ? 'web_only' : 'any';
 }
 
@@ -171,6 +185,8 @@ export interface PermissionFacts {
   readonly specialty?: Specialty | null;
   readonly isAssignee?: boolean;
   readonly isCreator?: boolean;
+  /** A need delivered by the actor (D24). */
+  readonly isDeliverer?: boolean;
 }
 
 function grantHolds(grant: Grant, role: Role, facts: PermissionFacts): boolean {
@@ -187,6 +203,10 @@ function grantHolds(grant: Grant, role: Role, facts: PermissionFacts): boolean {
       return facts.isAssignee === true;
     case 'C':
       return facts.isCreator === true;
+    case 'V':
+      return (
+        (facts.routedRoles ?? []).includes(role) || facts.isCreator === true || facts.isDeliverer === true
+      );
   }
 }
 

@@ -4,8 +4,8 @@
  * apply is one transaction with exactly one event and one audit row per card touched:
  *
  *   validate → secret filter → project open → lock card → deleted? type? → permission → status machine →
- *   action's plan → write card + detail → extra writes → event → audit → watchers → outbox → follow-ups →
- *   commit → publish to Redis.
+ *   action's plan → write card + detail → prepared actions → extra writes → event → audit → watchers → outbox →
+ *   follow-ups → unblock dependants → commit → publish to Redis.
  *
  * The actor's kind is recorded, never used to refuse (D27). Publishing happens after commit, so a reader
  * notified by SSE always sees the change.
@@ -18,8 +18,8 @@ import {
   type EventKind,
   isAllowed,
   type PermissionAction,
+  permissionFactsFor,
   type RealtimeCardEvent,
-  type Specialty,
   storedActorKind,
   type Transition,
 } from '@hub/contracts';
@@ -91,6 +91,7 @@ export class CardService {
     action: PermissionAction,
     rawPayload: unknown,
     published: RealtimeCardEvent[],
+    trusted = false,
   ): Promise<ApplyResult> {
     const definition = this.registry.get(action);
     if (!definition) throw new Error(`No handler is registered for card action ${action}`);
@@ -107,10 +108,15 @@ export class CardService {
 
     const { type: actionType, verb } = typeOfAction(action);
     this.assertApplicable(card, action, actionType, definition);
-    this.assertPermitted(actor, definition, payload, card);
+    if (!trusted) this.assertPermitted(actor, definition, payload, card);
 
     const now = this.clock.now();
     const plan = await definition.plan({ actor, card, payload, now });
+
+    if (plan.noop && card) {
+      const event = await this.cards.findLastEvent(card);
+      return { card, event, followUps: [] };
+    }
 
     return card
       ? this.update(actor, card, action, verb, plan, now, published)
@@ -139,20 +145,26 @@ export class CardService {
     payload: unknown,
     card: CardView | null,
   ): void {
-    if (actor.kind === 'system') return;
-    const detail = card?.detail ?? {};
-    const facts = {
-      routedRoles: [card?.ownerRole, detail['escalatedToRole'] as string | null | undefined],
-      specialty: (detail['specialty'] ?? null) as Specialty | null,
-      isAssignee: card?.assigneeId === actor.userId,
-      isCreator: card?.createdById === actor.userId,
-    };
-    const rows = definition.permissions?.(payload, card) ?? [definition.action];
-    if (!rows.every((row) => isAllowed(row, actor.roles, facts))) {
+    if (!this.isPermitted(actor, definition, payload, card)) {
       throw new AppException(definition.forbiddenCode ?? 'hub.common.forbidden', {
         details: { action: definition.action },
       });
     }
+  }
+
+  /** The one permission decision. Actor kind plays no part, except that a system actor has no roles to check. */
+  isPermitted(
+    actor: Actor,
+    definition: CardActionDefinition,
+    payload: unknown,
+    card: CardView | null,
+  ): boolean {
+    if (actor.kind === 'system') return true;
+    const facts = card
+      ? permissionFactsFor(card, actor.userId)
+      : { routedRoles: [], specialty: null, isAssignee: false, isCreator: false, isDeliverer: false };
+    const rows = definition.permissions?.(payload, card) ?? [definition.action];
+    return rows.every((row) => isAllowed(row, actor.roles, facts));
   }
 
   private async create(
@@ -189,7 +201,7 @@ export class CardService {
         },
       },
     };
-    return this.finish(actor, card, action, plan, plan.event ?? defaultEvent, now, published);
+    return this.finish(actor, card, action, plan, plan.event ?? defaultEvent, now, published, false);
   }
 
   private async update(
@@ -224,7 +236,17 @@ export class CardService {
       kind: named.kind,
       data: { ...named.data, ...(moved ? { from: card.status, to: status } : {}) },
     };
-    return this.finish(actor, written, action, plan, event, now, published);
+    const closedNow = moved && machine.terminal.includes(status);
+    return this.finish(
+      actor,
+      written,
+      action,
+      plan,
+      event,
+      now,
+      published,
+      closedNow || plan.releasesDependants === true,
+    );
   }
 
   /** Everything after the card row: exactly one event and one audit row, then the rest. */
@@ -236,8 +258,13 @@ export class CardService {
     event: { readonly kind: EventKind; readonly data?: JsonObject },
     now: Date,
     published: RealtimeCardEvent[],
+    releasesDependants: boolean,
   ): Promise<ApplyResult> {
-    const extra = (await plan.write?.(card)) ?? {};
+    const prepared: ApplyResult[] = [];
+    for (const step of plan.prepare?.(card) ?? []) {
+      prepared.push(await this.run(actor, step.target, step.action, step.payload, published, step.trusted));
+    }
+    const extra = (await plan.write?.(card, prepared)) ?? {};
     const written: CardEventView = await this.cards.insertEvent({
       actor,
       card,
@@ -277,9 +304,36 @@ export class CardService {
 
     const followUps: ApplyResult[] = [];
     for (const followUp of plan.followUps?.(card) ?? []) {
-      followUps.push(await this.run(actor, followUp.target, followUp.action, followUp.payload, published));
+      followUps.push(
+        await this.run(
+          actor,
+          followUp.target,
+          followUp.action,
+          followUp.payload,
+          published,
+          followUp.trusted,
+        ),
+      );
     }
-    return { card: { ...card, eventSeq: written.seq }, event: written, followUps };
+    if (releasesDependants) {
+      for (const dependant of await this.cards.findDependants(card)) {
+        followUps.push(
+          await this.run(
+            actor,
+            { cardId: dependant.id },
+            'card.unblock',
+            { byCardKey: card.key },
+            published,
+            true,
+          ),
+        );
+      }
+    }
+    return {
+      card: { ...card, eventSeq: written.seq },
+      event: written,
+      followUps: [...prepared, ...followUps],
+    };
   }
 
   private async notify(actor: Actor, card: CardView, plan: CardActionPlan): Promise<void> {

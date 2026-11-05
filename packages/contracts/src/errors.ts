@@ -64,6 +64,7 @@ export const ERROR_CATALOGUE = {
   'hub.tasks.already_claimed': 409,
   'hub.tasks.not_claimer': 403,
   'hub.tasks.specialty_role_mismatch': 403,
+  'hub.tasks.blocked': 409,
 
   'hub.decisions.not_decider': 403,
   'hub.decisions.already_decided': 409,
