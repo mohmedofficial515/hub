@@ -111,7 +111,10 @@ export async function startStack(): Promise<RunningStack> {
     LAB_ROOT: labRoot,
     LAB_URL: 'http://localhost:6200',
     REPOS_ROOT: join(labRoot, '.repos'),
-    MAIL_PROVIDER: 'none',
+    // The real path: an invite must not wait for this, and a mail server that is absent is only a warning.
+    MAIL_PROVIDER: 'smtp',
+    SMTP_HOST: 'localhost',
+    SMTP_PORT: '7342',
   };
 
   const prisma = join(API_DIR, 'node_modules/prisma/build/index.js');

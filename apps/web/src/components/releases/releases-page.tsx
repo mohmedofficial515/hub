@@ -211,7 +211,7 @@ function Manifest({
           )}
         </div>
       </header>
-      <div className="grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <section
           aria-label={t.includedTitle}
           className="flex flex-col gap-3 border-b border-border p-4 md:border-e md:border-b-0 md:p-5"

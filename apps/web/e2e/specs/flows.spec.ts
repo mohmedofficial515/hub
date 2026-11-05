@@ -15,10 +15,13 @@ const JWT =
 test.describe('critical flows', () => {
   test('F1 sign-in via invite', async ({ browser, owner, locale, ws }) => {
     const email = `joiner-${locale}-${Date.now()}@e2e.test`;
+    const sent = Date.now();
     const invite = await owner.post<{ url: string }>(`workspaces/${ws}/invites`, {
       email,
       roles: ['frontend', 'qa'],
     });
+    // The mail goes on its own. It used to hold this answer for seconds.
+    expect(Date.now() - sent).toBeLessThan(1500);
     const token = invite.url.slice(invite.url.lastIndexOf('/') + 1);
     const auth = words(locale, 'auth');
     const roles = kit(locale)['roles'] as Record<string, string>;

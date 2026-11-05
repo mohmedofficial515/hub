@@ -28,7 +28,7 @@ are deterministic. A `FakeClock` is injected through the `Clock` token.
 | --- | --- | --- |
 | Unit | Vitest + `@testing-library/react` + `jsdom` | pure components (badges, timeline item renderers per type, relative time in ar/en, RTL-sensitive layouts), hooks (`useTimelineFilters` URL state), i18n catalog completeness (every key in `ar.json` exists in `en.json`) |
 | Contract | `pnpm api:check` | generated client is in sync with `apps/api` OpenAPI snapshot |
-| e2e | Playwright 1.6x (chromium; `ar` RTL default project + `en` LTR project; viewports 1440 and 390) against a **real stack** (`compose.dev.yaml` + api + web started by the Playwright `webServer` config, DB seeded by `scripts/seed-dev.ts --e2e`) | the five critical flows (§1.5) + smoke per page (renders without console errors, no horizontal overflow at 390 px) |
+| e2e | Playwright 1.6x (chromium; `ar` RTL default project + `en` LTR project; viewports 1440 and 390) against a **real stack** (`apps/web/e2e/support/stack.ts`: Testcontainers Postgres and Redis, the built API and web on 7319 and 7359, never the local database; the people and projects made by `global-setup.ts`) | the five critical flows (§1.5) + smoke per page (renders without console errors, no horizontal overflow at 390 px) |
 | Accessibility | `@axe-core/playwright` inside the e2e smoke | zero `serious`/`critical` violations on every page, both locales, both themes |
 
 ### 1.3 `apps/lab` (Vite)
@@ -49,6 +49,8 @@ are deterministic. A `FakeClock` is injected through the `Clock` token.
 | Plugin | `claude plugin validate ./packages/team-pack/plugin --strict` (skipped locally when `claude` is absent, required in CI) |
 
 ### 1.5 The five critical Playwright flows (must stay green from the phase that introduces them)
+
+`pnpm test:e2e:web`, `apps/web/e2e/specs/flows.spec.ts`. First release (`15` §3): F1 lands on Onboarding, F3 ends on `drafted` since there is no GitHub, and F5 reads a temp local lab with no iframe gallery. `live-update.spec.ts` is the acceptance test of `15` §7, and `busy-session.spec.ts` measures the per-user limit.
 
 | # | Flow | Steps | Asserts |
 | --- | --- | --- | --- |
