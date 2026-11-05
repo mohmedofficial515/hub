@@ -21,7 +21,6 @@ import {
   showToast,
   useKeyboardList,
   useLocale,
-  useMembers,
   useT,
   when,
 } from '@/components/kit';
@@ -42,7 +41,6 @@ export function Invites({
 }) {
   const t = useT<MembersMessages>('members');
   const locale = useLocale();
-  const members = useMembers().data ?? [];
   const writes = useInviteWrites();
   const [revoking, setRevoking] = useState<string | null>(null);
   const target = invites.find((i) => i.id === revoking);
@@ -78,7 +76,6 @@ export function Invites({
       >
         {invites.map((invite) => {
           const soon = hoursFromNow(invite.expiresAt) <= 24;
-          const inviter = members.find((m) => m.id === invite.createdBy);
           return (
             <li
               key={invite.id}
@@ -95,7 +92,9 @@ export function Invites({
                   ))}
                 </p>
                 <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
-                  <span>{fmt(t.invites.sent, { name: inviter ? (firstName(inviter.name) ?? '') : '' })}</span>
+                  <span>
+                    {fmt(t.invites.sent, { name: firstName(invite.createdBy) ?? invite.createdBy })}
+                  </span>
                   {soon ? (
                     <Pill tone="warning" icon={Clock}>
                       {fmt(t.invites.expiresSoon, { when: when(invite.expiresAt, locale) })}

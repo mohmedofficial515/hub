@@ -3,8 +3,8 @@
 /**
  * @file sources.tsx
  * @description Ported from the approved design, pages/settings/parts/sources.tsx, on real fields. The design's diagnosis and one-click fix
- * assumed data the API does not hold, so a problem shows the stored error and the last-run facts. Runs, Run now and the run strip appear only
- * once `GET …/sources/{id}/runs` answers (H2-05).
+ * assumed data the API does not hold, so a problem shows the stored error and the last-run facts. The run strip appears only when a real run
+ * exists in the last day, and a source that cannot run yet offers no Run now.
  */
 import type { SourceKind } from '@hub/contracts';
 import {
@@ -205,7 +205,7 @@ function ProblemPanel({
               <Pencil aria-hidden className="size-4" strokeWidth={1.75} />
               {t.sources.edit}
             </Button>
-            {runs && (
+            {runs && runs.length > 0 && (
               <Button variant="ghost" onClick={onRuns}>
                 <History aria-hidden className="size-4" strokeWidth={1.75} />
                 {t.sources.viewRuns}
@@ -276,7 +276,7 @@ function SourceListRow({
       <div className="flex items-center gap-2">
         <StatusPill state={state} />
         <span className="ms-auto flex items-center gap-1 md:ms-3">
-          {runs && (
+          {state !== 'not_connected' && (
             <Button size="sm" busy={busy} disabled={!source.enabled} onClick={onRun}>
               <Play aria-hidden className="size-3.5" strokeWidth={1.75} />
               {t.sources.runNow}
@@ -287,7 +287,7 @@ function SourceListRow({
             items={[
               { label: t.sources.test, icon: PlugZap, onSelect: onTest, disabled: !source.enabled },
               { label: t.sources.edit, icon: Pencil, onSelect: onEdit },
-              ...(runs ? [{ label: t.sources.viewRuns, icon: History, onSelect: onRuns }] : []),
+              ...(runs?.length ? [{ label: t.sources.viewRuns, icon: History, onSelect: onRuns }] : []),
               source.enabled
                 ? {
                     label: t.sources.disable,
@@ -342,8 +342,8 @@ function RunsDialog({ source, onClose }: { source: Source | null; onClose: () =>
               {run.status !== 'failed' && (
                 <span className="text-body-sm text-muted-foreground">
                   {fmt(t.sources.runCounts, {
-                    created: num(run.created ?? 0, locale),
-                    updated: num(run.updated ?? 0, locale),
+                    created: num(run.created, locale),
+                    updated: num(run.updated, locale),
                   })}
                 </span>
               )}

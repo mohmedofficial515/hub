@@ -91,6 +91,7 @@ export interface InviteRow {
   id: string;
   email: string;
   roles: Role[];
+  /** The inviter's name. */
   createdBy: string;
   expiresAt: string;
   acceptedAt: string | null;

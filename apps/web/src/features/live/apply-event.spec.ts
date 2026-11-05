@@ -13,6 +13,18 @@ const WS = 'goteav';
 const row = (key: string, status: string) =>
   ({ key, status, type: 'task', title: key }) as unknown as CardListItem;
 
+describe('project.updated', () => {
+  it('rereads members, settings, sources and my own roles', () => {
+    const client = new QueryClient();
+    const spy = vi.spyOn(client, 'invalidateQueries');
+    expect(applyLiveMessage(client, WS, { event: 'project.updated', data: { scope: 'members' } })).toBe(true);
+    const keys = spy.mock.calls.map(([filters]) => filters?.queryKey);
+    expect(keys).toContainEqual(qk.admin(WS));
+    expect(keys).toContainEqual(qk.members(WS));
+    expect(keys).toContainEqual(qk.me);
+  });
+});
+
 describe('applyCardEvent', () => {
   let client: QueryClient;
 

@@ -5,15 +5,14 @@
  * @description Project settings and details, sources, personal tokens and the audit log. Everything but tokens sits under `qk.admin`
  * or `qk.workspace`, which `project.updated` on the stream rereads, so a change from MCP or another tab appears without a reload.
  */
-import type { Project, SourceDto, SourceKind } from '@hub/contracts';
+import type { Project, SourceDto, SourceKind, SystemData } from '@hub/contracts';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { useRoute } from '@/components/shell/router';
 import { qk } from '@/features/cards/keys';
-import { del, get, getPage, patch, post, put } from '@/lib/api/client';
+import { API_PREFIX, del, get, getPage, patch, post, put, toSearchParams } from '@/lib/api/client';
 import { isHubError } from '@/lib/api/errors';
-import { fetchAllPages } from '@/lib/api/pages';
 
 interface SettingRowDto {
   key: string;
@@ -171,33 +170,22 @@ export function useTestSource() {
 
 export interface CaptureRun {
   id: string;
-  kind?: string;
+  kind: string;
   startedAt: string;
-  finishedAt?: string | null;
-  status: 'running' | 'ok' | 'partial' | 'failed';
-  created?: number;
-  updated?: number;
-  error?: string | null;
+  finishedAt: string | null;
+  status: string;
+  created: number;
+  updated: number;
+  error: string | null;
 }
 
-/**
- * `GET …/sources/{id}/runs` arrives with the capture worker (H2-05). Until then it answers 404, and `null` here means
- * "no run history exists", so the page shows the source's own last-run facts and offers no Run now.
- */
+/** A source's last runs, newest first (`GET …/capture/runs`). `source.run` on the stream rereads them. */
 export function useSourceRuns(id: string | null | undefined) {
   const { ws } = useRoute();
   return useQuery({
     queryKey: qk.admin(ws, 'sources', id, 'runs'),
     enabled: !!ws && !!id,
-    retry: false,
-    queryFn: async (): Promise<CaptureRun[] | null> => {
-      try {
-        return (await getPage<CaptureRun>(`workspaces/${ws}/sources/${id}/runs`, { limit: 50 })).items;
-      } catch (error) {
-        if (isHubError(error) && error.status === 404) return null;
-        throw error;
-      }
-    },
+    queryFn: () => get<CaptureRun[]>(`workspaces/${ws}/capture/runs`, { source: id, limit: 50 }),
   });
 }
 
@@ -284,10 +272,21 @@ export function useAudit(filters: AuditFilters) {
   });
 }
 
-export const fetchAuditExport = (ws: string, filters: AuditFilters) =>
-  fetchAllPages<AuditRow>(`workspaces/${ws}/audit`, { ...filters }, 5000);
+/** The API's CSV for the same filters (docs/04 §3.21). The session cookie carries the request, so a plain link does. */
+export const auditExportHref = (ws: string, filters: AuditFilters) =>
+  `${API_PREFIX}/workspaces/${ws}/audit/export.csv?${toSearchParams({ ...filters }).toString()}`;
 
-// ── Health (the public checks; the owner's system panel, H2-07, adds to it) ──────────────────────
+// ── System (docs/09 §18.6) ──────────────────────────────────────────────────────────────────────
+
+export function useSystem() {
+  const { ws } = useRoute();
+  return useQuery({
+    queryKey: qk.admin(ws, 'system'),
+    enabled: !!ws,
+    refetchInterval: 30_000,
+    queryFn: () => get<SystemData>(`workspaces/${ws}/system`),
+  });
+}
 
 export interface HealthReady {
   status: 'ok';

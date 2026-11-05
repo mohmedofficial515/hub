@@ -39,7 +39,7 @@ import {
   useT,
 } from '@/components/kit';
 import type { SettingsMessages } from '@/features/settings/messages';
-import { type AuditFilters, type AuditRow, fetchAuditExport, useAudit } from '@/features/settings/queries';
+import { auditExportHref, type AuditFilters, type AuditRow, useAudit } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
 
 import { rowFocus } from './shared';
@@ -56,40 +56,6 @@ const GROUPS = [
   'system',
 ] as const;
 const CARD_KEY = /^[A-Z]{2,6}-\d+$/;
-
-const csvCell = (value: string | null) => `"${(value ?? '').replaceAll('"', '""')}"`;
-
-/** Same columns and BOM as `GET …/audit?format=csv` (04 §3.23), built from every row the filters leave. */
-function downloadCsv(rows: AuditRow[]) {
-  const lines = [
-    'id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip',
-    ...rows.map((r) =>
-      [
-        r.id,
-        r.createdAt,
-        r.actor.kind,
-        r.actor.userId,
-        r.actor.displayName,
-        r.via,
-        r.action,
-        r.targetType,
-        r.targetId,
-        r.summary,
-        r.ip,
-      ]
-        .map(csvCell)
-        .join(','),
-    ),
-  ];
-  const url = URL.createObjectURL(
-    new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' }),
-  );
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `hub-audit-${dayKey(Date.now())}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 function Actor({ row }: { row: AuditRow }) {
   return (
@@ -186,7 +152,6 @@ export function AuditTab() {
   const from = useFilter('from');
   const to = useFilter('to');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
   // A day, in the project's time, as the API's bounds.
@@ -280,17 +245,12 @@ export function AuditTab() {
   }
 
   const rows = page;
-  const exportAll = async () => {
-    setExporting(true);
-    try {
-      const all = await fetchAuditExport(ws, apiFilters);
-      downloadCsv(all);
-      showToast({ message: plural(all.length, locale, s.exported) });
-    } catch (error) {
-      showToast({ tone: 'error', message: isHubError(error) ? error.message : t.errorThing });
-    } finally {
-      setExporting(false);
-    }
+  const exportAll = () => {
+    const link = document.createElement('a');
+    link.href = auditExportHref(ws, apiFilters);
+    link.download = `hub-audit-${dayKey(Date.now())}.csv`;
+    link.click();
+    showToast({ message: s.exportStarted });
   };
 
   return (
@@ -300,7 +260,7 @@ export function AuditTab() {
         icon={ScrollText}
         title={s.title}
         aside={
-          <Button disabled={rows.length === 0} busy={exporting} onClick={() => void exportAll()}>
+          <Button disabled={rows.length === 0} onClick={exportAll}>
             <Download aria-hidden className="size-4" strokeWidth={1.75} />
             {s.export}
           </Button>

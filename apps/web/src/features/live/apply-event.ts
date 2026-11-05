@@ -103,6 +103,12 @@ export function applyLiveMessage(client: QueryClient, ws: string, message: LiveM
     void client.invalidateQueries({ queryKey: qk.counters(ws) });
     return true;
   }
+  if (event === 'source.run') {
+    // A source's status and its runs moved.
+    void client.invalidateQueries({ queryKey: qk.admin(ws, 'sources') });
+    void client.invalidateQueries({ queryKey: qk.admin(ws, 'system') });
+    return true;
+  }
   if (event === 'workspace.updated' || event === 'project.updated') {
     void client.invalidateQueries({ queryKey: qk.workspace(ws) });
     void client.invalidateQueries({ queryKey: qk.workspaces });

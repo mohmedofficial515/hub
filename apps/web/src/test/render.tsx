@@ -11,11 +11,15 @@ import arAsk from '../../messages/ar/ask.json';
 import arAuth from '../../messages/ar/auth.json';
 import arDecisions from '../../messages/ar/decisions.json';
 import arDocs from '../../messages/ar/docs.json';
+import arHandoffs from '../../messages/ar/handoffs.json';
 import arKit from '../../messages/ar/kit.json';
+import arMembers from '../../messages/ar/members.json';
+import arNeeds from '../../messages/ar/needs.json';
 import arOnboarding from '../../messages/ar/onboarding.json';
 import arPlanning from '../../messages/ar/planning.json';
 import arRedesign from '../../messages/ar/redesign.json';
 import arReleases from '../../messages/ar/releases.json';
+import arSettings from '../../messages/ar/settings.json';
 import arShell from '../../messages/ar/shell.json';
 import arTasks from '../../messages/ar/tasks.json';
 import arWorkspaces from '../../messages/ar/workspaces.json';
@@ -23,11 +27,15 @@ import enAsk from '../../messages/en/ask.json';
 import enAuth from '../../messages/en/auth.json';
 import enDecisions from '../../messages/en/decisions.json';
 import enDocs from '../../messages/en/docs.json';
+import enHandoffs from '../../messages/en/handoffs.json';
 import enKit from '../../messages/en/kit.json';
+import enMembers from '../../messages/en/members.json';
+import enNeeds from '../../messages/en/needs.json';
 import enOnboarding from '../../messages/en/onboarding.json';
 import enPlanning from '../../messages/en/planning.json';
 import enRedesign from '../../messages/en/redesign.json';
 import enReleases from '../../messages/en/releases.json';
+import enSettings from '../../messages/en/settings.json';
 import enShell from '../../messages/en/shell.json';
 import enTasks from '../../messages/en/tasks.json';
 import enWorkspaces from '../../messages/en/workspaces.json';
@@ -35,6 +43,10 @@ import enWorkspaces from '../../messages/en/workspaces.json';
 const catalogs = {
   ar: {
     kit: arKit,
+    settings: arSettings,
+    members: arMembers,
+    handoffs: arHandoffs,
+    needs: arNeeds,
     ask: arAsk,
     docs: arDocs,
     onboarding: arOnboarding,
@@ -49,6 +61,10 @@ const catalogs = {
   },
   en: {
     kit: enKit,
+    settings: enSettings,
+    members: enMembers,
+    handoffs: enHandoffs,
+    needs: enNeeds,
     ask: enAsk,
     docs: enDocs,
     onboarding: enOnboarding,

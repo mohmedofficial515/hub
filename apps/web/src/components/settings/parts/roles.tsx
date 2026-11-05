@@ -191,7 +191,7 @@ function FullMatrix() {
                     scope="row"
                     className="sticky start-0 z-10 bg-card px-3 py-1.5 text-start font-normal text-foreground"
                   >
-                    {t.roles.rows[action as RowId]}
+                    {t.roles.rows[action.replace('.', '_') as RowId]}
                   </th>
                   {ROLES.map((role) => (
                     <td key={role} className="px-2 py-1.5 text-center">
@@ -248,7 +248,7 @@ function OneRoleMatrix() {
                   className="flex items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
                 >
                   <span className="min-w-0 flex-1 text-body-sm text-foreground">
-                    {t.roles.rows[action as RowId]}
+                    {t.roles.rows[action.replace('.', '_') as RowId]}
                   </span>
                   <span className="shrink-0 text-body-sm">
                     <Cell cell={CELL[grantFor(action, role)]} />
