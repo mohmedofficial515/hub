@@ -49,6 +49,7 @@ import {
 import { isHubError } from '@/lib/api/errors';
 import { useUnsavedGuard } from '@/lib/hooks';
 
+import { LinkFolder } from './link-folder';
 import { FormSection, Segmented } from './shared';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -649,6 +650,7 @@ export function GeneralTab() {
             aria-invalid={!!errors.repoPaths}
           />
         </Field>
+        {!closed && <LinkFolder slug={slug} />}
       </FormSection>
 
       <FormSection title={s.security.title} description={s.security.body}>

@@ -2,7 +2,7 @@
 
 /**
  * @file settings-page.tsx
- * @description Seven tabs in `?tab=` (docs/09 §18). Ported from the approved design, pages/settings. Contract: apps/web/README.md.
+ * @description Eight tabs in `?tab=` (docs/09 §18). Ported from the approved design, pages/settings. Contract: apps/web/README.md.
  */
 import { Tabs } from 'radix-ui';
 import { useEffect, useRef } from 'react';
@@ -33,6 +33,7 @@ import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
 
 import { AuditTab } from './parts/audit';
+import { DevicesTab } from './parts/devices';
 import { GeneralTab } from './parts/general';
 import { NotificationsTab } from './parts/notifications';
 import { RolesTab } from './parts/roles';
@@ -40,10 +41,19 @@ import { SourcesTab } from './parts/sources';
 import { SystemTab } from './parts/system';
 import { TokensTab } from './parts/tokens';
 
-const TABS = ['general', 'sources', 'roles', 'notifications', 'tokens', 'system', 'audit'] as const;
+const TABS = [
+  'general',
+  'sources',
+  'roles',
+  'notifications',
+  'tokens',
+  'devices',
+  'system',
+  'audit',
+] as const;
 type SettingsTab = (typeof TABS)[number];
-/** 09 §18.4, §18.5: these two belong to every member. The rest are owner and PM, with a 403 otherwise. */
-const PERSONAL: readonly SettingsTab[] = ['notifications', 'tokens'];
+/** 09 §18.4, §18.5, docs/16 §5: these three belong to every member. The rest are owner and PM, with a 403 otherwise. */
+const PERSONAL: readonly SettingsTab[] = ['notifications', 'tokens', 'devices'];
 const isTab = (v: string | null): v is SettingsTab => !!v && (TABS as readonly string[]).includes(v);
 
 const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
@@ -52,6 +62,7 @@ const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
   roles: RolesTab,
   notifications: NotificationsTab,
   tokens: TokensTab,
+  devices: DevicesTab,
   system: SystemTab,
   audit: AuditTab,
 };

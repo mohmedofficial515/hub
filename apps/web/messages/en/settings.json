@@ -12,6 +12,7 @@
     "roles": "Roles",
     "notifications": "Notifications",
     "tokens": "Tokens",
+    "devices": "Devices",
     "system": "System",
     "audit": "Audit"
   },
@@ -156,6 +157,22 @@
       "action": "Close project",
       "ownerOnly": "Only the owner can close the project",
       "done": "Closed the project"
+    },
+    "link": {
+      "title": "Link a folder",
+      "body": "Registers this folder on the project. On the device that holds it, Hub also accepts the folder’s trust in Claude Code, so a chat there lands on this project with no dialog. It writes that one entry to ~/.claude.json, keeps every other key, and keeps a backup. It happens only when you press the button.",
+      "folder": "Folder",
+      "folderHint": "The full path on that device.",
+      "folderInvalid": "Write an absolute path without ..",
+      "device": "Device",
+      "action": "Link this folder",
+      "done": "Linked the folder",
+      "noDevice": "No device is online. Connect one in {link}.",
+      "linked": "{folder} is now on {project}. A chat there needs no dialog.",
+      "alreadyLinked": "{folder} was already on {project}. Nothing changed.",
+      "backup": "Backup: {path}",
+      "shapeUnexpected": "Hub registered the folder, but changed nothing in Claude Code, because its config file was not in the shape expected. Open Claude Code in this folder and accept the trust dialog once.",
+      "mcpFailed": "Hub registered the folder, but Claude Code refused the setting, so trust was not written. See Settings › Devices."
     }
   },
   "sources": {
@@ -598,5 +615,77 @@
       "telegram": "Needs a Telegram bot and its token on the server.",
       "email": "Needs a mail server for notifications. In development, mail is used for invites only."
     }
+  },
+  "devices": {
+    "title": "My devices",
+    "intro": "Each device runs a small bridge that connects out to Hub. It can only work in folders you registered on a project, and you can cut it off here at any time.",
+    "emptyTitle": "No devices yet",
+    "emptyBody": "Run the command below on a device. On the main machine, pnpm start:local does this for you.",
+    "online": "Online",
+    "offline": "Offline",
+    "platforms": {
+      "win32": "Windows",
+      "darwin": "macOS",
+      "linux": "Linux"
+    },
+    "claudeVersion": "Claude Code {version}",
+    "claudeUnknown": "not found",
+    "lastSeen": "Last seen {when}",
+    "reportedAt": "Last report {when}",
+    "checkNow": "Check now",
+    "checking": "Checking this device…",
+    "noReport": "No report yet. It will check once it is online.",
+    "fix": "Fix",
+    "fixed": "Fixed",
+    "hint": "To fix it, run: {hint}",
+    "levels": {
+      "ok": "fine",
+      "warn": "worth a look",
+      "error": "needs fixing"
+    },
+    "checks": {
+      "claude_found": {
+        "ok": "Claude Code is installed",
+        "bad": "Claude Code is not installed"
+      },
+      "claude_version": {
+        "ok": "Claude Code is recent enough",
+        "bad": "Claude Code is too old for Hub"
+      },
+      "claude_path_version": {
+        "ok": "Claude Code in your terminal is recent enough",
+        "bad": "Claude Code in your terminal is older. Hub uses the newest copy, so nothing is stopped"
+      },
+      "claude_signed_in": {
+        "ok": "Claude Code is signed in",
+        "bad": "Claude Code is not signed in"
+      },
+      "mcp_server": {
+        "ok": "Hub is set up in Claude Code",
+        "bad": "Hub is not set up in Claude Code"
+      },
+      "plugin": {
+        "ok": "The hub plugin is installed",
+        "bad": "The hub plugin is not installed"
+      },
+      "login_start": {
+        "ok": "The bridge starts when you log in",
+        "bad": "The bridge does not start when you log in"
+      },
+      "vscode": {
+        "ok": "VS Code is installed",
+        "bad": "VS Code was not found. Only Open in VS Code needs it"
+      }
+    },
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke “{name}”?",
+    "revokeBody": "Its bridge is cut off at once, and its Claude Code loses Hub. Connecting it again needs the command and your approval.",
+    "revoked": "Revoked the device",
+    "connectTitle": "Connect a new device",
+    "connectBody": "One command in any terminal. It opens your browser for you to approve, then sets up the bridge, Hub in Claude Code, and the plugin. It is safe to run again. It needs Node 22 or newer.",
+    "connectLabel": "Connect",
+    "connectNote": "No token to copy and no new terminal. Run the second command on a device to remove all of it.",
+    "uninstallLabel": "Remove from a device",
+    "copyCommand": "Copy the command"
   }
 }
