@@ -65,12 +65,22 @@
     "archive": "أرشفه",
     "restore": "استعده",
     "openToday": "افتح يومي",
-    "openSettings": "افتح المصادر",
     "archived": "أُرشف الإشعار",
     "restored": "استُعيد الإشعار",
     "swipe": "أرشفة",
     "readNow": "صار مقروءًا",
-    "unreadNow": "صار غير مقروء"
+    "unreadNow": "صار غير مقروء",
+    "titles": {
+      "routed_decision": "قرار بانتظارك: {title}",
+      "routed_need": "احتياج بانتظارك: {title}",
+      "routed_handoff": "إحالة بانتظارك: {title}",
+      "routed_review": "بانتظار مراجعتك: {title}",
+      "routed_idea": "فكرة تخص دورك: {title}",
+      "review_requested": "جاهزة للمراجعة: {title}",
+      "mention": "إشارة إليك: {title}",
+      "task_ready": "جاهزة للحجز: {title}",
+      "escalation": "تجاوزت موعدها وصُعّدت: {title}"
+    }
   },
   "archive": {
     "show": "اعرض المؤرشف ({n})",

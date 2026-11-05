@@ -56,7 +56,10 @@ export function ReadyTasks({
           <AppLink
             view="tasks"
             query={{ status: 'backlog' }}
-            className={cn('rounded-sm font-medium text-primary underline underline-offset-4', focusRing)}
+            className={cn(
+              'hit-44 rounded-sm font-medium text-primary underline underline-offset-4',
+              focusRing,
+            )}
           >
             {t.ready.emptyLink}
           </AppLink>

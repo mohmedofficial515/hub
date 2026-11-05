@@ -130,7 +130,8 @@ export function useLastVisit() {
     retry: false,
     queryFn: async () => {
       const today = await get<Today>(`workspaces/${ws}/today`);
-      void markSeen(ws, client);
+      // A failed mark only means the number stays until the next visit.
+      void markSeen(ws, client).catch(() => undefined);
       return today.changesSince.since;
     },
   }).data;

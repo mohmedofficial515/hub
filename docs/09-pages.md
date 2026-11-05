@@ -193,8 +193,9 @@ sessions, since last visit (first 5 + "see all").
 - Sessions without summary: `session_logs` of mine with `hookReceivedAt` and no
   `summaryReceivedAt` in the last 7 days; row shows branch, commits, time, and the hint
   "Run `/hub:start` in Claude Code to write the summary" (`CopyButton`).
-- Since last visit: events after `user.lastSeenAt` (server updates `lastSeenAt` when this page is
-  loaded, **after** computing the list), excluding my own; grouped per card; "See all" → timeline
+- Since last visit: events after `lastSeenAt`, excluding my own. Reading changes nothing: `POST /today/seen`
+  moves it, which the page sends on leaving, and the Timeline on arrival (review M4), so the list and the
+  sidebar's number agree while reading; grouped per card; "See all" → timeline
   with `from=<lastSeenAt>`.
 - Actions: Claim (role), Decide/Deliver/Acknowledge open the sheet on the action (human), Refresh.
 - Empty states: awaiting me → "Nothing waits for you. Enjoy." (`today.empty.awaiting`); ready →
@@ -244,7 +245,8 @@ one meta line; inline actions move into the sheet.
   → `TimelineEvent[]` (event + card header + collapse group id + `moreCount`). Server collapses
   consecutive events of one card within 30 min (`timeline.collapse_minutes`, constant) and returns
   `collapsed: [{kind, at, actor}]` for the "+n" expander. Newest first.
-- URL params exactly as above (`roles` filters `card.ownerRole`; `members` filters actor/assignee).
+- URL params as above (`roles` filters `card.ownerRole`; `members` is the API's `actors`). Mine is `mine=1`,
+  the API's `mine` (docs/04 §3.9 wins): events on cards I watch, own or claimed. A card waiting on me is marked on its newest row.
   `from`/`to` ISO dates in workspace timezone. Defaults: none (all).
 - Day dividers: sticky, labels `common.day.today|yesterday|date`.
 - Live: SSE `card.event` → if the list is scrolled to top and no filter excludes the event, prepend
@@ -653,7 +655,7 @@ everyone; phone-first.
 - Data: `GET /api/v1/workspaces/{ws}/inbox?unread=1&kind[]&awaiting=me&cursor` → `Notification[]`
   grouped by `groupKey` within 30 min (`moreCount`); `POST /inbox/{id}/read`, `POST /inbox/read-all`,
   `POST /inbox/{id}/archive`.
-- URL: `unread=1&kind[]&awaiting=me`.
+- URL: `show=all` (Unread is the default, review M9), `kind` (one of six families of kinds), `awaiting=me`, `archived=1`.
 - Opening an item marks it read and opens the card sheet on the quick action.
 - Live: SSE `inbox.new` prepends with a fade; the sidebar badge updates.
 - Empty: unread → "You're all caught up." ; all → "Notifications appear here when something is

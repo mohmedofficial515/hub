@@ -29,6 +29,7 @@ import {
   Bidi,
   CardChip,
   cn,
+  fmt,
   focusRing,
   IconButton,
   plural,
@@ -106,6 +107,15 @@ function useSwipe(onArchive: () => void) {
   return { dx, handlers };
 }
 
+/**
+ * The API stores a title once, in the language the member had then, with the card's title of that moment. For a kind that says only "why this reached me"
+ * the page writes it again from the live card, so an edit shows here and it follows the page's language. Others carry a fact of their moment, and stay.
+ */
+export function titleOf(item: InboxGroup['lead'], titles: InboxMessages['row']['titles']) {
+  const template = (titles as Record<string, string>)[item.kind];
+  return template && item.card ? fmt(template, { title: item.card.title }) : item.title;
+}
+
 export function InboxRow({
   group,
   rowProps,
@@ -138,6 +148,7 @@ export function InboxRow({
   const danger = lead.kind === 'escalation';
   const KindIcon = kindIcon[lead.kind] ?? (card ? typeIcon[card.type] : Cpu);
   const titleId = `inbox-${lead.id}`;
+  const title = titleOf(lead, t.row.titles);
   const titleClass = cn(
     'underline-offset-4 outline-none after:absolute after:inset-0 hover:underline',
     stretchedFocus,
@@ -204,7 +215,7 @@ export function InboxRow({
             )}
             {cardKey ? (
               <AppLink card={cardKey} onClick={onOpen} className={cn('min-w-0', titleClass)}>
-                <Bidi>{lead.title}</Bidi>
+                <Bidi>{title}</Bidi>
               </AppLink>
             ) : link ? (
               <AppLink
@@ -213,10 +224,10 @@ export function InboxRow({
                 onClick={onOpen}
                 className={cn('min-w-0', titleClass)}
               >
-                <Bidi>{lead.title}</Bidi>
+                <Bidi>{title}</Bidi>
               </AppLink>
             ) : (
-              <Bidi>{lead.title}</Bidi>
+              <Bidi>{title}</Bidi>
             )}
           </p>
           {lead.body && (

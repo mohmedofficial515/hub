@@ -73,7 +73,7 @@ export function InboxPage() {
   const t = useT<InboxMessages>(NS);
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const { roles, me, isManager } = useSession();
+  const { roles, me } = useSession();
   const run = useRunAction();
   const stack = useAwaiting();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -129,7 +129,6 @@ export function InboxPage() {
   const linkOf = (item: InboxItem): ItemLink | undefined => {
     if (item.card) return undefined;
     if (item.kind === 'brief') return { view: 'today' };
-    if (item.kind === 'system' && isManager) return { view: 'settings', query: { tab: 'sources' } };
     return undefined;
   };
 
@@ -441,7 +440,7 @@ export function InboxPage() {
                               onClick={() => markRead(group)}
                               className={linkButtonClass}
                             >
-                              {link.view === 'today' ? t.row.openToday : t.row.openSettings}
+                              {t.row.openToday}
                             </AppLink>
                           ) : lead.data.action && lead.card ? (
                             <StatusBadge status={lead.card.status} />

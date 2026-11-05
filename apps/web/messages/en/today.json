@@ -2,7 +2,7 @@
   "greeting": {
     "morning": "Good morning, {name}",
     "summary": {
-      "zero": "Nothing is waiting.",
+      "zero": "Nothing waits for you today.",
       "one": "1 thing is waiting",
       "other": "# things are waiting"
     },

@@ -159,7 +159,10 @@ export function CaptureSources({ sources }: { sources: SourceHealth[] }) {
             <AppLink
               view="settings"
               query={{ tab: 'sources' }}
-              className={cn('rounded-sm font-medium text-primary underline underline-offset-4', focusRing)}
+              className={cn(
+                'hit-44 rounded-sm font-medium text-primary underline underline-offset-4',
+                focusRing,
+              )}
             >
               {t.sources.emptyLink}
             </AppLink>

@@ -53,12 +53,22 @@
     "archive": "Archive",
     "restore": "Restore",
     "openToday": "Open Today",
-    "openSettings": "Open sources",
     "archived": "Notification archived",
     "restored": "Notification restored",
     "swipe": "Archive",
     "readNow": "Marked read",
-    "unreadNow": "Marked unread"
+    "unreadNow": "Marked unread",
+    "titles": {
+      "routed_decision": "A decision for you: {title}",
+      "routed_need": "A need for you: {title}",
+      "routed_handoff": "A handoff for you: {title}",
+      "routed_review": "Waiting for your review: {title}",
+      "routed_idea": "An idea for your role: {title}",
+      "review_requested": "Ready for review: {title}",
+      "mention": "You were mentioned: {title}",
+      "task_ready": "Ready to claim: {title}",
+      "escalation": "Overdue and escalated: {title}"
+    }
   },
   "archive": {
     "show": "Show archived ({n})",

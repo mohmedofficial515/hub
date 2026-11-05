@@ -207,9 +207,12 @@ function Ribbon({ inStack, outside }: { inStack: Dated[]; outside: Dated[] }) {
           className="absolute top-1/3 bottom-0 border-s border-dashed border-border"
           style={{ insetInlineStart: `${xOf(tick.h)}%` }}
         >
-          <span className="absolute start-1.5 bottom-1 text-caption whitespace-nowrap text-muted-foreground">
-            {weekday(tick.iso, locale, 'long')}
-          </span>
+          {/* A midnight close to "now" keeps its line. Its word would sit under the "now" label, whose width is about this many hours. */}
+          {tick.h >= 16 && (
+            <span className="absolute start-1.5 bottom-1 text-caption whitespace-nowrap text-muted-foreground">
+              {weekday(tick.iso, locale, 'long')}
+            </span>
+          )}
         </div>
       ))}
       <span
