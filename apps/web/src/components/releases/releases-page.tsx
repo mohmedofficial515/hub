@@ -370,17 +370,15 @@ export function ReleasesPage() {
     </Button>
   );
   const quiet = query.isPending || query.isError || empty;
+  const plannedCount = all.filter((c) => c.status === 'planned').length;
   const header = (
     <PageHeader
       title={t.title}
       meta={
-        quiet
+        // With none in preparation the section says so itself, so a subtitle would only repeat it.
+        quiet || plannedCount === 0
           ? undefined
-          : plural(
-              all.filter((c) => c.status === 'planned').length,
-              locale,
-              isManager ? t.meta.manager : t.meta.other,
-            )
+          : plural(plannedCount, locale, isManager ? t.meta.manager : t.meta.other)
       }
       actions={
         quiet ? undefined : isManager ? (
