@@ -422,6 +422,32 @@ describe('MCP over HTTP', () => {
     expect(refused.content[0]?.text).toContain('hub.common.forbidden');
   });
 
+  it('reads an indexed document, and starts source runs only for those allowed', async () => {
+    const { workspace, token } = await setup();
+    const source = await db().source.create({
+      data: {
+        workspaceId: workspace.id,
+        kind: 'local_path',
+        name: 'docs',
+        config: { path: 'F:/nowhere', purpose: 'docs' },
+      },
+    });
+    const hub = await connect(token);
+    const none = await hub.ok('search_docs', { query: 'nothing here' });
+    expect(none).toContain('No documents match');
+    expect((await hub.call('get_doc', {})).isError).toBe(true);
+    expect((await hub.call('rescan_lab')).content[0]?.text).toContain('hub.redesign.lab_unavailable');
+    const qa = await setup(['qa']);
+    await db().membership.create({ data: { workspaceId: workspace.id, userId: qa.user.id, roles: ['qa'] } });
+    const refused = await (
+      await connect(qa.token)
+    ).call('run_source', {
+      sourceId: source.id,
+      project: workspace.slug,
+    });
+    expect(refused.content[0]?.text).toContain('hub.common.forbidden');
+  });
+
   it('a change on the web is visible to the next tool call', async () => {
     const { workspace, token } = await setup();
     const hub = await connect(token);

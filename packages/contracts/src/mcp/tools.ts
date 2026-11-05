@@ -503,6 +503,7 @@ const TOOL_TABLE = {
     description: 'Scan the redesign lab now.',
     input: noInput,
     actions: ['redesign.rescan'],
+    routes: [`POST ${W}/redesign/rescan`],
   },
 
   // Releases
@@ -890,11 +891,13 @@ const TOOL_TABLE = {
     description: 'Run a source now.',
     input: z.object({ sourceId: z.uuid() }),
     actions: ['source.run'],
+    routes: [`POST ${W}/sources/:id/run`],
   },
   reindex_docs: {
     description: 'Index the docs of this project again now.',
     input: z.object({ sourceId: z.uuid().optional() }),
     actions: ['docs.reindex'],
+    routes: [`POST ${W}/docs/reindex`],
   },
   read_audit: {
     description: 'Who did what in this project, newest first.',

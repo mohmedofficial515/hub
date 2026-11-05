@@ -17,15 +17,19 @@ import { Inject, Injectable } from '@nestjs/common';
 
 import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { CLOCK, type Clock } from '@/infra/clock/clock';
+import { QueueService } from '@/infra/queue/queue.service';
 import { RedisClients } from '@/infra/redis/redis.module';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
 import { BriefsService } from '@/modules/digests';
+import { DocsReadService } from '@/modules/docs';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
 import { InboxService } from '@/modules/notifications';
 import { PlanReadService } from '@/modules/plans';
 import { ReleaseNotesService } from '@/modules/releases';
+import { SearchService } from '@/modules/search';
+import { SourceRunnerService } from '@/modules/system';
 import { TasksReadService } from '@/modules/tasks';
 import {
   MembersService,
@@ -56,6 +60,10 @@ export class McpDeps {
     readonly audit: AuditQueryService,
     readonly inbox: InboxService,
     readonly briefs: BriefsService,
+    readonly docs: DocsReadService,
+    readonly search: SearchService,
+    readonly runner: SourceRunnerService,
+    readonly queues: QueueService,
     readonly me: MeService,
     readonly sessions: SessionsService,
     readonly sessionContext: SessionContextService,

@@ -5,18 +5,45 @@
  */
 import { settingsCatalogue } from '@hub/contracts';
 
+import { QUEUES } from '@/infra/queue/queue.service';
 import { isoWeekOf, localDate } from '@/modules/digests';
 import { AppException } from '@/shared/errors';
 
 import { cardRef, cardTable, moreLine, plain } from '../render';
-import type { ToolHandlers } from '../tool-context';
+import type { ToolContext, ToolHandlers } from '../tool-context';
 
 const DAY_MS = 86_400_000;
 const SEEN_TTL_SEC = 30 * 24 * 60 * 60;
 
-/** Not built yet, or waiting on the service that owns it. Says so rather than pretending. */
-function notAvailable(needs: string): Promise<string> {
-  return Promise.reject(new AppException('hub.common.unavailable', { details: { needs } }));
+/** The same two steps as the REST route (`modules/system`). */
+async function startRun(context: ToolContext, workspaceId: string, sourceId: string): Promise<string> {
+  const runId = await context.deps.runner.open(workspaceId, sourceId);
+  await context.deps.queues.add(QUEUES.capture, 'run', { workspaceId, runId });
+  return runId;
+}
+
+/** One heading's part of a Markdown document, by its text or anchor. */
+function sectionOf(text: string, section: string): string {
+  const wanted = section.toLowerCase().replace(/-/g, ' ').trim();
+  const lines = text.split('\n');
+  const start = lines.findIndex(
+    (line) =>
+      /^#{1,6}\s/.test(line) &&
+      line
+        .replace(/^#+\s*/, '')
+        .toLowerCase()
+        .replace(/-/g, ' ')
+        .trim() === wanted,
+  );
+  if (start === -1)
+    return `No section "${section}". Headings:\n${lines.filter((line) => /^#{1,6}\s/.test(line)).join('\n')}`;
+  const level = /^#+/.exec(lines[start] ?? '')?.[0].length ?? 1;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => {
+    const hashes = /^#+(?=\s)/.exec(line)?.[0].length;
+    return hashes !== undefined && hashes <= level;
+  });
+  return [lines[start], ...(end === -1 ? rest : rest.slice(0, end))].join('\n');
 }
 
 export const workspaceToolHandlers = {
@@ -85,27 +112,39 @@ export const workspaceToolHandlers = {
     ].join('\n');
   },
   async search_docs(context, input) {
-    const page = await context.deps.query.listWithDetail(await context.actor(), 'doc', {
-      q: input.query,
-      where: { doc: { ...(input.kind ? { kind: input.kind } : {}) } },
-      limit: input.limit ?? 8,
-    });
-    if (page.items.length === 0) return `No documents match "${input.query}".`;
+    const hits = await context.deps.search.docs(
+      await context.actor(),
+      input.query,
+      input.kind ? [input.kind] : undefined,
+      input.limit ?? 8,
+    );
+    const wanted = input.source ? hits.filter((hit) => hit.source === input.source) : hits;
+    if (wanted.length === 0) return `No documents match "${input.query}".`;
     return [
-      `${page.items.length} documents for "${input.query}"`,
-      ...page.items.map((card, index) => `${index + 1}. ${cardRef(card)} · ${plain(card.detail?.['path'])}`),
-      'Read one with get_doc(key).',
+      `${wanted.length} documents for "${input.query}"`,
+      ...wanted.flatMap((hit, index) => [
+        `${index + 1}. ${cardRef(hit.card)} · ${hit.source}: ${hit.path}`,
+        ...hit.chunks.map(
+          (chunk) =>
+            `   ${chunk.heading ? `§ ${chunk.heading}: ` : ''}${chunk.excerpt.replace(/<\/?mark>/g, '')}`,
+        ),
+      ]),
+      'Read one with get_doc(key), and `section` for one heading.',
     ].join('\n');
   },
   async get_doc(context, input) {
-    if (!input.key)
-      return notAvailable('Reading by source and path needs the docs indexer (H2-06). Pass a key.');
-    const card = await context.deps.query.full(await context.actor(), input.key);
-    if (card.type !== 'doc') throw new AppException('hub.docs.not_found');
+    const actor = await context.actor();
+    const { docs } = context.deps;
+    let doc;
+    if (input.key) doc = await docs.content(actor, input.key);
+    else if (input.source && input.path) doc = await docs.byPath(actor, input.source, input.path);
+    else throw new AppException('hub.common.validation', { details: { issues: [{ path: 'key' }] } });
+    const text = doc.content ?? `(no text: ${doc.unavailable ?? 'not indexed yet'})`;
+    const part = input.section ? sectionOf(text, input.section) : text;
     return [
-      cardRef(card),
-      `Path: ${plain(card.detail?.['path'])}`,
-      card.body ?? '(no text indexed yet)',
+      cardRef(doc),
+      `Path: ${plain(doc.detail?.['path'])}`,
+      part.slice(0, input.maxChars ?? 20_000),
     ].join('\n');
   },
 
@@ -354,9 +393,27 @@ export const workspaceToolHandlers = {
       ? `The source can be reached${result.details.filesFound === undefined ? '' : `: ${result.details.filesFound} files`}.`
       : 'The source cannot be reached.';
   },
-  run_source: () => notAvailable('Source runs (H2-05)'),
-  reindex_docs: () => notAvailable('The docs indexer (H2-06)'),
-  rescan_lab: () => notAvailable('The lab scanner (H2-05)'),
+  async run_source(context, input) {
+    const actor = await context.allowed('source.run');
+    const runId = await startRun(context, actor.workspaceId, input.sourceId);
+    return `Started source ${input.sourceId}, run ${runId}. The Sources page shows how it went.`;
+  },
+  async reindex_docs(context, input) {
+    const actor = await context.allowed('docs.reindex');
+    const sources = input.sourceId
+      ? [{ id: input.sourceId }]
+      : await context.deps.runner.sourcesFor(actor.workspaceId, 'docs');
+    if (sources.length === 0) throw new AppException('hub.common.not_found');
+    for (const source of sources) await startRun(context, actor.workspaceId, source.id);
+    return `Started indexing ${sources.length} docs source${sources.length === 1 ? '' : 's'}.`;
+  },
+  async rescan_lab(context) {
+    const actor = await context.allowed('redesign.rescan');
+    const [source] = await context.deps.runner.sourcesFor(actor.workspaceId, 'lab');
+    if (!source) throw new AppException('hub.redesign.lab_unavailable');
+    await startRun(context, actor.workspaceId, source.id);
+    return 'Started scanning the lab.';
+  },
   async read_audit(context, input) {
     const { project: _project, ...query } = input;
     const page = await context.deps.audit.list(await context.allowed('audit.read'), query);
