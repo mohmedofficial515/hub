@@ -23,6 +23,8 @@ export default tseslint.config(
       '**/dist/**',
       '**/.next*/**',
       '**/coverage/**',
+      '**/playwright-report/**',
+      '**/test-results/**',
       '**/node_modules/**',
       'apps/api/src/generated/**',
       'apps/api/openapi/**',

@@ -16,3 +16,5 @@ apps/web/src/lib/api/generated
 apps/api/test/golden/
 .next-*
 **/.next-*
+playwright-report
+test-results

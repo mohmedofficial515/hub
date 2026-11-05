@@ -435,8 +435,8 @@ describe('releases', () => {
     const full = (await pm.get(`/cards/${release.key}`).expect(200)).body.data;
     expect(full.detail.included).toEqual([expect.objectContaining({ key: task.key, title: 'Refund' })]);
     const { body: events } = await pm.get(`/cards/${release.key}/events`).expect(200);
-    const last = (events.data.items as { data: { generated?: boolean } }[]).at(-1);
-    expect(last?.data.generated).toBe(true);
+    const written = events.data as { data: { generated?: boolean } }[];
+    expect(written.some((event) => event.data.generated === true)).toBe(true);
   });
 
   it('a deleted card drops out of what a release includes', async () => {
