@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { LATIN_NUMBER_RUN, textDirection } from './direction';
+import { blockDirection, LATIN_NUMBER_RUN, textDirection } from './direction';
 
 describe('textDirection', () => {
   it('an Arabic body that opens with a product name stays right to left', () => {
@@ -37,5 +37,23 @@ describe('LATIN_NUMBER_RUN', () => {
   it('leaves a bare number and a card key alone', () => {
     expect(runs('بعد 14 يومًا')).toBeNull();
     expect(runs('GTV-35 وEAR-2')).toBeNull();
+  });
+});
+
+describe('blockDirection', () => {
+  it('a short mixed line stays with the document', () => {
+    expect(blockDirection('Sentry يبلّغ عن 5xx', 'rtl')).toBe('rtl');
+    expect(blockDirection('أضف Stripe webhook retry', 'rtl')).toBe('rtl');
+    expect(blockDirection('The name «محمد» is on the ticket', 'ltr')).toBe('ltr');
+  });
+
+  it('a block with next to nothing of the document’s script turns', () => {
+    expect(blockDirection('It ends with a full stop.', 'rtl')).toBe('ltr');
+    expect(blockDirection('فقرة عربية خالصة هنا.', 'ltr')).toBe('rtl');
+  });
+
+  it('no letters stays with the document, and no document direction falls to the majority', () => {
+    expect(blockDirection('100 / 200', 'rtl')).toBe('rtl');
+    expect(blockDirection('It ends here.', undefined)).toBe('ltr');
   });
 });

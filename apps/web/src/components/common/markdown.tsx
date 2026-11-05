@@ -10,7 +10,7 @@ import { Fragment, type ReactNode, useMemo } from 'react';
 
 import { focusRing } from '@/components/cards/meta';
 import { CopyButton } from '@/components/common/copy-button';
-import { LATIN_NUMBER_RUN, type TextDirection, textDirection } from '@/lib/direction';
+import { blockDirection, LATIN_NUMBER_RUN, type TextDirection, textDirection } from '@/lib/direction';
 import { isSafeHref } from '@/lib/markdown-text';
 import { cn } from '@/lib/utils';
 
@@ -163,7 +163,7 @@ function Inline({ tokens, ctx }: { tokens?: Token[] | undefined; ctx: Flow }): R
 }
 
 function Heading({ token, ctx, around }: { token: Tokens.Heading; ctx: MarkdownViewProps; around: Around }) {
-  const own = textDirection(token.text) ?? around.dir;
+  const own = blockDirection(token.text, around.dir);
   const anchor = slugify(token.text);
   const level = Math.min(6, token.depth + (ctx.headingOffset ?? 1));
   const H = `h${level}` as 'h2';
@@ -211,7 +211,7 @@ function Prose({
   around: Around;
   k: number;
 }) {
-  const own = textDirection(text) ?? around.dir;
+  const own = blockDirection(text, around.dir);
   const differs = own !== around.dir;
   const inline = <Inline tokens={tokens} ctx={{ ...ctx, flow: own }} />;
   return (
@@ -309,7 +309,7 @@ function Blocks({
         const L = list.ordered ? 'ol' : 'ul';
         const tasks = list.items.some((it) => it.task);
         // The bullets take the list's own direction, so a whole English list inside an Arabic body has them on its left.
-        const own = textDirection(list.raw) ?? around.dir;
+        const own = blockDirection(list.raw, around.dir);
         return (
           <L
             key={i}

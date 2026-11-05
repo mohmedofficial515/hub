@@ -16,7 +16,7 @@ describe('MarkdownView', () => {
     expect(container.querySelectorAll('li')).toHaveLength(2);
     expect(container.querySelector('hr')).not.toBeNull();
     expect(container.textContent).not.toMatch(/##|---/);
-    expect(container.firstElementChild?.getAttribute('dir')).toBe('auto');
+    expect(container.firstElementChild?.getAttribute('dir')).toBe('rtl');
   });
 
   it('never creates an element from raw HTML', () => {
