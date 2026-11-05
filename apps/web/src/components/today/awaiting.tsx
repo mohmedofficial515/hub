@@ -282,7 +282,7 @@ export function AwaitingStack({
           view="inbox"
           query={{ awaiting: 'me' }}
           className={cn(
-            'self-start rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
+            'hit-44 self-start rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
             focusRing,
           )}
         >
