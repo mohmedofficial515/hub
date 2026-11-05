@@ -61,9 +61,8 @@ let refreshing: Promise<boolean> | null = null;
  */
 export function refreshSession(): Promise<boolean> {
   if (refreshing) return refreshing;
-  const run: Promise<boolean> = navigator.locks
-    ? (navigator.locks.request('hub-refresh', refreshOnce) as Promise<boolean>)
-    : refreshOnce();
+  const locked = async (): Promise<boolean> => navigator.locks.request('hub-refresh', refreshOnce);
+  const run = navigator.locks ? locked() : refreshOnce();
   const current = run.finally(() => {
     refreshing = null;
   });
