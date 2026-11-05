@@ -11,3 +11,6 @@ apps/web/openapi
 apps/api/prisma/migrations
 next-env.d.ts
 apps/web/src/lib/api/generated
+
+# Golden files are compared byte for byte.
+apps/api/test/golden/
