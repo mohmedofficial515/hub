@@ -28,6 +28,7 @@ const me = {
 
 const api = (url: URL) => {
   if (url.pathname.endsWith('/auth/me')) return { body: { data: me } };
+  if (url.pathname.endsWith('/inbox/count')) return { body: { data: { unread: 3 } } };
   if (url.pathname.endsWith('/tasks/ready')) {
     return { body: { data: [{ key: 'GTV-1', type: 'task', status: 'ready' }], meta: {} } };
   }
@@ -71,6 +72,7 @@ describe('DesktopSidebar', () => {
     stubFetch(api);
     mount();
     expect(await screen.findByRole('link', { name: 'Tasks, 1 task ready for you' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Inbox, 3 unread' })).toBeInTheDocument();
   });
 
   it('shows no number when nothing has answered', () => {

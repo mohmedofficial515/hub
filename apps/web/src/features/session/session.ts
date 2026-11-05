@@ -189,6 +189,16 @@ export function useCounters() {
   });
 }
 
+/** `GET /inbox/count`. Under the inbox key, so the stream and every write keep it current. */
+export function useInboxCount() {
+  const { ws } = useRoute();
+  return useQuery({
+    queryKey: [...qk.inbox(ws), 'count'] as const,
+    enabled: !!ws,
+    queryFn: () => get<{ unread: number }>(`workspaces/${ws}/inbox/count`),
+  });
+}
+
 export interface MyCounts {
   inbox: number;
   newEvents: number;
@@ -227,10 +237,11 @@ export const toMyCounts = (c: Counters | undefined): MyCounts => ({
  */
 export function useMyCounts(): MyCounts {
   const counters = useCounters().data;
+  const inbox = useInboxCount().data?.unread;
   const stack = useAwaitingQuery().data;
   const ready = useReadyTasks().data;
   return useMemo(() => {
-    const base = toMyCounts(counters);
+    const base = { ...toMyCounts(counters), ...(inbox === undefined ? {} : { inbox }) };
     if (!stack) return ready ? { ...base, tasksReady: ready.length } : base;
     const mine = (type: CardListItem['type']) => stack.filter((row) => row.type === type);
     const decisions = mine('decision');
@@ -246,7 +257,7 @@ export function useMyCounts(): MyCounts {
       handoffs: { mine: mine('handoff').length, all: base.handoffs.all || mine('handoff').length },
       redesigns: { mine: mine('redesign').length, all: base.redesigns.all || mine('redesign').length },
     };
-  }, [counters, stack, ready]);
+  }, [counters, inbox, stack, ready]);
 }
 
 // ── Awaiting me (docs/09 §4) ─────────────────────────────────────────────────────────────────────

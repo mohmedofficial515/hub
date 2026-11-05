@@ -208,7 +208,7 @@ So a page is live if its queries use those keys. A new domain needs one line in 
 
 Known limits, stated so nobody hunts for them:
 
-- `GET /counters` does not exist in the API yet. It answers 404 and the app treats that as "no number": Inbox, Timeline, Planning, Onboarding, Members and Settings show no badge. Decisions, Needs, Handoffs, Redesign and Tasks come from `cards?awaiting=me` and `tasks/ready`, and are live now. `toMyCounts` reads the fields of docs/04 §3.23 as soon as they land. Inbox's own hooks are for the Inbox page's author (`qk.inbox` is already invalidated).
+- `GET /counters` does not exist in the API yet. It answers 404 and the app treats that as "no number": Timeline, Planning, Onboarding, Members and Settings show no badge. Decisions, Needs, Handoffs, Redesign and Tasks come from `cards?awaiting=me` and `tasks/ready`, and Inbox from `inbox/count`. All are live now. `toMyCounts` reads the fields of docs/04 §3.23 as soon as they land. Inbox's own hooks are for the Inbox page's author (`qk.inbox` is already invalidated).
 - Each tab holds one stream. Over plain HTTP/1.1 a browser allows 6 connections per origin, so a seventh Hub tab on `http://localhost` would wait. HTTP/2 behind Caddy removes the limit (D33 defers Caddy).
 
 ## i18n
