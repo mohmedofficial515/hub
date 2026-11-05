@@ -270,6 +270,21 @@ describe('tasks', () => {
     expect(body.error.code).toBe('hub.cards.type_mismatch');
   });
 
+  it('an owner who is also pm and accountant may claim a task routed to Backend (review M6)', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const manager = await project.member(['owner', 'pm', 'accountant']);
+    const task = await created(pm, aTask({ title: 'For Backend', detail: { specialty: 'backend' } }));
+    await pm.post(`/tasks/${task.key}/mark-ready`).expect(200);
+
+    const { body: ready } = await manager.get('/tasks/ready').expect(200);
+    expect(ready.data.map((card: { key: string }) => card.key)).toContain(task.key);
+
+    const { body } = await manager.post(`/tasks/${task.key}/claim`).expect(200);
+    expect(body.data).toMatchObject({ status: 'claimed', ownerRole: 'backend' });
+    expect(body.data.assignee.id).toBe(manager.id);
+  });
+
   describe('lists', () => {
     it('ready: unblocked, my specialties, urgent first, capped by the setting', async () => {
       const project = await aProject(app);
