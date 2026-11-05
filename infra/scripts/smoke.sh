@@ -44,7 +44,7 @@ if [ -n "${OWNER_EMAIL:-}" ] && [ -n "${OWNER_PASSWORD:-}" ]; then
   signin="$(curl -s -c "$JAR" --max-time 20 -H 'content-type: application/json' -H 'x-requested-with: hub' \
     -d "$body" "$WEB/api/v1/auth/sign-in")"
   case "$signin" in
-    *totp*) echo "ok    sign-in reached TOTP, as an owner should" ;;
+    *'"code":"hub.identity.totp_required"'*) echo "ok    sign-in reached TOTP: this member enrolled" ;;
     *'"data"'*) echo "ok    sign-in"; check 'me' 200 -b "$JAR" "$WEB/api/v1/me" ;;
     *) echo "FAIL  sign-in: $(printf '%s' "$signin" | head -c 200)"; failed=1 ;;
   esac

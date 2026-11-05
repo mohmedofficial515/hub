@@ -80,7 +80,7 @@ services:
     environment:
       <<: *app-env
       PROCESS_ROLE: api
-    command: ['sh', 'infra/docker/migrate.sh']
+    command: ['sh', '/app/infra/docker/migrate.sh']
     depends_on:
       postgres: { condition: service_healthy }
 
