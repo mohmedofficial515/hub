@@ -30,11 +30,30 @@ export class OnboardingService {
     });
     const done = new Map(ticks.map((tick) => [tick.itemId, tick.doneAt.toISOString()]));
     const usedToken = await this.firstTokenUse(actor.userId);
+    const docPaths = actor.roles.flatMap((role) =>
+      (paths[role] ?? []).filter((item) => item.kind === 'doc').map((item) => item.ref),
+    );
+    const docs = await this.txHost.tx.card.findMany({
+      where: {
+        workspaceId: actor.workspaceId,
+        type: 'doc',
+        archivedAt: null,
+        status: { not: 'removed' },
+        doc: { path: { in: docPaths } },
+      },
+      select: { key: true, doc: { select: { path: true } } },
+    });
+    const keys = new Map(docs.map((doc) => [doc.doc?.path ?? '', doc.key]));
     return actor.roles.map((role: Role) => ({
       role,
       items: (paths[role] ?? []).map((item: OnboardingItem) => {
         const doneAt = done.get(item.id) ?? (item.kind === 'action' ? usedToken : null);
-        return { ...item, done: doneAt !== null, doneAt };
+        return {
+          ...item,
+          done: doneAt !== null,
+          doneAt,
+          cardKey: item.kind === 'card' ? item.ref : (keys.get(item.ref) ?? null),
+        };
       }),
     }));
   }

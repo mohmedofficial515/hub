@@ -119,6 +119,10 @@
     },
     "security": {
       "secret_detected": "This looks like a secret ({pattern} in {field}). Say where the value is kept, not the value."
+    },
+    "audit": {
+      "export_too_large": "Too many rows to export. Narrow the filters."
     }
-  }
+  },
+  "hub.audit.export_too_large": "Too many rows to export. Narrow the filters."
 }

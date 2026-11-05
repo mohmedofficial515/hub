@@ -207,7 +207,7 @@ H2-06  Docs indexer, docs pages, search, ask                         after: H2-0
 
 H2-07  System page and metrics                                       after: H2-02
   Reads:        01 §11 · 09 (Settings › System) · 13 (monitoring)
-  Deliverables: /metrics (prom-client, bearer METRICS_TOKEN), Settings › System (source lag, outbox backlog, last backup, versions), in-app alert when a source has failed 3 runs
+  Deliverables: /metrics (plain Prometheus text, no prom-client: a handful of gauges does not earn a dependency; bearer METRICS_TOKEN), Settings › System (source lag, outbox backlog, last backup, versions), in-app alert when a source has failed 3 runs
   Acceptance:   values update live; a stopped worker is visible within 5 minutes
   Tests:        e2e metrics endpoint; vitest System page states
 

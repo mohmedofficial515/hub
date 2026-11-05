@@ -169,6 +169,13 @@ export class TasksController {
 
 Prompts are in `packages/contracts/src/mcp/prompts.ts`, resources in `hub-mcp-server.factory.ts`.
 
+## Sources and local path mode
+
+`SourceRunnerService` (`@/modules/system`) is the one way to run a `local_path` source: `open` then `finish`, or `POST /sources/{id}/run`.
+`pnpm seed:sources` adds the folders of docs/15 §3. Tests build temp copies; nothing may write to the real `LAB_ROOT` from a test.
+An adapter that touches hundreds of cards sets `quiet: true` on its plans and announces the run itself. One whose truth lives elsewhere moves
+the status with `plan.status`.
+
 ## Data access
 
 - Inject `TransactionHost<PrismaTransactionalAdapter>` and use `.tx`, which joins the active transaction.

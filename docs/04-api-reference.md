@@ -333,7 +333,7 @@ GET /health/ready                               auth: public
 200: { data: { status: 'ok', checks: { postgres: 'ok', redis: 'ok', reposVolume: 'ok' } } }
 503: hub.common.unavailable with details.checks
 
-GET /metrics                                    auth: public, internal network only (Caddy denies from LAN)
+GET /metrics                                    auth: `Authorization: Bearer <METRICS_TOKEN>`; no token set or a wrong one answers 404. No /api/v1 prefix.
 200: text/plain Prometheus exposition
 ```
 
@@ -795,7 +795,14 @@ GET /workspaces/{ws}/redesign/versions           auth: session | token
 query: { app?; page?; status?: string[]; cursor?; limit? }
 200: { data: (CardSummary & { detail: RedesignDetail })[] }
 
-GET /workspaces/{ws}/redesign/{key}/readme       auth: session | token   200: { data: { markdown: Markdown; review: Markdown | null } }   (raw files from the lab folder)
+GET /workspaces/{ws}/redesign/{key}/readme       auth: session | token   200: { data: { markdown: Markdown | null; review: Markdown | null } }   (raw files from the lab folder, front-matter removed)
+
+GET /workspaces/{ws}/redesign/compare?a=KEY&b=KEY   auth: session | token
+200: { data: { a: Side; b: Side; commonShots: string[] /* shot names both have */ } }
+type Side = { card: CardWithDetail; shots: { name; url; width; height }[]; frameUrl: string | null /* `${LAB_URL}/frame-<app>.html#/<page>/<version>`; null when LAB_URL is unset */ }
+
+GET /workspaces/{ws}/lab/file?path=<lab-relative path>   auth: session | token   200: the image (png, jpg, webp); anything else, or any way out of the root: 404
+// Attachments of kind `screenshot` carry this URL. Local path mode (15 §3).
 
 POST /workspaces/{ws}/redesign/{key}/submit-review   auth: session | token   role: designer|frontend|owner|pm
 200: CardFull   errors: cards.invalid_transition 409 (not draft)   effects: draft → review (front-matter written: `status: review`); event status_changed; notification routed_review to owner
@@ -845,14 +852,18 @@ sort: path asc
 200: { data: (CardSummary & { detail: DocDetail })[] }
 
 GET /workspaces/{ws}/docs/{key}                  auth: session | token
-200: { data: CardFull & { content: Markdown /* raw file from the clone */; toc: DocDetail['headings'] } }
+200: { data: CardWithDetail & { content: Markdown | null; unavailable: 'missing' | 'secret' | null; docSource: { id; name }; toc: DocDetail['headings']; mentionedBy: CardSummary[] } }
 errors: docs.not_found 404
+// `content` is the file now, front-matter removed. `url` of a GitHub blob does not exist in local path mode (15 §3).
 
 GET /workspaces/{ws}/docs/by-path?source=&path=  auth: session | token   200: same as above   (used by MCP get_doc)
 
 GET /workspaces/{ws}/docs/search?q=&kinds=&limit= auth: session | token   rate: 60/min   200: { data: DocHit[] }
 
 POST /workspaces/{ws}/docs/reindex               auth: session | token   role: owner|pm   body: { source?: string }   202: { data: { runId } }   errors: docs.reindex_running 409
+POST /workspaces/{ws}/sources/{id}/run            auth: session | token   role: owner|pm   202: { data: { runId } }   errors: docs.reindex_running 409 · workspaces.source_connection_failed 400 (a kind that waits for its token)
+GET /workspaces/{ws}/capture/runs?source=&limit=  auth: session | token   role: owner|pm   200: { data: { id; sourceId; sourceName; kind; startedAt; finishedAt; status; created; updated; error }[] }
+// The stream says how a run went: `source.run` to owner and pm, and `docs.indexed` { sourceId, created, updated, removed } to everyone. A docs run publishes no per-card messages (`quiet`).
 ```
 
 ### 3.16 Capture
@@ -978,24 +989,28 @@ type Counters = { inboxUnread; awaitingMe; decisionsOpen; decisionsMine; decisio
                   invitesPending /* owner, pm */; sourceProblems /* owner, pm */; planningOpen /* ideas open or exploring, plans not finished */ }
 // Derived from state on every read, so a badge cannot drift. Not pushed: every card event and `inbox.*` message makes the web refetch it.
 
-GET /workspaces/{ws}/docs/tree                   auth: session | token
-200: { data: { source: { id; name }; folders: { path: string; docs: (CardSummary & { detail: DocDetail })[]; folders: Folder[] }[] }[] }
-// recursive Folder = { path, docs, folders }; sorted path asc; kinds adr/status grouped under their folder
+GET /workspaces/{ws}/docs/tree?source=           auth: session | token
+200: { data: { source: { id; name }; total: number; root: Folder }[] }
+// recursive Folder = { name; path; docs: CardWithDetail[]; folders: Folder[] }; `root` has name and path ''; folders sorted by name, docs by path
+
+GET /workspaces/{ws}/docs/mentions/{cardKey}      auth: session | token   (H5-03)
+200: { data: { mention: string /* as the card wrote it */; key; path; source; title }[] }   // chips on a card. `docs/x.md` matches a doc indexed as `x.md`.
 
 GET /workspaces/{ws}/onboarding                  auth: session | token
 200: { data: { role: Role; items: { id; kind: 'doc' | 'card' | 'url' | 'action'; title; ref: string /* doc path | card key | url | action id */; done: boolean; doneAt }[] }[] }
 // one group per role the member holds; items from settings `onboarding.paths`; `action` items (e.g. "install the team pack") auto-complete when the matching event exists (first api token used)
+// each item also has `cardKey`: a doc item's card once indexed, else null (show "not indexed yet")
 POST /workspaces/{ws}/onboarding/{itemId}/done   auth: session | token   204   effects: OnboardingProgress upsert
 DELETE /workspaces/{ws}/onboarding/{itemId}/done auth: session           204   (undo)
 
 GET /workspaces/{ws}/system                      auth: session   role: owner|pm
-200: { data: { version: { api; web; lab }; sources: { id; name; kind; enabled; lagSec; lastError; lastSuccessAt }[];
+200: { data: { version: { api; web; lab }; sources: { id; name; kind; enabled; lagSec; lastError; lastSuccessAt; consecutiveFailures }[];
                queues: { name; waiting; active; failed; delayed }[]; outbox: { pending; failed; oldestPendingAgeSec };
-               sse: { connections: number }; backup: { lastAt: string | null; sizeBytes: number | null } /* from infra/scripts/backup.sh status file */;
+               sse: { connections: number }; backup: { lastAt: string | null; sizeBytes: number | null } /* null in this release: no backup job runs (15 §3) */;
                db: { sizeBytes; cards; events }; worker: { alive: boolean; lastHeartbeatAt } } }
 
-GET /workspaces/{ws}/audit?…&format=csv          auth: session   role: owner|pm
-200: text/csv (same filters as 3.21; UTF-8 with BOM; columns id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip)   max 50 000 rows → else 400 audit.export_too_large
+GET /workspaces/{ws}/audit/export.csv?…          auth: session | token   role: owner|pm
+200: text/csv (same filters as 3.21; UTF-8 with BOM; columns id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip; a cell that looks like a formula is prefixed with ')   max 50 000 rows → else 400 audit.export_too_large
 
 POST /workspaces/{ws}/members/{userId}/disable   auth: session   role: owner   HO: yes   204
 effects: User.status=disabled when the user has no other active workspace; otherwise Membership.status=removed (same effects as /remove); sessions + tokens revoked; audit

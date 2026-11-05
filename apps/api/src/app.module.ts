@@ -35,6 +35,8 @@ import { RealtimeModule } from './modules/realtime';
 import { RedesignModule } from './modules/redesign';
 import { ReleasesModule } from './modules/releases';
 import { SchedulerModule } from './modules/scheduler';
+import { SearchModule } from './modules/search';
+import { SystemModule } from './modules/system';
 import { TasksModule } from './modules/tasks';
 import { TodayModule } from './modules/today';
 import { WorkspacesModule } from './modules/workspaces';
@@ -72,6 +74,8 @@ const REQUEST_ID_HEADER = 'x-request-id';
     SchedulerModule,
     DigestsModule,
     TodayModule,
+    SearchModule,
+    SystemModule,
     TasksModule,
     DecisionsModule,
     NeedsModule,

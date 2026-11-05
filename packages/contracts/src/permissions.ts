@@ -91,6 +91,7 @@ const MATRIX = {
 
   // Redesign
   'redesign.create': SYSTEM_ONLY,
+  'redesign.sync': SYSTEM_ONLY,
   'redesign.send_to_review': ['Y', 'Y', 'N', 'N', 'Y', 'Y', 'N'],
   'redesign.approve': OWNER_ONLY,
   'redesign.reject': OWNER_ONLY,
@@ -128,6 +129,9 @@ const MATRIX = {
   // Facts
   'change.create': SYSTEM_ONLY,
   'doc.create': SYSTEM_ONLY,
+  'doc.update': SYSTEM_ONLY,
+  'doc.mark_removed': SYSTEM_ONLY,
+  'doc.mark_current': SYSTEM_ONLY,
   'session.log': EVERYONE,
   'brief.save': EVERYONE,
   'brief.save_weekly': OWNER_PM,

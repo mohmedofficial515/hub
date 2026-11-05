@@ -141,6 +141,13 @@ export interface CardActionPlan {
   readonly prepare?: (card: CardView) => readonly FollowUp[];
   /** Runs after this mutation, in the same transaction, given the written card. */
   readonly followUps?: (card: CardView) => readonly FollowUp[];
+  /**
+   * Moves the status past the machine. Only for an adapter whose source of truth is elsewhere: the lab's file
+   * (docs/06 §5). Must be a status of the type's machine.
+   */
+  readonly status?: string;
+  /** No realtime message per card, for an adapter touching hundreds at once. It announces the run itself. */
+  readonly quiet?: boolean;
   /** Nothing to change: no event, no audit row, no publish. The result carries the card's last event. */
   readonly noop?: boolean;
   /** Treat the card as closed for its dependants, as deleting does. Reaching a terminal status already counts. */

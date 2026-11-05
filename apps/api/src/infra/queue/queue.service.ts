@@ -87,6 +87,25 @@ export class QueueService implements OnApplicationBootstrap, OnApplicationShutdo
     this.handlers.set(name, handler);
   }
 
+  /** For the system page. Inline mode has no queues, so it is all zeros. */
+  async counts(name: QueueName): Promise<{
+    name: string;
+    waiting: number;
+    active: number;
+    failed: number;
+    delayed: number;
+  }> {
+    if (this.isInline) return { name, waiting: 0, active: 0, failed: 0, delayed: 0 };
+    const counts = await this.queue(name).getJobCounts('waiting', 'active', 'failed', 'delayed');
+    return {
+      name,
+      waiting: counts['waiting'] ?? 0,
+      active: counts['active'] ?? 0,
+      failed: counts['failed'] ?? 0,
+      delayed: counts['delayed'] ?? 0,
+    };
+  }
+
   /** A repeating job, started with the workers. Ignored in inline mode: tests call the work directly. */
   schedule(name: QueueName, id: string, jobName: string, everyMs: number): void {
     this.schedules.push({ queue: name, id, everyMs, name: jobName });

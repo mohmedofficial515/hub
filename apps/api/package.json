@@ -18,6 +18,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "migrations:check": "node scripts/check-migrations.mjs",
     "seed:owner": "node -r ./scripts/swc-register.cjs scripts/seed-owner.ts",
+    "seed:sources": "node -r ./scripts/swc-register.cjs scripts/seed-local-sources.ts",
     "import:goteav": "node -r ./scripts/swc-register.cjs scripts/import-goteav.ts",
     "openapi:export": "node -r ./scripts/swc-register.cjs scripts/export-openapi.ts"
   },

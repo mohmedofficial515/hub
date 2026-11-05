@@ -390,7 +390,7 @@ export const timelineRowSchema = z.object({
   collapsed: z.number().int(),
   collapsedKinds: z.array(z.string()),
 });
-export type TimelineRow = z.infer<typeof timelineRowSchema>;
+export type TimelineRow = Omit<z.infer<typeof timelineRowSchema>, 'card'> & { readonly card: CardWithDetail };
 
 export const auditQuerySchema = z.object({
   actor: z.uuid().optional(),

@@ -5,7 +5,11 @@ import { Module } from '@nestjs/common';
 
 import { CardsModule } from '@/modules/cards';
 
+import { LabFilesService } from './application/lab-files.service';
+import { LabReadService } from './application/lab-read.service';
+import { LabScannerService } from './application/lab-scanner.service';
 import {
+  LabWriteBack,
   RedesignApproveAction,
   RedesignCreateAction,
   RedesignMarkPortedAction,
@@ -13,12 +17,18 @@ import {
   RedesignRequestChangesAction,
   RedesignSendToReviewAction,
 } from './application/redesign-actions';
-import { RedesignController } from './presentation/http/redesign.controller';
+import { RedesignSyncAction } from './application/redesign-sync.action';
+import { LabFilesController, RedesignController } from './presentation/http/redesign.controller';
 
 @Module({
   imports: [CardsModule],
-  controllers: [RedesignController],
+  controllers: [RedesignController, LabFilesController],
   providers: [
+    LabFilesService,
+    LabReadService,
+    LabScannerService,
+    LabWriteBack,
+    RedesignSyncAction,
     RedesignCreateAction,
     RedesignSendToReviewAction,
     RedesignApproveAction,
@@ -26,5 +36,6 @@ import { RedesignController } from './presentation/http/redesign.controller';
     RedesignRequestChangesAction,
     RedesignMarkPortedAction,
   ],
+  exports: [LabFilesService, LabReadService, LabScannerService],
 })
 export class RedesignModule {}

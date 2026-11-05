@@ -327,6 +327,11 @@ secret in a commit message → 422; repo resolution from remote URL variants (`g
 version `README.md` front-matter; Hub's approve/reject/submit actions write the front-matter back.
 **The file is the source of truth; the database follows it.**
 
+**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: lab`, with `config.path` inside `LAB_ROOT`.
+It reads the folder and writes front-matter by a line edit, with no gray-matter and no commit, so comments and key order stay. Apps are the
+root's folders except `_templates`, `lab`, `shared`; a version folder matches `^v\d+-`. A version unchanged by README hash, review and
+screenshot names is skipped. A status from the file bypasses the machine through `plan.status`. Screenshots are served by `GET /lab/file`.
+
 **Inputs**: source `lab` (`config.root` — absolute path of the lab folder inside the hub working
 tree, `config.apps`, `config.publicBase`, `config.pushEnabled`; `cursor.versions[path] = { status, readmeHash }`,
 `cursor.pages[app/page] = { meta, brief, liveUrl }`), the lab folder on disk.
@@ -387,6 +392,11 @@ missing-folder tagging; idempotent re-scan.
 
 **Purpose**: every Markdown file in a registered docs folder is a `doc` card with searchable
 chunks, so people and agents find the design docs, ADRs and status notes from Hub.
+
+**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: docs`. The file's sha256 replaces the blob oid,
+`externalKey = doc:<sourceId>:<path>`, and `lastCommitSha` stays null. A file the secret filter refuses is left out and counted on the run. Each
+source runs every `capture.docs.interval_sec` from the worker's tick, or now by `POST /sources/{id}/run`. Doc events stay out of the default
+timeline and of "since last visit", and publish no per-card message.
 
 **Inputs**: source `docs_folder` (`config.repoSourceId`, `path`, `include`, `exclude`, `kinds`;
 `cursor.lastIndexedSha`, `cursor.files[path] = blobOid`), the repo mirror, default branch.

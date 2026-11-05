@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 
-import { cardWithDetailSchema, queryFlag, queryList } from './cards/read-models';
+import { type CardWithDetail, cardWithDetailSchema, queryFlag, queryList } from './cards/read-models';
 
 export const NOTIFICATION_KINDS = [
   'routed_decision',
@@ -53,7 +53,9 @@ export const inboxItemSchema = z.object({
   readAt: z.string().nullable(),
   archivedAt: z.string().nullable(),
 });
-export type InboxItem = z.infer<typeof inboxItemSchema>;
+export type InboxItem = Omit<z.infer<typeof inboxItemSchema>, 'card'> & {
+  readonly card: CardWithDetail | null;
+};
 
 export const inboxCountSchema = z.object({
   unread: z.number().int(),

@@ -11,6 +11,7 @@ import {
   cardSummarySchema,
   type CardWithDetail,
   cardWithDetailSchema,
+  type TimelineRow,
   timelineRowSchema,
 } from './cards/read-models';
 
@@ -257,9 +258,14 @@ export const todaySchema = z.object({
   /** This week's summary, once stored. */
   weekly: briefSchema.nullable(),
 });
-export type Today = Omit<z.infer<typeof todaySchema>, 'awaitingMe' | 'readyTasks'> & {
+export type Today = Omit<z.infer<typeof todaySchema>, 'awaitingMe' | 'readyTasks' | 'changesSince'> & {
   readonly awaitingMe: readonly CardWithDetail[];
   readonly readyTasks: readonly CardWithDetail[];
+  readonly changesSince: {
+    readonly since: string;
+    readonly events: readonly TimelineRow[];
+    readonly total: number;
+  };
 };
 
 // ── Timeline summary ─────────────────────────────────────────────────────────────────────────────

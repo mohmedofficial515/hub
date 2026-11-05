@@ -4,7 +4,7 @@
  * card. Reading is per member, and nothing here can reach another member's row: each query carries `userId`.
  */
 import type {
-  CardSummary,
+  CardWithDetail,
   InboxCount,
   InboxItem,
   InboxQueryInput,
@@ -84,7 +84,7 @@ export class InboxService {
       shown.flatMap((row) => (row.card_id ? [row.card_id] : [])),
     );
     const summaries = await this.query.withDetail(actor, cards);
-    const byId = new Map<string, CardSummary>(summaries.map((card) => [card.id, card]));
+    const byId = new Map<string, CardWithDetail>(summaries.map((card) => [card.id, card]));
     const last = shown[shown.length - 1];
     return {
       items: shown.map((row) => this.toItem(row, byId)),
@@ -96,7 +96,7 @@ export class InboxService {
     };
   }
 
-  private toItem(row: Row, cards: ReadonlyMap<string, CardSummary>): InboxItem {
+  private toItem(row: Row, cards: ReadonlyMap<string, CardWithDetail>): InboxItem {
     const { cardKey, action, count } = row.data as { cardKey?: string; action?: string; count?: number };
     return {
       id: row.id,

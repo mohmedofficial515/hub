@@ -786,7 +786,9 @@ model AuditLog {
 
 - `cards.search_vector` trigger (`BEFORE INSERT OR UPDATE OF title, body, tags, key`):
   `setweight(to_tsvector('hub_simple', key || ' ' || title), 'A') || setweight(to_tsvector('hub_simple', coalesce(body,'')), 'B') || setweight(to_tsvector('hub_simple', array_to_string(tags,' ')), 'C')`.
-- Query: `websearch_to_tsquery('hub_simple', $q)` ranked by `ts_rank_cd`; if fewer than 3 hits,
+- Query: `websearch_to_tsquery('hub_simple', $q)` ranked by `ts_rank_cd`; if fewer than 3 hits, any word instead of all, with the
+  common Arabic spellings of each (`ال`, alef forms, final `ة`/`ه` and `ى`/`ي`: `modules/search/domain/query.ts`), because `hub_simple` has no
+  stemmer; if still fewer than 3 for cards,
   fall back to trigram similarity on `title` (`similarity(title, $q) > 0.3`) — covers Arabic
   spelling variants and partial English identifiers.
 - Doc search = same over `doc_chunks`, grouped by doc with the best 2 chunks each; result carries

@@ -230,7 +230,10 @@ export class CardService {
         details: { from: card.status, to: transition.to },
       });
     }
-    const status = transition?.to ?? card.status;
+    if (plan.status && !machine.statuses.includes(plan.status)) {
+      throw new Error(`Action ${action} chose status ${plan.status}, unknown to ${card.type}`);
+    }
+    const status = plan.status ?? transition?.to ?? card.status;
     const moved = status !== card.status;
     const written = await this.cards.updateCard({
       card,
@@ -308,20 +311,21 @@ export class CardService {
       })),
     );
 
-    published.events.push({
-      eventId: written.id,
-      workspaceId: card.workspaceId,
-      cardId: card.id,
-      cardKey: card.key,
-      cardType: card.type,
-      seq: written.seq,
-      kind: written.kind,
-      status: card.status,
-      actorKind: storedActorKind(actor),
-      actorId: actor.userId,
-      via: actor.via,
-      at: written.createdAt.toISOString(),
-    });
+    if (!plan.quiet)
+      published.events.push({
+        eventId: written.id,
+        workspaceId: card.workspaceId,
+        cardId: card.id,
+        cardKey: card.key,
+        cardType: card.type,
+        seq: written.seq,
+        kind: written.kind,
+        status: card.status,
+        actorKind: storedActorKind(actor),
+        actorId: actor.userId,
+        via: actor.via,
+        at: written.createdAt.toISOString(),
+      });
 
     const followUps: ApplyResult[] = [];
     for (const followUp of plan.followUps?.(card) ?? []) {

@@ -90,6 +90,7 @@ apps/api/
 │   └── modules/
 │       ├── identity/      workspaces/     cards/        tasks/         decisions/     needs/
 │       ├── handoffs/      redesign/       docs/         capture/       github/        notifications/
+│       ├── digests/       today/          search/       scheduler/     system/  (system runs local sources and answers /system and /metrics)
 │       ├── digests/       mcp/            audit/        realtime/      health/
 │       └── <module>/
 │           ├── index.ts                   # PUBLIC API of the module (facade + types)

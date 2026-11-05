@@ -153,6 +153,8 @@ in backups** — losing it means a new root CA and re-trusting on every machine.
 
 ## 4. `infra/compose.yaml`
 
+**First release (docs/15 §3, §9):** the file in the repository runs web, api, worker, postgres and redis on `localhost` with no Caddy, as project `hub-stack`, with images built locally (`infra/docker/*.Dockerfile`) and folders bound by `HUB_LAB_FOLDER` and `HUB_DOCS_FOLDER`. Its header says how to run it beside the dev stack. `infra/scripts/smoke.sh` checks it. What follows is the later LAN shape, kept for H6.
+
 ```yaml
 name: hub
 x-api-env: &api-env
@@ -330,6 +332,7 @@ PR when the lab needs newer primitives. Build: `docker build -f infra/docker/lab
 | `HUB_SECRET_KEY` | api, worker | yes | `openssl rand -base64 32` | AES-256-GCM key for `secret_enc`/`totp_secret_enc` (rotation: `pnpm ops:rotate-key`) |
 | `HUB_JWT_SECRET` | api | yes | `pnpm setup:env`, or 32+ random chars | HS256 key of the access token (15 min) and the TOTP challenge (5 min) |
 | `SESSION_COOKIE_DOMAIN` | api | no | `hub.goteav.lan` | defaults to the public URL host |
+| `TRUST_PROXY` | api | behind a proxy | `uniquelocal` | Express `trust proxy`. `infra/compose.yaml` sets it, because the API sits behind the web container; otherwise every request looks like the proxy's, sharing one sign-in limit and writing the wrong address to audit. Never set it where the API is reachable directly from outside. |
 | `PROCESS_ROLE` | api/worker | yes | `api` \| `worker` | which processors register |
 | `PORT` | api, web | yes | `7310` / `7300` | |
 | `TZ` | all | no | `Europe/Istanbul` | container clock; workspaces have their own timezone setting |

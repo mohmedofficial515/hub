@@ -231,6 +231,8 @@ export const onboardingGroupSchema = z.object({
       ref: z.string(),
       done: z.boolean(),
       doneAt: z.string().nullable(),
+      /** A `doc` item's card, once a source has indexed that path; null shows an honest "not indexed yet". */
+      cardKey: z.string().nullable(),
     }),
   ),
 });
