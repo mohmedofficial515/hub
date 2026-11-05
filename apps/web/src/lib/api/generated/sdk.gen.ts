@@ -3,7 +3,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AuditControllerListData, AuditControllerListResponses, AuthControllerChangeData, AuthControllerChangeResponses, AuthControllerConfirmTotpData, AuthControllerConfirmTotpResponses, AuthControllerDisableTotpData, AuthControllerDisableTotpResponses, AuthControllerForgotData, AuthControllerForgotResponses, AuthControllerGetMeData, AuthControllerGetMeResponses, AuthControllerListSessionsData, AuthControllerListSessionsResponses, AuthControllerRecoverData, AuthControllerRecoverResponses, AuthControllerRefreshData, AuthControllerRefreshResponses, AuthControllerResetData, AuthControllerResetResponses, AuthControllerRevokeAllData, AuthControllerRevokeAllResponses, AuthControllerRevokeSessionData, AuthControllerRevokeSessionResponses, AuthControllerSetupTotpData, AuthControllerSetupTotpResponses, AuthControllerSignInData, AuthControllerSignInResponses, AuthControllerSignOutData, AuthControllerSignOutResponses, AuthControllerVerifyTotpData, AuthControllerVerifyTotpResponses, BriefsControllerListData, BriefsControllerListResponses, BriefsControllerNarrativeData, BriefsControllerNarrativeResponses, BriefsControllerSummaryData, BriefsControllerSummaryResponses, BriefsControllerTodayData, BriefsControllerTodayResponses, BriefsControllerWeeklyData, BriefsControllerWeeklyResponses, CaptureControllerMeData, CaptureControllerMeResponses, CaptureControllerSessionData, CaptureControllerSessionResponses, CardsControllerAddCommentData, CardsControllerAddCommentResponses, CardsControllerAttachmentsData, CardsControllerAttachmentsResponses, CardsControllerCommentsData, CardsControllerCommentsResponses, CardsControllerCreateData, CardsControllerCreateResponses, CardsControllerDeleteData, CardsControllerDeletedData, CardsControllerDeletedResponses, CardsControllerDeleteResponses, CardsControllerEditCommentData, CardsControllerEditCommentResponses, CardsControllerEventsData, CardsControllerEventsResponses, CardsControllerGetData, CardsControllerGetResponses, CardsControllerLinkData, CardsControllerLinkResponses, CardsControllerRedactCommentData, CardsControllerRedactCommentResponses, CardsControllerRestoreData, CardsControllerRestoreResponses, CardsControllerTransitionData, CardsControllerTransitionResponses, CardsControllerUnlinkData, CardsControllerUnlinkResponses, CardsControllerUnwatchData, CardsControllerUnwatchResponses, CardsControllerUpdateData, CardsControllerUpdateResponses, CardsControllerWatchData, CardsControllerWatchResponses, CardsListCardsData, CardsListCardsResponses, DecisionsControllerAdrData, DecisionsControllerAdrResponses, DecisionsControllerDecideData, DecisionsControllerDecideResponses, DecisionsControllerListData, DecisionsControllerListResponses, DecisionsControllerOptionsData, DecisionsControllerOptionsResponses, DecisionsControllerSupersedeData, DecisionsControllerSupersedeResponses, DecisionsControllerWithdrawData, DecisionsControllerWithdrawResponses, DocsControllerGetData, DocsControllerGetResponses, DocsControllerListData, DocsControllerListResponses, EventsControllerStreamData, EventsControllerStreamResponses, HandoffsControllerAcknowledgeData, HandoffsControllerAcknowledgeResponses, HandoffsControllerApplyData, HandoffsControllerApplyResponses, HandoffsControllerDismissData, HandoffsControllerDismissResponses, HandoffsControllerListData, HandoffsControllerListResponses, HealthControllerLiveData, HealthControllerLiveResponses, HealthControllerReadyData, HealthControllerReadyResponses, IdeasControllerAcceptData, IdeasControllerAcceptResponses, IdeasControllerExploreData, IdeasControllerExploreResponses, IdeasControllerListData, IdeasControllerListResponses, IdeasControllerParkData, IdeasControllerParkResponses, IdeasControllerRejectData, IdeasControllerRejectResponses, IdeasControllerReopenData, IdeasControllerReopenResponses, IdeasControllerToPlanData, IdeasControllerToPlanResponses, IdeasControllerUpdateData, IdeasControllerUpdateResponses, InboxControllerArchiveData, InboxControllerArchiveResponses, InboxControllerCountData, InboxControllerCountResponses, InboxControllerListData, InboxControllerListResponses, InboxControllerReadAllData, InboxControllerReadAllResponses, InboxControllerReadData, InboxControllerReadResponses, InboxControllerUnarchiveData, InboxControllerUnarchiveResponses, InboxControllerUnreadData, InboxControllerUnreadResponses, MeControllerCreateTokenData, MeControllerCreateTokenResponses, MeControllerListTokensData, MeControllerListTokensResponses, MeControllerRevokeTokenData, MeControllerRevokeTokenResponses, MeControllerSetDefaultProjectData, MeControllerSetDefaultProjectResponses, MeControllerUpdateData, MeControllerUpdateResponses, MembersControllerChangeRolesData, MembersControllerChangeRolesResponses, MembersControllerDisableData, MembersControllerDisableResponses, MembersControllerEnableData, MembersControllerEnableResponses, MembersControllerListData, MembersControllerListResponses, MembersControllerPasswordResetLinkData, MembersControllerPasswordResetLinkResponses, MembersControllerRemoveData, MembersControllerRemoveResponses, MembersControllerSetGithubLoginsData, MembersControllerSetGithubLoginsResponses, NeedsControllerCancelData, NeedsControllerCancelResponses, NeedsControllerDeliverData, NeedsControllerDeliverResponses, NeedsControllerListData, NeedsControllerListResponses, NeedsControllerRejectData, NeedsControllerRejectResponses, NeedsControllerStartData, NeedsControllerStartResponses, NeedsControllerVerifyData, NeedsControllerVerifyResponses, OnboardingControllerGetData, OnboardingControllerGetResponses, OnboardingControllerTickData, OnboardingControllerTickResponses, OnboardingControllerUntickData, OnboardingControllerUntickResponses, PlansControllerAbandonData, PlansControllerAbandonResponses, PlansControllerApproveData, PlansControllerApproveResponses, PlansControllerFinishData, PlansControllerFinishResponses, PlansControllerListData, PlansControllerListResponses, PlansControllerRestoreData, PlansControllerRestoreResponses, PlansControllerRevisionsData, PlansControllerRevisionsResponses, PlansControllerStartData, PlansControllerStartResponses, PlansControllerSubmitData, PlansControllerSubmitResponses, PlansControllerToTasksData, PlansControllerToTasksResponses, PlansControllerUpdateData, PlansControllerUpdateResponses, PublicInvitesControllerAcceptData, PublicInvitesControllerAcceptResponses, PublicInvitesControllerPreviewData, PublicInvitesControllerPreviewResponses, RedesignControllerApproveData, RedesignControllerApproveResponses, RedesignControllerMarkPortedData, RedesignControllerMarkPortedResponses, RedesignControllerRejectData, RedesignControllerRejectResponses, RedesignControllerRequestChangesData, RedesignControllerRequestChangesResponses, RedesignControllerSubmitData, RedesignControllerSubmitResponses, RedesignControllerVersionsData, RedesignControllerVersionsResponses, ReleasesControllerEditData, ReleasesControllerEditResponses, ReleasesControllerGenerateData, ReleasesControllerGenerateResponses, ReleasesControllerListData, ReleasesControllerListResponses, ReleasesControllerReleaseData, ReleasesControllerReleaseResponses, SettingsControllerCatalogueData, SettingsControllerCatalogueResponses, SettingsControllerListData, SettingsControllerListResponses, SettingsControllerPutData, SettingsControllerPutResponses, SettingsControllerResetData, SettingsControllerResetResponses, SourcesControllerCreateData, SourcesControllerCreateResponses, SourcesControllerGetData, SourcesControllerGetResponses, SourcesControllerListData, SourcesControllerListResponses, SourcesControllerRemoveData, SourcesControllerRemoveResponses, SourcesControllerTestData, SourcesControllerTestResponses, SourcesControllerUpdateData, SourcesControllerUpdateResponses, TasksControllerCancelData, TasksControllerCancelResponses, TasksControllerClaimData, TasksControllerClaimResponses, TasksControllerDoneData, TasksControllerDoneResponses, TasksControllerEditData, TasksControllerEditResponses, TasksControllerListData, TasksControllerListResponses, TasksControllerMarkBacklogData, TasksControllerMarkBacklogResponses, TasksControllerMarkReadyData, TasksControllerMarkReadyResponses, TasksControllerMineData, TasksControllerMineResponses, TasksControllerPromptData, TasksControllerPromptResponses, TasksControllerReadyData, TasksControllerReadyResponses, TasksControllerReopenData, TasksControllerReopenResponses, TasksControllerResumeData, TasksControllerResumeResponses, TasksControllerStartData, TasksControllerStartResponses, TasksControllerSubmitData, TasksControllerSubmitResponses, TasksControllerUnclaimData, TasksControllerUnclaimResponses, TimelineControllerListData, TimelineControllerListResponses, TodayControllerGetCountersData, TodayControllerGetCountersResponses, TodayControllerGetData, TodayControllerGetResponses, TodayControllerSeenData, TodayControllerSeenResponses, WorkspaceInvitesControllerCreateData, WorkspaceInvitesControllerCreateResponses, WorkspaceInvitesControllerListData, WorkspaceInvitesControllerListResponses, WorkspaceInvitesControllerResendData, WorkspaceInvitesControllerResendResponses, WorkspaceInvitesControllerRevokeData, WorkspaceInvitesControllerRevokeResponses, WorkspacesControllerCloseData, WorkspacesControllerCloseResponses, WorkspacesControllerCreateData, WorkspacesControllerCreateResponses, WorkspacesControllerGetData, WorkspacesControllerGetResponses, WorkspacesControllerListData, WorkspacesControllerListResponses, WorkspacesControllerReopenData, WorkspacesControllerReopenResponses, WorkspacesControllerUpdateData, WorkspacesControllerUpdateResponses } from './types.gen';
+import type { AuditControllerCsvData, AuditControllerCsvResponses, AuditControllerListData, AuditControllerListResponses, AuthControllerChangeData, AuthControllerChangeResponses, AuthControllerConfirmTotpData, AuthControllerConfirmTotpResponses, AuthControllerDisableTotpData, AuthControllerDisableTotpResponses, AuthControllerForgotData, AuthControllerForgotResponses, AuthControllerGetMeData, AuthControllerGetMeResponses, AuthControllerListSessionsData, AuthControllerListSessionsResponses, AuthControllerRecoverData, AuthControllerRecoverResponses, AuthControllerRefreshData, AuthControllerRefreshResponses, AuthControllerResetData, AuthControllerResetResponses, AuthControllerRevokeAllData, AuthControllerRevokeAllResponses, AuthControllerRevokeSessionData, AuthControllerRevokeSessionResponses, AuthControllerSetupTotpData, AuthControllerSetupTotpResponses, AuthControllerSignInData, AuthControllerSignInResponses, AuthControllerSignOutData, AuthControllerSignOutResponses, AuthControllerVerifyTotpData, AuthControllerVerifyTotpResponses, BriefsControllerListData, BriefsControllerListResponses, BriefsControllerNarrativeData, BriefsControllerNarrativeResponses, BriefsControllerSummaryData, BriefsControllerSummaryResponses, BriefsControllerTodayData, BriefsControllerTodayResponses, BriefsControllerWeeklyData, BriefsControllerWeeklyResponses, CaptureControllerMeData, CaptureControllerMeResponses, CaptureControllerSessionData, CaptureControllerSessionResponses, CardsControllerAddCommentData, CardsControllerAddCommentResponses, CardsControllerAttachmentsData, CardsControllerAttachmentsResponses, CardsControllerCommentsData, CardsControllerCommentsResponses, CardsControllerCreateData, CardsControllerCreateResponses, CardsControllerDeleteData, CardsControllerDeletedData, CardsControllerDeletedResponses, CardsControllerDeleteResponses, CardsControllerEditCommentData, CardsControllerEditCommentResponses, CardsControllerEventsData, CardsControllerEventsResponses, CardsControllerGetData, CardsControllerGetResponses, CardsControllerLinkData, CardsControllerLinkResponses, CardsControllerRedactCommentData, CardsControllerRedactCommentResponses, CardsControllerRestoreData, CardsControllerRestoreResponses, CardsControllerTransitionData, CardsControllerTransitionResponses, CardsControllerUnlinkData, CardsControllerUnlinkResponses, CardsControllerUnwatchData, CardsControllerUnwatchResponses, CardsControllerUpdateData, CardsControllerUpdateResponses, CardsControllerWatchData, CardsControllerWatchResponses, CardsListCardsData, CardsListCardsResponses, DecisionsControllerAdrData, DecisionsControllerAdrResponses, DecisionsControllerDecideData, DecisionsControllerDecideResponses, DecisionsControllerListData, DecisionsControllerListResponses, DecisionsControllerOptionsData, DecisionsControllerOptionsResponses, DecisionsControllerSupersedeData, DecisionsControllerSupersedeResponses, DecisionsControllerWithdrawData, DecisionsControllerWithdrawResponses, DocsControllerByPathData, DocsControllerByPathResponses, DocsControllerGetData, DocsControllerGetResponses, DocsControllerListData, DocsControllerListResponses, DocsControllerMentionsData, DocsControllerMentionsResponses, DocsControllerTreeData, DocsControllerTreeResponses, EventsControllerStreamData, EventsControllerStreamResponses, HandoffsControllerAcknowledgeData, HandoffsControllerAcknowledgeResponses, HandoffsControllerApplyData, HandoffsControllerApplyResponses, HandoffsControllerDismissData, HandoffsControllerDismissResponses, HandoffsControllerListData, HandoffsControllerListResponses, HealthControllerLiveData, HealthControllerLiveResponses, HealthControllerReadyData, HealthControllerReadyResponses, IdeasControllerAcceptData, IdeasControllerAcceptResponses, IdeasControllerExploreData, IdeasControllerExploreResponses, IdeasControllerListData, IdeasControllerListResponses, IdeasControllerParkData, IdeasControllerParkResponses, IdeasControllerRejectData, IdeasControllerRejectResponses, IdeasControllerReopenData, IdeasControllerReopenResponses, IdeasControllerToPlanData, IdeasControllerToPlanResponses, IdeasControllerUpdateData, IdeasControllerUpdateResponses, InboxControllerArchiveData, InboxControllerArchiveResponses, InboxControllerCountData, InboxControllerCountResponses, InboxControllerListData, InboxControllerListResponses, InboxControllerReadAllData, InboxControllerReadAllResponses, InboxControllerReadData, InboxControllerReadResponses, InboxControllerUnarchiveData, InboxControllerUnarchiveResponses, InboxControllerUnreadData, InboxControllerUnreadResponses, LabFilesControllerFileData, LabFilesControllerFileResponses, MeControllerCreateTokenData, MeControllerCreateTokenResponses, MeControllerListTokensData, MeControllerListTokensResponses, MeControllerRevokeTokenData, MeControllerRevokeTokenResponses, MeControllerSetDefaultProjectData, MeControllerSetDefaultProjectResponses, MeControllerUpdateData, MeControllerUpdateResponses, MembersControllerChangeRolesData, MembersControllerChangeRolesResponses, MembersControllerDisableData, MembersControllerDisableResponses, MembersControllerEnableData, MembersControllerEnableResponses, MembersControllerListData, MembersControllerListResponses, MembersControllerPasswordResetLinkData, MembersControllerPasswordResetLinkResponses, MembersControllerRemoveData, MembersControllerRemoveResponses, MembersControllerSetGithubLoginsData, MembersControllerSetGithubLoginsResponses, MetricsControllerMetricsData, MetricsControllerMetricsResponses, NeedsControllerCancelData, NeedsControllerCancelResponses, NeedsControllerDeliverData, NeedsControllerDeliverResponses, NeedsControllerListData, NeedsControllerListResponses, NeedsControllerRejectData, NeedsControllerRejectResponses, NeedsControllerStartData, NeedsControllerStartResponses, NeedsControllerVerifyData, NeedsControllerVerifyResponses, OnboardingControllerGetData, OnboardingControllerGetResponses, OnboardingControllerTickData, OnboardingControllerTickResponses, OnboardingControllerUntickData, OnboardingControllerUntickResponses, PlansControllerAbandonData, PlansControllerAbandonResponses, PlansControllerApproveData, PlansControllerApproveResponses, PlansControllerFinishData, PlansControllerFinishResponses, PlansControllerListData, PlansControllerListResponses, PlansControllerRestoreData, PlansControllerRestoreResponses, PlansControllerRevisionsData, PlansControllerRevisionsResponses, PlansControllerStartData, PlansControllerStartResponses, PlansControllerSubmitData, PlansControllerSubmitResponses, PlansControllerToTasksData, PlansControllerToTasksResponses, PlansControllerUpdateData, PlansControllerUpdateResponses, PublicInvitesControllerAcceptData, PublicInvitesControllerAcceptResponses, PublicInvitesControllerPreviewData, PublicInvitesControllerPreviewResponses, RedesignControllerApproveData, RedesignControllerApproveResponses, RedesignControllerCompareData, RedesignControllerCompareResponses, RedesignControllerMarkPortedData, RedesignControllerMarkPortedResponses, RedesignControllerPagesData, RedesignControllerPagesResponses, RedesignControllerReadmeData, RedesignControllerReadmeResponses, RedesignControllerRejectData, RedesignControllerRejectResponses, RedesignControllerRequestChangesData, RedesignControllerRequestChangesResponses, RedesignControllerSubmitData, RedesignControllerSubmitResponses, RedesignControllerVersionsData, RedesignControllerVersionsResponses, ReleasesControllerEditData, ReleasesControllerEditResponses, ReleasesControllerGenerateData, ReleasesControllerGenerateResponses, ReleasesControllerListData, ReleasesControllerListResponses, ReleasesControllerReleaseData, ReleasesControllerReleaseResponses, SearchControllerAllData, SearchControllerAllResponses, SearchControllerDocsData, SearchControllerDocsResponses, SettingsControllerCatalogueData, SettingsControllerCatalogueResponses, SettingsControllerListData, SettingsControllerListResponses, SettingsControllerPutData, SettingsControllerPutResponses, SettingsControllerResetData, SettingsControllerResetResponses, SourcesControllerCreateData, SourcesControllerCreateResponses, SourcesControllerGetData, SourcesControllerGetResponses, SourcesControllerListData, SourcesControllerListResponses, SourcesControllerRemoveData, SourcesControllerRemoveResponses, SourcesControllerTestData, SourcesControllerTestResponses, SourcesControllerUpdateData, SourcesControllerUpdateResponses, SystemControllerGetData, SystemControllerGetResponses, SystemControllerReindexData, SystemControllerReindexResponses, SystemControllerRescanData, SystemControllerRescanResponses, SystemControllerRunData, SystemControllerRunResponses, SystemControllerRunsData, SystemControllerRunsResponses, TasksControllerCancelData, TasksControllerCancelResponses, TasksControllerClaimData, TasksControllerClaimResponses, TasksControllerDoneData, TasksControllerDoneResponses, TasksControllerEditData, TasksControllerEditResponses, TasksControllerListData, TasksControllerListResponses, TasksControllerMarkBacklogData, TasksControllerMarkBacklogResponses, TasksControllerMarkReadyData, TasksControllerMarkReadyResponses, TasksControllerMineData, TasksControllerMineResponses, TasksControllerPromptData, TasksControllerPromptResponses, TasksControllerReadyData, TasksControllerReadyResponses, TasksControllerReopenData, TasksControllerReopenResponses, TasksControllerResumeData, TasksControllerResumeResponses, TasksControllerStartData, TasksControllerStartResponses, TasksControllerSubmitData, TasksControllerSubmitResponses, TasksControllerUnclaimData, TasksControllerUnclaimResponses, TimelineControllerListData, TimelineControllerListResponses, TodayControllerGetCountersData, TodayControllerGetCountersResponses, TodayControllerGetData, TodayControllerGetResponses, TodayControllerSeenData, TodayControllerSeenResponses, WorkspaceInvitesControllerCreateData, WorkspaceInvitesControllerCreateResponses, WorkspaceInvitesControllerListData, WorkspaceInvitesControllerListResponses, WorkspaceInvitesControllerResendData, WorkspaceInvitesControllerResendResponses, WorkspaceInvitesControllerRevokeData, WorkspaceInvitesControllerRevokeResponses, WorkspacesControllerCloseData, WorkspacesControllerCloseResponses, WorkspacesControllerCreateData, WorkspacesControllerCreateResponses, WorkspacesControllerGetData, WorkspacesControllerGetResponses, WorkspacesControllerListData, WorkspacesControllerListResponses, WorkspacesControllerReopenData, WorkspacesControllerReopenResponses, WorkspacesControllerUpdateData, WorkspacesControllerUpdateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -244,6 +244,11 @@ export const workspaceInvitesControllerRevoke = <ThrowOnError extends boolean = 
  * Who did what, newest first
  */
 export const auditControllerList = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerListData, ThrowOnError>) => (options?.client ?? client).get<AuditControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/audit', ...options });
+
+/**
+ * The same filters as a CSV file, up to 50 000 rows
+ */
+export const auditControllerCsv = <ThrowOnError extends boolean = false>(options?: Options<AuditControllerCsvData, ThrowOnError>) => (options?.client ?? client).get<AuditControllerCsvResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/audit/export.csv', ...options });
 
 /**
  * List cards
@@ -665,6 +670,161 @@ export const todayControllerSeen = <ThrowOnError extends boolean = false>(option
 export const todayControllerGetCounters = <ThrowOnError extends boolean = false>(options?: Options<TodayControllerGetCountersData, ThrowOnError>) => (options?.client ?? client).get<TodayControllerGetCountersResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/counters', ...options });
 
 /**
+ * Cards and documents, Arabic and English
+ */
+export const searchControllerAll = <ThrowOnError extends boolean = false>(options: Options<SearchControllerAllData, ThrowOnError>) => (options.client ?? client).get<SearchControllerAllResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/search', ...options });
+
+/**
+ * Documents only, grouped, with excerpts
+ */
+export const searchControllerDocs = <ThrowOnError extends boolean = false>(options: Options<SearchControllerDocsData, ThrowOnError>) => (options.client ?? client).get<SearchControllerDocsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/search', ...options });
+
+/**
+ * Run a source now. `source.run` on the stream says how it went.
+ */
+export const systemControllerRun = <ThrowOnError extends boolean = false>(options: Options<SystemControllerRunData, ThrowOnError>) => (options.client ?? client).post<SystemControllerRunResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}/run', ...options });
+
+/**
+ * Index one docs source, or all of them, now
+ */
+export const systemControllerReindex = <ThrowOnError extends boolean = false>(options: Options<SystemControllerReindexData, ThrowOnError>) => (options.client ?? client).post<SystemControllerReindexResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/docs/reindex',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Scan the lab folder now
+ */
+export const systemControllerRescan = <ThrowOnError extends boolean = false>(options?: Options<SystemControllerRescanData, ThrowOnError>) => (options?.client ?? client).post<SystemControllerRescanResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/rescan', ...options });
+
+/**
+ * Runs of the sources, newest first
+ */
+export const systemControllerRuns = <ThrowOnError extends boolean = false>(options?: Options<SystemControllerRunsData, ThrowOnError>) => (options?.client ?? client).get<SystemControllerRunsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/capture/runs', ...options });
+
+/**
+ * Sources, queues, outbox, streams, database, worker
+ */
+export const systemControllerGet = <ThrowOnError extends boolean = false>(options?: Options<SystemControllerGetData, ThrowOnError>) => (options?.client ?? client).get<SystemControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/system', ...options });
+
+/**
+ * Prometheus text, with `Authorization: Bearer <METRICS_TOKEN>`
+ */
+export const metricsControllerMetrics = <ThrowOnError extends boolean = false>(options?: Options<MetricsControllerMetricsData, ThrowOnError>) => (options?.client ?? client).get<MetricsControllerMetricsResponses, unknown, ThrowOnError>({ url: '/metrics', ...options });
+
+/**
+ * Indexed documents
+ */
+export const docsControllerList = <ThrowOnError extends boolean = false>(options?: Options<DocsControllerListData, ThrowOnError>) => (options?.client ?? client).get<DocsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs', ...options });
+
+/**
+ * Documents as folders, per source
+ */
+export const docsControllerTree = <ThrowOnError extends boolean = false>(options?: Options<DocsControllerTreeData, ThrowOnError>) => (options?.client ?? client).get<DocsControllerTreeResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/tree', ...options });
+
+/**
+ * One document by source name and path
+ */
+export const docsControllerByPath = <ThrowOnError extends boolean = false>(options: Options<DocsControllerByPathData, ThrowOnError>) => (options.client ?? client).get<DocsControllerByPathResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/by-path', ...options });
+
+/**
+ * The documents a card's text names, for chips
+ */
+export const docsControllerMentions = <ThrowOnError extends boolean = false>(options: Options<DocsControllerMentionsData, ThrowOnError>) => (options.client ?? client).get<DocsControllerMentionsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/mentions/{cardKey}', ...options });
+
+/**
+ * One document with its file, contents and who mentions it
+ */
+export const docsControllerGet = <ThrowOnError extends boolean = false>(options: Options<DocsControllerGetData, ThrowOnError>) => (options.client ?? client).get<DocsControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/{key}', ...options });
+
+/**
+ * Live events of this project, for this member
+ */
+export const eventsControllerStream = <ThrowOnError extends boolean = false>(options?: Options<EventsControllerStreamData, ThrowOnError>) => (options?.client ?? client).get<EventsControllerStreamResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/events/stream', ...options });
+
+/**
+ * Lab pages with their versions. Empty when the project has no lab.
+ */
+export const redesignControllerPages = <ThrowOnError extends boolean = false>(options?: Options<RedesignControllerPagesData, ThrowOnError>) => (options?.client ?? client).get<RedesignControllerPagesResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/pages', ...options });
+
+/**
+ * Two versions side by side: detail, screenshots paired by name, frame URLs
+ */
+export const redesignControllerCompare = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerCompareData, ThrowOnError>) => (options.client ?? client).get<RedesignControllerCompareResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/compare', ...options });
+
+/**
+ * A version's README and review, from the lab folder
+ */
+export const redesignControllerReadme = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerReadmeData, ThrowOnError>) => (options.client ?? client).get<RedesignControllerReadmeResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/{key}/readme', ...options });
+
+/**
+ * Redesign versions
+ */
+export const redesignControllerVersions = <ThrowOnError extends boolean = false>(options?: Options<RedesignControllerVersionsData, ThrowOnError>) => (options?.client ?? client).get<RedesignControllerVersionsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/versions', ...options });
+
+/**
+ * Send a version to review
+ */
+export const redesignControllerSubmit = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerSubmitData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerSubmitResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/{key}/submit-review', ...options });
+
+/**
+ * Approve a version, creating its port task
+ */
+export const redesignControllerApprove = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerApproveData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerApproveResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/approve',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reject a version, with a note
+ */
+export const redesignControllerReject = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerRejectData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerRejectResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/reject',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Ask for changes. The status stays review.
+ */
+export const redesignControllerRequestChanges = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerRequestChangesData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerRequestChangesResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/request-changes',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Mark a version ported, closing its port task
+ */
+export const redesignControllerMarkPorted = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerMarkPortedData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerMarkPortedResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/mark-ported',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * A screenshot from the lab folder
+ */
+export const labFilesControllerFile = <ThrowOnError extends boolean = false>(options: Options<LabFilesControllerFileData, ThrowOnError>) => (options.client ?? client).get<LabFilesControllerFileResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/lab/file', ...options });
+
+/**
  * Tasks with their detail and what blocks each, for the board and the list
  */
 export const tasksControllerList = <ThrowOnError extends boolean = false>(options?: Options<TasksControllerListData, ThrowOnError>) => (options?.client ?? client).get<TasksControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/tasks', ...options });
@@ -953,74 +1113,6 @@ export const handoffsControllerDismiss = <ThrowOnError extends boolean = false>(
 });
 
 /**
- * Redesign versions
- */
-export const redesignControllerVersions = <ThrowOnError extends boolean = false>(options?: Options<RedesignControllerVersionsData, ThrowOnError>) => (options?.client ?? client).get<RedesignControllerVersionsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/versions', ...options });
-
-/**
- * Send a version to review
- */
-export const redesignControllerSubmit = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerSubmitData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerSubmitResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/redesign/{key}/submit-review', ...options });
-
-/**
- * Approve a version, creating its port task
- */
-export const redesignControllerApprove = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerApproveData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerApproveResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/approve',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Reject a version, with a note
- */
-export const redesignControllerReject = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerRejectData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerRejectResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/reject',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Ask for changes. The status stays review.
- */
-export const redesignControllerRequestChanges = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerRequestChangesData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerRequestChangesResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/request-changes',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Mark a version ported, closing its port task
- */
-export const redesignControllerMarkPorted = <ThrowOnError extends boolean = false>(options: Options<RedesignControllerMarkPortedData, ThrowOnError>) => (options.client ?? client).post<RedesignControllerMarkPortedResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/mark-ported',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Indexed documents
- */
-export const docsControllerList = <ThrowOnError extends boolean = false>(options?: Options<DocsControllerListData, ThrowOnError>) => (options?.client ?? client).get<DocsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs', ...options });
-
-/**
- * One document, as a card
- */
-export const docsControllerGet = <ThrowOnError extends boolean = false>(options: Options<DocsControllerGetData, ThrowOnError>) => (options.client ?? client).get<DocsControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/{key}', ...options });
-
-/**
  * Releases
  */
 export const releasesControllerList = <ThrowOnError extends boolean = false>(options?: Options<ReleasesControllerListData, ThrowOnError>) => (options?.client ?? client).get<ReleasesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/releases', ...options });
@@ -1199,11 +1291,6 @@ export const plansControllerToTasks = <ThrowOnError extends boolean = false>(opt
         ...options.headers
     }
 });
-
-/**
- * Live events of this project, for this member
- */
-export const eventsControllerStream = <ThrowOnError extends boolean = false>(options?: Options<EventsControllerStreamData, ThrowOnError>) => (options?.client ?? client).get<EventsControllerStreamResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/events/stream', ...options });
 
 /**
  * The process is up

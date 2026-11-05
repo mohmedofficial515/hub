@@ -1747,6 +1747,7 @@ export type OnboardingGroupDto = {
         ref: string;
         done: boolean;
         doneAt: string | null;
+        cardKey: string | null;
     }>;
 };
 
@@ -3487,6 +3488,1131 @@ export type CountersDto = {
     planningOpen: number;
 };
 
+export type SearchResultDto = {
+    cards: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+        rank: number;
+        highlight: string;
+    }>;
+    docs: Array<{
+        card: {
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            awaiting: string | null;
+        };
+        path: string;
+        source: string;
+        chunks: Array<{
+            heading: string | null;
+            anchor: string | null;
+            excerpt: string;
+            rank: number;
+        }>;
+    }>;
+};
+
+export type DocHitDto = {
+    card: {
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    };
+    path: string;
+    source: string;
+    chunks: Array<{
+        heading: string | null;
+        anchor: string | null;
+        excerpt: string;
+        rank: number;
+    }>;
+};
+
+export type RunAcceptedDto = {
+    runId: string;
+};
+
+export type ReindexDto = {
+    source?: string;
+};
+
+export type SystemDto = {
+    version: {
+        api: string;
+        web: string | null;
+        lab: string | null;
+    };
+    sources: Array<{
+        id: string;
+        name: string;
+        kind: string;
+        enabled: boolean;
+        lagSec: number | null;
+        lastError: string | null;
+        lastSuccessAt: string | null;
+        consecutiveFailures: number;
+    }>;
+    queues: Array<{
+        name: string;
+        waiting: number;
+        active: number;
+        failed: number;
+        delayed: number;
+    }>;
+    outbox: {
+        pending: number;
+        failed: number;
+        oldestPendingAgeSec: number | null;
+    };
+    sse: {
+        connections: number;
+    };
+    backup: {
+        lastAt: string | null;
+        sizeBytes: number | null;
+    };
+    db: {
+        sizeBytes: number;
+        cards: number;
+        events: number;
+    };
+    worker: {
+        alive: boolean;
+        lastHeartbeatAt: string | null;
+    };
+};
+
+export type TreeDtoSchema0 = {
+    name: string;
+    path: string;
+    docs: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
+    }>;
+    folders: Array<TreeDtoSchema0>;
+};
+
+export type TreeDto = {
+    data: Array<{
+        source: {
+            id: string;
+            name: string;
+        };
+        root: TreeDtoSchema0;
+        total: number;
+    }>;
+};
+
+export type MentionsDto = {
+    data: Array<{
+        mention: string;
+        key: string;
+        path: string;
+        source: string;
+        title: string;
+    }>;
+};
+
+export type LabPageDto = {
+    app: string;
+    page: string;
+    route: string | null;
+    liveUrl: string | null;
+    status: string | null;
+    brief: string | null;
+    versions: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
+    }>;
+};
+
+export type CompareDto = {
+    a: {
+        card: {
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            awaiting: string | null;
+            detail: {
+                cardId: string;
+                specialty: string;
+                effort: string | null;
+                acceptance: string | null;
+                prompt: string | null;
+                origin: string;
+                claimedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                claimedAt: string | null;
+                branch: string | null;
+                prUrl: string | null;
+                startedAt: string | null;
+                doneAt: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                question: string;
+                options: Array<{
+                    id: string;
+                    title: string;
+                    pros: Array<string>;
+                    cons: Array<string>;
+                    cost: string | null;
+                    recommended: boolean;
+                }>;
+                deciderRole: string;
+                chosenOptionId: string | null;
+                rationale: string | null;
+                decidedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                decidedAt: string | null;
+                remindersSent: Array<number>;
+                escalatedAt: string | null;
+                escalatedToRole: string | null;
+                adrRepoSourceId: string | null;
+                adrPath: string | null;
+                adrPrUrl: string | null;
+                adrStatus: string;
+                adrBody: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                responsibleRole: string;
+                location: string | null;
+                deliveredBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                deliveredAt: string | null;
+                verifiedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                verifiedAt: string | null;
+                verificationNote: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                authorLogin: string | null;
+                commitCount: number;
+                filesChanged: number;
+                additions: number;
+                deletions: number;
+                prNumber: number | null;
+                prState: string | null;
+                prUrl: string | null;
+                session: {
+                    [key: string]: unknown;
+                } | null;
+            } | {
+                cardId: string;
+                fromRole: string;
+                toRole: string;
+                kind: string;
+                severity: string;
+                summary: string;
+                prompt: string | null;
+                payload: {
+                    [key: string]: unknown;
+                };
+                sourceCardId: string | null;
+                acknowledgedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                acknowledgedAt: string | null;
+                appliedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                appliedAt: string | null;
+                appliedTaskId: string | null;
+            } | {
+                cardId: string;
+                app: string;
+                page: string;
+                version: string;
+                labPath: string;
+                labUrl: string;
+                base: string | null;
+                touchesComponents: Array<string>;
+                reviewScore: number | null;
+                reviewSummary: string | null;
+                frontMatter: {
+                    [key: string]: unknown;
+                };
+                approvedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                approvedAt: string | null;
+                rejectedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                rejectedAt: string | null;
+                decisionNote: string | null;
+                portTaskId: string | null;
+                portedRef: string | null;
+            } | {
+                cardId: string;
+                sourceId: string;
+                path: string;
+                kind: string;
+                lang: string;
+                headings: Array<{
+                    level: number;
+                    text: string;
+                    anchor: string;
+                }>;
+                wordCount: number;
+                lastCommitSha: string | null;
+                contentHash: string | null;
+                lastIndexedAt: string;
+            } | {
+                cardId: string;
+                version: string;
+                repo: string | null;
+                tag: string | null;
+                releasedAt: string | null;
+                includedIds: Array<string>;
+                notes: {
+                    team?: string | null;
+                    owner?: string | null;
+                    accountant?: string | null;
+                };
+            } | {
+                cardId: string;
+                problem: string | null;
+                notes: string | null;
+                role: string | null;
+                planCardId: string | null;
+            } | {
+                cardId: string;
+                steps: Array<{
+                    id: string;
+                    title: string;
+                    role?: string;
+                    taskKey?: string;
+                    done: boolean;
+                }>;
+                revision: number;
+                sourceIdeaId: string | null;
+                approvedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                approvedAt: string | null;
+            } | null;
+        };
+        shots: Array<{
+            name: string;
+            url: string;
+            width: number | null;
+            height: number | null;
+        }>;
+        frameUrl: string | null;
+    };
+    b: {
+        card: {
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            awaiting: string | null;
+            detail: {
+                cardId: string;
+                specialty: string;
+                effort: string | null;
+                acceptance: string | null;
+                prompt: string | null;
+                origin: string;
+                claimedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                claimedAt: string | null;
+                branch: string | null;
+                prUrl: string | null;
+                startedAt: string | null;
+                doneAt: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                question: string;
+                options: Array<{
+                    id: string;
+                    title: string;
+                    pros: Array<string>;
+                    cons: Array<string>;
+                    cost: string | null;
+                    recommended: boolean;
+                }>;
+                deciderRole: string;
+                chosenOptionId: string | null;
+                rationale: string | null;
+                decidedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                decidedAt: string | null;
+                remindersSent: Array<number>;
+                escalatedAt: string | null;
+                escalatedToRole: string | null;
+                adrRepoSourceId: string | null;
+                adrPath: string | null;
+                adrPrUrl: string | null;
+                adrStatus: string;
+                adrBody: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                responsibleRole: string;
+                location: string | null;
+                deliveredBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                deliveredAt: string | null;
+                verifiedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                verifiedAt: string | null;
+                verificationNote: string | null;
+            } | {
+                cardId: string;
+                kind: string;
+                authorLogin: string | null;
+                commitCount: number;
+                filesChanged: number;
+                additions: number;
+                deletions: number;
+                prNumber: number | null;
+                prState: string | null;
+                prUrl: string | null;
+                session: {
+                    [key: string]: unknown;
+                } | null;
+            } | {
+                cardId: string;
+                fromRole: string;
+                toRole: string;
+                kind: string;
+                severity: string;
+                summary: string;
+                prompt: string | null;
+                payload: {
+                    [key: string]: unknown;
+                };
+                sourceCardId: string | null;
+                acknowledgedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                acknowledgedAt: string | null;
+                appliedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                appliedAt: string | null;
+                appliedTaskId: string | null;
+            } | {
+                cardId: string;
+                app: string;
+                page: string;
+                version: string;
+                labPath: string;
+                labUrl: string;
+                base: string | null;
+                touchesComponents: Array<string>;
+                reviewScore: number | null;
+                reviewSummary: string | null;
+                frontMatter: {
+                    [key: string]: unknown;
+                };
+                approvedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                approvedAt: string | null;
+                rejectedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                rejectedAt: string | null;
+                decisionNote: string | null;
+                portTaskId: string | null;
+                portedRef: string | null;
+            } | {
+                cardId: string;
+                sourceId: string;
+                path: string;
+                kind: string;
+                lang: string;
+                headings: Array<{
+                    level: number;
+                    text: string;
+                    anchor: string;
+                }>;
+                wordCount: number;
+                lastCommitSha: string | null;
+                contentHash: string | null;
+                lastIndexedAt: string;
+            } | {
+                cardId: string;
+                version: string;
+                repo: string | null;
+                tag: string | null;
+                releasedAt: string | null;
+                includedIds: Array<string>;
+                notes: {
+                    team?: string | null;
+                    owner?: string | null;
+                    accountant?: string | null;
+                };
+            } | {
+                cardId: string;
+                problem: string | null;
+                notes: string | null;
+                role: string | null;
+                planCardId: string | null;
+            } | {
+                cardId: string;
+                steps: Array<{
+                    id: string;
+                    title: string;
+                    role?: string;
+                    taskKey?: string;
+                    done: boolean;
+                }>;
+                revision: number;
+                sourceIdeaId: string | null;
+                approvedBy: {
+                    id: string;
+                    displayName: string;
+                } | null;
+                approvedAt: string | null;
+            } | null;
+        };
+        shots: Array<{
+            name: string;
+            url: string;
+            width: number | null;
+            height: number | null;
+        }>;
+        frameUrl: string | null;
+    };
+    commonShots: Array<string>;
+};
+
+export type LabReadmeDto = {
+    markdown: string | null;
+    review: string | null;
+};
+
+export type ApproveDto = {
+    note?: string;
+    createPortTask?: boolean;
+};
+
+export type NoteDto = {
+    note: string;
+};
+
+export type MarkPortedDto = {
+    ref: string;
+};
+
 export type TaskPromptDto = {
     markdown: string;
 };
@@ -3566,19 +4692,6 @@ export type ApplyDto = {
         specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
     };
     note?: string;
-};
-
-export type ApproveDto = {
-    note?: string;
-    createPortTask?: boolean;
-};
-
-export type NoteDto = {
-    note: string;
-};
-
-export type MarkPortedDto = {
-    ref: string;
 };
 
 export type EditDto = {
@@ -4043,6 +5156,25 @@ export type AuditControllerListResponses = {
 };
 
 export type AuditControllerListResponse = AuditControllerListResponses[keyof AuditControllerListResponses];
+
+export type AuditControllerCsvData = {
+    body?: never;
+    path?: never;
+    query?: {
+        actor?: string;
+        action?: string;
+        targetType?: string;
+        from?: string;
+        to?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/audit/export.csv';
+};
+
+export type AuditControllerCsvResponses = {
+    200: unknown;
+};
 
 export type CardsListCardsData = {
     body?: never;
@@ -4952,6 +6084,354 @@ export type TodayControllerGetCountersResponses = {
 
 export type TodayControllerGetCountersResponse = TodayControllerGetCountersResponses[keyof TodayControllerGetCountersResponses];
 
+export type SearchControllerAllData = {
+    body?: never;
+    path?: never;
+    query: {
+        q: string;
+        types?: Array<'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan'>;
+        includeDocs?: boolean;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/search';
+};
+
+export type SearchControllerAllResponses = {
+    200: SearchResultDto;
+};
+
+export type SearchControllerAllResponse = SearchControllerAllResponses[keyof SearchControllerAllResponses];
+
+export type SearchControllerDocsData = {
+    body?: never;
+    path?: never;
+    query: {
+        q: string;
+        kinds?: Array<'doc' | 'adr' | 'status' | 'readme' | 'other'>;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/docs/search';
+};
+
+export type SearchControllerDocsResponses = {
+    200: Array<DocHitDto>;
+};
+
+export type SearchControllerDocsResponse = SearchControllerDocsResponses[keyof SearchControllerDocsResponses];
+
+export type SystemControllerRunData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}/run';
+};
+
+export type SystemControllerRunResponses = {
+    202: RunAcceptedDto;
+};
+
+export type SystemControllerRunResponse = SystemControllerRunResponses[keyof SystemControllerRunResponses];
+
+export type SystemControllerReindexData = {
+    body: ReindexDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/reindex';
+};
+
+export type SystemControllerReindexResponses = {
+    202: RunAcceptedDto;
+};
+
+export type SystemControllerReindexResponse = SystemControllerReindexResponses[keyof SystemControllerReindexResponses];
+
+export type SystemControllerRescanData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/rescan';
+};
+
+export type SystemControllerRescanResponses = {
+    202: RunAcceptedDto;
+};
+
+export type SystemControllerRescanResponse = SystemControllerRescanResponses[keyof SystemControllerRescanResponses];
+
+export type SystemControllerRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/capture/runs';
+};
+
+export type SystemControllerRunsResponses = {
+    200: unknown;
+};
+
+export type SystemControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/system';
+};
+
+export type SystemControllerGetResponses = {
+    200: SystemDto;
+};
+
+export type SystemControllerGetResponse = SystemControllerGetResponses[keyof SystemControllerGetResponses];
+
+export type MetricsControllerMetricsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/metrics';
+};
+
+export type MetricsControllerMetricsResponses = {
+    200: unknown;
+};
+
+export type DocsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: Array<string>;
+        kind?: Array<'doc' | 'adr' | 'status' | 'readme' | 'other'>;
+        q?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/docs';
+};
+
+export type DocsControllerListResponses = {
+    200: unknown;
+};
+
+export type DocsControllerTreeData = {
+    body?: never;
+    path?: never;
+    query?: {
+        source?: string;
+    };
+    url: '/api/v1/workspaces/{ws}/docs/tree';
+};
+
+export type DocsControllerTreeResponses = {
+    200: TreeDto;
+};
+
+export type DocsControllerTreeResponse = DocsControllerTreeResponses[keyof DocsControllerTreeResponses];
+
+export type DocsControllerByPathData = {
+    body?: never;
+    path?: never;
+    query: {
+        source: string;
+        path: string;
+    };
+    url: '/api/v1/workspaces/{ws}/docs/by-path';
+};
+
+export type DocsControllerByPathResponses = {
+    200: unknown;
+};
+
+export type DocsControllerMentionsData = {
+    body?: never;
+    path: {
+        cardKey: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/mentions/{cardKey}';
+};
+
+export type DocsControllerMentionsResponses = {
+    200: MentionsDto;
+};
+
+export type DocsControllerMentionsResponse = DocsControllerMentionsResponses[keyof DocsControllerMentionsResponses];
+
+export type DocsControllerGetData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/{key}';
+};
+
+export type DocsControllerGetResponses = {
+    200: unknown;
+};
+
+export type EventsControllerStreamData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/events/stream';
+};
+
+export type EventsControllerStreamResponses = {
+    200: unknown;
+};
+
+export type RedesignControllerPagesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/pages';
+};
+
+export type RedesignControllerPagesResponses = {
+    200: Array<LabPageDto>;
+};
+
+export type RedesignControllerPagesResponse = RedesignControllerPagesResponses[keyof RedesignControllerPagesResponses];
+
+export type RedesignControllerCompareData = {
+    body?: never;
+    path?: never;
+    query: {
+        a: string;
+        b: string;
+    };
+    url: '/api/v1/workspaces/{ws}/redesign/compare';
+};
+
+export type RedesignControllerCompareResponses = {
+    200: CompareDto;
+};
+
+export type RedesignControllerCompareResponse = RedesignControllerCompareResponses[keyof RedesignControllerCompareResponses];
+
+export type RedesignControllerReadmeData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/readme';
+};
+
+export type RedesignControllerReadmeResponses = {
+    200: LabReadmeDto;
+};
+
+export type RedesignControllerReadmeResponse = RedesignControllerReadmeResponses[keyof RedesignControllerReadmeResponses];
+
+export type RedesignControllerVersionsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        app?: string;
+        page?: string;
+        status?: Array<'draft' | 'review' | 'approved' | 'rejected' | 'ported' | 'reference'>;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/redesign/versions';
+};
+
+export type RedesignControllerVersionsResponses = {
+    200: unknown;
+};
+
+export type RedesignControllerSubmitData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/submit-review';
+};
+
+export type RedesignControllerSubmitResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerSubmitResponse = RedesignControllerSubmitResponses[keyof RedesignControllerSubmitResponses];
+
+export type RedesignControllerApproveData = {
+    body: ApproveDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/approve';
+};
+
+export type RedesignControllerApproveResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerApproveResponse = RedesignControllerApproveResponses[keyof RedesignControllerApproveResponses];
+
+export type RedesignControllerRejectData = {
+    body: NoteDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/reject';
+};
+
+export type RedesignControllerRejectResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerRejectResponse = RedesignControllerRejectResponses[keyof RedesignControllerRejectResponses];
+
+export type RedesignControllerRequestChangesData = {
+    body: NoteDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/request-changes';
+};
+
+export type RedesignControllerRequestChangesResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerRequestChangesResponse = RedesignControllerRequestChangesResponses[keyof RedesignControllerRequestChangesResponses];
+
+export type RedesignControllerMarkPortedData = {
+    body: MarkPortedDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/redesign/{key}/mark-ported';
+};
+
+export type RedesignControllerMarkPortedResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type RedesignControllerMarkPortedResponse = RedesignControllerMarkPortedResponses[keyof RedesignControllerMarkPortedResponses];
+
+export type LabFilesControllerFileData = {
+    body?: never;
+    path?: never;
+    query: {
+        path: string;
+    };
+    url: '/api/v1/workspaces/{ws}/lab/file';
+};
+
+export type LabFilesControllerFileResponses = {
+    200: unknown;
+};
+
 export type TasksControllerListData = {
     body?: never;
     path?: never;
@@ -5424,128 +6904,6 @@ export type HandoffsControllerDismissResponses = {
 
 export type HandoffsControllerDismissResponse = HandoffsControllerDismissResponses[keyof HandoffsControllerDismissResponses];
 
-export type RedesignControllerVersionsData = {
-    body?: never;
-    path?: never;
-    query?: {
-        app?: string;
-        page?: string;
-        status?: Array<'draft' | 'review' | 'approved' | 'rejected' | 'ported' | 'reference'>;
-        cursor?: string;
-        limit?: number;
-    };
-    url: '/api/v1/workspaces/{ws}/redesign/versions';
-};
-
-export type RedesignControllerVersionsResponses = {
-    200: unknown;
-};
-
-export type RedesignControllerSubmitData = {
-    body?: never;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/submit-review';
-};
-
-export type RedesignControllerSubmitResponses = {
-    200: CardWrittenResponseDto;
-};
-
-export type RedesignControllerSubmitResponse = RedesignControllerSubmitResponses[keyof RedesignControllerSubmitResponses];
-
-export type RedesignControllerApproveData = {
-    body: ApproveDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/approve';
-};
-
-export type RedesignControllerApproveResponses = {
-    200: CardWrittenResponseDto;
-};
-
-export type RedesignControllerApproveResponse = RedesignControllerApproveResponses[keyof RedesignControllerApproveResponses];
-
-export type RedesignControllerRejectData = {
-    body: NoteDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/reject';
-};
-
-export type RedesignControllerRejectResponses = {
-    200: CardWrittenResponseDto;
-};
-
-export type RedesignControllerRejectResponse = RedesignControllerRejectResponses[keyof RedesignControllerRejectResponses];
-
-export type RedesignControllerRequestChangesData = {
-    body: NoteDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/request-changes';
-};
-
-export type RedesignControllerRequestChangesResponses = {
-    200: CardWrittenResponseDto;
-};
-
-export type RedesignControllerRequestChangesResponse = RedesignControllerRequestChangesResponses[keyof RedesignControllerRequestChangesResponses];
-
-export type RedesignControllerMarkPortedData = {
-    body: MarkPortedDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/redesign/{key}/mark-ported';
-};
-
-export type RedesignControllerMarkPortedResponses = {
-    200: CardWrittenResponseDto;
-};
-
-export type RedesignControllerMarkPortedResponse = RedesignControllerMarkPortedResponses[keyof RedesignControllerMarkPortedResponses];
-
-export type DocsControllerListData = {
-    body?: never;
-    path?: never;
-    query?: {
-        source?: Array<string>;
-        kind?: Array<'doc' | 'adr' | 'status' | 'readme' | 'other'>;
-        q?: string;
-        cursor?: string;
-        limit?: number;
-    };
-    url: '/api/v1/workspaces/{ws}/docs';
-};
-
-export type DocsControllerListResponses = {
-    200: unknown;
-};
-
-export type DocsControllerGetData = {
-    body?: never;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/docs/{key}';
-};
-
-export type DocsControllerGetResponses = {
-    200: unknown;
-};
-
 export type ReleasesControllerListData = {
     body?: never;
     path?: never;
@@ -5877,17 +7235,6 @@ export type PlansControllerToTasksResponses = {
 };
 
 export type PlansControllerToTasksResponse = PlansControllerToTasksResponses[keyof PlansControllerToTasksResponses];
-
-export type EventsControllerStreamData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/events/stream';
-};
-
-export type EventsControllerStreamResponses = {
-    200: unknown;
-};
 
 export type HealthControllerLiveData = {
     body?: never;

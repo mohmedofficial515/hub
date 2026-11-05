@@ -95,6 +95,8 @@ export interface TimelineFilter {
   readonly q?: string;
   /** Events on cards this member watches, owns or claimed. */
   readonly mineUserId?: string;
+  /** Leaves out this member's own events: "since my last visit" (docs/09 §4). */
+  readonly excludeActorId?: string;
 }
 
 export abstract class CardReader {
@@ -118,6 +120,9 @@ export abstract class CardReader {
 
   /** Both ends of every link, the other card not deleted. */
   abstract findLinks(workspaceId: string, cardId: string): Promise<LinkRow[]>;
+
+  /** The keys of the open cards blocking each of these: card id to keys. */
+  abstract findBlockerKeys(workspaceId: string, ids: readonly string[]): Promise<Map<string, string[]>>;
 
   abstract findBlockedBy(
     workspaceId: string,
@@ -151,6 +156,9 @@ export abstract class CardReader {
     cursor: { createdAt: Date; id: string } | null,
     limit: number,
   ): Promise<EventRow[]>;
+
+  /** How many events `findTimeline` would answer, before folding. One number for "since last visit". */
+  abstract countTimeline(workspaceId: string, filter: TimelineFilter): Promise<number>;
 
   abstract countTimelineByDay(
     workspaceId: string,

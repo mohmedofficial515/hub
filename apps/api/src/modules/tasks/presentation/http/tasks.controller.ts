@@ -9,9 +9,11 @@ import {
   type MemberActor,
   optionalReasonSchema,
   type PermissionAction,
+  queryList,
   reasonSchema,
   specialtySchema,
   submitTaskSchema,
+  TASK_STATUSES,
 } from '@hub/contracts';
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -23,6 +25,14 @@ import { Actor, Permissions } from '@/shared/http';
 
 import { TasksReadService } from '../../application/tasks-read.service';
 
+class TasksQueryDto extends createZodDto(
+  z.object({
+    status: queryList(z.enum(TASK_STATUSES)),
+    q: z.string().trim().min(1).max(200).optional(),
+    cursor: z.string().optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  }),
+) {}
 class ReadyQueryDto extends createZodDto(
   z.object({
     specialty: specialtySchema.optional(),
@@ -53,6 +63,26 @@ export class TasksController {
     payload: unknown,
   ): Promise<CardWrittenDto> {
     return this.query.written(actor, await this.cards.apply(actor, { cardKey: key }, action, payload));
+  }
+
+  @Get()
+  @Permissions('card.read')
+  @ApiOperation({ summary: 'Tasks with their detail and what blocks each, for the board and the list' })
+  async list(@Actor() actor: MemberActor, @Query() query: TasksQueryDto) {
+    const page = await this.query.listWithDetail(actor, 'task', {
+      statuses: query.status,
+      q: query.q,
+      cursor: query.cursor,
+      limit: query.limit,
+    });
+    const blockers = await this.query.blockersOf(
+      actor,
+      page.items.map((card) => card.id),
+    );
+    return {
+      ...page,
+      items: page.items.map((card) => ({ ...card, blockedBy: blockers.get(card.id) ?? [] })),
+    };
   }
 
   @Get('ready')

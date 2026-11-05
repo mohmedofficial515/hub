@@ -241,6 +241,24 @@ export class PrismaCardReader extends CardReader {
     });
   }
 
+  async findBlockerKeys(workspaceId: string, ids: readonly string[]): Promise<Map<string, string[]>> {
+    const result = new Map<string, string[]>();
+    if (ids.length === 0) return result;
+    const rows = await this.tx.cardLink.findMany({
+      where: {
+        workspaceId,
+        kind: 'blocks',
+        toCardId: { in: [...ids] },
+        from: { closedAt: null, archivedAt: null },
+      },
+      select: { toCardId: true, from: { select: { key: true } } },
+    });
+    for (const row of rows) {
+      result.set(row.toCardId, [...(result.get(row.toCardId) ?? []), row.from.key]);
+    }
+    return result;
+  }
+
   async findBlockedBy(workspaceId: string, blockerIds: readonly string[]): Promise<Map<string, CardView[]>> {
     const result = new Map<string, CardView[]>();
     if (blockerIds.length === 0) return result;
@@ -317,19 +335,28 @@ export class PrismaCardReader extends CardReader {
     return this.tx.cardComment.findFirst({ where: { workspaceId, id: commentId } });
   }
 
-  async findTimeline(
+  /**
+   * Docs and a version's README change in bulk from their folder, so they appear only when the filter asks for their
+   * type (docs/06 §5 and §6). Otherwise one indexing run would bury the day.
+   */
+  private async timelineWhere(
     workspaceId: string,
     filter: TimelineFilter,
     cursor: { createdAt: Date; id: string } | null,
-    limit: number,
-  ): Promise<EventRow[]> {
+  ): Promise<Prisma.CardEventWhereInput> {
     const card: Prisma.CardWhereInput = {
       archivedAt: null,
-      ...(filter.types ? { type: { in: [...filter.types] } } : {}),
+      ...(filter.types ? { type: { in: [...filter.types] } } : { type: { not: 'doc' } }),
       ...(filter.repos ? { repo: { in: [...filter.repos] } } : {}),
       ...(filter.modules ? { module: { in: [...filter.modules] } } : {}),
     };
     const and: Prisma.CardEventWhereInput[] = [];
+    if (!filter.types) {
+      and.push({ OR: [{ kind: { not: 'field_changed' } }, { card: { type: { not: 'redesign' } } }] });
+    }
+    if (filter.excludeActorId) {
+      and.push({ OR: [{ actorId: null }, { actorId: { not: filter.excludeActorId } }] });
+    }
     if (filter.q) and.push({ cardId: { in: await this.searchIds(workspaceId, filter.q) } });
     if (filter.mineUserId) {
       const me = filter.mineUserId;
@@ -356,26 +383,39 @@ export class PrismaCardReader extends CardReader {
         OR: [{ createdAt: { lt: cursor.createdAt } }, { createdAt: cursor.createdAt, id: { lt: cursor.id } }],
       });
     }
+    return {
+      workspaceId,
+      kind: filter.kinds ? { in: [...filter.kinds] } : { notIn: ['watch', 'unwatch'] },
+      ...(filter.actors ? { actorId: { in: [...filter.actors] } } : {}),
+      ...(filter.from || filter.to
+        ? {
+            createdAt: {
+              ...(filter.from ? { gte: filter.from } : {}),
+              ...(filter.to ? { lte: filter.to } : {}),
+            },
+          }
+        : {}),
+      card,
+      ...(and.length > 0 ? { AND: and } : {}),
+    };
+  }
+
+  async findTimeline(
+    workspaceId: string,
+    filter: TimelineFilter,
+    cursor: { createdAt: Date; id: string } | null,
+    limit: number,
+  ): Promise<EventRow[]> {
     const rows = await this.tx.cardEvent.findMany({
-      where: {
-        workspaceId,
-        kind: filter.kinds ? { in: [...filter.kinds] } : { notIn: ['watch', 'unwatch'] },
-        ...(filter.actors ? { actorId: { in: [...filter.actors] } } : {}),
-        ...(filter.from || filter.to
-          ? {
-              createdAt: {
-                ...(filter.from ? { gte: filter.from } : {}),
-                ...(filter.to ? { lte: filter.to } : {}),
-              },
-            }
-          : {}),
-        card,
-        ...(and.length > 0 ? { AND: and } : {}),
-      },
+      where: await this.timelineWhere(workspaceId, filter, cursor),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
     });
     return rows.map((row) => toEventRow(row));
+  }
+
+  async countTimeline(workspaceId: string, filter: TimelineFilter): Promise<number> {
+    return this.tx.cardEvent.count({ where: await this.timelineWhere(workspaceId, filter, null) });
   }
 
   async countTimelineByDay(

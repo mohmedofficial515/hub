@@ -13,6 +13,25 @@ describe('tasks', () => {
     ({ app } = await createTestApp());
   });
 
+  it('lists tasks with their detail and the keys blocking each', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const task = await created(pm, aTask({ title: 'Listed' }));
+    const blocker = await created(pm, aDecision());
+    await pm.post(`/cards/${blocker.key}/links`, { kind: 'blocks', key: task.key }).expect(201);
+
+    const page = await pm.get('/tasks').expect(200);
+    expect(page.body.data).toEqual([
+      expect.objectContaining({
+        key: task.key,
+        detail: expect.objectContaining({ specialty: expect.any(String) }),
+        blockedBy: [blocker.key],
+      }),
+    ]);
+    const filtered = await pm.get('/tasks?status=done').expect(200);
+    expect(filtered.body.data).toEqual([]);
+  });
+
   it('runs the whole way: claim, start, submit, resume, submit, done, reopen, one event each', async () => {
     const project = await aProject(app);
     const pm = await project.member(['pm']);

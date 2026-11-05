@@ -665,6 +665,10 @@ type DocHit = { card: CardSummary; path: string; chunks: { heading: string | nul
 type TaskDetail = { specialty: Specialty; effort: Effort | null; acceptance: Markdown | null; prompt: Markdown | null; origin: string;
                     claimedBy: { id; displayName } | null; claimedAt; branch; prUrl; startedAt; doneAt }
 
+GET /workspaces/{ws}/tasks                       auth: session | token
+query: { status?: TaskStatus[]; q?; cursor?; limit? (≤ 100) }
+200: (CardSummary & { detail: TaskDetail; blockedBy: string[] })[]   the board and the list; `blockedBy` holds the keys of the open cards blocking each task
+
 GET /workspaces/{ws}/tasks/ready                 auth: session | token
 query: { specialty?: Specialty /* default: all specialties mapped to my roles */; limit? (≤ tasks.ready_limit_per_role) }
 200: { data: (CardSummary & { detail: TaskDetail })[] }   // status=ready, not blocked, priority asc then createdAt asc

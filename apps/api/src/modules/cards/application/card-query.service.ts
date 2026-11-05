@@ -403,6 +403,11 @@ export class CardQueryService {
     );
   }
 
+  /** The keys of the open cards blocking each of these: the "Blocked by" pill on Tasks. */
+  blockersOf(actor: Actor, ids: readonly string[]): Promise<Map<string, string[]>> {
+    return this.reader.findBlockerKeys(actor.workspaceId, ids);
+  }
+
   /** Owner and pm see every deleted card; another member sees the ones they created, which they may restore. */
   private canReadAllDeleted(actor: Actor): boolean {
     return actor.kind === 'system' || isAllowed('card.read_deleted', actor.roles);
@@ -641,7 +646,7 @@ export class CardQueryService {
       return [
         {
           event: this.dtoOfEvent(row.event, context.users),
-          card: this.toSummary(card, context),
+          card: { ...this.toSummary(card, context), detail: detailDto(card.detail, context.users) },
           collapsed: row.collapsed,
           collapsedKinds: [...row.collapsedKinds],
         },
