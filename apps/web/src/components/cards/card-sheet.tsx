@@ -12,7 +12,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ActorChip, Avatar } from '@/components/cards/avatar';
 import { PriorityBadge, RoleBadge, StatusBadge, TypeBadge } from '@/components/cards/badges';
 import { CardChip } from '@/components/cards/card-key';
-import { focusRing } from '@/components/cards/meta';
+import { focusRing, focusRingInset } from '@/components/cards/meta';
 import { sheetSections } from '@/components/cards/sheet-sections';
 import { CopyButton, copyText } from '@/components/common/copy-button';
 import { MarkdownView } from '@/components/common/markdown';
@@ -602,7 +602,7 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
           ))}
         </Tabs.List>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <Tabs.Content value="details" className="flex flex-col gap-5 p-4 outline-none md:p-6">
+          <Tabs.Content value="details" className={cn('flex flex-col gap-5 p-4 md:p-6', focusRingInset)}>
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
             {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
               // The sheet's title is an h2, so a body's own top heading starts below it.
@@ -623,13 +623,13 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
               perform={(a, payload) => perform(card.key, a, payload)}
             />
           </Tabs.Content>
-          <Tabs.Content value="comments" className="p-4 outline-none md:p-6">
+          <Tabs.Content value="comments" className={cn('p-4 md:p-6', focusRingInset)}>
             <CommentsTab card={card} />
           </Tabs.Content>
-          <Tabs.Content value="history" className="p-4 outline-none md:p-6">
+          <Tabs.Content value="history" className={cn('p-4 md:p-6', focusRingInset)}>
             <HistoryTab card={card} />
           </Tabs.Content>
-          <Tabs.Content value="links" className="p-4 outline-none md:p-6">
+          <Tabs.Content value="links" className={cn('p-4 md:p-6', focusRingInset)}>
             <LinksTab card={card} />
           </Tabs.Content>
         </div>
