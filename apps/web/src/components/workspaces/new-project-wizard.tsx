@@ -2,10 +2,10 @@
 
 /**
  * @file new-project-wizard.tsx
- * @description docs/15 §5: name, slug, key prefix, timezone, description, role template, optional local docs path. Two steps, so the page is not one
+ * @description docs/15 §5: name, slug, key prefix, timezone, description, optional local docs path. Two steps, so the page is not one
  * long form: what the project is called, then how it starts. Slug and prefix follow the name until edited. The API has the last word on both.
  */
-import { keyPrefixSchema, projectSlugSchema, type Role, ROLES } from '@hub/contracts';
+import { keyPrefixSchema, projectSlugSchema } from '@hub/contracts';
 import { useEffect, useId, useState } from 'react';
 
 import {
@@ -40,20 +40,12 @@ export const prefixFrom = (name: string) => {
   return initials.slice(0, 4);
 };
 
-export type RoleTemplate = 'solo' | 'team';
-
-export const TEMPLATE_ROLES: Record<RoleTemplate, readonly Role[]> = {
-  solo: ['owner', 'pm'],
-  team: ROLES,
-};
-
 interface Draft {
   name: string;
   slug: string;
   keyPrefix: string;
   timezone: string;
   description: string;
-  template: RoleTemplate;
   docsPath: string;
 }
 
@@ -63,7 +55,6 @@ const EMPTY: Draft = {
   keyPrefix: '',
   timezone: 'Europe/Istanbul',
   description: '',
-  template: 'team',
   docsPath: '',
 };
 
@@ -131,7 +122,6 @@ export function NewProjectWizard({
         timezone: draft.timezone,
         defaultLocale: locale,
         ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
-        roleTemplate: draft.template,
         ...(draft.docsPath.trim() ? { docsPath: draft.docsPath.trim() } : {}),
       });
       onOpenChange(false);
@@ -257,29 +247,6 @@ export function NewProjectWizard({
             />
           </Field>
           {secret && <SecretFilterError pattern={secret} />}
-          <fieldset className="flex flex-col gap-1.5">
-            <legend className="text-body-sm font-medium text-foreground">{t.wizard.template}</legend>
-            {(['team', 'solo'] as const).map((value) => (
-              <label
-                key={value}
-                className="flex min-h-11 items-start gap-2 py-1 text-body text-foreground md:min-h-9"
-              >
-                <input
-                  type="radio"
-                  name={`${id}-template`}
-                  checked={draft.template === value}
-                  onChange={() => set({ template: value })}
-                  className="mt-1 size-4 shrink-0 accent-primary"
-                />
-                <span className="min-w-0">
-                  <span className="block font-medium">{t.wizard.templates[value].label}</span>
-                  <span className="block text-body-sm text-muted-foreground">
-                    {t.wizard.templates[value].hint}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
           <Field id={`${id}-docs`} label={t.wizard.docsPath} hint={t.wizard.docsPathHint}>
             <TextInput
               id={`${id}-docs`}

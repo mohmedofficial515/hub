@@ -30,6 +30,11 @@ Object.assign(Element.prototype, { scrollIntoView: () => undefined, hasPointerCa
 // jsdom has a page URL but Node's Request does not read it, so a same-origin path needs resolving as a browser would.
 const NativeRequest = globalThis.Request;
 globalThis.Request = class extends NativeRequest {
+  // `clone()` returns a native Request, which is still a Request.
+  static [Symbol.hasInstance](value: unknown) {
+    return Function.prototype[Symbol.hasInstance].call(NativeRequest, value);
+  }
+
   constructor(input: RequestInfo | URL, init?: RequestInit) {
     const { signal: _signal, ...rest } = init ?? {};
     super(

@@ -3,7 +3,7 @@
  * @description API shapes (docs/04 §1.8) to the card the kit reads. The one place that knows the two differ. Detail DTOs expand
  * `*ById` to `{ id, displayName }`, and the kit wants plain ids, so details are flattened generically.
  */
-import type { Priority, Role } from '@hub/contracts';
+import { AVATAR_COLORS, type Priority, type Role } from '@hub/contracts';
 
 import type {
   ActorRef,
@@ -190,10 +190,10 @@ export function toComment(dto: CommentDto): CardComment {
   };
 }
 
-/** A member's hue: the API's number, or a stable one from the id. */
+/** A member's hue, 1 to 12: the place of the API's colour name in AVATAR_COLORS, or a stable one from the id. */
 export function avatarHue(color: string | number | null | undefined, id: string) {
-  const parsed = Number(color);
-  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 12) return parsed;
+  const at = (AVATAR_COLORS as readonly unknown[]).indexOf(color);
+  if (at >= 0) return (at % 12) + 1;
   let hash = 0;
   for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
   return (hash % 12) + 1;

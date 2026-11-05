@@ -3,7 +3,7 @@
  */
 import { notFound } from 'next/navigation';
 
-import { VIEW_IDS } from '@/components/shell/router';
+import { VIEW_IDS } from '@/components/shell/view-ids';
 import { ViewPlaceholder } from '@/components/shell/view-placeholder';
 
 export default async function ViewPage({ params }: { params: Promise<{ view: string }> }) {

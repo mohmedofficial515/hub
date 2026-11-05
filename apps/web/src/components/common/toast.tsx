@@ -61,6 +61,7 @@ const useSlots = () =>
       return () => listeners.delete(n);
     },
     () => slots,
+    () => slots,
   );
 
 function runUndo() {

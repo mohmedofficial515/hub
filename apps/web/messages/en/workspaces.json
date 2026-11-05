@@ -38,17 +38,6 @@
     "prefixTaken": "That prefix is taken. Choose another.",
     "timezone": "Time zone",
     "description": "Description (optional)",
-    "template": "Roles",
-    "templates": {
-      "team": {
-        "label": "Full team",
-        "hint": "All seven roles are available for people you invite."
-      },
-      "solo": {
-        "label": "Working alone for now",
-        "hint": "Owner and project manager. Add other roles later in Settings."
-      }
-    },
     "docsPath": "Local docs folder (optional)",
     "docsPathHint": "A full path on this machine. It is read, and nothing is written there."
   }

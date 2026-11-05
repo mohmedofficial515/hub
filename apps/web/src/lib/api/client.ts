@@ -14,21 +14,74 @@ export const API_PREFIX = '/api/v1';
 const REFRESH_PATH = `${API_PREFIX}/auth/refresh`;
 const NO_REFRESH = [`${API_PREFIX}/auth/sign-in`, `${API_PREFIX}/auth/totp/verify`, REFRESH_PATH];
 
-/** One refresh at a time: ten queries that hit 401 together share it. */
-let refreshing: Promise<boolean> | null = null;
+/** Failures that say the credentials themselves are wrong. Refreshing cannot help, and only these skip it. */
+const NOT_REFRESHABLE = new Set([
+  'hub.identity.invalid_credentials',
+  'hub.identity.totp_invalid',
+  'hub.identity.totp_required',
+  'hub.identity.refresh_invalid',
+  'hub.identity.token_invalid',
+  'hub.identity.token_revoked',
+]);
 
-export function refreshSession(): Promise<boolean> {
-  refreshing ??= fetch(REFRESH_PATH, {
+const REFRESHED_AT = 'hub:refreshed-at';
+const JUST_REFRESHED_MS = 10_000;
+
+function refreshedRecently() {
+  try {
+    return Date.now() - Number(localStorage.getItem(REFRESHED_AT) ?? 0) < JUST_REFRESHED_MS;
+  } catch {
+    return false;
+  }
+}
+
+async function refreshOnce(): Promise<boolean> {
+  // Another tab finished while this one waited for the lock: its new cookies are ours too.
+  if (refreshedRecently()) return true;
+  const response = await fetch(REFRESH_PATH, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'X-Requested-With': 'hub' },
-  })
-    .then((r) => r.ok)
-    .catch(() => false)
-    .finally(() => {
-      refreshing = null;
-    });
+  }).catch(() => null);
+  if (!response?.ok) return false;
+  try {
+    localStorage.setItem(REFRESHED_AT, String(Date.now()));
+  } catch {
+    /* The lock still orders the tabs; the next one refreshes again, in turn. */
+  }
+  return true;
+}
+
+/** One refresh at a time in this tab: ten queries that hit 401 together share it. */
+let refreshing: Promise<boolean> | null = null;
+
+/**
+ * One at a time across tabs too: the API treats a parallel refresh as token reuse and revokes the whole family. Web Locks needs a secure context,
+ * which localhost and the HTTPS host both are.
+ */
+export function refreshSession(): Promise<boolean> {
+  const run = () => (navigator.locks ? navigator.locks.request('hub-refresh', refreshOnce) : refreshOnce());
+  refreshing ??= run().finally(() => {
+    refreshing = null;
+  });
   return refreshing;
+}
+
+/** A role here requires TOTP and the member has not enrolled: every project route answers 403 until they do (docs/04 §1.6). */
+export const totpSetupPath = (locale: string, pathname: string, search: string) =>
+  `/${locale}/totp?setup=1&next=${encodeURIComponent(pathname + search)}`;
+
+function goToTotpSetup() {
+  const { pathname, search } = window.location;
+  if (!pathname.endsWith('/totp')) window.location.assign(totpSetupPath(currentLocale(), pathname, search));
+}
+
+async function errorCode(response: Response) {
+  try {
+    return ((await response.clone().json()) as { error?: { code?: string } }).error?.code;
+  } catch {
+    return undefined;
+  }
 }
 
 type SignedOutListener = () => void;
@@ -61,8 +114,13 @@ export const http: KyInstance = ky.create({
     ],
     afterResponse: [
       async ({ request, response }) => {
+        if (response.status === 403) {
+          if ((await errorCode(response)) === 'hub.identity.totp_setup_required') goToTotpSetup();
+          return response;
+        }
         const path = new URL(request.url, 'http://hub.local').pathname;
         if (response.status !== 401 || NO_REFRESH.some((p) => path.startsWith(p))) return response;
+        if (NOT_REFRESHABLE.has((await errorCode(response)) ?? '')) return response;
         if (await refreshSession()) return ky(request.clone(), { retry: 0, throwHttpErrors: false });
         signedOutListeners.forEach((listener) => listener());
         return response;

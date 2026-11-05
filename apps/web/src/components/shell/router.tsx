@@ -13,24 +13,9 @@ import { type ComponentProps, type MouseEvent, useEffect, useMemo } from 'react'
 import type { CardAction } from '@/lib/i18n';
 import { rememberRecentCard } from '@/lib/preferences';
 
-export const VIEW_IDS = [
-  'today',
-  'inbox',
-  'timeline',
-  'planning',
-  'tasks',
-  'decisions',
-  'needs',
-  'handoffs',
-  'redesign',
-  'releases',
-  'docs',
-  'ask',
-  'onboarding',
-  'members',
-  'settings',
-] as const;
-export type ViewId = (typeof VIEW_IDS)[number];
+import { VIEW_IDS, type ViewId } from './view-ids';
+
+export { VIEW_IDS, type ViewId } from './view-ids';
 export type SheetTab = 'details' | 'comments' | 'history' | 'links';
 
 export interface Route {

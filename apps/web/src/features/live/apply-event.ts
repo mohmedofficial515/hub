@@ -88,6 +88,11 @@ export interface LiveMessage {
 /** Route a parsed message. Returns false when it is not one this client knows, which is not an error. */
 export function applyLiveMessage(client: QueryClient, ws: string, message: LiveMessage): boolean {
   const { event, data } = message;
+  // The cursor was too old to replay (docs/04 §3.22): nothing can be assumed.
+  if (event === 'resync') {
+    refetchEverything(client);
+    return true;
+  }
   if (event === 'counters') {
     client.setQueryData(qk.counters(ws), data);
     return true;

@@ -17,9 +17,7 @@ import {
   EmptyState,
   ErrorState,
   focusRing,
-  kitMessages,
   Ltr,
-  num,
   plural,
   RoleBadge,
   Skeleton,
@@ -69,7 +67,6 @@ function ProjectCard({ project }: { project: WorkspaceRef }) {
 export function ProjectsPage() {
   const t = useT<WorkspacesDict>('workspaces');
   const shell = useT(messages);
-  const kit = useT(kitMessages);
   const locale = useLocale();
   const router = useRouter();
   const params = useSearchParams();
@@ -77,7 +74,12 @@ export function ProjectsPage() {
   const me = useMe();
   const projects = useWorkspaces();
   const creating = params.get('new') === '1';
-  const [wizard, setWizard] = useState(creating);
+  const [wizard, setWizard] = useState(false);
+
+  // After mount: a dialog portals into the page, so the server cannot draw it.
+  useEffect(() => {
+    if (creating) setWizard(true);
+  }, [creating]);
 
   // docs/09 §2: one project, no list.
   const list = projects.data;
@@ -172,8 +174,6 @@ export function ProjectsPage() {
                 ))}
               </ul>
             )}
-            <p className="sr-only">{num(list?.length ?? 0, locale)}</p>
-            <span className="sr-only">{kit.close}</span>
           </main>
           <NewProjectWizard open={wizard} onOpenChange={setWizard} onCreated={created} />
         </div>
