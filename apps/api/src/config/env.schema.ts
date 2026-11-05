@@ -36,9 +36,8 @@ export const envSchema = z.object({
   HUB_OWNER_PASSWORD: optionalText,
   HUB_OWNER_NAME: optionalText,
 
-  // Local path mode
+  // Local path mode. Unset, the lab is the repository's own `apps/lab`, and a source may point at any folder.
   LAB_ROOT: optionalText,
-  LAB_URL: optionalText,
 
   // Deferred channels: unset means the channel shows "not connected"
   METRICS_TOKEN: optionalText,

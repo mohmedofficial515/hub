@@ -6,7 +6,6 @@ import type { SystemData } from '@hub/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 
-import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { runUnscoped } from '@/infra/prisma/workspace-scope';
@@ -14,6 +13,7 @@ import { QUEUES } from '@/infra/queue/queue.service';
 import { QueueService } from '@/infra/queue/queue.service';
 import { RedisClients } from '@/infra/redis/redis.module';
 import { RealtimeHub } from '@/modules/realtime';
+import { LAB_BASE } from '@/modules/redesign';
 import { SourcesService } from '@/modules/workspaces';
 
 import { WORKER_HEARTBEAT_KEY } from './source-run.processor';
@@ -34,7 +34,6 @@ export class SystemService {
     private readonly queues: QueueService,
     private readonly redis: RedisClients,
     private readonly hub: RealtimeHub,
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -80,7 +79,7 @@ export class SystemService {
       { size: bigint }[]
     >`SELECT pg_database_size(current_database()) AS size`;
     return {
-      version: { api: VERSION, web: VERSION, lab: this.config.LAB_URL ?? null },
+      version: { api: VERSION, web: VERSION, lab: LAB_BASE },
       sources: await Promise.all(
         sources.map(async (source) => ({
           id: source.id,

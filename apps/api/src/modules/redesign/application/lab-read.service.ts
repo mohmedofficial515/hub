@@ -11,6 +11,7 @@ import { AppException } from '@/shared/errors';
 
 import { parseFrontMatter } from '../domain/front-matter';
 import { LabFilesService } from './lab-files.service';
+import { labFrameUrl } from './lab-root';
 import type { LabCursor } from './lab-scanner.service';
 
 const PAGE_LIMIT = 1000;
@@ -54,6 +55,8 @@ export class LabReadService {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, page]) => ({
         ...page,
+        // A cursor from before this field says nothing until its next scan.
+        renderable: page.renderable ? [...page.renderable] : null,
         versions: (byPage.get(key) ?? []).sort((a, b) => versionNumber(a) - versionNumber(b)),
       }));
   }
@@ -81,11 +84,9 @@ export class LabReadService {
     };
   }
 
-  private frameUrl(card: CardView): string | null {
-    const base = this.files.labUrl;
-    if (!base) return null;
+  private frameUrl(card: CardView): string {
     const { app, page, version } = (card.detail ?? {}) as { app?: string; page?: string; version?: string };
-    return `${base}/frame-${String(app)}.html#/${String(page)}/${String(version)}`;
+    return labFrameUrl(String(app), String(page), String(version));
   }
 
   async compare(actor: Actor, a: string, b: string) {

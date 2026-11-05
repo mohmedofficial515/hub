@@ -19,6 +19,7 @@
     "migrations:check": "node scripts/check-migrations.mjs",
     "seed:owner": "node -r ./scripts/swc-register.cjs scripts/seed-owner.ts",
     "seed:sources": "node -r ./scripts/swc-register.cjs scripts/seed-local-sources.ts",
+    "lab:repoint": "node -r ./scripts/swc-register.cjs scripts/repoint-lab.ts",
     "import:goteav": "node -r ./scripts/swc-register.cjs scripts/import-goteav.ts",
     "openapi:export": "node -r ./scripts/swc-register.cjs scripts/export-openapi.ts"
   },
@@ -53,6 +54,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "swagger-ui-express": "^5.0.1",
+    "ws": "^8.22.1",
     "yaml": "^2.9.1",
     "zod": "^4.6.6"
   },
@@ -73,6 +75,7 @@
     "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.2.1",
+    "@types/ws": "^8.18.2",
     "dependency-cruiser": "^18.3.1",
     "jest": "^30.5.1",
     "pino-pretty": "^13.1.3",

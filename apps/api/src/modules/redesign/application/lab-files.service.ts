@@ -2,8 +2,8 @@
  * @file The lab folder on disk (docs/15 §3): where it is, safe reads, and writing a version's status.
  * @description The root is the project's `local_path` source of purpose `lab`, and must lie inside `LAB_ROOT` when that
  * is set. Every path from a request passes `resolveInside`: no absolute path, no `..`, no backslash, and the real path
- * after links must still be inside the root. Only image types are served. `redesign/` is not a Git repository, so a write
- * is a write: no commit (docs/15 §3).
+ * after links must still be inside the root. Only image types are served. A write changes the file and commits nothing
+ * (docs/15 §3): in `apps/lab` it shows in `git status` until the owner commits it.
  */
 import { createHash } from 'node:crypto';
 import { readFile, realpath, stat, writeFile } from 'node:fs/promises';
@@ -49,10 +49,6 @@ export class LabFilesService {
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
-
-  get labUrl(): string | null {
-    return this.config.LAB_URL?.replace(/\/$/, '') ?? null;
-  }
 
   /** Null when the project has no lab: an honest empty state, not an error. */
   async locate(workspaceId: string): Promise<LabLocation | null> {

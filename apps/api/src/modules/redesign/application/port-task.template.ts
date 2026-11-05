@@ -1,6 +1,6 @@
 /**
  * @file The prompt of the port task created on approve (docs/07 §6.7). English: agents read it.
- * @description The lab stays at `LAB_ROOT` in this release (docs/15 §3), so the path has no `apps/lab` prefix.
+ * @description The path is relative to the lab root, which is `apps/lab` unless `LAB_ROOT` says otherwise (docs/16 §6).
  */
 export interface PortTaskData {
   readonly labPath: string;

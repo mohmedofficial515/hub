@@ -7,6 +7,7 @@ import { CardsModule } from '@/modules/cards';
 
 import { LabFilesService } from './application/lab-files.service';
 import { LabReadService } from './application/lab-read.service';
+import { LabRepointService } from './application/lab-repoint.service';
 import { LabScannerService } from './application/lab-scanner.service';
 import {
   LabWriteBack,
@@ -26,6 +27,7 @@ import { LabFilesController, RedesignController } from './presentation/http/rede
   providers: [
     LabFilesService,
     LabReadService,
+    LabRepointService,
     LabScannerService,
     LabWriteBack,
     RedesignSyncAction,
@@ -36,6 +38,6 @@ import { LabFilesController, RedesignController } from './presentation/http/rede
     RedesignRequestChangesAction,
     RedesignMarkPortedAction,
   ],
-  exports: [LabFilesService, LabReadService, LabScannerService],
+  exports: [LabFilesService, LabReadService, LabRepointService, LabScannerService],
 })
 export class RedesignModule {}

@@ -14,7 +14,7 @@ describe('renderPortTask', () => {
         version: 'v2-flight-path',
         app: 'web',
         page: 'wallet',
-        labUrl: 'http://localhost:6200/#/web/wallet/v2-flight-path',
+        labUrl: '/lab/#/web/wallet/v2-flight-path',
         decisionNote: 'Keep the header',
         touchesComponents: ['Button', 'Card'],
         targetRepo: 'web',

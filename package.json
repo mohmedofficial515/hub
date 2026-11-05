@@ -29,6 +29,7 @@
     "db:deploy": "pnpm --filter @hub/api prisma:deploy",
     "seed:owner": "pnpm --filter @hub/api seed:owner",
     "seed:sources": "pnpm --filter @hub/api seed:sources",
+    "lab:repoint": "pnpm --filter @hub/api lab:repoint",
     "import:goteav": "pnpm --filter @hub/contracts build && pnpm --filter @hub/api import:goteav",
     "compose:up": "docker compose -f infra/compose.dev.yaml up -d",
     "compose:down": "docker compose -f infra/compose.dev.yaml down"

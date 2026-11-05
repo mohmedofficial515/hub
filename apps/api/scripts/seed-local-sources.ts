@@ -14,6 +14,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { AppModule } from '../src/app.module';
 import { APP_CONFIG, type AppConfig } from '../src/config/config.module';
 import type { PrismaTransactionalAdapter } from '../src/infra/prisma/prisma.module';
+import { defaultLabRoot } from '../src/modules/redesign/application/lab-root';
 
 interface Wanted {
   readonly project: string;
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   try {
     const config = app.get<AppConfig>(APP_CONFIG);
     const base = process.env['HUB_DOCS_BASE'] ?? 'F:/Goteav';
+    const labRoot = config.LAB_ROOT ?? defaultLabRoot();
     const wanted: Wanted[] = [
       {
         project: 'goteav',
@@ -43,9 +45,7 @@ async function main(): Promise<void> {
         purpose: 'docs',
       },
       { project: 'hub', name: 'hub-docs', path: join(base, 'hub/docs'), purpose: 'docs' },
-      ...(config.LAB_ROOT
-        ? [{ project: 'goteav', name: 'lab', path: config.LAB_ROOT, purpose: 'lab' as const }]
-        : []),
+      ...(labRoot ? [{ project: 'goteav', name: 'lab', path: labRoot, purpose: 'lab' as const }] : []),
     ];
     const tx = app.get<TransactionHost<PrismaTransactionalAdapter>>(TransactionHost, { strict: false }).tx;
     for (const item of wanted) {

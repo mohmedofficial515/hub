@@ -4283,6 +4283,7 @@ export type LabPageDto = {
     liveUrl: string | null;
     status: string | null;
     brief: string | null;
+    renderable: Array<string> | null;
     versions: Array<{
         id: string;
         key: string;

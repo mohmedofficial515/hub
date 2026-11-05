@@ -121,6 +121,8 @@ export const labPageSchema = z.object({
   status: z.string().nullable(),
   /** The page brief as Markdown. */
   brief: z.string().nullable(),
+  /** The versions with a `page.tsx`, which render in a frame. Null until the first scan that knows. */
+  renderable: z.array(z.string()).nullable(),
   /** Oldest version first. */
   versions: z.array(cardWithDetailSchema),
 });

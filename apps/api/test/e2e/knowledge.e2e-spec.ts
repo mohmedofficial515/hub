@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, write
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { LabRepointService } from '@/modules/redesign';
 import { SourceRunnerService } from '@/modules/system';
 
 import { aProject, created, db, type Member, type Project } from '../setup/card-harness';
@@ -403,6 +404,53 @@ describe('knowledge', () => {
       expect(await events()).toBe(before);
     });
 
+    it('a lab moved to a new folder keeps every card, key and event, and a rescan does nothing', async () => {
+      const keys = async () =>
+        (
+          await db().card.findMany({
+            where: { workspaceId: project.id, type: 'redesign' },
+            select: { id: true, key: true, externalKey: true, status: true },
+            orderBy: { externalKey: 'asc' },
+          })
+        ).map((card) => JSON.stringify(card));
+      const events = () => db().cardEvent.count({ where: { workspaceId: project.id } });
+      const [keysBefore, eventsBefore] = [await keys(), await events()];
+      await db().redesignDetail.updateMany({
+        where: { card: { workspaceId: project.id } },
+        data: { labUrl: 'http://localhost:6200/#/old' },
+      });
+
+      const moved = folder('moved');
+      cpSync(root, moved, { recursive: true });
+      const service = testApp.app.get(LabRepointService);
+      const first = await service.repoint(moved);
+      expect(first.sources.map((row) => row.id)).toContain(sourceId);
+      await scan();
+
+      expect(await keys()).toEqual(keysBefore);
+      expect(await events()).toBe(eventsBefore);
+      const stored = await db().source.findFirstOrThrow({ where: { id: sourceId, workspaceId: project.id } });
+      expect((stored.config as { path: string }).path).toBe(moved.split('\\').join('/'));
+      const v2 = await version('web/wallet/v2-flight-path');
+      expect(v2.redesign?.labUrl).toBe('/lab/#/web/wallet/v2-flight-path');
+
+      const again = await service.repoint(moved);
+      expect(again.sources.filter((row) => row.id === sourceId)).toEqual([]);
+      expect(again.labUrls).toBe(0);
+    });
+
+    it('a page says which versions have a page.tsx', async () => {
+      const { body } = await owner.get('/redesign/pages').expect(200);
+      const wallet = body.data.find((page: { page: string }) => page.page === 'wallet');
+      expect(wallet.renderable).toEqual([]);
+      write(root, 'web/wallet/v2-flight-path/page.tsx', 'export default () => null;\n');
+      await scan();
+      const next = await owner.get('/redesign/pages').expect(200);
+      expect(next.body.data.find((page: { page: string }) => page.page === 'wallet').renderable).toEqual([
+        'v2-flight-path',
+      ]);
+    });
+
     it('pages list versions in order, with the brief', async () => {
       const { body } = await owner.get('/redesign/pages').expect(200);
       const wallet = body.data.find((page: { page: string }) => page.page === 'wallet');
@@ -476,7 +524,7 @@ describe('knowledge', () => {
         'desktop-ar-light.png',
         'phone.png',
       ]);
-      expect(body.data.a.frameUrl).toBeNull();
+      expect(body.data.a.frameUrl).toMatch(/^\/lab\/frame-web\.html#\/wallet\//);
       expect((await owner.get(`/redesign/${a.key}/readme`).expect(200)).body.data.review).toContain(
         '| Pillar',
       );

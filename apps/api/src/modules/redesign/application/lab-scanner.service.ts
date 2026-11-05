@@ -4,7 +4,7 @@
  * and screenshots are unchanged since the last run is skipped, so a re-scan is idempotent. A version whose text the
  * secret filter refuses is reported and skipped.
  */
-import { readdir, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { REDESIGN_STATUSES, type RedesignStatus, type SystemActor } from '@hub/contracts';
@@ -17,6 +17,7 @@ import { AppException } from '@/shared/errors';
 
 import { parseFrontMatter, reviewOf, textField } from '../domain/front-matter';
 import { IMAGE_TYPES, LabFilesService, type LabLocation, sha256 } from './lab-files.service';
+import { labVersionUrl } from './lab-root';
 
 const NOT_APPS = new Set(['_templates', 'lab', 'shared', 'node_modules', 'dist', 'research']);
 const VERSION_FOLDER = /^v\d+-/;
@@ -30,6 +31,8 @@ export interface PageCursor {
   readonly liveUrl: string | null;
   readonly status: string | null;
   readonly brief: string | null;
+  /** The versions with a `page.tsx`, which the gallery shows in a frame. The rest are screenshots. */
+  readonly renderable?: readonly string[];
 }
 
 interface VersionState {
@@ -71,6 +74,21 @@ async function textOf(path: string): Promise<string | null> {
   }
 }
 
+/** The folders that hold a `page.tsx`. */
+async function withPage(pageFolder: string, folders: readonly string[]): Promise<string[]> {
+  const found = await Promise.all(
+    folders.map(async (name) => {
+      try {
+        await access(join(pageFolder, name, 'page.tsx'));
+        return name;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return found.filter((name): name is string => name !== null).sort();
+}
+
 async function imagesIn(folder: string): Promise<string[]> {
   try {
     const entries = await readdir(folder, { withFileTypes: true });
@@ -101,10 +119,6 @@ export class LabScannerService {
     private readonly cards: CardService,
     private readonly files: LabFilesService,
   ) {}
-
-  private labUrlOf(labPath: string): string {
-    return `${this.files.labUrl ?? ''}/#/${labPath}`;
-  }
 
   private async replaceAttachments(
     cardId: string,
@@ -180,6 +194,7 @@ export class LabScannerService {
           liveUrl: parsed ? textField(parsed.data, 'live-url') : null,
           status: parsed ? textField(parsed.data, 'status') : null,
           brief: parsed ? parsed.body.trim() : null,
+          renderable: await withPage(pageFolder, folders),
         };
         for (const version of folders) {
           const labPath = `${app}/${page}/${version}`;
@@ -278,7 +293,7 @@ export class LabScannerService {
       page: id.page,
       version: id.version,
       labPath: id.labPath,
-      labUrl: this.labUrlOf(id.labPath).slice(0, 500),
+      labUrl: labVersionUrl(id.labPath).slice(0, 500),
       ...(textField(data, 'base') ? { base: String(textField(data, 'base')).slice(0, 100) } : {}),
       touchesComponents: (Array.isArray(touches) ? touches : [])
         .map((name) => name.slice(0, 200))

@@ -1,6 +1,6 @@
 # Port approved redesign web/wallet/v2-flight-path (GTV-261)
 
-The owner approved version `v2-flight-path` of `web/wallet` in the lab (http://localhost:6200/#/web/wallet/v2-flight-path). Decision note: Keep the header.
+The owner approved version `v2-flight-path` of `web/wallet` in the lab (/lab/#/web/wallet/v2-flight-path). Decision note: Keep the header.
 Touches shared components: `Button`, `Card`
 
 ## What to do
