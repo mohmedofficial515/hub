@@ -146,7 +146,8 @@ function Handoff({ query }: { query: string }) {
           <Terminal aria-hidden className="size-4 text-muted-foreground" strokeWidth={1.75} />
           {t.title}
         </h2>
-        <p className="text-body-sm text-muted-foreground">{t.body}</p>
+        {/* Two lines in Cairo, one in the fallback font: without this the results jump when the font arrives (review m8). */}
+        <p className="min-h-[2lh] text-body-sm text-muted-foreground lg:min-h-0">{t.body}</p>
       </div>
       {command ? (
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted p-2 ps-3">
