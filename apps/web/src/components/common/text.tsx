@@ -40,7 +40,9 @@ export function Ltr({
 
 /** What must never reorder inside an Arabic sentence: 2026-11-10, 2%, GTV-231, v7-twin-tanks, GET /a/b, /hub:next. */
 const ISOLATE =
-  /(\d{4}-\d{2}-\d{2}|\d+(?:[.,]\d+)?%|GTV-\d+|\bv\d+-[\w-]+|(?:GET|POST|PUT|PATCH|DELETE) \/\S+|\/hub:\S+)/g;
+  /(\d{4}-\d{2}-\d{2}|\d+(?:[.,]\d+)?%|\b[A-Z][A-Z0-9]{1,5}-\d+\b|\bv\d+-[\w-]+|(?:GET|POST|PUT|PATCH|DELETE) \/\S+|\/hub:\S+)/g;
+
+const CARD_KEY = /^[A-Z][A-Z0-9]{1,5}-\d+$/;
 
 /**
  * Render an API string (title, body) with its numbers and identifiers isolated (review: "(2%)" read "(%2)").
@@ -54,7 +56,8 @@ export function Bidi({ children }: { children: string }) {
     <bdi>
       {parts.map((part, i) =>
         i % 2 === 1 ? (
-          <bdi key={i} dir="ltr">
+          // A card key never breaks at its hyphen. A slug may: it can be longer than the line.
+          <bdi key={i} dir="ltr" className={CARD_KEY.test(part) ? 'whitespace-nowrap' : undefined}>
             {part}
           </bdi>
         ) : (

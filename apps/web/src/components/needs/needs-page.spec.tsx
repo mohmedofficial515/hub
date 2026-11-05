@@ -27,7 +27,7 @@ const need = (key: string, status: string, detail: Record<string, unknown> = {})
   key,
   type: 'need',
   status,
-  title: `Need ${key}`,
+  title: `Need no. ${key.slice(4)}`,
   priority: 'P2',
   ownerRole: 'owner',
   createdAt: new Date().toISOString(),
@@ -82,11 +82,11 @@ describe('NeedsPage', () => {
         <NeedsPage />
       </Tooltip.Provider>,
     );
-    expect(await screen.findByText('Need DMO-1')).toBeTruthy();
-    expect(screen.getByText('Need DMO-2')).toBeTruthy();
+    expect(await screen.findByText('Need no. 1')).toBeTruthy();
+    expect(screen.getByText('Need no. 2')).toBeTruthy();
     expect(screen.getByText('PayTR')).toBeTruthy();
     // Verified stays off the board until asked for.
-    expect(screen.queryByText('Need DMO-4')).toBeNull();
+    expect(screen.queryByText('Need no. 4')).toBeNull();
   });
 
   it('never fills Verify on my own delivery (D24)', async () => {
@@ -96,7 +96,7 @@ describe('NeedsPage', () => {
         <NeedsPage />
       </Tooltip.Provider>,
     );
-    await screen.findByText('Need DMO-5');
+    await screen.findByText('Need no. 5');
     const verify = await screen.findByRole('button', { name: 'Verify' });
     expect(verify.className).not.toContain('bg-primary');
   });

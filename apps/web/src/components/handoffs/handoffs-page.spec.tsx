@@ -27,7 +27,7 @@ const handoff = (key: string, status: string, detail: Record<string, unknown> = 
   key,
   type: 'handoff',
   status,
-  title: `Handoff ${key}`,
+  title: `Handoff no. ${key.slice(4)}`,
   priority: 'P2',
   ownerRole: detail['toRole'] ?? 'frontend',
   createdAt: new Date().toISOString(),
@@ -83,9 +83,9 @@ describe('HandoffsPage', () => {
         <HandoffsPage />
       </Tooltip.Provider>,
     );
-    expect(await screen.findByText('Handoff DMO-1')).toBeTruthy();
-    expect(screen.getByText('Handoff DMO-2')).toBeTruthy();
-    expect(screen.queryByText('Handoff DMO-3')).toBeNull();
+    expect(await screen.findByText('Handoff no. 1')).toBeTruthy();
+    expect(screen.getByText('Handoff no. 2')).toBeTruthy();
+    expect(screen.queryByText('Handoff no. 3')).toBeNull();
     const relay = screen.getByRole('group', { name: /./ });
     expect(within(relay).getAllByRole('button')).toHaveLength(4);
   });
@@ -97,7 +97,7 @@ describe('HandoffsPage', () => {
         <HandoffsPage />
       </Tooltip.Provider>,
     );
-    await screen.findByText('Handoff DMO-4');
+    await screen.findByText('Handoff no. 4');
     expect((await screen.findByRole('button', { name: /Acknowledge/ })).hasAttribute('disabled')).toBe(false);
   });
 
