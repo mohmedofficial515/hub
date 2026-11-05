@@ -281,8 +281,10 @@ export class InviteService {
   }
 
   private async findUsable(token: string) {
-    const invite = await runUnscoped('an invite is looked up by its token, before any project is known', () =>
-      this.txHost.tx.invite.findUnique({ where: { tokenHash: sha256(token) } }),
+    const invite = await runUnscoped(
+      'an invite is looked up by its token, before any project is known',
+      // Awaited inside: a Prisma promise only runs when awaited, and the scope check must see this context.
+      async () => await this.txHost.tx.invite.findUnique({ where: { tokenHash: sha256(token) } }),
     );
     if (!invite) throw new AppException('hub.identity.invite_invalid');
     if (invite.acceptedAt) throw new AppException('hub.identity.invite_accepted');

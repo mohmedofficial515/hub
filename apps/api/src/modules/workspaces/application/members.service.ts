@@ -100,7 +100,7 @@ export class MembersService {
   async remove(actor: MemberActor, userId: string): Promise<void> {
     await this.gate.assertOpen(actor.workspaceId);
     await this.txHost.withTransaction(() => this.deactivate(actor, userId, 'members.remove'));
-    await this.removal.run(actor.workspaceId, userId);
+    await this.removal.run(actor, userId);
   }
 
   /**
@@ -116,7 +116,7 @@ export class MembersService {
       });
       if (others === 0) await this.accounts.disable(userId);
     });
-    await this.removal.run(actor.workspaceId, userId);
+    await this.removal.run(actor, userId);
   }
 
   async enable(actor: MemberActor, userId: string): Promise<void> {

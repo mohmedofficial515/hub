@@ -648,7 +648,7 @@ describe('identity', () => {
       const account = await anAccount(db());
       const user = browser();
       await user.signIn(account.email);
-      const { token } = await aToken(db(), account.id);
+      const token = `hub_abcdef12_${'a'.repeat(30)}`;
       const response = await user.post('/me/tokens', { name: token }).expect(422);
       expect(response.body.error.code).toBe('hub.security.secret_detected');
       expect(JSON.stringify(response.body)).not.toContain(token);
