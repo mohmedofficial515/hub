@@ -192,6 +192,42 @@ export class PrismaCardReader extends CardReader {
     return rows.map((row) => toView(row));
   }
 
+  async findCandidatesAcross(
+    workspaceIds: readonly string[],
+    where: Prisma.CardWhereInput,
+  ): Promise<CardView[]> {
+    if (workspaceIds.length === 0) return [];
+    const rows = await this.tx.card.findMany({
+      where: { workspaceId: { in: [...workspaceIds] }, archivedAt: null, AND: [where] },
+      include: INCLUDE_DETAILS,
+      orderBy: { lastEventAt: 'desc' },
+    });
+    return rows.map((row) => toView(row));
+  }
+
+  async findByIdsAcross(workspaceIds: readonly string[], ids: readonly string[]): Promise<CardView[]> {
+    if (workspaceIds.length === 0 || ids.length === 0) return [];
+    const rows = await this.tx.card.findMany({
+      where: { workspaceId: { in: [...workspaceIds] }, id: { in: [...new Set(ids)] } },
+      include: INCLUDE_DETAILS,
+    });
+    return rows.map((row) => toView(row));
+  }
+
+  async findBlockedAcross(workspaceIds: readonly string[], ids: readonly string[]): Promise<Set<string>> {
+    if (workspaceIds.length === 0 || ids.length === 0) return new Set();
+    const rows = await this.tx.cardLink.findMany({
+      where: {
+        workspaceId: { in: [...workspaceIds] },
+        kind: 'blocks',
+        toCardId: { in: [...ids] },
+        from: { closedAt: null, archivedAt: null },
+      },
+      select: { toCardId: true },
+    });
+    return new Set(rows.map((row) => row.toCardId));
+  }
+
   async findUsers(ids: readonly string[]): Promise<Map<string, UserCard>> {
     const unique = [...new Set(ids)];
     if (unique.length === 0) return new Map();

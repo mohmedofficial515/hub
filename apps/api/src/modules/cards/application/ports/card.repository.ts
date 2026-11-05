@@ -117,6 +117,12 @@ export abstract class CardRepository {
   /** A setting's stored value, or undefined when the project keeps the default. */
   abstract readSetting(workspaceId: string, key: string): Promise<unknown>;
 
+  /** These settings for these projects, in one query: project id to key to stored value. */
+  abstract readSettings(
+    workspaceIds: readonly string[],
+    keys: readonly string[],
+  ): Promise<Map<string, Map<string, unknown>>>;
+
   abstract insertComment(input: {
     readonly actor: Actor;
     readonly card: CardView;

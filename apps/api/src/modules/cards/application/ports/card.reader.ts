@@ -113,6 +113,16 @@ export abstract class CardReader {
 
   abstract findByIds(workspaceId: string, ids: readonly string[]): Promise<CardView[]>;
 
+  /** Not deleted cards matching `where` in any of these projects, newest activity first. One query, for a list of projects. */
+  abstract findCandidatesAcross(
+    workspaceIds: readonly string[],
+    where: Prisma.CardWhereInput,
+  ): Promise<CardView[]>;
+
+  abstract findByIdsAcross(workspaceIds: readonly string[], ids: readonly string[]): Promise<CardView[]>;
+
+  abstract findBlockedAcross(workspaceIds: readonly string[], ids: readonly string[]): Promise<Set<string>>;
+
   abstract findUsers(ids: readonly string[]): Promise<Map<string, UserCard>>;
 
   /** Which of these cards an open, not deleted card blocks. */

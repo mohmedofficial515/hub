@@ -14674,6 +14674,11 @@
               "openNeeds",
               "readyTasks"
             ]
+          },
+          "awaitingCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           }
         },
         "required": [
@@ -14687,7 +14692,8 @@
           "defaultLocale",
           "totpRequired",
           "isDefault",
-          "counts"
+          "counts",
+          "awaitingCount"
         ]
       },
       "CreateProjectDto": {

@@ -11,10 +11,12 @@ import type { Principal, Role } from '@hub/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
+import { CardReader } from '@/modules/cards';
 import { ActorService } from '@/modules/identity';
 import { SettingsService, SourcesService } from '@/modules/workspaces';
 
 import { aMember, aWorkspace } from '../factories';
+import { aDecision } from '../setup/card-harness';
 import { createTestApp } from '../setup/create-test-app';
 import { maintenanceClients } from '../setup/per-test-setup';
 
@@ -135,6 +137,49 @@ describe('workspaces', () => {
         .expect(422);
       expect(response.body.error.code).toBe('hub.security.secret_detected');
       expect(response.body.error.details.field).toBe('goals');
+    });
+
+    it('GET lists what waits on me in each project, as the awaiting list counts it, in one read', async () => {
+      const first = await aProjectWith(['accountant']);
+      const decide = (role: Role, title: string) => ({ ...aDecision(role), title });
+      const creator = await aMember(db(), first.workspace.id, ['pm']);
+      await as(creator.id).post(`${first.ws}/cards`, decide('accountant', 'Mine')).expect(201);
+      await as(creator.id).post(`${first.ws}/cards`, decide('accountant', 'Mine too')).expect(201);
+      await as(creator.id).post(`${first.ws}/cards`, decide('backend', 'Not mine')).expect(201);
+      const deleted = await as(creator.id)
+        .post(`${first.ws}/cards`, decide('accountant', 'Deleted'))
+        .expect(201);
+      await db().card.update({
+        where: { id: deleted.body.data.id as string },
+        data: { archivedAt: new Date() },
+      });
+
+      const second = await aWorkspace(db());
+      await db().membership.create({
+        data: {
+          workspaceId: second.id,
+          userId: first.member.id,
+          roles: ['accountant'],
+          joinedAt: new Date(),
+        },
+      });
+
+      const reader = app.get(CardReader);
+      const across = jest.spyOn(reader, 'findCandidatesAcross');
+      const perProject = jest.spyOn(reader, 'findCandidates');
+      const list = await as(first.member.id).get('/workspaces').expect(200);
+      expect(across).toHaveBeenCalledTimes(1);
+      expect(perProject).not.toHaveBeenCalled();
+      across.mockRestore();
+      perProject.mockRestore();
+
+      const count = (slug: string) =>
+        (list.body.data as { slug: string; awaitingCount: number }[]).find((row) => row.slug === slug)
+          ?.awaitingCount;
+      expect(count(first.workspace.slug)).toBe(2);
+      expect(count(second.slug)).toBe(0);
+      const stack = await as(first.member.id).get(`${first.ws}/cards?awaiting=me`).expect(200);
+      expect(stack.body.meta.pagination.total).toBe(2);
     });
 
     it('GET lists my projects with counts, and one project with my roles', async () => {

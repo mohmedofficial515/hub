@@ -147,6 +147,8 @@ export const projectListItemSchema = z.object({
   totpRequired: z.boolean(),
   isDefault: z.boolean(),
   counts: projectCountsSchema,
+  /** Cards waiting on this member here: the rule and number of `GET /cards?awaiting=me`. */
+  awaitingCount: z.number().int(),
 });
 
 export const memberRowSchema = z.object({

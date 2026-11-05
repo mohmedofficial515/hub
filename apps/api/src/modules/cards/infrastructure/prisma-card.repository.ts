@@ -351,6 +351,23 @@ export class PrismaCardRepository extends CardRepository {
     return row?.value ?? undefined;
   }
 
+  async readSettings(
+    workspaceIds: readonly string[],
+    keys: readonly string[],
+  ): Promise<Map<string, Map<string, unknown>>> {
+    const rows = await this.tx.workspaceSetting.findMany({
+      where: { workspaceId: { in: [...workspaceIds] }, key: { in: [...keys] } },
+      select: { workspaceId: true, key: true, value: true },
+    });
+    const byProject = new Map<string, Map<string, unknown>>();
+    for (const row of rows) {
+      const settings = byProject.get(row.workspaceId) ?? new Map<string, unknown>();
+      settings.set(row.key, row.value);
+      byProject.set(row.workspaceId, settings);
+    }
+    return byProject;
+  }
+
   async insertComment(input: { actor: Actor; card: CardView; body: string; now: Date }): Promise<CommentRow> {
     const { actor, card, now } = input;
     if (!actor.userId) throw new Error('A comment needs a member behind it');

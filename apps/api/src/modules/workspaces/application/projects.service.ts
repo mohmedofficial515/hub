@@ -20,6 +20,7 @@ import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { PublishesProjectChange, RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
+import { CardQueryService } from '@/modules/cards';
 import { TotpPolicy } from '@/modules/identity';
 import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
@@ -95,6 +96,7 @@ export class ProjectsService {
     private readonly realtime: RealtimePublisher,
     private readonly totp: TotpPolicy,
     private readonly gate: ProjectGate,
+    private readonly cardQuery: CardQueryService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -110,6 +112,10 @@ export class ProjectsService {
       orderBy: { joinedAt: 'asc' },
     });
     const counts = await this.countsFor(memberships.map((membership) => membership.workspaceId));
+    const awaiting = await this.cardQuery.awaitingCounts(
+      principal.userId,
+      memberships.map(({ workspaceId, roles }) => ({ workspaceId, roles: roles as Role[] })),
+    );
     return Promise.all(
       memberships.map(async ({ workspace, roles }) => {
         const required = await this.totp.requiredRoles(workspace.id);
@@ -125,6 +131,7 @@ export class ProjectsService {
           totpRequired: roles.some((role) => required.includes(role as Role)),
           isDefault: workspace.id === user.defaultWorkspaceId,
           counts: counts.get(workspace.id) ?? NO_COUNTS,
+          awaitingCount: awaiting.get(workspace.id) ?? 0,
         };
       }),
     );

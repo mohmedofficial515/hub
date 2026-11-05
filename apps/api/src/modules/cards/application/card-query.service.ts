@@ -25,6 +25,7 @@ import {
   parseSetting,
   permissionFactsFor,
   type Priority,
+  type Role,
   settingDefault,
   type SettingKey,
   type Specialty,
@@ -76,6 +77,8 @@ interface ReadContext {
   readonly staleHandoffBefore: Date;
   readonly staleNeedBefore: Date;
 }
+
+type Staleness = 'staleHandoffBefore' | 'staleNeedBefore';
 
 function iso(value: Date | null): string | null {
   return value ? value.toISOString() : null;
@@ -136,11 +139,15 @@ export class CardQueryService {
   }
 
   private async moments(workspaceId: string) {
-    const now = this.clock.now();
     const [handoffHours, needDays] = await Promise.all([
       this.setting(workspaceId, 'handoffs.stale_hours'),
       this.setting(workspaceId, 'needs.stale_days'),
     ]);
+    return this.momentsFrom(handoffHours, needDays);
+  }
+
+  private momentsFrom(handoffHours: unknown, needDays: unknown) {
+    const now = this.clock.now();
     return {
       now,
       staleHandoffBefore: new Date(now.getTime() - Number(handoffHours) * 3_600_000),
@@ -180,14 +187,17 @@ export class CardQueryService {
     return context;
   }
 
-  private isStale(card: CardView, context: ReadContext): boolean {
+  private isStale(card: CardView, context: Pick<ReadContext, Staleness>): boolean {
     if (card.type === 'handoff')
       return card.status === 'pending' && card.createdAt < context.staleHandoffBefore;
     if (card.type === 'need') return card.status === 'requested' && card.createdAt < context.staleNeedBefore;
     return false;
   }
 
-  private actionable(card: CardView, context: ReadContext): ActionableCard {
+  private actionable(
+    card: CardView,
+    context: Pick<ReadContext, Staleness | 'blocked' | 'portTasks'>,
+  ): ActionableCard {
     const portId = card.type === 'redesign' ? card.detail?.['portTaskId'] : null;
     const port = typeof portId === 'string' ? context.portTasks.get(portId) : undefined;
     return {
@@ -337,6 +347,62 @@ export class CardQueryService {
       items: await this.summaries(actor, cards),
       pagination: { nextCursor, limit },
     };
+  }
+
+  /**
+   * What `GET /cards?awaiting=me` counts, for each of a member's projects, by the same rule and on the same candidates. A fixed number of
+   * queries however many projects there are, since `GET /workspaces` asks for all of them on every load (review M8).
+   */
+  async awaitingCounts(
+    userId: string,
+    memberships: readonly { readonly workspaceId: string; readonly roles: readonly Role[] }[],
+  ): Promise<Map<string, number>> {
+    const workspaceIds = memberships.map((membership) => membership.workspaceId);
+    const [candidates, settings] = await Promise.all([
+      this.reader.findCandidatesAcross(workspaceIds, AWAITABLE),
+      this.cards.readSettings(workspaceIds, ['handoffs.stale_hours', 'needs.stale_days']),
+    ]);
+    const cards = new Map<string, CardView[]>(workspaceIds.map((id) => [id, []]));
+    for (const card of candidates) {
+      const list = cards.get(card.workspaceId);
+      if (list && list.length < AWAITING_CANDIDATES) list.push(card);
+    }
+    const kept = [...cards.values()].flat();
+    const portIds = kept.flatMap((card) => {
+      const id = card.type === 'redesign' ? card.detail?.['portTaskId'] : null;
+      return typeof id === 'string' ? [id] : [];
+    });
+    const ports = await this.reader.findByIdsAcross(workspaceIds, portIds);
+    const blocked = await this.reader.findBlockedAcross(
+      workspaceIds,
+      [...kept, ...ports].map((card) => card.id),
+    );
+    const portTasks = new Map(ports.map((port) => [port.id, port]));
+    const counts = new Map<string, number>();
+    for (const { workspaceId, roles } of memberships) {
+      const stored = settings.get(workspaceId);
+      const handoffHours = stored?.get('handoffs.stale_hours');
+      const needDays = stored?.get('needs.stale_days');
+      const context = {
+        blocked,
+        portTasks,
+        ...this.momentsFrom(
+          handoffHours === undefined
+            ? settingDefault('handoffs.stale_hours')
+            : parseSetting('handoffs.stale_hours', handoffHours),
+          needDays === undefined
+            ? settingDefault('needs.stale_days')
+            : parseSetting('needs.stale_days', needDays),
+        ),
+      };
+      counts.set(
+        workspaceId,
+        (cards.get(workspaceId) ?? []).filter(
+          (card) => awaitedAction(this.actionable(card, context), roles, userId) !== null,
+        ).length,
+      );
+    }
+    return counts;
   }
 
   /** A card waits on the member by rule, not by column, so the small candidate set is judged in code. */

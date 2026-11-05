@@ -1745,6 +1745,7 @@ export type ProjectListItemDto = {
         openNeeds: number;
         readyTasks: number;
     };
+    awaitingCount: number;
 };
 
 export type CreateProjectDto = {

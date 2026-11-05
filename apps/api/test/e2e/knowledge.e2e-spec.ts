@@ -392,6 +392,17 @@ describe('knowledge', () => {
       expect(await db().notification.count({ where: { userId: owner.id, kind: 'routed_review' } })).toBe(1);
     });
 
+    it('a summary stored by an older reading heals on the next scan, and then stays unchanged', async () => {
+      const v2 = await version('web/wallet/v2-flight-path');
+      await db().redesignDetail.update({ where: { cardId: v2.id }, data: { reviewSummary: '---' } });
+      await scan();
+      expect((await version('web/wallet/v2-flight-path')).redesign?.reviewSummary).toBe('Good overall.');
+      const events = () => db().cardEvent.count({ where: { workspaceId: project.id, cardId: v2.id } });
+      const before = await events();
+      await scan();
+      expect(await events()).toBe(before);
+    });
+
     it('pages list versions in order, with the brief', async () => {
       const { body } = await owner.get('/redesign/pages').expect(200);
       const wallet = body.data.find((page: { page: string }) => page.page === 'wallet');
