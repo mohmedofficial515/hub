@@ -82,11 +82,23 @@ const WORDS = {
   en: { today: 'today', yesterday: 'yesterday', tomorrow: 'tomorrow' },
 };
 
-/** "today 12:00", "yesterday 11:30", "tomorrow 17:00", otherwise "Fri 18:00". */
+/** A bare weekday names one day only this close: at 7 days it would read as today. */
+const WEEKDAY_REACH = 6;
+
+/** "today 12:00", "yesterday 11:30", "tomorrow 17:00", "Fri 18:00" within 6 days either way, otherwise "19 Nov 18:00". */
 export function when(iso: string, l: Locale) {
   const days = Math.round((Date.parse(dayKey(iso)) - Date.parse(dayKey(nowMs()))) / DAY);
   const w = WORDS[l];
-  const prefix = days === 0 ? w.today : days === -1 ? w.yesterday : days === 1 ? w.tomorrow : weekday(iso, l);
+  const prefix =
+    days === 0
+      ? w.today
+      : days === -1
+        ? w.yesterday
+        : days === 1
+          ? w.tomorrow
+          : Math.abs(days) <= WEEKDAY_REACH
+            ? weekday(iso, l)
+            : shortDate(iso, l);
   return `${prefix} ${time(iso, l)}`;
 }
 
