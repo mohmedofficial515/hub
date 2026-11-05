@@ -2,14 +2,14 @@
  * @file model.ts
  * @description Ported from v5 `pages/decisions/model.ts`. Bands come from `dueAt` and `escalatedAt` (09 §7).
  */
+import { compareWaiting } from '@hub/contracts';
+
 import { hoursFromNow } from '@/lib/format';
 
 import type { DecisionCard, Role } from '../cards/types';
 
 export type Band = 'overdue' | 'soon' | 'later';
 export const BANDS: Band[] = ['overdue', 'soon', 'later'];
-
-const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
 
 const pastDue = (card: Pick<DecisionCard, 'dueAt' | 'flags'>) =>
   !!(card.flags?.overdue || (card.dueAt && hoursFromNow(card.dueAt) < 0));
@@ -22,9 +22,7 @@ export function bandOf(card: DecisionCard): Band {
 }
 
 /** Earliest deadline first, nulls last (04 §3.11). */
-export const byDeadline = (a: DecisionCard, b: DecisionCard) =>
-  (a.dueAt ? Date.parse(a.dueAt) : Infinity) - (b.dueAt ? Date.parse(b.dueAt) : Infinity) ||
-  PRIO[a.priority] - PRIO[b.priority];
+export const byDeadline: (a: DecisionCard, b: DecisionCard) => number = compareWaiting;
 
 /** Most recent outcome first. */
 export const closedAt = (card: DecisionCard) => card.decision.decidedAt ?? card.closedAt ?? card.lastEventAt;

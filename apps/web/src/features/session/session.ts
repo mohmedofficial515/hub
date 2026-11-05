@@ -6,6 +6,7 @@
  * scenario came from the lab. Roles are read live for the project in the URL (docs/15 §5).
  */
 import type { Role } from '@hub/contracts';
+import { compareWaiting } from '@hub/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
@@ -269,7 +270,6 @@ export type AwaitingCard = CardListItem & {
   action: CardAction;
 };
 
-const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
 const ORDER: AwaitingGroup[] = ['urgent', 'soon', 'rest'];
 
 export const isLate = (c: Pick<CardListItem, 'flags' | 'dueAt'>) =>
@@ -292,12 +292,7 @@ export function buildAwaiting(rows: CardListItem[]): AwaitingCard[] {
     .flatMap((row) =>
       row.awaiting ? [{ ...row, action: row.awaiting as CardAction, group: groupOf(row) }] : [],
     )
-    .sort(
-      (a, b) =>
-        ORDER.indexOf(a.group) - ORDER.indexOf(b.group) ||
-        (a.dueAt ? Date.parse(a.dueAt) : Infinity) - (b.dueAt ? Date.parse(b.dueAt) : Infinity) ||
-        PRIO[a.priority] - PRIO[b.priority],
-    );
+    .sort((a, b) => ORDER.indexOf(a.group) - ORDER.indexOf(b.group) || compareWaiting(a, b));
 }
 
 /** `GET /cards?awaiting=me`. It sits under the cards prefix, so writes and the stream keep it current. */
