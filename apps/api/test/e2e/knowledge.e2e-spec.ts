@@ -330,16 +330,15 @@ describe('knowledge', () => {
       const today = (await pm.get('/today').expect(200)).body.data;
       const row = today.sources.find((item: { id: string }) => item.id === id);
       expect(row).toMatchObject({ status: 'failing', runs24h: 3, target: missing });
-      // Three failures in a row told the owner, and an item with no card says where to go (docs/07).
-      const { body: inbox } = await owner.get('/inbox').expect(200);
-      const told = (inbox.data as { data: { i18nKey?: string; link?: unknown } }[]).find(
-        (item) => item.data.i18nKey === 'source_failing',
-      );
-      expect(told?.data.link).toEqual({ view: 'settings', query: { tab: 'sources' } });
       expect(today.counters.sourceProblems).toBe(1);
       expect(today.sources[0].id).toBe(id);
       const inbox = (await pm.get('/inbox', { kinds: 'system' }).expect(200)).body.data;
       expect(inbox.filter((item: { title: string }) => item.title.includes('gone'))).toHaveLength(1);
+      // An item with no card says where to go (docs/07).
+      const told = (inbox as { data: { i18nKey?: string; link?: unknown } }[]).find(
+        (item) => item.data.i18nKey === 'source_failing',
+      );
+      expect(told?.data.link).toEqual({ view: 'settings', query: { tab: 'sources' } });
       await owner.patch(`/sources/${id}`, { enabled: false }).expect(200);
     });
 
