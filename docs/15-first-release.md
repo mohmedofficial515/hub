@@ -84,7 +84,7 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 
 A project is a workspace with extra details.
 - **New fields:** `description` (Markdown), `goals`, `links` (`{ label, url }[]`), `repoPaths` (local folders), `status` (`active | paused | closed`). Key prefix and slug as in H0-04.
-- **Web:** `/workspaces` lists projects with awaiting counts and a New project wizard: name, slug, key prefix, timezone, description, role template, optional local docs path. The sidebar's workspace switcher lists projects and has "New project". Settings › General edits the details. Closing a project is reversible; projects are never deleted.
+- **Web:** `/workspaces` lists projects with awaiting counts and a New project wizard: name, slug, key prefix, timezone, description, optional local docs path. The creator becomes the owner; there are no role templates in this release. The sidebar's workspace switcher lists projects and has "New project". Settings › General edits the details. Closing a project is reversible; projects are never deleted.
 - **Permissions:** any signed-in member can create a project and becomes its owner.
 - **MCP:** `list_projects`, `get_project`, `create_project`, `update_project`, `switch_project`.
 
