@@ -258,9 +258,11 @@ Changed from the design:
 
 - `ActorChip` and `Avatar` read `useMember`. `Member.name` is one string, and `lastActiveAt` may be absent.
 - `showToast({ tone: 'error' })` for a refusal. Without `onUndo` a toast has no Undo.
-- Sheet sections: `components/cards/sheet-sections/<type>.tsx`, registered in `index.ts`. `idea.tsx` and `plan.tsx` are new and read-only: the Planning page's author adds "Turn into a plan", "Create tasks from steps" and editing of the Markdown (docs/15 §4). A section's file-local strings are in `kit.json` under `sections.<file>`.
+- Sheet sections: `components/cards/sheet-sections/<type>.tsx`, registered in `index.ts`. A section's file-local strings are in `kit.json` under `sections.<file>`. Editing is `?action=edit`, with shared parts in `edit-bits.tsx`: task, decision, idea and plan have it. `idea.tsx` holds the "Turn into a plan" form, and `plan.tsx` holds steps and revisions.
 - `RedesignSection` lost the curtain compare: the Redesign page's author moves `pages/redesign/parts/compare.tsx` here. Screenshots are the card's attachments.
-- `to_plan`, `to_tasks` and the other Idea and Plan verbs come from the contract, so the sheet offers them already. `to_plan` has `mode: form`, and its form belongs in `idea.tsx`.
+- `to_plan`, `to_tasks` and the other Idea and Plan verbs come from the contract, so the sheet offers them already. `to_tasks` is the one action that keeps its sheet open.
+- The Deleted view is `tasks?view=deleted` (`components/tasks/deleted-view.tsx`). `DeletedLink` is the way in from a filter panel.
+- A list with detail: `fetchDetailRows` (`features/cards/rows.ts`). A row still has no `body`: read the card (`useCardQuery`) when you need the text.
 - `DocSection` shows the API's headings and links out only when `detail.webUrl` exists.
 - New: `LiveIndicator`, `AuthFrame` (`components/auth`), `NewProjectWizard`, `ProjectsPage` (`components/workspaces`), `ViewPlaceholder`.
 

@@ -35,5 +35,5 @@ From the top: the header, the filter row, one focal card across the whole width,
 
 ## Limits
 
-- A decision's or a plan's `question`-like fields follow the API: Planning shows what `GET /ideas` and `GET /plans` return, up to 1000 of each.
+- The page reads `GET /ideas` and `GET /plans`, up to 1000 of each. A plan row shows no text, because a list row carries no body. The focal plan reads its own card for it.
 - The sidebar's Planning badge waits for `GET /counters` (README, Known limits). The page's own numbers come from its rows.
