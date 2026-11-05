@@ -10,6 +10,6 @@ import { AuditController } from './presentation/http/audit.controller';
 @Module({
   controllers: [AuditController],
   providers: [AuditService, AuditQueryService],
-  exports: [AuditService],
+  exports: [AuditQueryService, AuditService],
 })
 export class AuditModule {}

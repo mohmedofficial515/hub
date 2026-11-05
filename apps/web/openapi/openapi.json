@@ -2049,6 +2049,760 @@
         ]
       }
     },
+    "/api/v1/workspaces": {
+      "get": {
+        "operationId": "WorkspacesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectListItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The member’s projects, with what is waiting in each",
+        "tags": [
+          "projects"
+        ]
+      },
+      "post": {
+        "operationId": "WorkspacesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a project. The creator becomes its owner",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}": {
+      "get": {
+        "operationId": "WorkspacesController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One project with the member’s roles and its counts",
+        "tags": [
+          "projects"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkspacesController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change a project’s details",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/close": {
+      "post": {
+        "operationId": "WorkspacesController_close",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Close a project. It stays readable and can be reopened",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/reopen": {
+      "post": {
+        "operationId": "WorkspacesController_reopen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reopen a closed project",
+        "tags": [
+          "projects"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members": {
+      "get": {
+        "operationId": "MembersController_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The project’s members, oldest first",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}": {
+      "patch": {
+        "operationId": "MembersController_changeRoles",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRolesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replace a member’s roles",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}/remove": {
+      "post": {
+        "operationId": "MembersController_remove",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Remove a member from the project",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}/disable": {
+      "post": {
+        "operationId": "MembersController_disable",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Remove a member; the account is disabled when this was their only project",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}/enable": {
+      "post": {
+        "operationId": "MembersController_enable",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Bring a removed or disabled member back",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}/password-reset-link": {
+      "post": {
+        "operationId": "MembersController_passwordResetLink",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "A reset link to hand to the member. Shown this one time",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/members/{userId}/github-logins": {
+      "put": {
+        "operationId": "MembersController_setGithubLogins",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GithubLoginsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GithubLoginsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replace the GitHub logins that map to this member",
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/settings": {
+      "get": {
+        "operationId": "SettingsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Every setting with its value and default",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/settings/catalogue": {
+      "get": {
+        "operationId": "SettingsController_catalogue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SettingCatalogueRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "What each setting means and what it accepts",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/settings/{key}": {
+      "put": {
+        "operationId": "SettingsController_put",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSettingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change one setting",
+        "tags": [
+          "settings"
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsController_reset",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Put one setting back to its default",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/sources": {
+      "get": {
+        "operationId": "SourcesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceDtoHttp"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The project’s sources. A secret shows only as `hasSecret`",
+        "tags": [
+          "sources"
+        ]
+      },
+      "post": {
+        "operationId": "SourcesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDtoHttp"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Add a source. A secret may be set from the web only",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/sources/{id}": {
+      "get": {
+        "operationId": "SourcesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDtoHttp"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One source",
+        "tags": [
+          "sources"
+        ]
+      },
+      "patch": {
+        "operationId": "SourcesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDtoHttp"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change, enable or disable a source. Null clears its secret",
+        "tags": [
+          "sources"
+        ]
+      },
+      "delete": {
+        "operationId": "SourcesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a source. Its history stays",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/sources/{id}/test": {
+      "post": {
+        "operationId": "SourcesController_test",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceTestResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Check that the source can be reached",
+        "tags": [
+          "sources"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/onboarding": {
+      "get": {
+        "operationId": "OnboardingController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OnboardingGroupDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The reading path of each role the member holds",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/onboarding/{itemId}/done": {
+      "post": {
+        "operationId": "OnboardingController_tick",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Tick an item",
+        "tags": [
+          "onboarding"
+        ]
+      },
+      "delete": {
+        "operationId": "OnboardingController_untick",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Untick an item",
+        "tags": [
+          "onboarding"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/tasks/ready": {
       "get": {
         "operationId": "TasksController_ready",
@@ -4642,760 +5396,6 @@
         "summary": "Postgres, Redis and the repos folder are usable",
         "tags": [
           "health"
-        ]
-      }
-    },
-    "/api/v1/workspaces": {
-      "get": {
-        "operationId": "WorkspacesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ProjectListItemDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "The member’s projects, with what is waiting in each",
-        "tags": [
-          "projects"
-        ]
-      },
-      "post": {
-        "operationId": "WorkspacesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProjectDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Create a project. The creator becomes its owner",
-        "tags": [
-          "projects"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}": {
-      "get": {
-        "operationId": "WorkspacesController_get",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDetailDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "One project with the member’s roles and its counts",
-        "tags": [
-          "projects"
-        ]
-      },
-      "patch": {
-        "operationId": "WorkspacesController_update",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProjectDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Change a project’s details",
-        "tags": [
-          "projects"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/close": {
-      "post": {
-        "operationId": "WorkspacesController_close",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Close a project. It stays readable and can be reopened",
-        "tags": [
-          "projects"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/reopen": {
-      "post": {
-        "operationId": "WorkspacesController_reopen",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProjectDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Reopen a closed project",
-        "tags": [
-          "projects"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members": {
-      "get": {
-        "operationId": "MembersController_list",
-        "parameters": [
-          {
-            "name": "cursor",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "default": 25,
-              "type": "integer"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MemberRowDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "The project’s members, oldest first",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}": {
-      "patch": {
-        "operationId": "MembersController_changeRoles",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMemberRolesDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MemberRowDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Replace a member’s roles",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}/remove": {
-      "post": {
-        "operationId": "MembersController_remove",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Remove a member from the project",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}/disable": {
-      "post": {
-        "operationId": "MembersController_disable",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Remove a member; the account is disabled when this was their only project",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}/enable": {
-      "post": {
-        "operationId": "MembersController_enable",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Bring a removed or disabled member back",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}/password-reset-link": {
-      "post": {
-        "operationId": "MembersController_passwordResetLink",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "url": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "A reset link to hand to the member. Shown this one time",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/members/{userId}/github-logins": {
-      "put": {
-        "operationId": "MembersController_setGithubLogins",
-        "parameters": [
-          {
-            "name": "userId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GithubLoginsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GithubLoginsDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Replace the GitHub logins that map to this member",
-        "tags": [
-          "members"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/settings": {
-      "get": {
-        "operationId": "SettingsController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SettingRowDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Every setting with its value and default",
-        "tags": [
-          "settings"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/settings/catalogue": {
-      "get": {
-        "operationId": "SettingsController_catalogue",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SettingCatalogueRowDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "What each setting means and what it accepts",
-        "tags": [
-          "settings"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/settings/{key}": {
-      "put": {
-        "operationId": "SettingsController_put",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PutSettingDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingRowDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Change one setting",
-        "tags": [
-          "settings"
-        ]
-      },
-      "delete": {
-        "operationId": "SettingsController_reset",
-        "parameters": [
-          {
-            "name": "key",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingRowDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Put one setting back to its default",
-        "tags": [
-          "settings"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/sources": {
-      "get": {
-        "operationId": "SourcesController_list",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SourceDtoHttp"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "The project’s sources. A secret shows only as `hasSecret`",
-        "tags": [
-          "sources"
-        ]
-      },
-      "post": {
-        "operationId": "SourcesController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateSourceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceDtoHttp"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Add a source. A secret may be set from the web only",
-        "tags": [
-          "sources"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/sources/{id}": {
-      "get": {
-        "operationId": "SourcesController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceDtoHttp"
-                }
-              }
-            }
-          }
-        },
-        "summary": "One source",
-        "tags": [
-          "sources"
-        ]
-      },
-      "patch": {
-        "operationId": "SourcesController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateSourceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceDtoHttp"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Change, enable or disable a source. Null clears its secret",
-        "tags": [
-          "sources"
-        ]
-      },
-      "delete": {
-        "operationId": "SourcesController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Delete a source. Its history stays",
-        "tags": [
-          "sources"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/sources/{id}/test": {
-      "post": {
-        "operationId": "SourcesController_test",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceTestResultDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Check that the source can be reached",
-        "tags": [
-          "sources"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/onboarding": {
-      "get": {
-        "operationId": "OnboardingController_get",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/OnboardingGroupDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "The reading path of each role the member holds",
-        "tags": [
-          "onboarding"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/onboarding/{itemId}/done": {
-      "post": {
-        "operationId": "OnboardingController_tick",
-        "parameters": [
-          {
-            "name": "itemId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Tick an item",
-        "tags": [
-          "onboarding"
-        ]
-      },
-      "delete": {
-        "operationId": "OnboardingController_untick",
-        "parameters": [
-          {
-            "name": "itemId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Untick an item",
-        "tags": [
-          "onboarding"
         ]
       }
     },
@@ -11203,558 +11203,6 @@
           }
         }
       },
-      "TaskPromptDto": {
-        "type": "object",
-        "properties": {
-          "markdown": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "markdown"
-        ]
-      },
-      "EditDetailDto": {
-        "type": "object",
-        "properties": {
-          "specialty": {
-            "type": "string",
-            "enum": [
-              "backend",
-              "frontend",
-              "design",
-              "qa",
-              "ops",
-              "docs"
-            ]
-          },
-          "effort": {
-            "type": "string",
-            "enum": [
-              "S",
-              "M",
-              "L",
-              "XL",
-              null
-            ],
-            "nullable": true
-          },
-          "acceptance": {
-            "type": "string",
-            "maxLength": 20000,
-            "nullable": true
-          },
-          "prompt": {
-            "type": "string",
-            "maxLength": 20000,
-            "nullable": true
-          },
-          "branch": {
-            "type": "string",
-            "maxLength": 200,
-            "nullable": true
-          },
-          "prUrl": {
-            "type": "string",
-            "maxLength": 500,
-            "format": "uri",
-            "nullable": true
-          }
-        }
-      },
-      "ClaimDto": {
-        "type": "object",
-        "properties": {
-          "branch": {
-            "type": "string",
-            "maxLength": 200
-          }
-        }
-      },
-      "SubmitDto": {
-        "type": "object",
-        "properties": {
-          "prUrl": {
-            "type": "string",
-            "maxLength": 500,
-            "format": "uri"
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "OptionalReasonDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "CompleteDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "ReasonDto": {
-        "type": "object",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          }
-        },
-        "required": [
-          "reason"
-        ]
-      },
-      "OptionsDto": {
-        "type": "object",
-        "properties": {
-          "options": {
-            "maxItems": 8,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "pattern": "^[a-z0-9-]{1,64}$"
-                },
-                "title": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200
-                },
-                "pros": {
-                  "maxItems": 20,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "maxLength": 500
-                  }
-                },
-                "cons": {
-                  "maxItems": 20,
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "maxLength": 500
-                  }
-                },
-                "cost": {
-                  "type": "string",
-                  "maxLength": 200
-                },
-                "recommended": {
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "title"
-              ]
-            }
-          }
-        },
-        "required": [
-          "options"
-        ]
-      },
-      "DecideDto": {
-        "type": "object",
-        "properties": {
-          "optionId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 64
-          },
-          "rationale": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          }
-        },
-        "required": [
-          "optionId",
-          "rationale"
-        ]
-      },
-      "SupersedeDto": {
-        "type": "object",
-        "properties": {
-          "byKey": {
-            "type": "string",
-            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
-          }
-        },
-        "required": [
-          "byKey"
-        ]
-      },
-      "DraftAdrDto": {
-        "type": "object",
-        "properties": {
-          "body": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 20000
-          },
-          "path": {
-            "type": "string",
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "body"
-        ]
-      },
-      "DeliverDto": {
-        "type": "object",
-        "properties": {
-          "location": {
-            "type": "string",
-            "maxLength": 500
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "VerifyDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "AcknowledgeDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "ApplyDto": {
-        "type": "object",
-        "properties": {
-          "taskKey": {
-            "type": "string",
-            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
-          },
-          "createTask": {
-            "type": "object",
-            "properties": {
-              "title": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 200
-              },
-              "specialty": {
-                "type": "string",
-                "enum": [
-                  "backend",
-                  "frontend",
-                  "design",
-                  "qa",
-                  "ops",
-                  "docs"
-                ]
-              }
-            }
-          },
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          }
-        }
-      },
-      "ApproveDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string",
-            "maxLength": 2000
-          },
-          "createPortTask": {
-            "default": true,
-            "type": "boolean"
-          }
-        }
-      },
-      "NoteDto": {
-        "type": "object",
-        "properties": {
-          "note": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 2000
-          }
-        },
-        "required": [
-          "note"
-        ]
-      },
-      "MarkPortedDto": {
-        "type": "object",
-        "properties": {
-          "ref": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 300
-          }
-        },
-        "required": [
-          "ref"
-        ]
-      },
-      "EditDto": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 60
-          },
-          "repo": {
-            "type": "string",
-            "maxLength": 80,
-            "nullable": true
-          },
-          "tag": {
-            "type": "string",
-            "maxLength": 100,
-            "nullable": true
-          },
-          "includedKeys": {
-            "maxItems": 500,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
-            }
-          },
-          "notes": {
-            "type": "object",
-            "properties": {
-              "team": {
-                "type": "string",
-                "maxLength": 20000,
-                "nullable": true
-              },
-              "owner": {
-                "type": "string",
-                "maxLength": 20000,
-                "nullable": true
-              },
-              "accountant": {
-                "type": "string",
-                "maxLength": 20000,
-                "nullable": true
-              }
-            }
-          }
-        }
-      },
-      "ReleaseDto": {
-        "type": "object",
-        "properties": {
-          "releasedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-          }
-        }
-      },
-      "UpdateDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "body": {
-            "type": "string",
-            "maxLength": 100000
-          },
-          "priority": {
-            "type": "string",
-            "enum": [
-              "P0",
-              "P1",
-              "P2",
-              "P3"
-            ]
-          },
-          "tags": {
-            "maxItems": 20,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 40,
-              "pattern": "^[a-z0-9-]+$"
-            }
-          },
-          "steps": {
-            "maxItems": 200,
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 64
-                },
-                "title": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 200
-                },
-                "role": {
-                  "type": "string",
-                  "enum": [
-                    "owner",
-                    "pm",
-                    "accountant",
-                    "backend",
-                    "frontend",
-                    "designer",
-                    "qa"
-                  ]
-                },
-                "taskKey": {
-                  "type": "string",
-                  "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
-                },
-                "done": {
-                  "default": false,
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "title"
-              ]
-            }
-          }
-        }
-      },
-      "ToPlanDto": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "body": {
-            "type": "string",
-            "maxLength": 100000
-          }
-        }
-      },
-      "PlanRevisionDto": {
-        "type": "object",
-        "properties": {
-          "revision": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "body": {
-            "type": "string",
-            "nullable": true
-          },
-          "savedAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "actor": {
-            "type": "object",
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "user",
-                  "agent",
-                  "system"
-                ]
-              },
-              "userId": {
-                "type": "string",
-                "nullable": true
-              },
-              "displayName": {
-                "type": "string",
-                "nullable": true
-              },
-              "via": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "kind",
-              "userId",
-              "displayName",
-              "via"
-            ],
-            "nullable": true
-          },
-          "current": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "revision",
-          "body",
-          "savedAt",
-          "actor",
-          "current"
-        ]
-      },
-      "RestoreDto": {
-        "type": "object",
-        "properties": {
-          "revision": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 9007199254740991
-          }
-        },
-        "required": [
-          "revision"
-        ]
-      },
-      "ToTasksDto": {
-        "type": "object",
-        "properties": {
-          "defaultSpecialty": {
-            "type": "string",
-            "enum": [
-              "backend",
-              "frontend",
-              "design",
-              "qa",
-              "ops",
-              "docs"
-            ]
-          }
-        }
-      },
       "ProjectListItemDto": {
         "type": "object",
         "properties": {
@@ -12544,6 +11992,558 @@
           "role",
           "items"
         ]
+      },
+      "TaskPromptDto": {
+        "type": "object",
+        "properties": {
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "markdown"
+        ]
+      },
+      "EditDetailDto": {
+        "type": "object",
+        "properties": {
+          "specialty": {
+            "type": "string",
+            "enum": [
+              "backend",
+              "frontend",
+              "design",
+              "qa",
+              "ops",
+              "docs"
+            ]
+          },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "XL",
+              null
+            ],
+            "nullable": true
+          },
+          "acceptance": {
+            "type": "string",
+            "maxLength": 20000,
+            "nullable": true
+          },
+          "prompt": {
+            "type": "string",
+            "maxLength": 20000,
+            "nullable": true
+          },
+          "branch": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "prUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "format": "uri",
+            "nullable": true
+          }
+        }
+      },
+      "ClaimDto": {
+        "type": "object",
+        "properties": {
+          "branch": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      },
+      "SubmitDto": {
+        "type": "object",
+        "properties": {
+          "prUrl": {
+            "type": "string",
+            "maxLength": 500,
+            "format": "uri"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "OptionalReasonDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "CompleteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "ReasonDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "OptionsDto": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]{1,64}$"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "pros": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "cons": {
+                  "maxItems": 20,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "cost": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "recommended": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "title"
+              ]
+            }
+          }
+        },
+        "required": [
+          "options"
+        ]
+      },
+      "DecideDto": {
+        "type": "object",
+        "properties": {
+          "optionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "optionId",
+          "rationale"
+        ]
+      },
+      "SupersedeDto": {
+        "type": "object",
+        "properties": {
+          "byKey": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+          }
+        },
+        "required": [
+          "byKey"
+        ]
+      },
+      "DraftAdrDto": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "body"
+        ]
+      },
+      "DeliverDto": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "VerifyDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "AcknowledgeDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "ApplyDto": {
+        "type": "object",
+        "properties": {
+          "taskKey": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+          },
+          "createTask": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "specialty": {
+                "type": "string",
+                "enum": [
+                  "backend",
+                  "frontend",
+                  "design",
+                  "qa",
+                  "ops",
+                  "docs"
+                ]
+              }
+            }
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      },
+      "ApproveDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "createPortTask": {
+            "default": true,
+            "type": "boolean"
+          }
+        }
+      },
+      "NoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "note"
+        ]
+      },
+      "MarkPortedDto": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "ref"
+        ]
+      },
+      "EditDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "repo": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true
+          },
+          "tag": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "includedKeys": {
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+            }
+          },
+          "notes": {
+            "type": "object",
+            "properties": {
+              "team": {
+                "type": "string",
+                "maxLength": 20000,
+                "nullable": true
+              },
+              "owner": {
+                "type": "string",
+                "maxLength": 20000,
+                "nullable": true
+              },
+              "accountant": {
+                "type": "string",
+                "maxLength": 20000,
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "ReleaseDto": {
+        "type": "object",
+        "properties": {
+          "releasedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        }
+      },
+      "UpdateDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "tags": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "pattern": "^[a-z0-9-]+$"
+            }
+          },
+          "steps": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "pm",
+                    "accountant",
+                    "backend",
+                    "frontend",
+                    "designer",
+                    "qa"
+                  ]
+                },
+                "taskKey": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+                },
+                "done": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "title"
+              ]
+            }
+          }
+        }
+      },
+      "ToPlanDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "PlanRevisionDto": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "savedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "actor": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "agent",
+                  "system"
+                ]
+              },
+              "userId": {
+                "type": "string",
+                "nullable": true
+              },
+              "displayName": {
+                "type": "string",
+                "nullable": true
+              },
+              "via": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "userId",
+              "displayName",
+              "via"
+            ],
+            "nullable": true
+          },
+          "current": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "revision",
+          "body",
+          "savedAt",
+          "actor",
+          "current"
+        ]
+      },
+      "RestoreDto": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "revision"
+        ]
+      },
+      "ToTasksDto": {
+        "type": "object",
+        "properties": {
+          "defaultSpecialty": {
+            "type": "string",
+            "enum": [
+              "backend",
+              "frontend",
+              "design",
+              "qa",
+              "ops",
+              "docs"
+            ]
+          }
+        }
       },
       "HookSessionDto": {
         "type": "object",

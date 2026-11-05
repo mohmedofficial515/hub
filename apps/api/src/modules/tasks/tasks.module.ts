@@ -42,5 +42,6 @@ import { TasksController } from './presentation/http/tasks.controller';
     TaskCloseAsPortedAction,
     TaskEditDetailAction,
   ],
+  exports: [TasksReadService],
 })
 export class TasksModule {}

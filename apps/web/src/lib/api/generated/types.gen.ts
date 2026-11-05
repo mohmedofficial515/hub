@@ -1203,156 +1203,6 @@ export type ReadAllDto = {
     before?: string;
 };
 
-export type TaskPromptDto = {
-    markdown: string;
-};
-
-export type EditDetailDto = {
-    specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
-    effort?: 'S' | 'M' | 'L' | 'XL' | null;
-    acceptance?: string | null;
-    prompt?: string | null;
-    branch?: string | null;
-    prUrl?: string | null;
-};
-
-export type ClaimDto = {
-    branch?: string;
-};
-
-export type SubmitDto = {
-    prUrl?: string;
-    note?: string;
-};
-
-export type OptionalReasonDto = {
-    reason?: string;
-};
-
-export type CompleteDto = {
-    note?: string;
-};
-
-export type ReasonDto = {
-    reason: string;
-};
-
-export type OptionsDto = {
-    options: Array<{
-        id?: string;
-        title: string;
-        pros?: Array<string>;
-        cons?: Array<string>;
-        cost?: string;
-        recommended?: boolean;
-    }>;
-};
-
-export type DecideDto = {
-    optionId: string;
-    rationale: string;
-};
-
-export type SupersedeDto = {
-    byKey: string;
-};
-
-export type DraftAdrDto = {
-    body: string;
-    path?: string;
-};
-
-export type DeliverDto = {
-    location?: string;
-    note?: string;
-};
-
-export type VerifyDto = {
-    note?: string;
-};
-
-export type AcknowledgeDto = {
-    note?: string;
-};
-
-export type ApplyDto = {
-    taskKey?: string;
-    createTask?: {
-        title?: string;
-        specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
-    };
-    note?: string;
-};
-
-export type ApproveDto = {
-    note?: string;
-    createPortTask?: boolean;
-};
-
-export type NoteDto = {
-    note: string;
-};
-
-export type MarkPortedDto = {
-    ref: string;
-};
-
-export type EditDto = {
-    version?: string;
-    repo?: string | null;
-    tag?: string | null;
-    includedKeys?: Array<string>;
-    notes?: {
-        team?: string | null;
-        owner?: string | null;
-        accountant?: string | null;
-    };
-};
-
-export type ReleaseDto = {
-    releasedAt?: string;
-};
-
-export type UpdateDto = {
-    title?: string;
-    body?: string;
-    priority?: 'P0' | 'P1' | 'P2' | 'P3';
-    tags?: Array<string>;
-    steps?: Array<{
-        id?: string;
-        title: string;
-        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
-        taskKey?: string;
-        done?: boolean;
-    }>;
-};
-
-export type ToPlanDto = {
-    title?: string;
-    body?: string;
-};
-
-export type PlanRevisionDto = {
-    revision: number;
-    body: string | null;
-    savedAt: string | null;
-    actor: {
-        kind: 'user' | 'agent' | 'system';
-        userId: string | null;
-        displayName: string | null;
-        via: string;
-    } | null;
-    current: boolean;
-};
-
-export type RestoreDto = {
-    revision: number;
-};
-
-export type ToTasksDto = {
-    defaultSpecialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
-};
-
 export type ProjectListItemDto = {
     id: string;
     slug: string;
@@ -1550,6 +1400,156 @@ export type OnboardingGroupDto = {
         done: boolean;
         doneAt: string | null;
     }>;
+};
+
+export type TaskPromptDto = {
+    markdown: string;
+};
+
+export type EditDetailDto = {
+    specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+    effort?: 'S' | 'M' | 'L' | 'XL' | null;
+    acceptance?: string | null;
+    prompt?: string | null;
+    branch?: string | null;
+    prUrl?: string | null;
+};
+
+export type ClaimDto = {
+    branch?: string;
+};
+
+export type SubmitDto = {
+    prUrl?: string;
+    note?: string;
+};
+
+export type OptionalReasonDto = {
+    reason?: string;
+};
+
+export type CompleteDto = {
+    note?: string;
+};
+
+export type ReasonDto = {
+    reason: string;
+};
+
+export type OptionsDto = {
+    options: Array<{
+        id?: string;
+        title: string;
+        pros?: Array<string>;
+        cons?: Array<string>;
+        cost?: string;
+        recommended?: boolean;
+    }>;
+};
+
+export type DecideDto = {
+    optionId: string;
+    rationale: string;
+};
+
+export type SupersedeDto = {
+    byKey: string;
+};
+
+export type DraftAdrDto = {
+    body: string;
+    path?: string;
+};
+
+export type DeliverDto = {
+    location?: string;
+    note?: string;
+};
+
+export type VerifyDto = {
+    note?: string;
+};
+
+export type AcknowledgeDto = {
+    note?: string;
+};
+
+export type ApplyDto = {
+    taskKey?: string;
+    createTask?: {
+        title?: string;
+        specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+    };
+    note?: string;
+};
+
+export type ApproveDto = {
+    note?: string;
+    createPortTask?: boolean;
+};
+
+export type NoteDto = {
+    note: string;
+};
+
+export type MarkPortedDto = {
+    ref: string;
+};
+
+export type EditDto = {
+    version?: string;
+    repo?: string | null;
+    tag?: string | null;
+    includedKeys?: Array<string>;
+    notes?: {
+        team?: string | null;
+        owner?: string | null;
+        accountant?: string | null;
+    };
+};
+
+export type ReleaseDto = {
+    releasedAt?: string;
+};
+
+export type UpdateDto = {
+    title?: string;
+    body?: string;
+    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+    tags?: Array<string>;
+    steps?: Array<{
+        id?: string;
+        title: string;
+        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        taskKey?: string;
+        done?: boolean;
+    }>;
+};
+
+export type ToPlanDto = {
+    title?: string;
+    body?: string;
+};
+
+export type PlanRevisionDto = {
+    revision: number;
+    body: string | null;
+    savedAt: string | null;
+    actor: {
+        kind: 'user' | 'agent' | 'system';
+        userId: string | null;
+        displayName: string | null;
+        via: string;
+    } | null;
+    current: boolean;
+};
+
+export type RestoreDto = {
+    revision: number;
+};
+
+export type ToTasksDto = {
+    defaultSpecialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
 };
 
 export type HookSessionDto = {
@@ -2378,6 +2378,377 @@ export type InboxControllerUnarchiveResponses = {
 };
 
 export type InboxControllerUnarchiveResponse = InboxControllerUnarchiveResponses[keyof InboxControllerUnarchiveResponses];
+
+export type WorkspacesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces';
+};
+
+export type WorkspacesControllerListResponses = {
+    200: Array<ProjectListItemDto>;
+};
+
+export type WorkspacesControllerListResponse = WorkspacesControllerListResponses[keyof WorkspacesControllerListResponses];
+
+export type WorkspacesControllerCreateData = {
+    body: CreateProjectDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces';
+};
+
+export type WorkspacesControllerCreateResponses = {
+    201: ProjectDto;
+};
+
+export type WorkspacesControllerCreateResponse = WorkspacesControllerCreateResponses[keyof WorkspacesControllerCreateResponses];
+
+export type WorkspacesControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}';
+};
+
+export type WorkspacesControllerGetResponses = {
+    200: ProjectDetailDto;
+};
+
+export type WorkspacesControllerGetResponse = WorkspacesControllerGetResponses[keyof WorkspacesControllerGetResponses];
+
+export type WorkspacesControllerUpdateData = {
+    body: UpdateProjectDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}';
+};
+
+export type WorkspacesControllerUpdateResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerUpdateResponse = WorkspacesControllerUpdateResponses[keyof WorkspacesControllerUpdateResponses];
+
+export type WorkspacesControllerCloseData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/close';
+};
+
+export type WorkspacesControllerCloseResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerCloseResponse = WorkspacesControllerCloseResponses[keyof WorkspacesControllerCloseResponses];
+
+export type WorkspacesControllerReopenData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/reopen';
+};
+
+export type WorkspacesControllerReopenResponses = {
+    200: ProjectDto;
+};
+
+export type WorkspacesControllerReopenResponse = WorkspacesControllerReopenResponses[keyof WorkspacesControllerReopenResponses];
+
+export type MembersControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/members';
+};
+
+export type MembersControllerListResponses = {
+    200: Array<MemberRowDto>;
+};
+
+export type MembersControllerListResponse = MembersControllerListResponses[keyof MembersControllerListResponses];
+
+export type MembersControllerChangeRolesData = {
+    body: UpdateMemberRolesDto;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}';
+};
+
+export type MembersControllerChangeRolesResponses = {
+    200: MemberRowDto;
+};
+
+export type MembersControllerChangeRolesResponse = MembersControllerChangeRolesResponses[keyof MembersControllerChangeRolesResponses];
+
+export type MembersControllerRemoveData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/remove';
+};
+
+export type MembersControllerRemoveResponses = {
+    204: void;
+};
+
+export type MembersControllerRemoveResponse = MembersControllerRemoveResponses[keyof MembersControllerRemoveResponses];
+
+export type MembersControllerDisableData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/disable';
+};
+
+export type MembersControllerDisableResponses = {
+    204: void;
+};
+
+export type MembersControllerDisableResponse = MembersControllerDisableResponses[keyof MembersControllerDisableResponses];
+
+export type MembersControllerEnableData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/enable';
+};
+
+export type MembersControllerEnableResponses = {
+    204: void;
+};
+
+export type MembersControllerEnableResponse = MembersControllerEnableResponses[keyof MembersControllerEnableResponses];
+
+export type MembersControllerPasswordResetLinkData = {
+    body?: never;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/password-reset-link';
+};
+
+export type MembersControllerPasswordResetLinkResponses = {
+    201: {
+        url?: string;
+    };
+};
+
+export type MembersControllerPasswordResetLinkResponse = MembersControllerPasswordResetLinkResponses[keyof MembersControllerPasswordResetLinkResponses];
+
+export type MembersControllerSetGithubLoginsData = {
+    body: GithubLoginsDto;
+    path: {
+        userId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/members/{userId}/github-logins';
+};
+
+export type MembersControllerSetGithubLoginsResponses = {
+    200: GithubLoginsDto;
+};
+
+export type MembersControllerSetGithubLoginsResponse = MembersControllerSetGithubLoginsResponses[keyof MembersControllerSetGithubLoginsResponses];
+
+export type SettingsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings';
+};
+
+export type SettingsControllerListResponses = {
+    200: Array<SettingRowDto>;
+};
+
+export type SettingsControllerListResponse = SettingsControllerListResponses[keyof SettingsControllerListResponses];
+
+export type SettingsControllerCatalogueData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/catalogue';
+};
+
+export type SettingsControllerCatalogueResponses = {
+    200: Array<SettingCatalogueRowDto>;
+};
+
+export type SettingsControllerCatalogueResponse = SettingsControllerCatalogueResponses[keyof SettingsControllerCatalogueResponses];
+
+export type SettingsControllerResetData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/{key}';
+};
+
+export type SettingsControllerResetResponses = {
+    200: SettingRowDto;
+};
+
+export type SettingsControllerResetResponse = SettingsControllerResetResponses[keyof SettingsControllerResetResponses];
+
+export type SettingsControllerPutData = {
+    body: PutSettingDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/settings/{key}';
+};
+
+export type SettingsControllerPutResponses = {
+    200: SettingRowDto;
+};
+
+export type SettingsControllerPutResponse = SettingsControllerPutResponses[keyof SettingsControllerPutResponses];
+
+export type SourcesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources';
+};
+
+export type SourcesControllerListResponses = {
+    200: Array<SourceDtoHttp>;
+};
+
+export type SourcesControllerListResponse = SourcesControllerListResponses[keyof SourcesControllerListResponses];
+
+export type SourcesControllerCreateData = {
+    body: CreateSourceDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources';
+};
+
+export type SourcesControllerCreateResponses = {
+    201: SourceDtoHttp;
+};
+
+export type SourcesControllerCreateResponse = SourcesControllerCreateResponses[keyof SourcesControllerCreateResponses];
+
+export type SourcesControllerRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerRemoveResponses = {
+    204: void;
+};
+
+export type SourcesControllerRemoveResponse = SourcesControllerRemoveResponses[keyof SourcesControllerRemoveResponses];
+
+export type SourcesControllerGetData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerGetResponses = {
+    200: SourceDtoHttp;
+};
+
+export type SourcesControllerGetResponse = SourcesControllerGetResponses[keyof SourcesControllerGetResponses];
+
+export type SourcesControllerUpdateData = {
+    body: UpdateSourceDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}';
+};
+
+export type SourcesControllerUpdateResponses = {
+    200: SourceDtoHttp;
+};
+
+export type SourcesControllerUpdateResponse = SourcesControllerUpdateResponses[keyof SourcesControllerUpdateResponses];
+
+export type SourcesControllerTestData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/sources/{id}/test';
+};
+
+export type SourcesControllerTestResponses = {
+    200: SourceTestResultDto;
+};
+
+export type SourcesControllerTestResponse = SourcesControllerTestResponses[keyof SourcesControllerTestResponses];
+
+export type OnboardingControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding';
+};
+
+export type OnboardingControllerGetResponses = {
+    200: Array<OnboardingGroupDto>;
+};
+
+export type OnboardingControllerGetResponse = OnboardingControllerGetResponses[keyof OnboardingControllerGetResponses];
+
+export type OnboardingControllerUntickData = {
+    body?: never;
+    path: {
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
+};
+
+export type OnboardingControllerUntickResponses = {
+    204: void;
+};
+
+export type OnboardingControllerUntickResponse = OnboardingControllerUntickResponses[keyof OnboardingControllerUntickResponses];
+
+export type OnboardingControllerTickData = {
+    body?: never;
+    path: {
+        itemId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
+};
+
+export type OnboardingControllerTickResponses = {
+    204: void;
+};
+
+export type OnboardingControllerTickResponse = OnboardingControllerTickResponses[keyof OnboardingControllerTickResponses];
 
 export type TasksControllerReadyData = {
     body?: never;
@@ -3321,377 +3692,6 @@ export type HealthControllerReadyData = {
 export type HealthControllerReadyResponses = {
     200: unknown;
 };
-
-export type WorkspacesControllerListData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces';
-};
-
-export type WorkspacesControllerListResponses = {
-    200: Array<ProjectListItemDto>;
-};
-
-export type WorkspacesControllerListResponse = WorkspacesControllerListResponses[keyof WorkspacesControllerListResponses];
-
-export type WorkspacesControllerCreateData = {
-    body: CreateProjectDto;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces';
-};
-
-export type WorkspacesControllerCreateResponses = {
-    201: ProjectDto;
-};
-
-export type WorkspacesControllerCreateResponse = WorkspacesControllerCreateResponses[keyof WorkspacesControllerCreateResponses];
-
-export type WorkspacesControllerGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}';
-};
-
-export type WorkspacesControllerGetResponses = {
-    200: ProjectDetailDto;
-};
-
-export type WorkspacesControllerGetResponse = WorkspacesControllerGetResponses[keyof WorkspacesControllerGetResponses];
-
-export type WorkspacesControllerUpdateData = {
-    body: UpdateProjectDto;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}';
-};
-
-export type WorkspacesControllerUpdateResponses = {
-    200: ProjectDto;
-};
-
-export type WorkspacesControllerUpdateResponse = WorkspacesControllerUpdateResponses[keyof WorkspacesControllerUpdateResponses];
-
-export type WorkspacesControllerCloseData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/close';
-};
-
-export type WorkspacesControllerCloseResponses = {
-    200: ProjectDto;
-};
-
-export type WorkspacesControllerCloseResponse = WorkspacesControllerCloseResponses[keyof WorkspacesControllerCloseResponses];
-
-export type WorkspacesControllerReopenData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/reopen';
-};
-
-export type WorkspacesControllerReopenResponses = {
-    200: ProjectDto;
-};
-
-export type WorkspacesControllerReopenResponse = WorkspacesControllerReopenResponses[keyof WorkspacesControllerReopenResponses];
-
-export type MembersControllerListData = {
-    body?: never;
-    path?: never;
-    query?: {
-        cursor?: string;
-        limit?: number;
-    };
-    url: '/api/v1/workspaces/{ws}/members';
-};
-
-export type MembersControllerListResponses = {
-    200: Array<MemberRowDto>;
-};
-
-export type MembersControllerListResponse = MembersControllerListResponses[keyof MembersControllerListResponses];
-
-export type MembersControllerChangeRolesData = {
-    body: UpdateMemberRolesDto;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}';
-};
-
-export type MembersControllerChangeRolesResponses = {
-    200: MemberRowDto;
-};
-
-export type MembersControllerChangeRolesResponse = MembersControllerChangeRolesResponses[keyof MembersControllerChangeRolesResponses];
-
-export type MembersControllerRemoveData = {
-    body?: never;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}/remove';
-};
-
-export type MembersControllerRemoveResponses = {
-    204: void;
-};
-
-export type MembersControllerRemoveResponse = MembersControllerRemoveResponses[keyof MembersControllerRemoveResponses];
-
-export type MembersControllerDisableData = {
-    body?: never;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}/disable';
-};
-
-export type MembersControllerDisableResponses = {
-    204: void;
-};
-
-export type MembersControllerDisableResponse = MembersControllerDisableResponses[keyof MembersControllerDisableResponses];
-
-export type MembersControllerEnableData = {
-    body?: never;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}/enable';
-};
-
-export type MembersControllerEnableResponses = {
-    204: void;
-};
-
-export type MembersControllerEnableResponse = MembersControllerEnableResponses[keyof MembersControllerEnableResponses];
-
-export type MembersControllerPasswordResetLinkData = {
-    body?: never;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}/password-reset-link';
-};
-
-export type MembersControllerPasswordResetLinkResponses = {
-    201: {
-        url?: string;
-    };
-};
-
-export type MembersControllerPasswordResetLinkResponse = MembersControllerPasswordResetLinkResponses[keyof MembersControllerPasswordResetLinkResponses];
-
-export type MembersControllerSetGithubLoginsData = {
-    body: GithubLoginsDto;
-    path: {
-        userId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/members/{userId}/github-logins';
-};
-
-export type MembersControllerSetGithubLoginsResponses = {
-    200: GithubLoginsDto;
-};
-
-export type MembersControllerSetGithubLoginsResponse = MembersControllerSetGithubLoginsResponses[keyof MembersControllerSetGithubLoginsResponses];
-
-export type SettingsControllerListData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/settings';
-};
-
-export type SettingsControllerListResponses = {
-    200: Array<SettingRowDto>;
-};
-
-export type SettingsControllerListResponse = SettingsControllerListResponses[keyof SettingsControllerListResponses];
-
-export type SettingsControllerCatalogueData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/settings/catalogue';
-};
-
-export type SettingsControllerCatalogueResponses = {
-    200: Array<SettingCatalogueRowDto>;
-};
-
-export type SettingsControllerCatalogueResponse = SettingsControllerCatalogueResponses[keyof SettingsControllerCatalogueResponses];
-
-export type SettingsControllerResetData = {
-    body?: never;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/settings/{key}';
-};
-
-export type SettingsControllerResetResponses = {
-    200: SettingRowDto;
-};
-
-export type SettingsControllerResetResponse = SettingsControllerResetResponses[keyof SettingsControllerResetResponses];
-
-export type SettingsControllerPutData = {
-    body: PutSettingDto;
-    path: {
-        key: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/settings/{key}';
-};
-
-export type SettingsControllerPutResponses = {
-    200: SettingRowDto;
-};
-
-export type SettingsControllerPutResponse = SettingsControllerPutResponses[keyof SettingsControllerPutResponses];
-
-export type SourcesControllerListData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources';
-};
-
-export type SourcesControllerListResponses = {
-    200: Array<SourceDtoHttp>;
-};
-
-export type SourcesControllerListResponse = SourcesControllerListResponses[keyof SourcesControllerListResponses];
-
-export type SourcesControllerCreateData = {
-    body: CreateSourceDto;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources';
-};
-
-export type SourcesControllerCreateResponses = {
-    201: SourceDtoHttp;
-};
-
-export type SourcesControllerCreateResponse = SourcesControllerCreateResponses[keyof SourcesControllerCreateResponses];
-
-export type SourcesControllerRemoveData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources/{id}';
-};
-
-export type SourcesControllerRemoveResponses = {
-    204: void;
-};
-
-export type SourcesControllerRemoveResponse = SourcesControllerRemoveResponses[keyof SourcesControllerRemoveResponses];
-
-export type SourcesControllerGetData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources/{id}';
-};
-
-export type SourcesControllerGetResponses = {
-    200: SourceDtoHttp;
-};
-
-export type SourcesControllerGetResponse = SourcesControllerGetResponses[keyof SourcesControllerGetResponses];
-
-export type SourcesControllerUpdateData = {
-    body: UpdateSourceDto;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources/{id}';
-};
-
-export type SourcesControllerUpdateResponses = {
-    200: SourceDtoHttp;
-};
-
-export type SourcesControllerUpdateResponse = SourcesControllerUpdateResponses[keyof SourcesControllerUpdateResponses];
-
-export type SourcesControllerTestData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/sources/{id}/test';
-};
-
-export type SourcesControllerTestResponses = {
-    200: SourceTestResultDto;
-};
-
-export type SourcesControllerTestResponse = SourcesControllerTestResponses[keyof SourcesControllerTestResponses];
-
-export type OnboardingControllerGetData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/onboarding';
-};
-
-export type OnboardingControllerGetResponses = {
-    200: Array<OnboardingGroupDto>;
-};
-
-export type OnboardingControllerGetResponse = OnboardingControllerGetResponses[keyof OnboardingControllerGetResponses];
-
-export type OnboardingControllerUntickData = {
-    body?: never;
-    path: {
-        itemId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
-};
-
-export type OnboardingControllerUntickResponses = {
-    204: void;
-};
-
-export type OnboardingControllerUntickResponse = OnboardingControllerUntickResponses[keyof OnboardingControllerUntickResponses];
-
-export type OnboardingControllerTickData = {
-    body?: never;
-    path: {
-        itemId: string;
-    };
-    query?: never;
-    url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done';
-};
-
-export type OnboardingControllerTickResponses = {
-    204: void;
-};
-
-export type OnboardingControllerTickResponse = OnboardingControllerTickResponses[keyof OnboardingControllerTickResponses];
 
 export type CaptureControllerSessionData = {
     body: HookSessionDto;

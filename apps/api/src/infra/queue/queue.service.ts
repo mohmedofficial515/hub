@@ -22,6 +22,7 @@ import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 export const QUEUES = {
   outbox: 'hub-outbox',
   capture: 'hub-capture',
+  sessions: 'hub-sessions',
   digests: 'hub-digests',
   reminders: 'hub-reminders',
 } as const;

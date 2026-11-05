@@ -36,5 +36,6 @@ import { PlansController } from './presentation/http/plans.controller';
     PlanToTasksAction,
     PlanSyncStepAction,
   ],
+  exports: [PlanReadService],
 })
 export class PlansModule {}

@@ -28,7 +28,6 @@ import { CardActionRegistry, CardService, type CardView } from '@/modules/cards'
 const DEFERRED: Readonly<Partial<Record<PermissionAction, string>>> = {
   'decision.open_adr_pr': 'H3-06',
   'redesign.rescan': 'H2-05',
-  'change.create': 'H1-02',
 };
 
 const CARD_PREFIXES = [

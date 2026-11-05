@@ -439,6 +439,185 @@ export const inboxControllerArchive = <ThrowOnError extends boolean = false>(opt
 export const inboxControllerUnarchive = <ThrowOnError extends boolean = false>(options: Options<InboxControllerUnarchiveData, ThrowOnError>) => (options.client ?? client).post<InboxControllerUnarchiveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/inbox/{id}/unarchive', ...options });
 
 /**
+ * The member’s projects, with what is waiting in each
+ */
+export const workspacesControllerList = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerListData, ThrowOnError>) => (options?.client ?? client).get<WorkspacesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces', ...options });
+
+/**
+ * Create a project. The creator becomes its owner
+ */
+export const workspacesControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WorkspacesControllerCreateData, ThrowOnError>) => (options.client ?? client).post<WorkspacesControllerCreateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * One project with the member’s roles and its counts
+ */
+export const workspacesControllerGet = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerGetData, ThrowOnError>) => (options?.client ?? client).get<WorkspacesControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}', ...options });
+
+/**
+ * Change a project’s details
+ */
+export const workspacesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WorkspacesControllerUpdateData, ThrowOnError>) => (options.client ?? client).patch<WorkspacesControllerUpdateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Close a project. It stays readable and can be reopened
+ */
+export const workspacesControllerClose = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerCloseData, ThrowOnError>) => (options?.client ?? client).post<WorkspacesControllerCloseResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/close', ...options });
+
+/**
+ * Reopen a closed project
+ */
+export const workspacesControllerReopen = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerReopenData, ThrowOnError>) => (options?.client ?? client).post<WorkspacesControllerReopenResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/reopen', ...options });
+
+/**
+ * The project’s members, oldest first
+ */
+export const membersControllerList = <ThrowOnError extends boolean = false>(options?: Options<MembersControllerListData, ThrowOnError>) => (options?.client ?? client).get<MembersControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members', ...options });
+
+/**
+ * Replace a member’s roles
+ */
+export const membersControllerChangeRoles = <ThrowOnError extends boolean = false>(options: Options<MembersControllerChangeRolesData, ThrowOnError>) => (options.client ?? client).patch<MembersControllerChangeRolesResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/members/{userId}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove a member from the project
+ */
+export const membersControllerRemove = <ThrowOnError extends boolean = false>(options: Options<MembersControllerRemoveData, ThrowOnError>) => (options.client ?? client).post<MembersControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/remove', ...options });
+
+/**
+ * Remove a member; the account is disabled when this was their only project
+ */
+export const membersControllerDisable = <ThrowOnError extends boolean = false>(options: Options<MembersControllerDisableData, ThrowOnError>) => (options.client ?? client).post<MembersControllerDisableResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/disable', ...options });
+
+/**
+ * Bring a removed or disabled member back
+ */
+export const membersControllerEnable = <ThrowOnError extends boolean = false>(options: Options<MembersControllerEnableData, ThrowOnError>) => (options.client ?? client).post<MembersControllerEnableResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/enable', ...options });
+
+/**
+ * A reset link to hand to the member. Shown this one time
+ */
+export const membersControllerPasswordResetLink = <ThrowOnError extends boolean = false>(options: Options<MembersControllerPasswordResetLinkData, ThrowOnError>) => (options.client ?? client).post<MembersControllerPasswordResetLinkResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/password-reset-link', ...options });
+
+/**
+ * Replace the GitHub logins that map to this member
+ */
+export const membersControllerSetGithubLogins = <ThrowOnError extends boolean = false>(options: Options<MembersControllerSetGithubLoginsData, ThrowOnError>) => (options.client ?? client).put<MembersControllerSetGithubLoginsResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/members/{userId}/github-logins',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Every setting with its value and default
+ */
+export const settingsControllerList = <ThrowOnError extends boolean = false>(options?: Options<SettingsControllerListData, ThrowOnError>) => (options?.client ?? client).get<SettingsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings', ...options });
+
+/**
+ * What each setting means and what it accepts
+ */
+export const settingsControllerCatalogue = <ThrowOnError extends boolean = false>(options?: Options<SettingsControllerCatalogueData, ThrowOnError>) => (options?.client ?? client).get<SettingsControllerCatalogueResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings/catalogue', ...options });
+
+/**
+ * Put one setting back to its default
+ */
+export const settingsControllerReset = <ThrowOnError extends boolean = false>(options: Options<SettingsControllerResetData, ThrowOnError>) => (options.client ?? client).delete<SettingsControllerResetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings/{key}', ...options });
+
+/**
+ * Change one setting
+ */
+export const settingsControllerPut = <ThrowOnError extends boolean = false>(options: Options<SettingsControllerPutData, ThrowOnError>) => (options.client ?? client).put<SettingsControllerPutResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/settings/{key}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * The project’s sources. A secret shows only as `hasSecret`
+ */
+export const sourcesControllerList = <ThrowOnError extends boolean = false>(options?: Options<SourcesControllerListData, ThrowOnError>) => (options?.client ?? client).get<SourcesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources', ...options });
+
+/**
+ * Add a source. A secret may be set from the web only
+ */
+export const sourcesControllerCreate = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerCreateData, ThrowOnError>) => (options.client ?? client).post<SourcesControllerCreateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/sources',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a source. Its history stays
+ */
+export const sourcesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerRemoveData, ThrowOnError>) => (options.client ?? client).delete<SourcesControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}', ...options });
+
+/**
+ * One source
+ */
+export const sourcesControllerGet = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerGetData, ThrowOnError>) => (options.client ?? client).get<SourcesControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}', ...options });
+
+/**
+ * Change, enable or disable a source. Null clears its secret
+ */
+export const sourcesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerUpdateData, ThrowOnError>) => (options.client ?? client).patch<SourcesControllerUpdateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/sources/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Check that the source can be reached
+ */
+export const sourcesControllerTest = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerTestData, ThrowOnError>) => (options.client ?? client).post<SourcesControllerTestResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}/test', ...options });
+
+/**
+ * The reading path of each role the member holds
+ */
+export const onboardingControllerGet = <ThrowOnError extends boolean = false>(options?: Options<OnboardingControllerGetData, ThrowOnError>) => (options?.client ?? client).get<OnboardingControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding', ...options });
+
+/**
+ * Untick an item
+ */
+export const onboardingControllerUntick = <ThrowOnError extends boolean = false>(options: Options<OnboardingControllerUntickData, ThrowOnError>) => (options.client ?? client).delete<OnboardingControllerUntickResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done', ...options });
+
+/**
+ * Tick an item
+ */
+export const onboardingControllerTick = <ThrowOnError extends boolean = false>(options: Options<OnboardingControllerTickData, ThrowOnError>) => (options.client ?? client).post<OnboardingControllerTickResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done', ...options });
+
+/**
  * Ready, unblocked tasks for my specialties
  */
 export const tasksControllerReady = <ThrowOnError extends boolean = false>(options?: Options<TasksControllerReadyData, ThrowOnError>) => (options?.client ?? client).get<TasksControllerReadyResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/tasks/ready', ...options });
@@ -983,185 +1162,6 @@ export const healthControllerLive = <ThrowOnError extends boolean = false>(optio
  * Postgres, Redis and the repos folder are usable
  */
 export const healthControllerReady = <ThrowOnError extends boolean = false>(options?: Options<HealthControllerReadyData, ThrowOnError>) => (options?.client ?? client).get<HealthControllerReadyResponses, unknown, ThrowOnError>({ url: '/api/v1/health/ready', ...options });
-
-/**
- * The member’s projects, with what is waiting in each
- */
-export const workspacesControllerList = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerListData, ThrowOnError>) => (options?.client ?? client).get<WorkspacesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces', ...options });
-
-/**
- * Create a project. The creator becomes its owner
- */
-export const workspacesControllerCreate = <ThrowOnError extends boolean = false>(options: Options<WorkspacesControllerCreateData, ThrowOnError>) => (options.client ?? client).post<WorkspacesControllerCreateResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * One project with the member’s roles and its counts
- */
-export const workspacesControllerGet = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerGetData, ThrowOnError>) => (options?.client ?? client).get<WorkspacesControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}', ...options });
-
-/**
- * Change a project’s details
- */
-export const workspacesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<WorkspacesControllerUpdateData, ThrowOnError>) => (options.client ?? client).patch<WorkspacesControllerUpdateResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Close a project. It stays readable and can be reopened
- */
-export const workspacesControllerClose = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerCloseData, ThrowOnError>) => (options?.client ?? client).post<WorkspacesControllerCloseResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/close', ...options });
-
-/**
- * Reopen a closed project
- */
-export const workspacesControllerReopen = <ThrowOnError extends boolean = false>(options?: Options<WorkspacesControllerReopenData, ThrowOnError>) => (options?.client ?? client).post<WorkspacesControllerReopenResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/reopen', ...options });
-
-/**
- * The project’s members, oldest first
- */
-export const membersControllerList = <ThrowOnError extends boolean = false>(options?: Options<MembersControllerListData, ThrowOnError>) => (options?.client ?? client).get<MembersControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members', ...options });
-
-/**
- * Replace a member’s roles
- */
-export const membersControllerChangeRoles = <ThrowOnError extends boolean = false>(options: Options<MembersControllerChangeRolesData, ThrowOnError>) => (options.client ?? client).patch<MembersControllerChangeRolesResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/members/{userId}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Remove a member from the project
- */
-export const membersControllerRemove = <ThrowOnError extends boolean = false>(options: Options<MembersControllerRemoveData, ThrowOnError>) => (options.client ?? client).post<MembersControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/remove', ...options });
-
-/**
- * Remove a member; the account is disabled when this was their only project
- */
-export const membersControllerDisable = <ThrowOnError extends boolean = false>(options: Options<MembersControllerDisableData, ThrowOnError>) => (options.client ?? client).post<MembersControllerDisableResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/disable', ...options });
-
-/**
- * Bring a removed or disabled member back
- */
-export const membersControllerEnable = <ThrowOnError extends boolean = false>(options: Options<MembersControllerEnableData, ThrowOnError>) => (options.client ?? client).post<MembersControllerEnableResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/enable', ...options });
-
-/**
- * A reset link to hand to the member. Shown this one time
- */
-export const membersControllerPasswordResetLink = <ThrowOnError extends boolean = false>(options: Options<MembersControllerPasswordResetLinkData, ThrowOnError>) => (options.client ?? client).post<MembersControllerPasswordResetLinkResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/members/{userId}/password-reset-link', ...options });
-
-/**
- * Replace the GitHub logins that map to this member
- */
-export const membersControllerSetGithubLogins = <ThrowOnError extends boolean = false>(options: Options<MembersControllerSetGithubLoginsData, ThrowOnError>) => (options.client ?? client).put<MembersControllerSetGithubLoginsResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/members/{userId}/github-logins',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Every setting with its value and default
- */
-export const settingsControllerList = <ThrowOnError extends boolean = false>(options?: Options<SettingsControllerListData, ThrowOnError>) => (options?.client ?? client).get<SettingsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings', ...options });
-
-/**
- * What each setting means and what it accepts
- */
-export const settingsControllerCatalogue = <ThrowOnError extends boolean = false>(options?: Options<SettingsControllerCatalogueData, ThrowOnError>) => (options?.client ?? client).get<SettingsControllerCatalogueResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings/catalogue', ...options });
-
-/**
- * Put one setting back to its default
- */
-export const settingsControllerReset = <ThrowOnError extends boolean = false>(options: Options<SettingsControllerResetData, ThrowOnError>) => (options.client ?? client).delete<SettingsControllerResetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/settings/{key}', ...options });
-
-/**
- * Change one setting
- */
-export const settingsControllerPut = <ThrowOnError extends boolean = false>(options: Options<SettingsControllerPutData, ThrowOnError>) => (options.client ?? client).put<SettingsControllerPutResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/settings/{key}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * The project’s sources. A secret shows only as `hasSecret`
- */
-export const sourcesControllerList = <ThrowOnError extends boolean = false>(options?: Options<SourcesControllerListData, ThrowOnError>) => (options?.client ?? client).get<SourcesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources', ...options });
-
-/**
- * Add a source. A secret may be set from the web only
- */
-export const sourcesControllerCreate = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerCreateData, ThrowOnError>) => (options.client ?? client).post<SourcesControllerCreateResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/sources',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a source. Its history stays
- */
-export const sourcesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerRemoveData, ThrowOnError>) => (options.client ?? client).delete<SourcesControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}', ...options });
-
-/**
- * One source
- */
-export const sourcesControllerGet = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerGetData, ThrowOnError>) => (options.client ?? client).get<SourcesControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}', ...options });
-
-/**
- * Change, enable or disable a source. Null clears its secret
- */
-export const sourcesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerUpdateData, ThrowOnError>) => (options.client ?? client).patch<SourcesControllerUpdateResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/sources/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Check that the source can be reached
- */
-export const sourcesControllerTest = <ThrowOnError extends boolean = false>(options: Options<SourcesControllerTestData, ThrowOnError>) => (options.client ?? client).post<SourcesControllerTestResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/sources/{id}/test', ...options });
-
-/**
- * The reading path of each role the member holds
- */
-export const onboardingControllerGet = <ThrowOnError extends boolean = false>(options?: Options<OnboardingControllerGetData, ThrowOnError>) => (options?.client ?? client).get<OnboardingControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding', ...options });
-
-/**
- * Untick an item
- */
-export const onboardingControllerUntick = <ThrowOnError extends boolean = false>(options: Options<OnboardingControllerUntickData, ThrowOnError>) => (options.client ?? client).delete<OnboardingControllerUntickResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done', ...options });
-
-/**
- * Tick an item
- */
-export const onboardingControllerTick = <ThrowOnError extends boolean = false>(options: Options<OnboardingControllerTickData, ThrowOnError>) => (options.client ?? client).post<OnboardingControllerTickResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/onboarding/{itemId}/done', ...options });
 
 /**
  * Git facts of a finished Claude Code session, from the SessionEnd hook

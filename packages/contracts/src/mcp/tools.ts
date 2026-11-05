@@ -914,9 +914,21 @@ const TOOL_TABLE = {
     readOnly: true,
   },
   read_notification: {
-    description: 'Mark one notification as read, or all of them with `all: true`.',
-    input: z.object({ notificationId: z.uuid().optional(), all: z.boolean().optional() }),
+    description:
+      'Mark one notification read, unread, archived or unarchived with `state`, or read all with `all: true`.',
+    input: z.object({
+      notificationId: z.uuid().optional(),
+      state: z.enum(['read', 'unread', 'archived', 'unarchived']).optional(),
+      all: z.boolean().optional(),
+    }),
     actions: ['notification.read'],
+    routes: [
+      `POST ${W}/inbox/read-all`,
+      `POST ${W}/inbox/:id/read`,
+      `POST ${W}/inbox/:id/unread`,
+      `POST ${W}/inbox/:id/archive`,
+      `POST ${W}/inbox/:id/unarchive`,
+    ],
   },
   get_onboarding: {
     description: 'The reading path of each role you hold, and what you have done.',

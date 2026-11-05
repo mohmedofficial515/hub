@@ -67,6 +67,7 @@ import { MeController } from './presentation/http/me.controller';
     AccountAdmin,
     ActorService,
     InviteService,
+    MeService,
     OwnerSeed,
     PRINCIPAL_RESOLVER,
     SecretCipher,

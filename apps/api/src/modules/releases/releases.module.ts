@@ -13,5 +13,6 @@ import { ReleasesController } from './presentation/http/releases.controller';
   imports: [CardsModule],
   controllers: [ReleasesController],
   providers: [ReleaseNotesService, ReleaseCreateAction, ReleaseEditAction, ReleaseReleaseAction],
+  exports: [ReleaseNotesService],
 })
 export class ReleasesModule {}
