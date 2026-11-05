@@ -238,7 +238,9 @@ describe('Inbox', () => {
       return undefined;
     });
     mount(<InboxPage />);
-    expect(await screen.findByText('Item a')).toBeInTheDocument();
+    // Written from the live card, not the title stored with the item.
+    expect(await screen.findByText('Title of card 1')).toBeInTheDocument();
+    expect(screen.queryByText('Item a')).toBeNull();
     expect(screen.getByRole('button', { name: kit.actions.decide })).toBeInTheDocument();
     screen.getByRole('button', { name: inbox.row.archive }).click();
     await waitFor(() => expect(calls.some((c) => c.path.endsWith('/archive'))).toBe(true));
