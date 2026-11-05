@@ -1,5 +1,5 @@
 /**
- * @file `pnpm stop:local`: stops the API and web of a `pnpm start:local` whose terminal is gone. Only those processes, and never the containers.
+ * @file `pnpm stop:local`: stops the API, web and lab of a `pnpm start:local` whose terminal is gone. Only those processes, and never the containers.
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';

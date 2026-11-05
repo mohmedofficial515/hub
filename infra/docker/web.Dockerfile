@@ -3,8 +3,8 @@ FROM node:22-bookworm-slim
 RUN corepack enable
 ENV HUSKY=0
 ARG HUB_API_ORIGIN=http://api:7310
-ARG NEXT_PUBLIC_LAB_URL=http://localhost:6200
-ENV HUB_API_ORIGIN=$HUB_API_ORIGIN NEXT_PUBLIC_LAB_URL=$NEXT_PUBLIC_LAB_URL NEXT_TELEMETRY_DISABLED=1
+ARG HUB_LAB_ORIGIN=http://lab:7320
+ENV HUB_API_ORIGIN=$HUB_API_ORIGIN HUB_LAB_ORIGIN=$HUB_LAB_ORIGIN NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile --filter @hub/web... --filter hub --ignore-scripts \

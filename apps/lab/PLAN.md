@@ -2,7 +2,7 @@
 
 Status: **Phase 0 + 1 done (2026-10-27)** · next: Phase 2 when the owner names a page
 
-A sandbox at `F:/Goteav/redesign/` where pages of the public site (`web/`) and the
+Moved into Hub as `apps/lab` on 2026-11-06 (`docs/16-workbench.md` §6). A sandbox where pages of the public site (`web/`) and the
 dashboard (`Goteav-Dashboard/`) are redesigned as numbered versions, compared, reviewed,
 and only after explicit approval ported into the real projects.
 

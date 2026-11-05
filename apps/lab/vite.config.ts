@@ -12,7 +12,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 
-const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = realpathSync(path.dirname(fileURLToPath(import.meta.url)));
 const WEB_SRC = path.resolve(ROOT, process.env.LAB_WEB_SRC ?? '../../../web/src');
 const DASH_SRC = path.resolve(ROOT, process.env.LAB_DASH_SRC ?? '../../../Goteav-Dashboard/src');
 const PORT = Number(process.env.LAB_PORT ?? 7320);

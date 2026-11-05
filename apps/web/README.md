@@ -1,7 +1,7 @@
 # @hub/web
 
 The contract for anyone adding a page. Next.js 15, Tailwind v4, next-intl, TanStack Query, on the approved design
-`F:/Goteav/redesign/hub/today/v5-peacock-app` (docs/15 D31). Look and behaviour stay that design's. Its `kit/README.md` is the
+`apps/lab/hub/today/v5-peacock-app` (docs/15 D31). Look and behaviour stay that design's. Its `kit/README.md` is the
 source of this file, and its `README.md` section "Review answered" and `review.md` say why things are the way they are. Read both
 before porting a page.
 
@@ -31,6 +31,7 @@ apps/web/
 ## How the app runs
 
 - **The signed-in app renders in the browser only** (`components/shell/workspace-gate-loader.tsx`, `ssr: false`), as the design did. `window` and `document` are safe in anything under `[ws]` and `/workspaces`. Auth pages are server-rendered, so they must not read data during render.
+- **The lab is behind the web origin too.** `/lab` goes to `HUB_LAB_ORIGIN` (default `http://127.0.0.1:7320`), guarded in `middleware.ts`. See docs/16 §6. Redesign's Gallery view is `components/redesign/lab-gallery.tsx`, its rules are `features/redesign/gallery.ts`, and a version's address from anywhere is `hrefFor('redesign', { card: null, query: versionQuery(r) })`.
 - **The API is behind the web origin.** `next.config.ts` rewrites `/api/v1` to `HUB_API_ORIGIN`, so cookies are first-party and SSE is same-origin. Rewrites are fixed at `next build`, so an image must have `HUB_API_ORIGIN` set when it builds. `compress: false` is required: gzip through the proxy holds SSE frames back and the stream looks dead.
 - **Session.** `lib/api/client.ts` sends `X-Requested-With: hub`. On a 401 it refreshes and retries once, except on wrong credentials. Refresh is one flight across tabs (Web Locks), because the API treats a parallel refresh as token reuse and revokes the family. A failed refresh ends the session and goes to sign-in. `totp_setup_required` goes to `/totp?setup=1` and comes back afterwards. A seeded owner must enrol before any project route answers.
 
@@ -252,7 +253,7 @@ All of `kit/README.md` § Rules stands. ESLint's `hub/no-raw-palette` (`tools/es
 
 ## Components
 
-Props and notes are in `F:/Goteav/redesign/hub/today/v5-peacock-app/kit/README.md` § Components, and stand unchanged, all from `@/components/kit`: `TypeIcon TypeDot TypeBadge StatusBadge Pill MineMark PriorityBadge RoleBadge CardKey CardChip Avatar ActorChip RelativeTime CopyButton Kbd Tooltip`,
+Props and notes are in `apps/lab/hub/today/v5-peacock-app/kit/README.md` § Components, and stand unchanged, all from `@/components/kit`: `TypeIcon TypeDot TypeBadge StatusBadge Pill MineMark PriorityBadge RoleBadge CardKey CardChip Avatar ActorChip RelativeTime CopyButton Kbd Tooltip`,
 `Button IconButton Field TextInput Textarea Select detectSecret SecretFilterError Modal ConfirmDialog Segmented ChipGroup PickField RowAction RowMenu RoleChecks CommandBlock ShownOnce CardPicker DocPicker`,
 `PageContainer PageHeader SectionHeader EmptyState ErrorState Skeleton SkeletonRow SkeletonRows LoadingRegion FilterBar`, `Lightbox MarkdownView`, `CardRow useKeyboardList showToast`.
 

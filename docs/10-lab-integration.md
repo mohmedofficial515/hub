@@ -1,5 +1,7 @@
 # 10 — Lab integration
 
+> **Workbench release (docs/16 §6) wins over this document.** The lab is `apps/lab`, run by `pnpm start:local` on 7320 and served by Hub's own proxy at `/lab`, same origin, for signed-in members. There is no `LAB_URL`, no `.hub/lab.config.json` and no Caddy stage yet. A write changes the file with no commit. §2 and §3 below stay as the plan for a later hosted setup. The path table in §7 is applied by the owner, from the diff the Workbench slice prepared.
+
 How the redesign lab (`F:\Goteav\redesign`) becomes `apps/lab` inside the Hub monorepo, how Hub
 reads versions into `redesign` cards, how decisions flow back into the lab's front-matter, and how
 the existing redesign agents keep working. The scanner algorithm itself is specified in

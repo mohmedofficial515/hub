@@ -172,7 +172,7 @@ Prompts are in `packages/contracts/src/mcp/prompts.ts`, resources in `hub-mcp-se
 ## Sources and local path mode
 
 `SourceRunnerService` (`@/modules/system`) is the one way to run a `local_path` source: `open` then `finish`, or `POST /sources/{id}/run`.
-`pnpm seed:sources` adds the folders of docs/15 §3. Tests build temp copies; nothing may write to the real `LAB_ROOT` from a test.
+`pnpm seed:sources` adds the folders of docs/15 §3, with the lab at `LAB_ROOT` or else `apps/lab`. `pnpm lab:repoint [--rescan]` moves an existing lab source there and rewrites stored version addresses; no card or key changes. Tests build temp copies; nothing may write to a real lab from a test.
 An adapter that touches hundreds of cards sets `quiet: true` on its plans and announces the run itself. One whose truth lives elsewhere moves
 the status with `plan.status`.
 

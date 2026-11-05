@@ -17,7 +17,7 @@ hub/
 ├── apps/
 │   ├── api/                             # NestJS: REST + MCP + worker (one image, PROCESS_ROLE)
 │   ├── web/                             # Next.js 15 app
-│   └── lab/                             # DEFERRED (docs/15 §3): the lab stays in F:\Goteav\redesign, read through LAB_ROOT
+│   └── lab/                             # The redesign lab: Vite, versions and screenshots, served by Hub at /lab (docs/16 §6)
 ├── packages/
 │   ├── contracts/                       # @hub/contracts — Zod schemas + TS types shared by api, web, team-pack
 │   └── team-pack/                       # @hub/team-pack — Claude Code plugin + `hub` CLI installer
@@ -143,22 +143,20 @@ apps/web/
 
 ## apps/lab
 
-**Deferred for the first release (docs/15 §3):** there is no `apps/lab` yet, because moving it edits
-global agent files. The section below describes the later move (H2-04).
-
-The current `F:\Goteav\redesign` tree moves here unchanged except paths:
+The lab tree, copied from `F:\Goteav\redesign` in the Workbench release (docs/16 §6), unchanged except paths:
 
 ```
 apps/lab/
 ├── package.json  vite.config.ts  tsconfig.json  README.md  PLAN.md
 ├── lab/  shared/  _templates/  web/<page>/…  dashboard/<page>/…      # as today
-└── .hub/lab.config.json                 # { "sources": { "web": "../../..//goteav-web/src", "dashboard": "../../../goteav-dashboard/src" } } — overridable by env LAB_WEB_SRC / LAB_DASH_SRC
 ```
 
-`vite.config.ts` reads the two source roots from env or `lab.config.json` instead of the hard-coded
-`../web/src` / `../Goteav-Dashboard/src`; on a developer machine with the Goteav checkouts next to
-`hub/` nothing else changes. On the host the `lab` image build clones the two repos at build time
-(`13-operations.md` §5). Base path `/lab/` (`vite build --base=/lab/`).
+`vite.config.ts` reads the two source roots from `LAB_WEB_SRC` and `LAB_DASH_SRC`, by default
+`../../../web/src` and `../../../Goteav-Dashboard/src`, so a machine with the Goteav checkouts next to
+`hub/` needs nothing. Base path `/lab/`, on the dev server too, because Hub's proxy serves it there. The lab
+only reads those projects. Version folders keep their exact bytes (`.gitattributes`), and ESLint and Prettier skip
+`apps/lab`. Its `typecheck` covers the gallery core; `typecheck:versions` is the slow one over every version and the
+sibling projects, and is not part of `pnpm check`. `build:static` is not part of `pnpm build`.
 
 ## packages/contracts
 

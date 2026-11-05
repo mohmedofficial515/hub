@@ -1,6 +1,7 @@
 # Goteav Redesign Lab
 
-Sandbox for redesigning pages of the public site and the dashboard. See [PLAN.md](PLAN.md).
+Sandbox for redesigning pages of the public site and the dashboard. See [PLAN.md](PLAN.md). It lives in Hub as `apps/lab`: Hub's Redesign page shows it
+as its Gallery view, and Hub serves it at `/lab` (`docs/16-workbench.md` §6).
 
 ## Layout
 
@@ -22,9 +23,10 @@ _templates/                      copy these to start a page or a version
 ## Running the lab
 
 ```
-pnpm install      # once
-pnpm dev          # http://localhost:6200
-pnpm typecheck
+pnpm start:local            # from the Hub root: Hub and the lab together
+pnpm --filter @hub/lab dev  # only the lab: http://localhost:7320/lab/
+pnpm lab:check              # names any version that does not compile
+pnpm --filter @hub/lab typecheck:versions  # slow: every version and the sibling projects
 ```
 
 - `#/<app>/<page>/<version>?w=390|768|1440|fill&lang=ar|en&theme=light|dark&notes=1`
@@ -36,7 +38,7 @@ pnpm typecheck
 - Baseline screenshots named `<width>-<rtl|ltr>-<light|dark>.png` follow the toolbar mode.
 - Set `live-url` in the page README to show the running real page as a `live` entry.
 
-Port 6200 (6071–6170 is reserved by Windows on this machine).
+Port 7320 (`LAB_PORT`). The sibling projects are found by `LAB_WEB_SRC` and `LAB_DASH_SRC`, by default next to the Hub checkout, and the lab only reads them.
 
 ## Version status
 

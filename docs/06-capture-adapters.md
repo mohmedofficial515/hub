@@ -327,7 +327,7 @@ secret in a commit message → 422; repo resolution from remote URL variants (`g
 version `README.md` front-matter; Hub's approve/reject/submit actions write the front-matter back.
 **The file is the source of truth; the database follows it.**
 
-**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: lab`, with `config.path` inside `LAB_ROOT`.
+**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: lab`, with `config.path` inside `LAB_ROOT` when that is set. `pnpm seed:sources` points it at `apps/lab` by default, and `pnpm lab:repoint` moves an existing source there (docs/16 §6). `externalKey` and attachments are relative to the lab root, so a move changes no card. The cursor also says which versions have a `page.tsx`.
 It reads the folder and writes front-matter by a line edit, with no gray-matter and no commit, so comments and key order stay. Apps are the
 root's folders except `_templates`, `lab`, `shared`; a version folder matches `^v\d+-`. A version unchanged by README hash, review and
 screenshot names is skipped. A status from the file bypasses the machine through `plan.status`. Screenshots are served by `GET /lab/file`.

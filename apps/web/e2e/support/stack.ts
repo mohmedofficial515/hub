@@ -1,24 +1,35 @@
 /**
  * @file The stack the browser tests run on: real Postgres and Redis in throwaway containers, the built API, the built web.
  * @description It never reads the local Hub database: every variable the API needs is set below, and real variables win over the root
- * `.env` (`apps/api/src/config/load-env.ts`). The lab is a temp fixture, so Approve writes there and never to a real lab.
+ * `.env` (`apps/api/src/config/load-env.ts`). The lab is a temp fixture with the real lab's code, so Approve writes there and never to a real lab.
  * `E2E_SKIP_BUILD=1` reuses the last builds while writing tests.
  */
 import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { closeSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 
-import { API_PORT, API_URL, WEB_PORT, WEB_URL } from './ports';
+import { API_PORT, API_URL, LAB_PORT, WEB_PORT, WEB_URL } from './ports';
 
 const WEB_DIR = resolve(__dirname, '../..');
 const API_DIR = resolve(WEB_DIR, '../api');
 const ROOT = resolve(WEB_DIR, '../..');
-const DIST_DIR = '.next-e2e';
+const LAB_DIR = resolve(WEB_DIR, '../lab');
+const DIST_DIR = process.env['E2E_NEXT_DIST'] ?? '.next-e2e';
 
 export interface RunningStack {
   postgres: StartedPostgreSqlContainer;
@@ -44,7 +55,8 @@ function start(script: string[], cwd: string, env: NodeJS.ProcessEnv, logFile: s
 
 /** One app with one version in review per project of the run, in the shape docs/10 §1 describes, and a baseline with no README. */
 function aLab(): string {
-  const root = mkdtempSync(join(tmpdir(), 'hub-e2e-lab-'));
+  // The long name: Windows may hand out 8.3 temp paths, and the dev server compares real paths.
+  const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'hub-e2e-lab-')));
   for (const locale of ['ar', 'en']) {
     const page = join(root, 'web', `wallet-${locale}`);
     const version = join(page, 'v2-flight-path');
@@ -60,6 +72,49 @@ function aLab(): string {
       '---\nstatus: review\nbase: v1-baseline\ntitle: Flight path\ntouches-components:\n  - WalletCard\n---\n# Flight path\n\nA new wallet.\n',
     );
   }
+  return withFrames(root);
+}
+
+/** The real lab's code around fixture versions: one that renders, one that does not compile, and a baseline of pictures. */
+function withFrames(root: string): string {
+  for (const part of ['lab', 'shared']) cpSync(join(LAB_DIR, part), join(root, part), { recursive: true });
+  for (const file of ['vite.config.ts', 'package.json', 'tsconfig.json']) {
+    cpSync(join(LAB_DIR, file), join(root, file));
+  }
+  symlinkSync(join(LAB_DIR, 'node_modules'), join(root, 'node_modules'), 'junction');
+  const project = join(root, '.sibling');
+  mkdirSync(join(project, 'app'), { recursive: true });
+  mkdirSync(join(project, 'components/ui'), { recursive: true });
+  writeFileSync(join(project, 'app/globals.css'), "@import 'tailwindcss';\n");
+
+  const page = join(root, 'hub', 'frames');
+  const good = join(page, 'v2-good');
+  const broken = join(page, 'v3-broken');
+  const baseline = join(page, 'v1-baseline');
+  for (const folder of [good, broken, baseline]) mkdirSync(folder, { recursive: true });
+  writeFileSync(
+    join(page, 'README.md'),
+    '---\nstatus: designing\n---\n# Frames\n\nThe brief of this page.\n',
+  );
+  writeFileSync(
+    join(good, 'README.md'),
+    '---\nstatus: review\nbase: v1-baseline\ntitle: Good\ncreated: 2026-10-27\ntokens: inherit\n---\n# Good\n\nThe notes of the good version.\n',
+  );
+  writeFileSync(
+    join(good, 'page.tsx'),
+    'import { useLocale } from \'@lab/i18n\';\n\nexport default function Page() {\n  return <main data-testid="fixture">Frame works: {useLocale()}</main>;\n}\n',
+  );
+  writeFileSync(join(broken, 'README.md'), '---\nstatus: draft\ntitle: Broken\n---\n# Broken\n');
+  writeFileSync(join(broken, 'page.tsx'), 'export default function Page( { return <main>;\n');
+  writeFileSync(join(baseline, 'components.md'), '# Components\n');
+  // The smallest PNG: one transparent pixel.
+  writeFileSync(
+    join(baseline, '1440-ltr-light.png'),
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      'base64',
+    ),
+  );
   return root;
 }
 
@@ -109,7 +164,6 @@ export async function startStack(): Promise<RunningStack> {
     HUB_OWNER_PASSWORD: OWNER.password,
     HUB_OWNER_NAME: OWNER.name,
     LAB_ROOT: labRoot,
-    LAB_URL: 'http://localhost:6200',
     REPOS_ROOT: join(labRoot, '.repos'),
     // The real path: an invite must not wait for this, and a mail server that is absent is only a warning.
     MAIL_PROVIDER: 'smtp',
@@ -126,7 +180,7 @@ export async function startStack(): Promise<RunningStack> {
     NODE_ENV: 'production',
     NEXT_DIST_DIR: DIST_DIR,
     HUB_API_ORIGIN: API_URL,
-    NEXT_PUBLIC_LAB_URL: 'http://localhost:6200',
+    HUB_LAB_ORIGIN: `http://127.0.0.1:${LAB_PORT}`,
   };
   if (!process.env['E2E_SKIP_BUILD']) {
     run('pnpm', ['--filter', '@hub/contracts', 'build'], ROOT, process.env);
@@ -136,18 +190,33 @@ export async function startStack(): Promise<RunningStack> {
 
   const apiLog = join(logs, 'e2e-api.log');
   const webLog = join(logs, 'e2e-web.log');
+  const labLog = join(logs, 'e2e-lab.log');
   const nextBin = join(WEB_DIR, 'node_modules/next/dist/bin/next');
   const processes = [
     start(['dist/main'], API_DIR, apiEnv, apiLog),
     start([nextBin, 'start', '-p', String(WEB_PORT)], WEB_DIR, webEnv, webLog),
+    start(
+      [join(labRoot, 'node_modules/vite/bin/vite.js')],
+      labRoot,
+      {
+        ...process.env,
+        LAB_PORT: String(LAB_PORT),
+        LAB_WEB_SRC: join(labRoot, '.sibling'),
+        LAB_DASH_SRC: join(labRoot, '.sibling'),
+      },
+      labLog,
+    ),
   ];
   await waitFor(`${API_URL}/api/v1/health/ready`, 'API', apiLog);
   await waitFor(WEB_URL, 'web', webLog);
+  await waitFor(`http://127.0.0.1:${LAB_PORT}/lab/frame-hub.html`, 'lab', labLog);
   return { postgres, redis, processes, labRoot };
 }
 
 export async function stopStack(stack: RunningStack) {
   for (const child of stack.processes) child.kill();
   await Promise.all([stack.postgres.stop(), stack.redis.stop()]);
+  // The link first, so removing the folder never reaches the real packages.
+  rmSync(join(stack.labRoot, 'node_modules'), { recursive: true, force: true });
   rmSync(stack.labRoot, { recursive: true, force: true });
 }

@@ -55,8 +55,8 @@ Limits on D27, for security, which stay even for the owner:
 
 **Local path mode.** A source may be `kind: local_path` with an absolute path instead of a GitHub clone:
 - Docs indexer reads `F:/Goteav/backend/docs`, `F:/Goteav/Goteav-Dashboard/docs`, and `hub/docs`.
-- Lab scanner reads `F:/Goteav/redesign` through the env var `LAB_ROOT`. Screenshots are served through the API from that root, with path traversal blocked. The lab stays where it is and is linked by env var `LAB_URL=http://localhost:6200`. **The move in H2-04 is deferred**, because it edits global agent files.
-- Approve and reject write the status into the version's `README.md` front-matter on disk, with no commit. `redesign/` is not a Git repository. Only the owner may do it, by the same permission as the web.
+- Lab scanner reads `apps/lab`, or the folder in the env var `LAB_ROOT`. Screenshots are served through the API from that root, with path traversal blocked. **The Workbench release moved the lab into Hub and removed `LAB_URL`: docs/16 §6.**
+- Approve and reject write the status into the version's `README.md` front-matter on disk, with no commit. In `apps/lab` that change shows in `git status` until the owner commits it. Only the owner may do it, by the same permission as the web.
 
 **Deferred until the owner supplies tokens or asks:** GitHub polling (H2-01 to H2-03), web push, Telegram, email sending (H3-02 to H3-04, Mailpit is fine for invites in dev), ADR pull requests (H3-06), semantic search (H5-02), VPS (H6-03), LAN hosting. Their settings UI still exists, showing an honest "not connected" state with what is needed. Never fake data on a page: when no source feeds a section, show its empty state.
 

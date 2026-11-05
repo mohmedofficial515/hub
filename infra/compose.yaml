@@ -31,7 +31,6 @@ x-app-env: &app-env
   HUB_PUBLIC_URL: http://localhost:${HUB_WEB_PORT:-7300}
   HUB_ALLOWED_HOSTS: localhost,127.0.0.1,api
   LAB_ROOT: /data/lab
-  LAB_URL: ${LAB_URL:-http://localhost:6200}
   REPOS_ROOT: /tmp/repos
   # The API sits behind the web container's proxy. Without this every request looks like it came from that container, so the
   # per-address sign-in limit would be shared by everyone and audit rows would hold the wrong address.
@@ -126,7 +125,8 @@ services:
       args:
         # Next.js fixes its rewrites at build time. The browser only ever talks to the web origin.
         HUB_API_ORIGIN: http://api:7310
-        NEXT_PUBLIC_LAB_URL: ${LAB_URL:-http://localhost:6200}
+        # This stack runs no lab, so Redesign shows the pictures and says the lab is not running. `pnpm start:local` runs it.
+        HUB_LAB_ORIGIN: ${HUB_LAB_ORIGIN:-http://lab:7320}
     image: hub-web:local
     restart: unless-stopped
     environment:

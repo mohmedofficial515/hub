@@ -15,6 +15,7 @@
     "setup:env": "node scripts/first-run.mjs",
     "start:local": "node scripts/start-local.mjs",
     "stop:local": "node scripts/stop-local.mjs",
+    "lab:check": "node scripts/lab-check.mjs",
     "dev": "pnpm -r --parallel --filter @hub/contracts --filter ./apps/* dev",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",

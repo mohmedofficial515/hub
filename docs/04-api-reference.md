@@ -799,7 +799,7 @@ GET /workspaces/{ws}/redesign/{key}/readme       auth: session | token   200: { 
 
 GET /workspaces/{ws}/redesign/compare?a=KEY&b=KEY   auth: session | token
 200: { data: { a: Side; b: Side; commonShots: string[] /* shot names both have */ } }
-type Side = { card: CardWithDetail; shots: { name; url; width; height }[]; frameUrl: string | null /* `${LAB_URL}/frame-<app>.html#/<page>/<version>`; null when LAB_URL is unset */ }
+type Side = { card: CardWithDetail; shots: { name; url; width; height }[]; frameUrl: string | null /* `/lab/frame-<app>.html#/<page>/<version>`; null when LAB_URL is unset */ }
 
 GET /workspaces/{ws}/lab/file?path=<lab-relative path>   auth: session | token   200: the image (png, jpg, webp); anything else, or any way out of the root: 404
 // Attachments of kind `screenshot` carry this URL. Local path mode (15 §3).

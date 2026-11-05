@@ -88,6 +88,28 @@ The first-release flow keeps working as a fallback until this ships.
 6. Update `redesign-director`, `redesign-porter` and `redesign-workflow`, which are global files outside the repo, to the new path. Show the owner the diff first.
 7. Keep the old folder until the owner has checked the new one. Deleting it is a separate request.
 
+### Slice 2 as built (2026-11-06)
+
+- **Serving.** `pnpm start:local` runs the lab's dev server on 127.0.0.1:7320 (`LAB_PORT`), with its log, and stops it on Ctrl+C. `next.config.ts` rewrites `/lab` to it (`HUB_LAB_ORIGIN`, fixed at build). Rewrites also carry the HMR WebSocket. A Next rewrite turns `?import&raw` into `?import=&raw=`, so the lab puts the bare flags back before Vite reads them.
+- **Guards.** `middleware.ts` answers 404 to any `..`, backslash, NUL or dot-folder in the path, however often it was encoded, and 401 or a redirect to sign-in without a session. Vite's `server.fs.allow` lists the lab, the two `src` trees and the packages they load. Nothing else of Hub or the sibling projects is reachable. A version runs on Hub's origin, so it is trusted code, as the owner's own designs are.
+- **A broken version.** The lab compiles on demand, so one version failing shows its error in its own frame only. `pnpm lab:check` names broken versions, and `start:local` runs it once in the background. If the lab stops, Hub stays up and Redesign says so.
+- **The page.** Redesign has two views: Review (as before) and Gallery (`?view=gallery`). Links that used to leave Hub open the gallery. The lab's own gallery stays at `/lab/` for agents that drive a browser.
+- **Scanner.** `LAB_ROOT` defaults to `apps/lab`. `externalKey` was always relative, so only `source.config.path` and the stored `lab_url` held the old place: `pnpm lab:repoint` moves both.
+- **Commits.** Approve and reject write the README and commit nothing, so `apps/lab` shows those files in `git status` until the owner commits them.
+
+### Cut-over on the owner's instance
+
+Owner-run, after checking the gallery. The old folder stays until a separate request.
+
+1. Stop Hub: Ctrl+C, or `pnpm stop:local`.
+2. Copy edits made in the old folder since the move. `robocopy F:\Goteav\redesign F:\Goteav\hub\apps\lab /E /XO /FFT /XD node_modules dist .vite /XF pnpm-lock.yaml /L` lists files newer in the old folder, and copies nothing. If it names `package.json`, `tsconfig.json`, `vite.config.ts` or `lab\src\`, merge those by hand, because the new copies were changed on purpose. Run it without `/L` to copy, then `git status apps/lab` shows what changed. It does not copy deletions.
+3. In `.env`, delete the `LAB_ROOT` and `LAB_URL` lines.
+4. `pnpm start:local`, then in a second terminal `pnpm lab:repoint --rescan`. It must print `created 0, updated 0`, unless step 2 changed a README, which then counts as updated.
+5. Check: Redesign › Gallery in `ar` and `en`; Settings › System shows the lab as running; `SELECT count(*), count(DISTINCT external_key) FROM cards WHERE type = 'redesign'` gives two equal numbers.
+6. Apply the diff to the global files (§6 item 6), and commit `apps/lab` if step 2 changed it.
+
+**To go back:** restore `LAB_ROOT` in `.env` and run `pnpm lab:repoint`. That puts the source back, and scanning from there changes no card.
+
 ## 7. Slice 3: chat panel
 
 **Design first.** The panel has no approved design. Build it as a new lab version, `hub/today/v6-workbench` based on `v5-peacock-app`, run `ux-critic`, and get the owner's approval before porting. No coloured side or top edges.
