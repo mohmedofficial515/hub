@@ -276,6 +276,8 @@ export interface NewCardInput {
   ownerRole?: Role;
   priority?: Priority;
   body?: string;
+  dueAt?: string;
+  links?: { kind: LinkKind; key: string }[];
   detail?: Record<string, unknown>;
 }
 

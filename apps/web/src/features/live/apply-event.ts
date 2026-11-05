@@ -73,6 +73,7 @@ export function applyCardEvent(client: QueryClient, ws: string, event: CardEvent
   void client.invalidateQueries({ queryKey: qk.today(ws) });
   void client.invalidateQueries({ queryKey: qk.timeline(ws) });
   void client.invalidateQueries({ queryKey: qk.inbox(ws) });
+  void client.invalidateQueries({ queryKey: qk.admin(ws, 'audit') });
 }
 
 /** After a gap in the stream nothing can be assumed: every active query reads again. */

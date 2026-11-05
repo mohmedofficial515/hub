@@ -27,12 +27,11 @@
   "noMatchBody": "Try another name, or clear the role filter.",
   "noMatchAction": "Clear filters",
   "disabledTitle": "Disabled accounts",
-  "disabledOn": "Disabled {date}",
   "enable": "Enable",
   "enabled": "Enabled {name}",
   "invites": {
     "title": "Waiting to join",
-    "sent": "Invited by {name} {when}",
+    "sent": "Invited by {name}",
     "expires": "Expires {when}",
     "expiresSoon": "Expires {when}",
     "resend": "Resend",
@@ -44,7 +43,7 @@
     "resendBody": "The previous link to {email} no longer works.",
     "emptyTitle": "No pending invites",
     "emptyBody": "Everyone you invited has joined. Invite someone when you need to.",
-    "emptyBodySole": "Invite the first member to join you in this workspace."
+    "emptyBodySole": "Invite the first member to join you in this project."
   },
   "inviteDialog": {
     "title": "Invite a member",
@@ -62,7 +61,6 @@
   },
   "once": {
     "warning": "You won’t see this link again. Copy it now.",
-    "example": "Lab example, not a real link",
     "linkLabel": "Link",
     "copy": "Copy the link",
     "done": "I copied it, close"
@@ -73,14 +71,13 @@
     "roles": "Change roles",
     "github": "GitHub logins",
     "reset": "Password reset link",
-    "revoke": "Revoke all sessions and tokens",
     "disable": "Disable account"
   },
   "rolesDialog": {
     "title": "Roles of {name}",
     "hint": "MCP tokens pick up the new roles on their next request.",
     "required": "A member needs at least one role.",
-    "lastOwner": "You can’t remove the owner role from the workspace’s last owner.",
+    "lastOwner": "You can’t remove the owner role from the project’s last owner.",
     "ownerOnly": "Only an owner can change the owner role.",
     "save": "Save roles",
     "saved": "Saved roles of {name}"
@@ -96,12 +93,6 @@
   "resetDialog": {
     "title": "Password reset link",
     "body": "Send it to {name} over a safe channel. It expires in 24 hours."
-  },
-  "revokeDialog": {
-    "title": "Revoke all sessions and tokens of {name}?",
-    "body": "They are signed out everywhere, and their tokens stop from the next request. They will need to sign in and create new tokens.",
-    "action": "Revoke all",
-    "done": "Revoked sessions and tokens of {name}"
   },
   "disableDialog": {
     "title": "Disable {name}?",
@@ -128,6 +119,8 @@
     "totpEnable": "Turn on",
     "totpDisable": "Turn off",
     "save": "Save",
-    "saved": "Saved your profile"
-  }
+    "saved": "Saved your profile",
+    "totpCode": "Code from your app"
+  },
+  "neverSeen": "Not signed in yet"
 }

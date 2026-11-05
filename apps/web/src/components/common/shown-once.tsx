@@ -51,7 +51,8 @@ export function ShownOnce({
   className,
 }: {
   warning: ReactNode;
-  exampleLabel: string;
+  /** The lab's "this is an example" label. A real value passes none. */
+  exampleLabel?: string | undefined;
   children: ReactNode;
   className?: string | undefined;
 }) {
@@ -62,9 +63,11 @@ export function ShownOnce({
           <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
           {warning}
         </span>
-        <Pill tone="muted" icon={FlaskConical}>
-          {exampleLabel}
-        </Pill>
+        {exampleLabel && (
+          <Pill tone="muted" icon={FlaskConical}>
+            {exampleLabel}
+          </Pill>
+        )}
       </div>
       {children}
     </div>

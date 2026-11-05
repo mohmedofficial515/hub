@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Textarea, TextInput } from '@/components/ui/form';
 import { getCard, handoffAgeMs, isHandoffStale } from '@/features/cards/store';
 import type { HandoffCard, OasdiffChange, Role, TaskCard } from '@/features/cards/types';
+import { useHandoffStale } from '@/features/handoffs/queries';
 import { duration } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
@@ -340,6 +341,7 @@ export function HandoffSection({ card, action, cancelAction, perform }: SectionP
   const locale = useLocale();
   const h = card.handoff;
   const s = t.sheet.handoff;
+  const stale = useHandoffStale()(card);
   const dismissal =
     card.status === 'dismissed'
       ? [...card.events].reverse().find((e) => e.data.reason)?.data.reason
@@ -374,7 +376,7 @@ export function HandoffSection({ card, action, cancelAction, perform }: SectionP
         </Fact>
         {card.status === 'pending' && (
           <Fact label={t.status.pending} wide>
-            {isHandoffStale(card) ? (
+            {stale ? (
               <Pill tone="warning" icon={Clock}>
                 {fmt(s.pendingAge, { d: duration(handoffAgeMs(card), locale) })}
               </Pill>
