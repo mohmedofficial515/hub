@@ -19,9 +19,19 @@ import { QueueModule } from './infra/queue/queue.service';
 import { RedisModule } from './infra/redis/redis.module';
 import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
 import { CardsModule } from './modules/cards';
+import { DecisionsModule } from './modules/decisions';
+import { DocsModule } from './modules/docs';
+import { HandoffsModule } from './modules/handoffs';
 import { HealthModule } from './modules/health';
+import { IdeasModule } from './modules/ideas';
 import { IdentityModule } from './modules/identity';
+import { NeedsModule } from './modules/needs';
+import { PlansModule } from './modules/plans';
+import { RealtimeModule } from './modules/realtime';
+import { RedesignModule } from './modules/redesign';
+import { ReleasesModule } from './modules/releases';
 import { TasksModule } from './modules/tasks';
+import { WorkspacesModule } from './modules/workspaces';
 import { AllExceptionsFilter, EnvelopeInterceptor } from './shared/http';
 
 const REQUEST_ID_HEADER = 'x-request-id';
@@ -53,7 +63,17 @@ const REQUEST_ID_HEADER = 'x-request-id';
     AuditModule,
     CardsModule,
     TasksModule,
+    DecisionsModule,
+    NeedsModule,
+    HandoffsModule,
+    RedesignModule,
+    DocsModule,
+    ReleasesModule,
+    IdeasModule,
+    PlansModule,
+    RealtimeModule,
     HealthModule,
+    WorkspacesModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

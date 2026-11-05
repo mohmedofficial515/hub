@@ -75,7 +75,7 @@ H0-03  Identity                                                     after: H0-02
 H0-04  Workspaces, roles, settings, sources                         after: H0-03
   Reads:        00 D08, D15, D16 · 03 §3–§4 · 04 (workspaces, members, settings, sources)
   Deliverables: modules/workspaces: create workspace (slug, keyPrefix, timezone, locale), memberships with roles (≥1 owner invariant), settings catalogue (Zod per key from 03 §4.2, defaults, PATCH with validation), sources CRUD (config per kind from 03 §4.3, secretEnc with AES-256-GCM, enable/disable), GithubIdentity mapping on members, OnboardingProgress endpoints
-  Acceptance:   removing the last owner answers 409; settings reject unknown keys and wrong types with 400 + path; source secrets never appear in any response (arch test scans DTOs); workspace slug is in every app URL
+  Acceptance:   removing the last owner answers 409; settings reject unknown keys with 404 and wrong types with 400 + path (04 §3.6); source secrets never appear in any response (arch test scans DTOs); workspace slug is in every app URL
   Tests:        e2e per endpoint; unit for the settings catalogue (every key has a default and a schema); arch: no DTO contains secretEnc/passwordHash/tokenHash
 
 H0-05  Card core, timeline, realtime                                after: H0-04
