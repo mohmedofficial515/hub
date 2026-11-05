@@ -147,7 +147,7 @@ function Handoff({ query }: { query: string }) {
           {t.title}
         </h2>
         {/* Two lines in Cairo, one in the fallback font: without this the results jump when the font arrives (review m8). */}
-        <p className="min-h-[2lh] text-body-sm text-muted-foreground lg:min-h-0">{t.body}</p>
+        <p className="min-h-[2lh] text-body-sm text-muted-foreground md:min-h-0">{t.body}</p>
       </div>
       {command ? (
         <div className="flex items-start gap-2 rounded-md border border-border bg-muted p-2 ps-3">
