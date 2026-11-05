@@ -13,6 +13,10 @@ export interface ShellDict {
   placeholder: { title: string; body: string };
   nav: Record<ViewId, string>;
   groups: Record<NavGroup, string>;
+  boundary: Record<
+    'crashTitle' | 'crashBody' | 'retry' | 'notFoundTitle' | 'notFoundBody' | 'toProjects',
+    string
+  >;
   /** Counter badges in words (08 §6: `aria-label="3 unread"`), `#` is the number. */
   counts: Record<
     | 'inbox'
@@ -37,6 +41,7 @@ export interface ShellDict {
     expand: string;
     workspace: string;
     switchTo: string;
+    switchFrom: string;
     allWorkspaces: string;
     language: string;
     toEnglish: string;

@@ -5,6 +5,7 @@
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/sidebar.tsx. Contract: apps/web/README.md.
  */
 import {
+  Check,
   ChevronsUpDown,
   FolderKanban,
   Keyboard,
@@ -25,6 +26,7 @@ import {
   AppLink,
   Avatar,
   cn,
+  fmt,
   focusRing,
   IconButton,
   Ltr,
@@ -216,7 +218,7 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
   return (
     <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <DropdownMenu.Trigger
-        aria-label={t.sidebar.switchTo}
+        aria-label={workspace ? fmt(t.sidebar.switchFrom, { name: workspace.name }) : t.sidebar.switchTo}
         className={cn(
           'flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-md text-start transition-colors duration-120 hover:bg-accent',
           collapsed ? 'justify-center' : 'px-1.5',
@@ -242,7 +244,8 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
           <DropdownMenu.Label className="px-2.5 py-1.5 text-caption text-muted-foreground">
             {t.sidebar.workspace}
           </DropdownMenu.Label>
-          <DropdownMenu.Item disabled className={cn(menuItem, 'font-semibold')}>
+          <DropdownMenu.Item disabled aria-current="true" className={cn(menuItem, 'font-semibold')}>
+            <Check aria-hidden className="size-4 shrink-0" strokeWidth={2} />
             {workspace?.name}
             <Ltr mono className="ms-auto text-caption text-muted-foreground">
               {workspace?.keyPrefix}

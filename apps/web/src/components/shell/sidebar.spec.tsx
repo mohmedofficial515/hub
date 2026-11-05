@@ -87,7 +87,7 @@ describe('DesktopSidebar', () => {
     stubFetch(api);
     mount();
     await screen.findByText('Goteav');
-    const trigger = screen.getByRole('button', { name: 'Switch project' });
+    const trigger = screen.getByRole('button', { name: /switch project/i });
     await userEvent.setup().click(trigger);
     expect(await screen.findByRole('menuitem', { name: /Hub/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'New project' })).toBeInTheDocument();

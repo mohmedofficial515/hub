@@ -82,6 +82,7 @@
     "expand": "Expand sidebar",
     "workspace": "Project",
     "switchTo": "Switch project",
+    "switchFrom": "Current project {name}, switch project",
     "allWorkspaces": "All projects",
     "language": "Language",
     "toEnglish": "English",
@@ -195,5 +196,13 @@
   "placeholder": {
     "title": "This page is being moved in",
     "body": "It arrives with the next build group. The sidebar, cards and search work now."
+  },
+  "boundary": {
+    "crashTitle": "This page could not be shown",
+    "crashBody": "Your data is unaffected. Try again, or go to another page.",
+    "retry": "Try again",
+    "notFoundTitle": "This page does not exist",
+    "notFoundBody": "The link may be old or mistyped.",
+    "toProjects": "To projects"
   }
 }

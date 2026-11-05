@@ -15,6 +15,7 @@ import { CardChip } from '@/components/cards/card-key';
 import { focusRing, focusRingInset } from '@/components/cards/meta';
 import { sheetSections } from '@/components/cards/sheet-sections';
 import { CopyButton, copyText } from '@/components/common/copy-button';
+import { ErrorBoundary } from '@/components/common/error-boundary';
 import { MarkdownView } from '@/components/common/markdown';
 import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/common/states';
@@ -660,6 +661,24 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
   );
 }
 
+/** A card this sheet cannot draw stays in the sheet: the page behind it is fine, and Close still works. */
+function SheetCrash({ cardKey, onRetry }: { cardKey: string; onRetry: () => void }) {
+  const t = useT(kitMessages);
+  return (
+    <>
+      <div className="flex items-center justify-end p-3">
+        <Dialog.Close asChild>
+          <IconButton label={t.close} data-sheet-close>
+            <X aria-hidden className="size-4" strokeWidth={1.75} />
+          </IconButton>
+        </Dialog.Close>
+      </div>
+      <Dialog.Title className="sr-only">{fmt(t.sheet.label, { key: cardKey })}</Dialog.Title>
+      <ErrorState title={t.sheet.notLoaded} onRetry={onRetry} />
+    </>
+  );
+}
+
 const menuItemClass =
   'flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 text-body-sm text-foreground outline-none select-none data-[highlighted]:bg-accent md:min-h-9';
 
@@ -722,7 +741,9 @@ export function CardSheet() {
                 animate={{ opacity: 1, x: 0, transition: { duration: 0.22, ease: EASE } }}
                 exit={{ opacity: 0, x: offset / 2, transition: { duration: 0.14, ease: 'easeOut' } }}
               >
-                <SheetBody key={key} cardKey={key} action={action} tab={tab} />
+                <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
+                  <SheetBody cardKey={key} action={action} tab={tab} />
+                </ErrorBoundary>
               </motion.div>
             </Dialog.Content>
           </Dialog.Portal>
