@@ -231,7 +231,7 @@ export function InboxRow({
                 {title}
               </AppLink>
             ) : (
-              { title }
+              title
             )}
           </p>
           {lead.body && (
