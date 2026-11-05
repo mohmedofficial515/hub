@@ -38,7 +38,7 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
-import { auditActionLabel, isMachineSummary } from '@/features/settings/audit-label';
+import { auditActionLabel, isMachineSummary, isOpaqueId } from '@/features/settings/audit-label';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { auditExportHref, type AuditFilters, type AuditRow, useAudit } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -74,6 +74,8 @@ function Target({ row }: { row: AuditRow }) {
   if (CARD_KEY.test(row.targetId)) return <CardChip k={row.targetId} />;
   const member = row.targetType === 'user' ? members?.find((m) => m.id === row.targetId) : undefined;
   if (member) return <span className="text-body-sm text-foreground">{member.name}</span>;
+  // A record's id means nothing in a row. It stays in the expanded row, for whoever is checking.
+  if (isOpaqueId(row.targetId)) return <span className="text-muted-foreground">-</span>;
   return (
     <code
       dir="ltr"
@@ -98,6 +100,7 @@ function RowDetail({ row }: { row: AuditRow }) {
   const t = useT<SettingsMessages>('settings');
   const items = [
     { label: t.audit.detail.code, value: row.action },
+    ...(row.targetId && isOpaqueId(row.targetId) ? [{ label: t.audit.col.target, value: row.targetId }] : []),
     { label: t.audit.detail.record, value: row.id },
     { label: t.audit.detail.ip, value: row.ip ?? t.audit.detail.none },
     { label: t.audit.detail.client, value: row.userAgent ?? t.audit.detail.none },

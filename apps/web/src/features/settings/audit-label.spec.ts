@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { auditActionLabel, isMachineSummary } from './audit-label';
+import { auditActionLabel, isMachineSummary, isOpaqueId } from './audit-label';
 
 const words = {
   codes: { 'identity:sign_in': 'Signed in' },
@@ -45,5 +45,13 @@ describe('isMachineSummary', () => {
 
   it.each(['Lab file changed GTV-1', 'تغيّر الملف', 'Invited a@x.test'])('%s is a sentence', (s) => {
     expect(isMachineSummary(s)).toBe(false);
+  });
+});
+
+describe('isOpaqueId', () => {
+  it('knows a record id from something a person can read', () => {
+    expect(isOpaqueId('01a1ad5f-21f5-75c6-b840-388220757239')).toBe(true);
+    expect(isOpaqueId('digest.morning_time')).toBe(false);
+    expect(isOpaqueId('a@x.test')).toBe(false);
   });
 });

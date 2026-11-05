@@ -34,3 +34,6 @@ export function auditActionLabel(code: string, words: AuditWords): string {
 
 /** `redesign.create GTV-309` is the code again, and the row's target already names the card. A sentence stays. */
 export const isMachineSummary = (summary: string) => /^[a-z_]+(\.[a-z_]+)+( [A-Z0-9]+-\d+)?$/.test(summary);
+
+export const isOpaqueId = (value: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
