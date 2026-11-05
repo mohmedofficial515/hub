@@ -88,4 +88,50 @@ describe('front-matter', () => {
     expect(reviewOf('# R\n\n## Summary\n\nShort.\n\n## Other\n').summary).toBe('Short.');
     expect(reviewOf('nothing here')).toEqual({ score: null, summary: null });
   });
+
+  describe('the summary, on the shapes real review.md files have', () => {
+    const table =
+      '| Pillar | Score /10 | One-line verdict |\n|---|---|---|\n| A | 6 | ok |\n| B | 7 | ok |\n';
+    const overall = '**Overall: 6.5 / 10. Changes requested.** The concept is strong.\nIt holds on a phone.';
+
+    it('a rule then a heading after the table falls back to the Overall line above it', () => {
+      const md = `# Review\n\nReviewer: x\n\n${overall}\n\n${table}\n---\n\n## Blocking issues\n\n**B1. Not a summary.**\n`;
+      expect(reviewOf(md)).toEqual({
+        score: 65,
+        summary: 'Overall: 6.5 / 10. Changes requested. The concept is strong. It holds on a phone.',
+      });
+    });
+
+    it('a CRLF file reads the same', () => {
+      const md = `# Review\n\n${overall}\n\n${table}\n---\n\n## Blocking\n`.replace(/\n/g, '\r\n');
+      expect(reviewOf(md).summary).toMatch(/^Overall: 6\.5 \/ 10\./);
+    });
+
+    it('a second table under a heading is not a summary, nor is prose further down', () => {
+      const md = `${overall}\n\n${table}\n### Audit dimensions\n| Dimension | Score |\n|---|---|\n| X | 6 |\n\n---\n\nLater prose.\n`;
+      expect(reviewOf(md).summary).toMatch(/^Overall: /);
+    });
+
+    it('a rule between the table and a real paragraph is skipped', () => {
+      expect(reviewOf(`${table}\n---\n\nThe verdict.\n\n---\n`).summary).toBe('The verdict.');
+    });
+
+    it('never answers with a rule, a label or the first finding', () => {
+      expect(reviewOf(`${table}\n---\n`).summary).toBeNull();
+      expect(reviewOf(`${table}\n***\n`).summary).toBeNull();
+      expect(reviewOf(`${table}\nOwner goals:\n- **Encourage top-ups.** Strong.\n`).summary).toBeNull();
+      expect(reviewOf(`${table}\n**Owner goals**\n\n- one\n`).summary).toBeNull();
+      expect(reviewOf(`${table}\n## Blocking issues\n\n**B1. A finding.**\n`).summary).toBeNull();
+    });
+
+    it('a Summary section still wins, and its markers go', () => {
+      expect(reviewOf(`${overall}\n\n${table}\n## Summary\n\n---\n\n**Good** with \`code\`.\n`).summary).toBe(
+        'Good with code.',
+      );
+    });
+
+    it('an Overall line with no table still reads', () => {
+      expect(reviewOf('# R\n\n**Overall: 8 / 10.** Fine.\n').summary).toBe('Overall: 8 / 10. Fine.');
+    });
+  });
 });

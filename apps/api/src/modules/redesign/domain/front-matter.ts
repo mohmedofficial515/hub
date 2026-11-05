@@ -109,7 +109,9 @@ export function appendReviewNote(raw: string, line: string): string {
 
 /**
  * Score and summary of a `review.md` (docs/10 §1, docs/06 §5): a `score:` front-matter key wins, then the pillar table's
- * mean times ten, then a plain `n/100`. The summary is `## Summary`'s first paragraph, else the first after the table.
+ * mean times ten, then a plain `n/100`. The summary is `## Summary`'s first paragraph, else the prose directly after the
+ * table (past blank lines and rules), else the `**Overall: …**` line. A heading after the table means the findings have
+ * begun, so nothing further down stands in for a verdict.
  */
 export function reviewOf(markdown: string): { score: number | null; summary: string | null } {
   const { data, body } = parseFrontMatter(markdown);
@@ -134,24 +136,34 @@ export function reviewOf(markdown: string): { score: number | null; summary: str
     const plain = /\b(\d{1,3})\s*\/\s*100\b/.exec(body)?.[1];
     if (plain) score = Number(plain);
   }
-  const firstParagraphFrom = (start: number): string | null => {
+  const paragraphAt = (start: number): string | null => {
     const out: string[] = [];
     for (let at = start; at < lines.length; at += 1) {
       const line = (lines[at] ?? '').trim();
-      if (!line) {
-        if (out.length > 0) break;
-        continue;
-      }
-      if (/^(#|\|)/.test(line)) {
-        if (out.length > 0) break;
-        continue;
-      }
+      if (!line || NOT_PROSE.test(line)) break;
       out.push(line);
     }
-    return out.length > 0 ? out.join(' ').slice(0, 280) : null;
+    return out.length > 0 ? out.join(' ') : null;
+  };
+  /** The next line with anything on it, past blanks and horizontal rules. */
+  const nextContent = (start: number): number => {
+    let at = start;
+    while (at < lines.length && (!(lines[at] ?? '').trim() || RULE.test((lines[at] ?? '').trim()))) at += 1;
+    return at;
   };
   const named = lines.findIndex((line) => /^##\s+Summary\b/i.test(line));
+  const overall = lines.findIndex((line) => /^\*\*Overall\b/i.test(line.trim()));
+  const afterTable = tableEnd >= 0 ? paragraphAt(nextContent(tableEnd)) : null;
   const summary =
-    named >= 0 ? firstParagraphFrom(named + 1) : tableEnd >= 0 ? firstParagraphFrom(tableEnd) : null;
-  return { score, summary };
+    (named >= 0 ? paragraphAt(nextContent(named + 1)) : null) ??
+    (afterTable && !isLabel(afterTable) ? afterTable : null) ??
+    (overall >= 0 ? paragraphAt(overall) : null);
+  return { score, summary: summary ? plainReviewText(summary) : null };
 }
+
+const RULE = /^([-*_])(\s*\1){2,}$/;
+/** Lines a summary paragraph cannot hold: a heading, a table, a list, a quote, a rule. */
+const NOT_PROSE = /^(#|\||>|[-*+]\s|\d+\.\s|([-*_])(\s*\2){2,}$)/;
+/** "Owner goals:" or "**Owner goals**" introduces what follows. It says nothing by itself. */
+const isLabel = (text: string): boolean => text.endsWith(':') || /^\*\*[^*]+\*\*:?$/.test(text);
+const plainReviewText = (text: string): string => text.replace(/\*\*|`/g, '').slice(0, 280);

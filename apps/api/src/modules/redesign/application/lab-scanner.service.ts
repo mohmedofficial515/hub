@@ -155,7 +155,7 @@ export class LabScannerService {
         externalKey: true,
         tags: true,
         status: true,
-        redesign: { select: { readmeHash: true } },
+        redesign: { select: { readmeHash: true, reviewSummary: true } },
       },
     });
     const byKey = new Map(known.map((card) => [card.externalKey ?? '', card]));
@@ -227,7 +227,7 @@ export class LabScannerService {
         id: string;
         tags: readonly string[];
         status: string;
-        redesign: { readmeHash: string } | null;
+        redesign: { readmeHash: string; reviewSummary: string | null } | null;
       }
     >,
     previous: Partial<LabCursor>,
@@ -254,11 +254,20 @@ export class LabScannerService {
     const missingTag = card?.tags.includes('missing-in-lab') ?? false;
     // Compared with the card, not the cursor: a write from Hub already stored its new hash, so it is not news.
     const readmeChanged = card?.redesign?.readmeHash !== readmeHash;
-    if (card && !readmeChanged && prior?.extrasHash === extrasHash && card.status === status && !missingTag) {
+    const review = reviewText ? reviewOf(reviewText) : { score: null, summary: null };
+    // A review summary stored by an earlier reading of the same file heals on the next scan, though no hash moved.
+    const summaryStale = card ? (card.redesign?.reviewSummary ?? null) !== review.summary : false;
+    if (
+      card &&
+      !readmeChanged &&
+      !summaryStale &&
+      prior?.extrasHash === extrasHash &&
+      card.status === status &&
+      !missingTag
+    ) {
       return 'unchanged';
     }
 
-    const review = reviewText ? reviewOf(reviewText) : { score: null, summary: null };
     const touches = data['touches-components'];
     const title = `${id.app}/${id.page} · ${id.version} — ${textField(data, 'title') ?? id.version}`.slice(
       0,
@@ -275,7 +284,7 @@ export class LabScannerService {
         .map((name) => name.slice(0, 200))
         .slice(0, 200),
       ...(review.score !== null ? { reviewScore: review.score } : {}),
-      ...(review.summary ? { reviewSummary: review.summary } : {}),
+      reviewSummary: review.summary,
       frontMatter: data,
       readmeHash,
     };
