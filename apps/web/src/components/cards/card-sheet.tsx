@@ -360,6 +360,22 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
   const cardRef = useRef(card);
   cardRef.current = card;
 
+  // On a first open the card is still loading when the dialog takes focus, and the skeleton's Close is replaced by the real header, which
+  // drops focus on the container. Land where a cached open lands. Anything that took focus meanwhile, such as an action's form, keeps it.
+  const settled = !query.isPending;
+  const landed = useRef(false);
+  useEffect(() => {
+    if (!settled || landed.current) return;
+    landed.current = true;
+    const root = document.querySelector<HTMLElement>('[data-card-sheet]');
+    const active = document.activeElement;
+    if (!root || (active && active !== root && active !== document.body)) return;
+    (
+      root.querySelector<HTMLElement>('[data-sheet-primary]') ??
+      root.querySelector<HTMLElement>('[data-sheet-close]')
+    )?.focus();
+  }, [settled]);
+
   // `w` toggles watch, Ctrl/Cmd+Shift+C copies the key (08 §12).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
