@@ -7,6 +7,7 @@ import {
   type CardWithDetail,
   parseSetting,
   readySpecialties,
+  seesAllReadyWork,
   settingDefault,
   type Specialty,
 } from '@hub/contracts';
@@ -34,11 +35,14 @@ export class TasksReadService {
     limit: number | undefined,
   ): Promise<CardWithDetail[]> {
     const stored = await this.cards.readSetting(actor.workspaceId, 'tasks.ready_limit_per_role');
-    const max = Number(
-      stored === undefined
-        ? settingDefault('tasks.ready_limit_per_role')
-        : parseSetting('tasks.ready_limit_per_role', stored),
-    );
+    // The setting sizes a "ready for you" list. Owner and pm read this list's length as the project's count, so it must not cut it short.
+    const max = seesAllReadyWork(actor.roles)
+      ? 100
+      : Number(
+          stored === undefined
+            ? settingDefault('tasks.ready_limit_per_role')
+            : parseSetting('tasks.ready_limit_per_role', stored),
+        );
     const specialties = specialty ? [specialty] : readySpecialties(actor.roles);
     const page = await this.query.listWithDetail(actor, 'task', {
       statuses: ['ready'],

@@ -33,8 +33,11 @@ import { NS, type TodayMessages } from './messages';
 
 export function ReadyTasks({
   tasks,
+  fillFirst = false,
 }: {
   tasks: (CardListItem & { task?: Partial<TaskCard['task']> | undefined })[];
+  /** The page's one filled button lands here when nothing above it asks for it. */
+  fillFirst?: boolean;
 }) {
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
@@ -105,6 +108,7 @@ export function ReadyTasks({
                   }
                   action={
                     <Button
+                      variant={fillFirst && task.key === tasks[0]?.key ? 'primary' : 'outline'}
                       aria-label={fmt(t.ready.claimTask, { key: task.key })}
                       aria-keyshortcuts="c"
                       onClick={() => perform(task.key, 'claim')}

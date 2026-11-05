@@ -289,6 +289,8 @@ describe('tasks', () => {
         data: { workspaceId: project.id, key: 'tasks.ready_limit_per_role', value: 1 },
       });
       expect((await backend.get('/tasks/ready').expect(200)).body.data).toHaveLength(1);
+      // Owner and pm count all ready work, so the per-role size does not cut their list.
+      expect((await pm.get('/tasks/ready').expect(200)).body.data).toHaveLength(3);
       const asked = await backend.get('/tasks/ready', { specialty: 'design' }).expect(200);
       expect(asked.body.data).toMatchObject([{ title: 'Design' }]);
     });

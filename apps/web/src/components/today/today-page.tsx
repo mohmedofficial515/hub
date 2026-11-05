@@ -269,7 +269,9 @@ export function TodayPage() {
         <div className="flex min-w-0 flex-col gap-8 lg:col-span-7">
           <AwaitingStack stack={stack} headingRef={stackHeading} />
           <DeadlineRunway cards={deadlines} stackKeys={stackKeys} />
-          {showReady && <ReadyTasks tasks={ready} />}
+          {showReady && (
+            <ReadyTasks tasks={ready} fillFirst={seesAllReadyWork(roles) && stack.length === 0} />
+          )}
         </div>
 
         {/* End lane, "What happened": read these. One quiet reading column. */}
