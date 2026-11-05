@@ -20,6 +20,7 @@ import { IMAGE_TYPES, LabFilesService, type LabLocation, sha256 } from './lab-fi
 
 const NOT_APPS = new Set(['_templates', 'lab', 'shared', 'node_modules', 'dist', 'research']);
 const VERSION_FOLDER = /^v\d+-/;
+const BASELINE = 'v1-baseline';
 const BODY_MAX = 20_000;
 
 export interface PageCursor {
@@ -85,7 +86,7 @@ async function imagesIn(folder: string): Promise<string[]> {
 }
 
 export function statusFromFile(version: string, declared: string | null): RedesignStatus {
-  if (version === 'v1-baseline') return 'reference';
+  if (version === BASELINE) return 'reference';
   return (REDESIGN_STATUSES as readonly string[]).includes(declared ?? '') && declared !== 'reference'
     ? (declared as RedesignStatus)
     : 'draft';
@@ -233,7 +234,11 @@ export class LabScannerService {
     versions: Record<string, VersionState>,
   ): Promise<'created' | 'updated' | 'unchanged'> {
     const folder = join(lab.root, ...id.labPath.split('/'));
-    const raw = await readFile(join(folder, 'README.md'), 'utf8');
+    // A baseline is screenshots and a component list (docs/10 §1). It often has no README, and is still a version of the page.
+    const baseline = id.version === BASELINE;
+    const raw = baseline
+      ? ((await textOf(join(folder, 'README.md'))) ?? (await textOf(join(folder, 'components.md'))) ?? '')
+      : await readFile(join(folder, 'README.md'), 'utf8');
     const reviewText = await textOf(join(folder, 'review.md'));
     const shots = [
       ...(await imagesIn(folder)).map((name) => ({ name, inner: name })),
