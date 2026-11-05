@@ -162,7 +162,8 @@ export const SETTINGS = {
   }),
   'security.totp_required_roles': define({
     schema: z.array(roleSchema),
-    default: ['owner', 'pm', 'accountant'],
+    // Hub runs on the owner's machine: enrolling is optional until a project names roles here (docs/15 §2).
+    default: [],
     type: 'string[]',
     group: 'security',
     description: { ar: 'الأدوار التي تلزمها المصادقة الثنائية', en: 'Roles that must enrol in TOTP' },

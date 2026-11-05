@@ -228,7 +228,7 @@ model OnboardingProgress {                               // which reading-path i
 | `digest.morning_time` | `string` | `"07:30"` | local time of the brief |
 | `digest.weekly_day_time` | `string` | `"SUN 08:00"` | weekly summary |
 | `notifications.quiet_hours` | `{from,to}` | `{"from":"22:00","to":"07:00"}` | push/telegram batching window |
-| `security.totp_required_roles` | `string[]` | `["owner","pm","accountant"]` | |
+| `security.totp_required_roles` | `string[]` | `[]` | roles that must enrol before using the project (D34) |
 | `security.session_refresh_days` | `number` | `30` | |
 | `lab.enabled` | `boolean` | `true` | show Redesign pages |
 | `lab.port_task_specialty` | `string` | `"frontend"` | specialty of the auto-created port task |

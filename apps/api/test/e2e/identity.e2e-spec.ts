@@ -463,6 +463,9 @@ describe('identity', () => {
 
     it('turning it off needs a code, and is refused while a role requires it', async () => {
       const workspace = await aWorkspace(db());
+      await db().workspaceSetting.create({
+        data: { workspaceId: workspace.id, key: 'security.totp_required_roles', value: ['pm'] },
+      });
       const account = await anAccount(db());
       await join(db(), workspace.id, account.id, ['backend']);
       const user = browser();
@@ -483,8 +486,20 @@ describe('identity', () => {
       expect(stored.totpEnabledAt).toBeNull();
     });
 
+    it('by default nobody must enrol: an owner reaches project routes without TOTP (D34)', async () => {
+      const workspace = await aWorkspace(db());
+      const account = await anAccount(db());
+      await join(db(), workspace.id, account.id, ['owner']);
+      const user = browser();
+      await user.signIn(account.email);
+      await user.get(`/workspaces/${workspace.slug}/cards`).expect(200);
+    });
+
     it('a role in totp_required_roles cannot use project routes until enrolled, by session or token', async () => {
       const workspace = await aWorkspace(db());
+      await db().workspaceSetting.create({
+        data: { workspaceId: workspace.id, key: 'security.totp_required_roles', value: ['owner'] },
+      });
       const account = await anAccount(db());
       await join(db(), workspace.id, account.id, ['owner']);
       const user = browser();
