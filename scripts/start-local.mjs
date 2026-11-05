@@ -153,9 +153,8 @@ async function main() {
   say('Database:');
   const prisma = join(apiDir, 'node_modules/prisma/build/index.js');
   run('migrations', process.execPath, [prisma, 'migrate', 'deploy'], { cwd: apiDir, shell: false });
-  say('  owner and projects');
   say(
-    `    ${run('seed', process.execPath, ['-r', './scripts/swc-register.cjs', 'scripts/seed-owner.ts'], { cwd: apiDir, shell: false }).trim()}`,
+    `    ${run('owner and projects', process.execPath, ['-r', './scripts/swc-register.cjs', 'scripts/seed-owner.ts'], { cwd: apiDir, shell: false }).trim()}`,
   );
 
   say('Build:');

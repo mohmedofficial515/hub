@@ -213,7 +213,7 @@
     "archived": "Deleted",
     "archiveTitle": "Delete this card?",
     "archiveBody": "It disappears from every page, count and search result. You can restore it from Deleted.",
-    "notFound": "No card {key} in this workspace",
+    "notFound": "No card {key} in this project",
     "notFoundBody": "Check the key, or search for it from the search bar.",
     "created": "Created by",
     "tabs": {

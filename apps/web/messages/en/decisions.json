@@ -14,8 +14,8 @@
     },
     "open": {
       "zero": "No open decisions.",
-      "one": "1 open in the workspace.",
-      "other": "# open in the workspace."
+      "one": "1 open in the project.",
+      "other": "# open in the project."
     },
     "noneMine": "None are routed to your roles."
   },
