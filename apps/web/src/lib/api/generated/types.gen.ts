@@ -1351,6 +1351,180 @@ export type InboxItemDto = {
             noSummary: boolean;
         };
         awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
     } | null;
     data: {
         cardKey?: string;

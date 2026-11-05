@@ -1,8 +1,8 @@
 /**
- * @file Today placeholder. A later group ports the page; until then it says so rather than show invented data.
+ * @file The member's start page (docs/09 §4).
  */
-import { ViewPlaceholder } from '@/components/shell/view-placeholder';
+import { TodayPage } from '@/components/today/today-page';
 
-export default function TodayPage() {
-  return <ViewPlaceholder />;
+export default function Page() {
+  return <TodayPage />;
 }

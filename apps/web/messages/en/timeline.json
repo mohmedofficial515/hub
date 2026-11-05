@@ -92,5 +92,6 @@
     "one": "Loaded 1 older event",
     "other": "Loaded # older events"
   },
-  "start": "This is where the record starts."
+  "start": "This is where the record starts.",
+  "metaMore": "{n}+ events in this view"
 }

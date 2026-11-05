@@ -1,9 +1,8 @@
 {
-  "title": "Today",
   "greeting": {
     "morning": "Good morning, {name}",
     "summary": {
-      "zero": "Nothing is waiting this morning.",
+      "zero": "Nothing is waiting.",
       "one": "1 thing is waiting",
       "other": "# things are waiting"
     },
@@ -11,7 +10,9 @@
       "one": ", and 1 is overdue.",
       "other": ", and # are overdue.",
       "zero": "."
-    }
+    },
+    "afternoon": "Good afternoon, {name}",
+    "evening": "Good evening, {name}"
   },
   "refresh": "Refresh",
   "refreshed": "Page refreshed",
@@ -27,18 +28,15 @@
     },
     "scope": "of {all} open",
     "scopeNeeds": "of {all} open or awaiting a check",
-    "scopeNone": "none open",
     "overdue": {
       "one": "1 overdue",
       "other": "# overdue",
       "zero": "none overdue"
     },
-    "series": "Last 7 days: {values}",
     "quietAll": "A quiet week: nothing is open."
   },
   "stack": {
     "title": "Awaiting me",
-    "cleared": "{n} cleared today",
     "groups": {
       "urgent": "Overdue or escalated",
       "soon": "Due within 24 hours",
@@ -53,7 +51,9 @@
     "seeAll": "See all ({total})",
     "emptyTitle": "Nothing is waiting.",
     "emptyBody": "Decisions, needs and handoffs routed to my roles show up here first.",
-    "actionFor": "{action} {key}"
+    "metaHandoff": "From {role}, {rel}",
+    "metaDelivered": "Delivered by {name}, awaiting a check",
+    "metaScore": "Review score {n}/100"
   },
   "runway": {
     "title": "Deadlines in the next 72 hours",
@@ -67,15 +67,12 @@
     "inStackNote": {
       "one": "And 1 more in Awaiting me above.",
       "other": "And # more in Awaiting me above."
-    },
-    "escalated": "escalated",
-    "jump": "in my stack"
+    }
   },
   "ready": {
     "title": "Ready for my roles",
     "claim": "Claim",
     "claimTask": "Claim {key}",
-    "blockedBy": "Blocked by {key}",
     "effort": "Effort",
     "specialty": {
       "backend": "Backend",
@@ -85,8 +82,6 @@
       "ops": "Ops",
       "docs": "Docs"
     },
-    "toast": "Claimed {key}. Paste this in Claude Code to start:",
-    "blockedToast": "{key} is blocked by {blocker}, so it cannot be claimed yet.",
     "emptyTitle": "No ready tasks for my roles.",
     "emptyBody": "Ready tasks for my specialties appear here, highest priority first.",
     "emptyLink": "Check the backlog"
@@ -109,24 +104,7 @@
       "one": "1 commit",
       "other": "# commits"
     },
-    "events": {
-      "one": "1 event",
-      "other": "# events",
-      "zero": "no events"
-    },
     "viaAgent": "via agent",
-    "kinds": {
-      "commits": "pushed commits",
-      "pr_opened": "opened a PR",
-      "pr_merged": "merged a PR",
-      "session": "logged a session",
-      "handoff": "contract handoff",
-      "decided": "made a decision",
-      "redesign": "sent a redesign to review",
-      "doc": "updated a doc",
-      "release": "released",
-      "need_delivered": "delivered a need"
-    },
     "empty": "No changes since {when}.",
     "system": "System"
   },
@@ -151,7 +129,6 @@
     "up": "up {n}",
     "down": "down {n}",
     "same": "no change",
-    "lastWeek": "from last week ({n})",
     "activity": "Activity, last 14 days",
     "activityShort": "Activity, last 7 days",
     "activityHint": "Sessions, commits and closed cards per day. Members are sorted by name.",
@@ -163,21 +140,28 @@
       "other": "{name}, {date}: # events"
     },
     "readoutIdle": "Hover a day, or move to it with the arrow keys, to see the exact count.",
-    "online": "Online now",
-    "offline": "Offline",
     "lastSeen": "Last seen {rel}",
     "focus": "Working on",
     "noFocus": "No claimed task",
     "today": "today",
     "member": "Member",
-    "handoffsApplied": "Handoffs applied",
     "flow": "Card flow by type",
     "flowHint": "Created against closed this week.",
     "created": "created",
     "closed": "closed",
     "netMore": "{n} more open",
     "netFewer": "{n} fewer open",
-    "netEven": "even"
+    "netEven": "even",
+    "totals": {
+      "sessions": "AI sessions",
+      "commits": "Commits",
+      "prsMerged": "PRs merged",
+      "decided": "Decisions made",
+      "handoffs": "Handoffs applied",
+      "closed": "Cards closed"
+    },
+    "noSource": "No source connected",
+    "flowEmpty": "No cards created or closed this week."
   },
   "sources": {
     "title": "Capture sources",
@@ -185,18 +169,22 @@
       "github_repo": "GitHub repo",
       "openapi": "OpenAPI contract",
       "lab": "Redesign lab",
-      "docs_folder": "Docs folder"
+      "docs_folder": "Docs folder",
+      "local_path": "Local folder"
     },
     "ok": "Live, synced {rel}",
     "lagging": "{d} behind",
-    "failing": "Failing",
     "lastSuccess": "Last success {when}",
     "runs": "Runs in 24 h",
     "cards": "Cards in 24 h",
     "summaryOk": "{n} live",
     "summaryLag": "{n} behind",
     "summaryFail": "{n} failing",
-    "allLive": "Every source is live."
+    "allLive": "Every source is live.",
+    "neverRun": "Has not run yet",
+    "emptyTitle": "No sources connected",
+    "emptyBody": "Sources show here once they are connected to this project.",
+    "emptyLink": "Connect a source in Settings"
   },
   "loading": "Loading Today",
   "errorThing": "Today"

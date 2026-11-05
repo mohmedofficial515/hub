@@ -83,7 +83,7 @@ export class InboxService {
       actor.workspaceId,
       shown.flatMap((row) => (row.card_id ? [row.card_id] : [])),
     );
-    const summaries = await this.query.summaries(actor, cards);
+    const summaries = await this.query.withDetail(actor, cards);
     const byId = new Map<string, CardSummary>(summaries.map((card) => [card.id, card]));
     const last = shown[shown.length - 1];
     return {

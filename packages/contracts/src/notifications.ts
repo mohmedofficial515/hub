@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 
-import { cardSummarySchema, queryFlag, queryList } from './cards/read-models';
+import { cardWithDetailSchema, queryFlag, queryList } from './cards/read-models';
 
 export const NOTIFICATION_KINDS = [
   'routed_decision',
@@ -40,7 +40,8 @@ export const inboxItemSchema = z.object({
   kind: z.enum(NOTIFICATION_KINDS),
   title: z.string(),
   body: z.string().nullable(),
-  card: cardSummarySchema.nullable(),
+  /** With its detail, so a row can tell a self-verify from another's and offer the card's action. */
+  card: cardWithDetailSchema.nullable(),
   data: z.object({
     cardKey: z.string().optional(),
     action: z.string().optional(),

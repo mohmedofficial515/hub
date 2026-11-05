@@ -12200,6 +12200,795 @@
               "awaiting": {
                 "type": "string",
                 "nullable": true
+              },
+              "detail": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "specialty": {
+                        "type": "string"
+                      },
+                      "effort": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "acceptance": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "prompt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "origin": {
+                        "type": "string"
+                      },
+                      "claimedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "claimedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "branch": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "prUrl": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "startedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "doneAt": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "specialty",
+                      "effort",
+                      "acceptance",
+                      "prompt",
+                      "origin",
+                      "claimedBy",
+                      "claimedAt",
+                      "branch",
+                      "prUrl",
+                      "startedAt",
+                      "doneAt"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "options": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "pros": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "cons": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "cost": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "recommended": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "pros",
+                            "cons",
+                            "cost",
+                            "recommended"
+                          ]
+                        }
+                      },
+                      "deciderRole": {
+                        "type": "string"
+                      },
+                      "chosenOptionId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "rationale": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "decidedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "decidedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "remindersSent": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      "escalatedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "escalatedToRole": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "adrRepoSourceId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "adrPath": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "adrPrUrl": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "adrStatus": {
+                        "type": "string"
+                      },
+                      "adrBody": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "kind",
+                      "question",
+                      "options",
+                      "deciderRole",
+                      "chosenOptionId",
+                      "rationale",
+                      "decidedBy",
+                      "decidedAt",
+                      "remindersSent",
+                      "escalatedAt",
+                      "escalatedToRole",
+                      "adrRepoSourceId",
+                      "adrPath",
+                      "adrPrUrl",
+                      "adrStatus",
+                      "adrBody"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "responsibleRole": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "deliveredBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "deliveredAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "verifiedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "verifiedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "verificationNote": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "kind",
+                      "responsibleRole",
+                      "location",
+                      "deliveredBy",
+                      "deliveredAt",
+                      "verifiedBy",
+                      "verifiedAt",
+                      "verificationNote"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "authorLogin": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "commitCount": {
+                        "type": "number"
+                      },
+                      "filesChanged": {
+                        "type": "number"
+                      },
+                      "additions": {
+                        "type": "number"
+                      },
+                      "deletions": {
+                        "type": "number"
+                      },
+                      "prNumber": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "prState": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "prUrl": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "session": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {},
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "kind",
+                      "authorLogin",
+                      "commitCount",
+                      "filesChanged",
+                      "additions",
+                      "deletions",
+                      "prNumber",
+                      "prState",
+                      "prUrl",
+                      "session"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "fromRole": {
+                        "type": "string"
+                      },
+                      "toRole": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "severity": {
+                        "type": "string"
+                      },
+                      "summary": {
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "payload": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "sourceCardId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "acknowledgedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "acknowledgedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "appliedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "appliedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "appliedTaskId": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "fromRole",
+                      "toRole",
+                      "kind",
+                      "severity",
+                      "summary",
+                      "prompt",
+                      "payload",
+                      "sourceCardId",
+                      "acknowledgedBy",
+                      "acknowledgedAt",
+                      "appliedBy",
+                      "appliedAt",
+                      "appliedTaskId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "app": {
+                        "type": "string"
+                      },
+                      "page": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      },
+                      "labPath": {
+                        "type": "string"
+                      },
+                      "labUrl": {
+                        "type": "string"
+                      },
+                      "base": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "touchesComponents": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "reviewScore": {
+                        "type": "number",
+                        "nullable": true
+                      },
+                      "reviewSummary": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "frontMatter": {
+                        "type": "object",
+                        "additionalProperties": {}
+                      },
+                      "approvedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "approvedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "rejectedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "rejectedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "decisionNote": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "portTaskId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "portedRef": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "app",
+                      "page",
+                      "version",
+                      "labPath",
+                      "labUrl",
+                      "base",
+                      "touchesComponents",
+                      "reviewScore",
+                      "reviewSummary",
+                      "frontMatter",
+                      "approvedBy",
+                      "approvedAt",
+                      "rejectedBy",
+                      "rejectedAt",
+                      "decisionNote",
+                      "portTaskId",
+                      "portedRef"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "sourceId": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "lang": {
+                        "type": "string"
+                      },
+                      "headings": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "level": {
+                              "type": "number"
+                            },
+                            "text": {
+                              "type": "string"
+                            },
+                            "anchor": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "level",
+                            "text",
+                            "anchor"
+                          ]
+                        }
+                      },
+                      "wordCount": {
+                        "type": "number"
+                      },
+                      "lastCommitSha": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "contentHash": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "lastIndexedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "sourceId",
+                      "path",
+                      "kind",
+                      "lang",
+                      "headings",
+                      "wordCount",
+                      "lastCommitSha",
+                      "contentHash",
+                      "lastIndexedAt"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      },
+                      "repo": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "tag": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "releasedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "includedIds": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "notes": {
+                        "type": "object",
+                        "properties": {
+                          "team": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "owner": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "accountant": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "version",
+                      "repo",
+                      "tag",
+                      "releasedAt",
+                      "includedIds",
+                      "notes"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "problem": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "notes": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "role": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "planCardId": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "problem",
+                      "notes",
+                      "role",
+                      "planCardId"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "cardId": {
+                        "type": "string"
+                      },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string"
+                            },
+                            "taskKey": {
+                              "type": "string"
+                            },
+                            "done": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title",
+                            "done"
+                          ]
+                        }
+                      },
+                      "revision": {
+                        "type": "number"
+                      },
+                      "sourceIdeaId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "approvedBy": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "displayName"
+                        ],
+                        "nullable": true
+                      },
+                      "approvedAt": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "cardId",
+                      "steps",
+                      "revision",
+                      "sourceIdeaId",
+                      "approvedBy",
+                      "approvedAt"
+                    ]
+                  }
+                ],
+                "nullable": true
               }
             },
             "required": [
@@ -12224,7 +13013,8 @@
               "createdBy",
               "source",
               "flags",
-              "awaiting"
+              "awaiting",
+              "detail"
             ],
             "nullable": true
           },

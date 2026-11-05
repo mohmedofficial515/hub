@@ -75,5 +75,6 @@
     "needsBody": "When a card is routed to you, it shows here with its action.",
     "kindTitle": "No notifications of this kind",
     "kindBody": "Try another kind, or clear the filters."
-  }
+  },
+  "older": "Load older"
 }

@@ -384,7 +384,8 @@ export type CommentDto = z.infer<typeof commentSchema>;
 
 export const timelineRowSchema = z.object({
   event: eventSchema,
-  card: cardSummarySchema,
+  /** With its detail, so a row can say its facts and inline action without a request per row (docs/08 §5.2). */
+  card: cardWithDetailSchema,
   /** How many more events of this card the row folds, the "+n" of docs/03 §5.2: 0 when it is alone. */
   collapsed: z.number().int(),
   collapsedKinds: z.array(z.string()),
