@@ -44,9 +44,30 @@ export class ApiTokenService {
     return { id: row.id, token, prefix, name, kind };
   }
 
+  /** A credential pairing issues, in the caller's transaction. Its value leaves here once, and it is managed through the device. */
+  async createForDevice(
+    userId: string,
+    deviceId: string,
+    name: string,
+    kind: 'device' | 'hook',
+  ): Promise<string> {
+    const { token, prefix, tokenHash } = newApiToken();
+    await this.txHost.tx.apiToken.create({
+      data: { userId, deviceId, name, kind, prefix, tokenHash, createdAt: this.clock.now() },
+    });
+    return token;
+  }
+
+  async revokeForDevice(deviceId: string): Promise<void> {
+    await this.txHost.tx.apiToken.updateMany({
+      where: { deviceId, revokedAt: null },
+      data: { revokedAt: this.clock.now() },
+    });
+  }
+
   async list(userId: string) {
     const rows = await this.txHost.tx.apiToken.findMany({
-      where: { userId },
+      where: { userId, deviceId: null },
       orderBy: { createdAt: 'desc' },
     });
     return rows.map((row) => ({
@@ -64,7 +85,7 @@ export class ApiTokenService {
   async revoke(userId: string, id: string): Promise<void> {
     await this.txHost.withTransaction(async () => {
       const updated = await this.txHost.tx.apiToken.updateMany({
-        where: { id, userId, revokedAt: null },
+        where: { id, userId, deviceId: null, revokedAt: null },
         data: { revokedAt: this.clock.now() },
       });
       if (updated.count === 0) throw new AppException('hub.common.not_found');
@@ -99,9 +120,14 @@ export class ApiTokenService {
     if (row.revokedAt) throw new AppException('hub.identity.token_revoked');
     if (row.user.status !== 'active') throw new AppException('hub.identity.account_disabled');
     await this.touch(row.id, row.lastUsedAt);
-    return row.kind === 'hook'
-      ? { kind: 'hook', userId: row.userId, via: 'hook', tokenId: row.id }
-      : { kind: 'agent', userId: row.userId, via: 'mcp', tokenId: row.id };
+    if (row.kind === 'hook') return { kind: 'hook', userId: row.userId, via: 'hook', tokenId: row.id };
+    return {
+      kind: 'agent',
+      userId: row.userId,
+      via: 'mcp',
+      tokenId: row.id,
+      ...(row.kind === 'device' && row.deviceId ? { deviceId: row.deviceId } : {}),
+    };
   }
 
   private async touch(id: string, lastUsedAt: Date | null): Promise<void> {

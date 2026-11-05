@@ -16,6 +16,7 @@ model User {
   memberships   Membership[]
   sessions      Session[]
   apiTokens     ApiToken[]
+  devices       Device[]
   @@map("users")
 }
 
@@ -54,14 +55,18 @@ model ApiToken {
   id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   name        String                                     // "Claude Code — laptop"
-  kind        String    @default("mcp")                  // mcp | hook  (hook tokens may only call /capture/*, /me and /me/context)
+  kind        String    @default("mcp")                  // mcp | hook | device  (hook tokens may only call /capture/*, /me and /me/context; a device token only MCP and the bridge channel)
   prefix      String    @unique                          // "hub_" + 8 chars, part of the shown token, used for lookup
   tokenHash   String    @map("token_hash")               // sha256 of the full token
   lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(3)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  /// Set for the credentials pairing issues. They are managed through the device, never in Settings › Tokens.
+  deviceId    String?   @map("device_id") @db.Uuid
   user        User      @relation(fields: [userId], references: [id])
+  device      Device?   @relation(fields: [deviceId], references: [id])
   @@index([userId])
+  @@index([deviceId])
   @@map("api_tokens")
 }
 
@@ -84,4 +89,42 @@ model LoginAttempt {
   @@index([email, createdAt])
   @@index([ip, createdAt])
   @@map("login_attempts")
+}
+
+/// One machine running hub-bridge (docs/16 §4). Online state lives in the socket, not here.
+model Device {
+  id            String          @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  name          String
+  platform      String
+  bridgeVersion String?         @map("bridge_version")
+  claudeVersion String?         @map("claude_version")
+  vscodeFound   Boolean?        @map("vscode_found")
+  health        Json            @default("[]")
+  healthAt      DateTime?       @map("health_at") @db.Timestamptz(3)
+  lastSeenAt    DateTime?       @map("last_seen_at") @db.Timestamptz(3)
+  pairedAt      DateTime        @map("paired_at") @db.Timestamptz(3)
+  revokedAt     DateTime?       @map("revoked_at") @db.Timestamptz(3)
+  user          User            @relation(fields: [userId], references: [id])
+  tokens        ApiToken[]
+  pairings      DevicePairing[]
+  @@index([userId])
+  @@map("devices")
+}
+
+/// A browser approval in progress (docs/16 §5). Only the hash of the device's code is kept.
+model DevicePairing {
+  id             String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  deviceCodeHash String   @unique @map("device_code_hash")
+  userCode       String   @unique @map("user_code")
+  name           String
+  platform       String
+  status         String   @default("pending") // pending | approved | denied | claimed
+  approvedById   String?  @map("approved_by_id") @db.Uuid
+  deviceId       String?  @map("device_id") @db.Uuid
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  device         Device?  @relation(fields: [deviceId], references: [id])
+  @@index([expiresAt])
+  @@map("device_pairings")
 }

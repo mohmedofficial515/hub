@@ -109,6 +109,14 @@ export const ERROR_CATALOGUE = {
   'hub.github.clone_failed': 500,
 
   'hub.security.secret_detected': 422,
+
+  'hub.devices.not_found': 404,
+  'hub.devices.offline': 409,
+  'hub.devices.timeout': 504,
+  'hub.devices.refused': 422,
+  'hub.devices.folder_missing': 422,
+  'hub.devices.pairing_not_found': 404,
+  'hub.devices.pairing_closed': 409,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CATALOGUE;

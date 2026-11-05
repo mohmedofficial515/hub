@@ -22,6 +22,7 @@ import { RedisClients } from '@/infra/redis/redis.module';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
+import { DevicesService } from '@/modules/devices';
 import { BriefsService } from '@/modules/digests';
 import { DocsReadService } from '@/modules/docs';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
@@ -65,6 +66,7 @@ export class McpDeps {
     readonly runner: SourceRunnerService,
     readonly queues: QueueService,
     readonly me: MeService,
+    readonly devices: DevicesService,
     readonly sessions: SessionsService,
     readonly sessionContext: SessionContextService,
     readonly redis: RedisClients,

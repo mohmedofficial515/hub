@@ -5,6 +5,7 @@ import { findSecret } from '@hub/contracts';
 
 import {
   apiTokenPrefix,
+  deviceTokenMayCall,
   hashesMatch,
   hashRecoveryCode,
   hookTokenMayCall,
@@ -87,5 +88,22 @@ describe('hook token reach (docs/04 §1.6)', () => {
     '/api/v1/captured',
   ])('refuses %s', (path) => {
     expect(hookTokenMayCall(path)).toBe(false);
+  });
+});
+
+describe('deviceTokenMayCall', () => {
+  it('reaches MCP and its own uninstall, nothing else', () => {
+    expect(deviceTokenMayCall('/mcp')).toBe(true);
+    expect(deviceTokenMayCall('/api/v1/bridge/self')).toBe(true);
+    for (const path of [
+      '/api/v1/me',
+      '/api/v1/me/context',
+      '/api/v1/me/tokens',
+      '/api/v1/me/devices',
+      '/mcpx',
+      '/api/v1/workspaces',
+    ]) {
+      expect(deviceTokenMayCall(path)).toBe(false);
+    }
   });
 });

@@ -6400,6 +6400,348 @@
           "capture"
         ]
       }
+    },
+    "/api/v1/bridge/self": {
+      "delete": {
+        "operationId": "BridgeSelfController_remove",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "A device revokes itself as it uninstalls",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices": {
+      "get": {
+        "operationId": "DevicesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The member’s paired devices, with online state and the last health report",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/connect-command": {
+      "get": {
+        "operationId": "DevicesController_connectCommand",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectCommandDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The one command that connects a new device, and the one that removes Hub from it",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}/health": {
+      "get": {
+        "operationId": "DevicesController_health",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runs the device’s health checks now. Offline, the last report stands",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}/fix": {
+      "post": {
+        "operationId": "DevicesController_fix",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runs one fix from the closed list on the device, then its checks",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}": {
+      "delete": {
+        "operationId": "DevicesController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke a device. Its credentials stop at once and its socket closes",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/start": {
+      "post": {
+        "operationId": "PairingController_start",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingStartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingStartedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A device asks to pair. It shows the short code and opens the approval page",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/poll": {
+      "post": {
+        "operationId": "PairingController_poll",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingPollDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingPollAnswerDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A device asks for the answer. Its credentials come back once",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}": {
+      "get": {
+        "operationId": "PairingController_view",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingViewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "What is asking to pair, for the approval page",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}/approve": {
+      "post": {
+        "operationId": "PairingController_approve",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Approve a device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}/deny": {
+      "post": {
+        "operationId": "PairingController_deny",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Refuse a device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/devices/{id}/link": {
+      "post": {
+        "operationId": "WorkspaceDevicesController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkFolderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Link a folder on this device to the project, and accept its trust (D44)",
+        "tags": [
+          "devices"
+        ]
+      }
     }
   },
   "info": {
@@ -31453,6 +31795,328 @@
         "required": [
           "project",
           "text"
+        ]
+      },
+      "DeviceRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "bridgeVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "claudeVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "vscodeFound": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "pairedAt": {
+            "type": "string"
+          },
+          "health": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "claude_found",
+                    "claude_version",
+                    "claude_path_version",
+                    "claude_signed_in",
+                    "mcp_server",
+                    "plugin",
+                    "login_start",
+                    "vscode"
+                  ]
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "warn",
+                    "error"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "nullable": true
+                },
+                "fix": {
+                  "type": "string",
+                  "enum": [
+                    "mcp_server",
+                    "plugin",
+                    "login_start",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "hint": {
+                  "type": "string",
+                  "maxLength": 300,
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "ok",
+                "level",
+                "detail",
+                "fix",
+                "hint"
+              ]
+            }
+          },
+          "healthAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "online",
+          "bridgeVersion",
+          "claudeVersion",
+          "vscodeFound",
+          "lastSeenAt",
+          "pairedAt",
+          "health",
+          "healthAt"
+        ]
+      },
+      "ConnectCommandDto": {
+        "type": "object",
+        "properties": {
+          "apiUrl": {
+            "type": "string"
+          },
+          "connect": {
+            "type": "string"
+          },
+          "uninstall": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiUrl",
+          "connect",
+          "uninstall"
+        ]
+      },
+      "FixDeviceDto": {
+        "type": "object",
+        "properties": {
+          "fix": {
+            "type": "string",
+            "enum": [
+              "mcp_server",
+              "plugin",
+              "login_start"
+            ]
+          }
+        },
+        "required": [
+          "fix"
+        ]
+      },
+      "PairingStartDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "win32",
+              "darwin",
+              "linux"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "platform"
+        ]
+      },
+      "PairingStartedDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string"
+          },
+          "userCode": {
+            "type": "string"
+          },
+          "approveUrl": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "deviceCode",
+          "userCode",
+          "approveUrl",
+          "expiresInSeconds",
+          "pollSeconds"
+        ]
+      },
+      "PairingPollDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "PairingPollAnswerDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "denied",
+              "claimed",
+              "expired"
+            ]
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "string"
+          },
+          "hookToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "PairingViewDto": {
+        "type": "object",
+        "properties": {
+          "userCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "denied",
+              "claimed",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userCode",
+          "name",
+          "platform",
+          "status",
+          "expiresAt"
+        ]
+      },
+      "LinkFolderDto": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "folder"
+        ]
+      },
+      "LinkResultDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "linked",
+              "already_linked",
+              "shape_unexpected",
+              "mcp_failed"
+            ]
+          },
+          "folder": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "backup": {
+            "type": "string",
+            "nullable": true
+          },
+          "registered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "outcome",
+          "folder",
+          "project",
+          "backup",
+          "registered"
         ]
       }
     }

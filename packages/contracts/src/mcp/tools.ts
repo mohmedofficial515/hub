@@ -58,6 +58,7 @@ import {
   verifyNeedSchema,
 } from '../cards';
 import { auditQuerySchema } from '../cards/read-models';
+import { fixDeviceSchema } from '../devices';
 import type { PermissionAction } from '../permissions';
 import {
   createProjectSchema,
@@ -767,6 +768,36 @@ const TOOL_TABLE = {
     routes: ['PUT /me/default-project'],
   },
 
+  // Devices (docs/16 §5). Pairing makes credentials and the Link button writes Claude Code's config on a press (D44), so neither has a tool.
+  list_devices: {
+    description: 'Your paired devices: online or not, the Claude Code version, and the last health report.',
+    input: noInput,
+    actions: ['device.manage'],
+    readOnly: true,
+  },
+  check_device: {
+    description: 'Runs the health checks on one device now and reports them, as Settings › Devices does.',
+    input: z.object({ device: z.string().uuid() }),
+    actions: ['device.manage'],
+    readOnly: true,
+  },
+  fix_device: {
+    description:
+      'Runs one fix on a device from the closed list: `mcp_server`, `plugin` or `login_start`. It changes user-level Claude Code settings on that device, so confirm with the user in the chat before calling this.',
+    input: z.object({ device: z.string().uuid(), fix: fixDeviceSchema.shape.fix }),
+    actions: ['device.manage'],
+    routes: ['POST /me/devices/:id/fix'],
+    destructive: true,
+  },
+  revoke_device: {
+    description:
+      'Revoke a paired device. Its bridge is cut at once and its Claude Code loses Hub. Pairing it again needs the browser, so confirm with the user in the chat before calling this.',
+    input: z.object({ device: z.string().uuid() }),
+    actions: ['device.manage'],
+    routes: ['DELETE /me/devices/:id'],
+    destructive: true,
+  },
+
   // Administration
   list_members: {
     description: 'The members of this project and their roles.',
@@ -987,4 +1018,6 @@ export const MCP_TOOL_NAMES = MCP_TOOLS.map((tool) => tool.name);
 export const MCP_EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   'POST /capture/session': 'called by the SessionEnd hook; log_session is the agent side',
   'POST /workspaces/:ws/today/seen': 'the Today page marking what its viewer has seen; a chat has no page',
+  'DELETE /bridge/self':
+    'called by `hub-bridge uninstall` with the device credential; revoke_device is the agent side',
 };

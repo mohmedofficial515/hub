@@ -122,6 +122,15 @@
     },
     "audit": {
       "export_too_large": "Too many rows to export. Narrow the filters."
+    },
+    "devices": {
+      "not_found": "No such device.",
+      "offline": "That device is offline. Start its bridge, then try again.",
+      "timeout": "The device did not answer in time.",
+      "refused": "The device refused this.",
+      "folder_missing": "That folder does not exist on the device.",
+      "pairing_not_found": "That code is not valid, or it has expired. Run the command again.",
+      "pairing_closed": "This code was already answered."
     }
   },
   "hub.audit.export_too_large": "Too many rows to export. Narrow the filters."

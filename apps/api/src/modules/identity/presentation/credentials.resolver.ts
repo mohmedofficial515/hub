@@ -16,7 +16,7 @@ import { AppException } from '@/shared/errors';
 import { ApiTokenService } from '../application/api-token.service';
 import { CredentialTokens } from '../application/credential-tokens.service';
 import type { PrincipalResolver } from '../application/ports/principal-resolver';
-import { hookTokenMayCall } from '../domain/credentials';
+import { deviceTokenMayCall, hookTokenMayCall } from '../domain/credentials';
 import { ACCESS_COOKIE, assertCsrfHeader, cookieOf } from './cookies';
 
 const LAST_SEEN_RESOLUTION_MS = 60_000;
@@ -46,6 +46,9 @@ export class CredentialsResolver implements PrincipalResolver {
     if (scheme?.toLowerCase() !== 'bearer' || !raw) throw new AppException('hub.identity.token_invalid');
     const principal = await this.apiTokens.authenticate(raw);
     if (principal.kind === 'hook' && !hookTokenMayCall(path)) {
+      throw new AppException('hub.identity.token_scope');
+    }
+    if (principal.kind === 'agent' && principal.deviceId && !deviceTokenMayCall(path)) {
       throw new AppException('hub.identity.token_scope');
     }
     return principal;

@@ -1,8 +1,9 @@
 /**
  * @file `pnpm start:local`: Hub on this machine, from one command (docs/15 §1, §9).
  * @description Brings up Postgres, Redis and Mailpit, applies migrations, makes sure the owner and the two projects exist, builds what changed,
- * then runs the API with its workers on 7310 and the web on 7300 until Ctrl+C. Safe to run again. Written for Windows first: no shell syntax, and
- * stopping takes the whole process tree. Logs go to `.tmp/logs`. `pnpm stop:local` stops a run whose terminal is gone.
+ * then runs the API with its workers on 7310, the web on 7300 and the lab on 7320 until Ctrl+C. Safe to run again. Written for Windows first: no shell
+ * syntax, and stopping takes the whole process tree. Logs go to `.tmp/logs`. `pnpm stop:local` stops a run whose terminal is gone. The lab is a helper:
+ * Hub stays up without it, and the Redesign page says so (docs/16 §6). The `HUB_*` variables below let a test run beside a real Hub.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -20,12 +21,18 @@ import { connect } from 'node:net';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { connectMainMachine } from './connect-main-machine.mjs';
+import { checkVersions, describe } from './lab-check.mjs';
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const apiDir = join(root, 'apps/api');
 const webDir = join(root, 'apps/web');
-const logDir = join(root, '.tmp/logs');
-const pidFile = join(root, '.tmp/local-pids.json');
-const WEB_DIST = '.next-local';
+const labDir = join(root, 'apps/lab');
+const logDir = process.env.HUB_LOG_DIR ?? join(root, '.tmp/logs');
+const pidFile = process.env.HUB_PID_FILE ?? join(root, '.tmp/local-pids.json');
+const envFile = process.env.HUB_ENV_FILE ?? join(root, '.env');
+const WEB_DIST = process.env.NEXT_DIST_DIR ?? '.next-local';
+const WEB_PORT = Number(process.env.HUB_WEB_PORT ?? 7300);
 const isWindows = process.platform === 'win32';
 
 const say = (text) => process.stdout.write(`${text}\n`);
@@ -126,24 +133,28 @@ async function main() {
   say('Starting Hub.');
   mkdirSync(logDir, { recursive: true });
 
-  if (!existsSync(join(root, '.env')))
+  if (!existsSync(envFile))
     run('First run: writing .env', process.execPath, ['scripts/first-run.mjs'], {
       shell: false,
       stdio: 'inherit',
     });
-  const env = readEnvFile(join(root, '.env'));
+  const env = readEnvFile(envFile);
   if (!env.HUB_OWNER_EMAIL) {
     fail('Set HUB_OWNER_EMAIL in .env first: it is the address you sign in with. Then run this again.');
   }
   const apiPort = Number(env.PORT || 7310);
   for (const [name, port] of [
-    ['Web', 7300],
+    ['Web', WEB_PORT],
     ['API', apiPort],
   ]) {
     if (await isPortBusy(port)) {
       fail(`${name} port ${port} is in use. Is Hub already running? If it is, \`pnpm stop:local\` stops it.`);
     }
   }
+
+  const labPort = Number(env.LAB_PORT || 7320);
+  const labBusy = await isPortBusy(labPort);
+  if (labBusy) say(`Lab port ${labPort} is in use, so the lab that answers there is the one Hub shows.`);
 
   say('Services:');
   run('docker compose up', 'docker', ['compose', '-f', 'infra/compose.dev.yaml', 'up', '-d', '--wait'], {
@@ -171,6 +182,7 @@ async function main() {
     NODE_ENV: 'production',
     NEXT_DIST_DIR: WEB_DIST,
     HUB_API_ORIGIN: `http://localhost:${apiPort}`,
+    HUB_LAB_ORIGIN: `http://127.0.0.1:${labPort}`,
   };
   const webBuilt = builtAt(join(webDir, WEB_DIST, 'BUILD_ID'));
   const webChanged =
@@ -187,11 +199,13 @@ async function main() {
   const api = start('api', ['dist/main'], apiDir, { ...process.env });
   const web = start(
     'web',
-    [join(webDir, 'node_modules/next/dist/bin/next'), 'start', '-p', '7300'],
+    [join(webDir, 'node_modules/next/dist/bin/next'), 'start', '-p', String(WEB_PORT)],
     webDir,
     webEnv,
   );
   const running = [api, web];
+  const lab = labBusy ? null : startLab(labPort, env);
+  if (lab) running.push(lab);
   writeFileSync(pidFile, JSON.stringify(running.map((item) => item.child.pid)));
 
   let stopping = false;
@@ -208,6 +222,12 @@ async function main() {
   for (const item of running) {
     item.child.once('exit', (code) => {
       if (stopping) return;
+      if (item === lab) {
+        say(
+          `\nThe lab stopped (exit ${code}). Hub keeps running, and Redesign says so. Its log: ${item.logFile}`,
+        );
+        return;
+      }
       process.stderr.write(`\n${item.name} stopped (exit ${code}). Its log: ${item.logFile}\n`);
       stopAll(1);
     });
@@ -215,16 +235,65 @@ async function main() {
 
   try {
     await waitFor(`http://localhost:${apiPort}/api/v1/health/ready`, 'The API', api);
-    await waitFor('http://localhost:7300/ar/sign-in', 'The web', web);
+    await waitFor(`http://localhost:${WEB_PORT}/ar/sign-in`, 'The web', web);
   } catch (error) {
     process.stderr.write(`\n${error instanceof Error ? error.message : String(error)}\n`);
     stopAll(1);
   }
 
   say('');
-  say(`Hub is running.   Open http://localhost:7300`);
+  // Hub is up, so a problem connecting Claude Code is a warning and never stops it (docs/16 §5).
+  if (!process.env.HUB_SKIP_CONNECT)
+    await connectMainMachine({
+      root,
+      apiUrl: `http://localhost:${apiPort}`,
+      env: { ...process.env, ...env },
+      say,
+    }).catch((error) =>
+      say(
+        `Claude Code: connecting did not finish: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+  say('');
+  say(`Hub is running.   Open http://localhost:${WEB_PORT}`);
   say(`Sign in with HUB_OWNER_EMAIL and HUB_OWNER_PASSWORD from .env.`);
   say(`Logs: ${logDir}. Ctrl+C stops it.`);
+  if (lab) void reportLab(labPort);
+}
+
+/** Its packages are the only thing a fresh checkout may lack. Without them Hub still starts. */
+function startLab(port, env) {
+  const vite = join(labDir, 'node_modules/vite/bin/vite.js');
+  if (!existsSync(vite)) {
+    spawnSync('pnpm', ['install', '--filter', '@hub/lab', '--ignore-scripts'], {
+      cwd: root,
+      shell: isWindows,
+      stdio: 'ignore',
+    });
+  }
+  if (!existsSync(vite)) {
+    say('The lab has no packages, and installing them failed. Hub starts without it: run `pnpm install`.');
+    return null;
+  }
+  return start('lab', [vite], labDir, {
+    ...process.env,
+    LAB_PORT: String(port),
+    ...(env.LAB_WEB_SRC ? { LAB_WEB_SRC: env.LAB_WEB_SRC } : {}),
+    ...(env.LAB_DASH_SRC ? { LAB_DASH_SRC: env.LAB_DASH_SRC } : {}),
+  });
+}
+
+/** After Hub is up, and only telling: a broken version fails in its own frame, and this names it. */
+async function reportLab(port) {
+  const origin = `http://127.0.0.1:${port}`;
+  try {
+    for (let tries = 0; tries < 60 && !(await isPortBusy(port)); tries += 1) {
+      await new Promise((done) => setTimeout(done, 500));
+    }
+    say(describe(await checkVersions({ origin, labDir }), join(logDir, 'lab-check.log')));
+  } catch (error) {
+    say(`Lab: not checked: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 void main();

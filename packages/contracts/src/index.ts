@@ -4,6 +4,7 @@
 export * from './actor';
 export * from './capture';
 export * from './cards';
+export * from './devices';
 export * from './errors';
 export * from './events';
 export * from './identity';

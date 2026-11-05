@@ -5263,6 +5263,81 @@ export type ContextDto = {
     text: string;
 };
 
+export type DeviceRowDto = {
+    id: string;
+    name: string;
+    platform: string;
+    online: boolean;
+    bridgeVersion: string | null;
+    claudeVersion: string | null;
+    vscodeFound: boolean | null;
+    lastSeenAt: string | null;
+    pairedAt: string;
+    health: Array<{
+        id: 'claude_found' | 'claude_version' | 'claude_path_version' | 'claude_signed_in' | 'mcp_server' | 'plugin' | 'login_start' | 'vscode';
+        ok: boolean;
+        level: 'ok' | 'warn' | 'error';
+        detail: string | null;
+        fix: 'mcp_server' | 'plugin' | 'login_start' | null;
+        hint: string | null;
+    }>;
+    healthAt: string | null;
+};
+
+export type ConnectCommandDto = {
+    apiUrl: string;
+    connect: string;
+    uninstall: string;
+};
+
+export type FixDeviceDto = {
+    fix: 'mcp_server' | 'plugin' | 'login_start';
+};
+
+export type PairingStartDto = {
+    name: string;
+    platform: 'win32' | 'darwin' | 'linux';
+};
+
+export type PairingStartedDto = {
+    deviceCode: string;
+    userCode: string;
+    approveUrl: string;
+    expiresInSeconds: number;
+    pollSeconds: number;
+};
+
+export type PairingPollDto = {
+    deviceCode: string;
+};
+
+export type PairingPollAnswerDto = {
+    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
+    deviceId?: string;
+    credential?: string;
+    hookToken?: string;
+};
+
+export type PairingViewDto = {
+    userCode: string;
+    name: string;
+    platform: string;
+    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
+    expiresAt: string;
+};
+
+export type LinkFolderDto = {
+    folder: string;
+};
+
+export type LinkResultDto = {
+    outcome: 'linked' | 'already_linked' | 'shape_unexpected' | 'mcp_failed';
+    folder: string;
+    project: string;
+    backup: string | null;
+    registered: boolean;
+};
+
 export type AuthControllerSignInData = {
     body: SignInDto;
     path?: never;
@@ -7760,3 +7835,173 @@ export type CaptureControllerMeResponses = {
 };
 
 export type CaptureControllerMeResponse = CaptureControllerMeResponses[keyof CaptureControllerMeResponses];
+
+export type BridgeSelfControllerRemoveData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/bridge/self';
+};
+
+export type BridgeSelfControllerRemoveResponses = {
+    204: void;
+};
+
+export type BridgeSelfControllerRemoveResponse = BridgeSelfControllerRemoveResponses[keyof BridgeSelfControllerRemoveResponses];
+
+export type DevicesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices';
+};
+
+export type DevicesControllerListResponses = {
+    200: Array<DeviceRowDto>;
+};
+
+export type DevicesControllerListResponse = DevicesControllerListResponses[keyof DevicesControllerListResponses];
+
+export type DevicesControllerConnectCommandData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices/connect-command';
+};
+
+export type DevicesControllerConnectCommandResponses = {
+    200: ConnectCommandDto;
+};
+
+export type DevicesControllerConnectCommandResponse = DevicesControllerConnectCommandResponses[keyof DevicesControllerConnectCommandResponses];
+
+export type DevicesControllerHealthData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}/health';
+};
+
+export type DevicesControllerHealthResponses = {
+    200: DeviceRowDto;
+};
+
+export type DevicesControllerHealthResponse = DevicesControllerHealthResponses[keyof DevicesControllerHealthResponses];
+
+export type DevicesControllerFixData = {
+    body: FixDeviceDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}/fix';
+};
+
+export type DevicesControllerFixResponses = {
+    200: DeviceRowDto;
+};
+
+export type DevicesControllerFixResponse = DevicesControllerFixResponses[keyof DevicesControllerFixResponses];
+
+export type DevicesControllerRevokeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}';
+};
+
+export type DevicesControllerRevokeResponses = {
+    204: void;
+};
+
+export type DevicesControllerRevokeResponse = DevicesControllerRevokeResponses[keyof DevicesControllerRevokeResponses];
+
+export type PairingControllerStartData = {
+    body: PairingStartDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/pairing/start';
+};
+
+export type PairingControllerStartResponses = {
+    201: PairingStartedDto;
+};
+
+export type PairingControllerStartResponse = PairingControllerStartResponses[keyof PairingControllerStartResponses];
+
+export type PairingControllerPollData = {
+    body: PairingPollDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/pairing/poll';
+};
+
+export type PairingControllerPollResponses = {
+    200: PairingPollAnswerDto;
+};
+
+export type PairingControllerPollResponse = PairingControllerPollResponses[keyof PairingControllerPollResponses];
+
+export type PairingControllerViewData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}';
+};
+
+export type PairingControllerViewResponses = {
+    200: PairingViewDto;
+};
+
+export type PairingControllerViewResponse = PairingControllerViewResponses[keyof PairingControllerViewResponses];
+
+export type PairingControllerApproveData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}/approve';
+};
+
+export type PairingControllerApproveResponses = {
+    204: void;
+};
+
+export type PairingControllerApproveResponse = PairingControllerApproveResponses[keyof PairingControllerApproveResponses];
+
+export type PairingControllerDenyData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}/deny';
+};
+
+export type PairingControllerDenyResponses = {
+    204: void;
+};
+
+export type PairingControllerDenyResponse = PairingControllerDenyResponses[keyof PairingControllerDenyResponses];
+
+export type WorkspaceDevicesControllerLinkData = {
+    body: LinkFolderDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/devices/{id}/link';
+};
+
+export type WorkspaceDevicesControllerLinkResponses = {
+    200: LinkResultDto;
+};
+
+export type WorkspaceDevicesControllerLinkResponse = WorkspaceDevicesControllerLinkResponses[keyof WorkspaceDevicesControllerLinkResponses];

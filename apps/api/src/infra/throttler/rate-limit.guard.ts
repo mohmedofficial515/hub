@@ -17,8 +17,8 @@ export const RATE_LIMIT_KEY = 'hub:rate-limit';
 const WINDOW_SEC = 60;
 
 /** Limits per minute (docs/04 §1.7). */
-export const RATE_LIMITS = { auth: 10, search: 60, agent: 120, hook: 60, user: 600 } as const;
-export type RateLimitScope = 'auth' | 'search';
+export const RATE_LIMITS = { auth: 10, poll: 60, search: 60, agent: 120, hook: 60, user: 600 } as const;
+export type RateLimitScope = 'auth' | 'poll' | 'search';
 
 export const RateLimit = (scope: RateLimitScope): MethodDecorator & ClassDecorator =>
   SetMetadata(RATE_LIMIT_KEY, scope);
@@ -63,6 +63,7 @@ export class RateLimitGuard implements CanActivate {
     const principal = request.principal;
     const route = `${context.getClass().name}.${context.getHandler().name}`;
     if (scope === 'auth') return { key: `rl:auth:${route}:${request.ip}`, limit: RATE_LIMITS.auth };
+    if (scope === 'poll') return { key: `rl:poll:${route}:${request.ip}`, limit: RATE_LIMITS.poll };
     if (!principal) return null; // A public route with no decorator, such as health.
     if (scope === 'search') return { key: `rl:search:${principal.userId}`, limit: RATE_LIMITS.search };
     if (principal.kind === 'agent') {

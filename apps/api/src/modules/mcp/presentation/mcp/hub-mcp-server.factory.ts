@@ -25,9 +25,10 @@ import { assertNoSecrets } from '@/shared/security/secret-filter';
 import { cardSheet, cardTable, LONG_OUTPUT_LIMIT, OUTPUT_LIMIT, truncate } from './render';
 import { McpDeps, ToolContext, type ToolHandler, type ToolHandlers } from './tool-context';
 import { cardToolHandlers } from './tools/card.tools';
+import { deviceToolHandlers } from './tools/device.tools';
 import { workspaceToolHandlers } from './tools/workspace.tools';
 
-const HANDLERS: ToolHandlers = { ...cardToolHandlers, ...workspaceToolHandlers };
+const HANDLERS: ToolHandlers = { ...cardToolHandlers, ...deviceToolHandlers, ...workspaceToolHandlers };
 
 const LONG_OUTPUT: ReadonlySet<McpToolName> = new Set<McpToolName>(['get_card', 'get_plan', 'get_doc']);
 

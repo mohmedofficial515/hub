@@ -1,5 +1,6 @@
 export { AccountAdmin } from './application/account-admin.service';
 export { ActorService, type ProjectChoice } from './application/actor.service';
+export { ApiTokenService } from './application/api-token.service';
 export { assertKnownRoles, InviteService } from './application/invite.service';
 export { MeService } from './application/me.service';
 export { OwnerSeed } from './application/owner-seed.service';

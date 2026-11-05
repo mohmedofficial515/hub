@@ -21,6 +21,7 @@ import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
 import { CaptureModule } from './modules/capture';
 import { CardsModule } from './modules/cards';
 import { DecisionsModule } from './modules/decisions';
+import { DevicesModule } from './modules/devices';
 import { DigestsModule } from './modules/digests';
 import { DocsModule } from './modules/docs';
 import { HandoffsModule } from './modules/handoffs';
@@ -89,6 +90,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     HealthModule,
     WorkspacesModule,
     CaptureModule,
+    DevicesModule,
     McpModule,
   ],
   providers: [

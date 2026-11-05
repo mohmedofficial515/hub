@@ -15,6 +15,8 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(7310),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   HUB_PUBLIC_URL: z.url().default('http://localhost:7300'),
+  /** Where another device reaches this API: `/mcp`, `/bridge` and the connect script. Unset: the host the browser used, on PORT. */
+  HUB_API_PUBLIC_URL: optionalText,
   HUB_ALLOWED_HOSTS: z.string().default('localhost,127.0.0.1'),
   /** Express `trust proxy`, when a proxy stands in front: `uniquelocal` in compose. Unset: trust nothing. */
   TRUST_PROXY: optionalText,

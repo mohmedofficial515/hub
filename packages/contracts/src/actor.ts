@@ -15,7 +15,14 @@ export type Via = (typeof VIAS)[number];
 /** An authenticated member, before a project is chosen. */
 export type Principal =
   | { readonly kind: 'user'; readonly userId: string; readonly via: 'web' }
-  | { readonly kind: 'agent'; readonly userId: string; readonly via: 'mcp'; readonly tokenId: string }
+  | {
+      readonly kind: 'agent';
+      readonly userId: string;
+      readonly via: 'mcp';
+      readonly tokenId: string;
+      /** Set for a paired device's credential, which reaches only MCP and the bridge channel (docs/16 §5). */
+      readonly deviceId?: string;
+    }
   | { readonly kind: 'hook'; readonly userId: string; readonly via: 'hook'; readonly tokenId: string };
 
 /** A member acting inside one project. `roles` are live, from Membership. */

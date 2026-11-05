@@ -33,7 +33,7 @@ export type LocalPathSourceConfig = z.infer<typeof localPathSourceConfigSchema>;
 
 const SOURCE_NAME = /^[a-z0-9-]{2,32}$/;
 const markdown = z.string().max(20_000);
-const absolutePath = z
+export const absolutePath = z
   .string()
   .min(1)
   .max(500)

@@ -166,6 +166,11 @@ const MATRIX = {
   // Own account
   'token.manage': EVERYONE,
   'profile.manage': EVERYONE,
+
+  // Devices (docs/16 §4, §5). Pairing makes a credential, and linking writes Claude Code's own config on a press (D44): web only.
+  'device.manage': EVERYONE,
+  'device.pair': EVERYONE,
+  'device.link': OWNER_PM,
 } as const satisfies Record<string, Row>;
 
 export type PermissionAction = keyof typeof MATRIX;
@@ -175,6 +180,8 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'token.manage',
   'profile.manage',
   'source.set_secret',
+  'device.pair',
+  'device.link',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {

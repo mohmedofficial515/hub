@@ -66,6 +66,7 @@ import { MeController } from './presentation/http/me.controller';
   exports: [
     AccountAdmin,
     ActorService,
+    ApiTokenService,
     InviteService,
     MeService,
     OwnerSeed,

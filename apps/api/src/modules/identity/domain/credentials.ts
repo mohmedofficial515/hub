@@ -60,3 +60,8 @@ export function hashRecoveryCode(code: string): string {
 export function hookTokenMayCall(path: string): boolean {
   return /^\/api\/v1\/((workspaces\/[^/]+\/)?capture(\/|$)|me(\/context)?\/?$|auth\/me\/?$)/.test(path);
 }
+
+/** What a paired device's credential may call (docs/16 §5): MCP and its own uninstall. The socket checks it separately. */
+export function deviceTokenMayCall(path: string): boolean {
+  return /^\/mcp\/?$/.test(path) || /^\/api\/v1\/bridge\/self\/?$/.test(path);
+}
