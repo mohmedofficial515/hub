@@ -606,11 +606,11 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
           <Tabs.Content value="details" className={cn('flex flex-col gap-5 p-4 md:p-6', focusRingInset)}>
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
             {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
-              // The sheet's title is an h2, so a body's own top heading starts below it.
+              // The sheet's title is an h2, so a body's `##` is an h3.
               <MarkdownView
                 source={card.body}
                 dir="auto"
-                headingOffset={2}
+                headingOffset={1}
                 copyCodeLabel={t.sheet.copyCode}
               />
             ) : (

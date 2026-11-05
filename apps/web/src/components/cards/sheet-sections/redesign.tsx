@@ -262,7 +262,7 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
           <MarkdownView
             source={files.data?.review ?? r.reviewSummary ?? ''}
             dir="ltr"
-            headingOffset={2}
+            headingOffset={1}
             copyCodeLabel={page.sheet.copyCode}
           />
         )}
