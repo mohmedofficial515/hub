@@ -65,6 +65,45 @@ test('with the access cookie gone, a reload stays on the page after exactly one 
   }
 });
 
+test('a reload that abandons a refresh in flight keeps the session (D35)', async ({
+  browser,
+  locale,
+  ws,
+}) => {
+  const context = await signedIn(browser);
+  try {
+    const page = await context.newPage();
+    await page.goto(view(locale, ws, 'tasks'));
+    await heading(page).waitFor();
+    await settled(page);
+    await context.clearCookies({ name: 'hub_access' });
+
+    // The server rotates the token, and the browser never hears: it still holds the replaced one.
+    const refresh = '**/api/v1/auth/refresh';
+    await page.route(refresh, async (route) => {
+      await route.fetch();
+      await route.abort();
+    });
+    await page
+      .evaluate(() =>
+        fetch('/api/v1/auth/refresh', { method: 'POST', headers: { 'X-Requested-With': 'hub' } }),
+      )
+      .catch(() => undefined);
+    await page.unroute(refresh);
+
+    const seen = watch(page);
+    await page.reload();
+    await heading(page).waitFor();
+    await settled(page);
+
+    expect(page.url()).toMatch(onPage(locale, ws, 'tasks'));
+    expect(seen.signIns).toBe(0);
+    expect(await has(context, 'hub_access')).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
 test('a session from before the marker works while it has an access cookie, and gets the marker', async ({
   browser,
   locale,

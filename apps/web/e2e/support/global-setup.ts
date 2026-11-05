@@ -57,6 +57,7 @@ export default async function globalSetup() {
     ['accountant', ['accountant']],
     ['frontend', ['frontend']],
     ['backend', ['backend']],
+    ['manager', ['owner', 'pm', 'accountant']],
   ] as const) {
     const email = `${name}@e2e.test`;
     const context = await request.newContext({ baseURL: WEB_URL });
