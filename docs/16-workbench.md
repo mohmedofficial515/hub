@@ -166,3 +166,290 @@ Every slice needs `pnpm check`, its tests and a browser check in `ar` and `en`. 
 ## 14. Out of scope
 
 Real multi-user features, cloud scheduling, public internet exposure, a VPS, GitHub, Telegram, email and web push (these still wait for tokens).
+
+## S1 findings (2026-11-06)
+
+Run on the owner's Windows 11 machine with Node 22.17. Unless a line says otherwise, tests used the official binary 2.1.318 (from the VS Code extension folder) with `--model haiku`, a clean environment (no `CLAUDE*` or `ANTHROPIC*` variables) and a throwaway folder. Scripts and raw event logs are listed at the end. "Docs" means `code.claude.com/docs/en/`, read on this date.
+
+**Verdict:** spawning the binary works for everything the panel needs, on the owner's sign-in, with no API key. The design holds, with the corrections under "Contradictions with the approved design". Two of those need the owner.
+
+### Q1. Spawn and stream: works, spawn `claude.exe` directly
+
+| How Node starts it | Result |
+|---|---|
+| `spawn('claude')`, no shell | `ENOENT` |
+| `spawn('claude.cmd')`, no shell | `EINVAL` |
+| `spawn('claude.cmd', { shell: true })` | Starts, but is unsafe. A test argument through a shim of the same shape was cut at `&`, and the injected `echo PWNED > pwned.txt` really ran |
+| `spawn('<path>\\claude.exe', args)` | Works. Tested with `node.exe` as the stand-in for argument passing: quotes, `&`, `|`, `%PATH%`, `^` and Arabic arrived intact |
+
+- The npm shim only forwards to `node_modules\@anthropic-ai\claude-code\bin\claude.exe`, so the bridge can resolve the `.exe` and never use a shell.
+- **Two versions are installed.** `claude` on PATH is **2.1.202**. The extension's copy is **2.1.318**. §3 states Manual mode for 2.1.302 and later.
+- Send the prompt through stdin, not argv. This avoids quoting and the command-line length limit. Arabic comes back correctly as UTF-8.
+- Event shapes are in "Event mapping" below. 2.1.202 and 2.1.318 emit the same core events; 2.1.318 adds fields such as `capabilities`, `first_content_frame_ms` and `tool_result_meta`.
+
+**Effect:** the bridge resolves the binary itself, checks `--version` against a tested range, and never uses `shell: true`.
+
+### Q2. Resume: context is kept, but a per-turn start is slow with approvals on
+
+- `--resume <id>` kept context (the "teal" door was recalled with no tools) and the same `session_id`, including when resumed from another folder.
+- An unknown id gives `result/error_during_execution`, `errors: ["No conversation found with session ID: …"]`, exit 1, no model call.
+
+| Run | Time to first stream event or token |
+|---|---|
+| New session, no `--mcp-config` | first event 3.9 s (2.8 s of it before `init`) |
+| `--resume`, no `--mcp-config` | first token 4.0 s and 4.2 s |
+| **With `--mcp-config` and the permission tool** | **first event 7.6 s alone, 9.8 to 10.3 s with other runs going** |
+| Second turn in a live process (Q3) | **first token 1.1 s** |
+| The API's own part, from `ttft_ms` | 1.0 to 1.4 s, one sample 2.6 s |
+
+The cause is visible in `init`. Without `--mcp-config`, MCP servers are `pending` and the turn starts at once. With it, `init` arrives after every server is `connected` (docs: `headless`, `cli-reference`). This machine loads 5 MCP servers, 7 plugins and 117 skills, and each process tree holds about 25 child processes.
+
+**Effect:** one process per turn with approvals on means 8 to 10 s before anything appears. It works, but it is slow for a chat. See the recommendation in Q3.
+
+### Q3. Interactive input: works, and it is the better default
+
+- Message shape, found by trying: `{"type":"user","message":{"role":"user","content":"…"}}`, one JSON object per line on stdin, with `-p --input-format stream-json --output-format stream-json --verbose`. Omitting `parent_tool_use_id` and `session_id` is accepted.
+- Two turns ran in one process with context kept ("PLUM"), one `result` per turn, same `session_id`. `system/init` is emitted again per turn. Closing stdin exits with code 0.
+- An unknown line (`{"type":"nonsense"}`) was ignored with no error.
+- Stop also goes through this channel (Q7).
+- **Is it safe to depend on?** Yes, with the version pin in §13. §3 said the shape is undocumented, which is true of `cli-reference` and `headless`. It is documented as `SDKUserMessage` in `agent-sdk/typescript`, the same page mentions clients that drive "the CLI's control protocol directly", and the SDK uses this path itself. It is not promised as a public CLI contract, so the bridge keeps per-turn `--resume` as its fallback.
+
+**Recommendation, replacing "one process per turn":** keep one live process per chat while it is in use, and close stdin after an idle period (start with 10 minutes). The next message after that uses `--resume`. Keep the number of live processes low, because each one holds its MCP children. Only one turn per chat stays as designed.
+
+**Not run together:** the permission tool with stream-json input, and `--resume` with stream-json input, were each proven separately. Prove both combined first in slice 3.
+
+### Q4. Approvals: proven, with an exact contract
+
+**`--permission-prompt-tool mcp__hubperm__approve`**, stub in `stub-perm-mcp.mjs`:
+- A Write inside the folder was allowed and the file was created. `git push origin main` was paused for 8 s, then denied. It never ran. The model received the message and stopped.
+- **Input the tool receives** (observed; the docs do not specify it):
+  ```json
+  { "name": "approve",
+    "arguments": { "tool_name": "Bash", "input": { "command": "git push origin main", "description": "…" }, "tool_use_id": "toolu_…" },
+    "_meta": { "claudecode/toolUseId": "toolu_…", "progressToken": 3 } }
+  ```
+- **Output it returns:** one text content block holding JSON, as a normal MCP tool result:
+  - Allow: `{"behavior":"allow","updatedInput":{…the input…}}`
+  - Deny: `{"behavior":"deny","message":"…"}`
+- A denial appears as a `tool_result` with `is_error: true` and the message as content, and in `result.permission_denials` as `tool_name`, `tool_use_id`, `tool_input`.
+- `tool_result_meta[].permission_decision` shows who decided: `user_temporary` or `user_reject` for the tool, `config` for rules and modes.
+- The stub saw stdin close when Claude exited, so the bridge can clear a stale approval at that moment.
+
+**Waiting:**
+- **A pause of 6 minutes (360 s) worked.** The Write then went through and the run ended normally.
+- The limit is an idle timer. With `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=60000`, the call aborted at 60 s with `MCP server "hubperm" tool "approve" sent no response or progress for 60s; aborting`. The model sees a **tool error, not a denial**, and carries on.
+- Docs: the default idle limit is **30 minutes for stdio** and 5 minutes for network servers, and the wall limit is about 28 hours. An HTTP server also has a 60 s per-request timer. Long calls are not moved to the background in `-p`.
+- Not tested: sending `notifications/progress` on the supplied `progressToken` to reset the idle timer.
+
+**Effect:** make the prompt tool a small **stdio** shim that talks to the bridge, not an HTTP server. The bridge sets `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` well above the queue's approval window, and answers a deny itself when that window ends, so a run never fails by accident. The prompt cache in usage is `ephemeral_1h`, so a pause over an hour should be expected to cost a cache rebuild.
+
+The tool is visible to the model as an ordinary MCP tool. A direct call grants nothing, because the result is only text. The shim should refuse a call whose `tool_use_id` it cannot match to a tool use in the stream.
+
+**`canUseTool` in the SDK:** also works. It received `(toolName, input, { toolUseID, requestId, decisionReason, suggestions, … })`, allow and deny both behaved, and it was held for 3 s only. The SDK turns this on by passing `--permission-prompt-tool=stdio`, an internal mode the CLI docs do not list.
+
+**D41 as flags:** `--permission-mode acceptEdits` plus `--settings <file>` with `ask` rules. Evidence from one parallel run with the stub denying everything:
+
+| Command | Outcome |
+|---|---|
+| Write inside the folder, `mkdir made-dir` | Ran with no approval |
+| `git status`, `node --version` | Ran with no approval |
+| `rm target.txt`, `rmdir emptydir` | Paused |
+| `git commit -m x`, `git push origin main`, `git branch feature-x`, `git checkout -b feature-y`, `git worktree add ../wt` | Paused |
+| `./deploy.sh` (unknown) | Paused |
+| `FOO=bar rm target.txt`, `ls && rm target.txt`, `bash -c "rm target.txt"`, `git -C . push origin main` | Paused |
+
+Control run with no Bash `ask` rule: **`rm` and `mv` ran with no approval and the file was gone**, so `acceptEdits` alone breaks D41. PowerShell is a second route on this machine (`init.tools` includes `PowerShell`). `Remove-Item` and `git push` through it paused under `PowerShell(...)` rules, and `Get-Date` ran.
+
+`git commit` and `git checkout` paused **even though the owner's `~/.claude/settings.json` allows `Bash(git commit *)` and `Bash(git checkout *)`**, which confirms ask beats allow. Those allow rules are loaded into every bridge run; see C1.
+
+Limits: rules match command text, and docs (`permissions`) say they are not a security boundary around a program. The real protection is that a command with no matching allow rule falls through to the prompt. Project `permissions.allow` is ignored in `-p` until the folder is trusted (Q6), so the rules belong in `--settings`, never in the repo.
+
+### Q5. SDK sign-in: runs on `/login` with no key; still recommend the binary
+
+- With no `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN` in the environment, `@anthropic-ai/claude-agent-sdk` 0.3.318 ran a full turn on the existing sign-in.
+- `init.apiKeySource` is `"none"`, the same as the CLI. `accountInfo()` returned `apiProvider: "firstParty"` and a subscription plan name. `rate_limit_event` arrived as with the CLI. No credential file was read by these scripts.
+- **Recommendation: spawn the binary.**
+  1. Docs state the SDK's route as API keys, and that third-party products on it may not offer claude.ai login (`agent-sdk/overview`). `legal-and-compliance` says the rule does not "prevent an end user from signing in to the unmodified Claude Code binary with their own Claude subscription". That sentence fits D38; working SDK behaviour is not a promise.
+  2. The SDK adds nothing we need. It spawns the same binary and drives it over the same stream.
+  3. The binary keeps the API-key switch in §13 simple, and keeps the bridge free of a large dependency that ships its own copy of `claude.exe`.
+- This updates §3 in one way: the SDK does work on `/login` today, but that does not change the choice.
+
+### Q6. Folder config: all loaded, with limits
+
+In a temp folder with no trust, and no `--bare`:
+- `CLAUDE.md`: yes. The code word came back with no tool use.
+- `.claude/skills/*`: yes, listed in `init.skills`.
+- User plugins: yes, all 7 in `init.plugins`.
+- `.mcp.json`: connected **with no prompt**. The stub logged `initialize` and `tools/list`, and the tool was reachable through `ToolSearch`. It shows `pending` in `init` and was missing from `init.tools`, so `init.tools` is not a health check.
+- User-level hooks also ran (3 `SessionStart`), and `PreToolUse` and `PostToolUse` hooks are configured, so they apply to bridge runs.
+- Project `permissions.allow` is **ignored**, with this on stderr: `Ignoring 1 permissions.allow entry from .claude/settings.json: this workspace has not been trusted`. Docs add that project hooks and `.mcp.json` do run untrusted, which is why the bridge must keep its registered-folders rule.
+
+**`--bare` is not in effect today, and the planned default change is serious.** `headless` says: "`--bare` is the recommended mode for scripted and SDK calls, and will become the default for `-p` in a future release." Run explicitly on the real home, `--bare` gave `Not logged in · Please run /login`, because it reads only `ANTHROPIC_API_KEY` or `apiKeyHelper`. It also skips `CLAUDE.md`, skills, plugins and `.mcp.json`. So on the day that default flips, subscription chat through `-p` stops and the folder's config is gone. **`claude --help` lists no opt-out flag today.** The pinned version range in §13 gives warning. Test each new version for this before widening the range.
+
+### Q7. Stop: clean with the control message, and kill leaves orphans
+
+| Method | Result | Children | Resume after |
+|---|---|---|---|
+| `{"type":"control_request","request_id":"…","request":{"subtype":"interrupt"}}` on stdin | `control_response` at once, `result/error_during_execution` in **34 ms**, exit 1 after stdin closed | **None survive**, `ping` included | Works, context kept |
+| `child.kill()` | Immediate, no `result` | **`bash.exe`, `PING.EXE`, `cut.exe` and a `conhost.exe` survive.** MCP servers exit | Works, context kept |
+| `taskkill /PID <pid> /T /F` | 332 ms, exit 1, no `result` | None survive | Not run |
+
+Node's `kill()` ended the process at once with no `result`, so the graceful signal paths in `headless` were not reached on Windows.
+
+**Effect:** Stop sends the interrupt, which needs `--input-format stream-json`. If no `result` arrives within a few seconds, use `taskkill /T /F`. Never use `child.kill()` alone. Sending another message to the same process after an interrupt was not tested, so the bridge should let it exit and use `--resume` until that is proven.
+
+### Q8. Usage limit and signed-out: signed-out tested, limit from docs only
+
+**Signed out, tested** through an empty `CLAUDE_CONFIG_DIR`, which leaves the real sign-in alone:
+- Exit code 1, empty stderr, `result` in under 1 s.
+- `assistant` with `"error": "authentication_failed"` and text `Not logged in · Please run /login`.
+- `result` with **`subtype: "success"` and `is_error: true`**, the same text. So check `is_error`, never `subtype` alone.
+- `system/init` still arrives first, with `apiKeySource: "none"`, the same as a signed-in subscription run. So `init` cannot show the signed-in state.
+
+**Usage limit, not provoked:**
+- Observed on turns: `rate_limit_event` with `rate_limit_info: { status: "allowed", resetsAt, rateLimitType: "seven_day", overageStatus, isUsingOverage, unifiedWindows: { seven_day: { utilization, resetsAt, status } } }`.
+- Docs: `status` can be `allowed`, `allowed_warning` or `rejected`, and `errorCode: "credits_required"` means included usage has run out. `assistant.error` can be `rate_limit`, `billing_error`, `overloaded`, `authentication_failed` and others (`agent-sdk/typescript`). Messages read `You've hit your session limit · resets 3:45pm`, with `weekly`, `Opus` and `Sonnet` variants (`errors`). Waiting for a reset is described for interactive sessions. Retryable failures emit `system/api_retry` with `attempt`, `max_retries`, `retry_delay_ms`, `error_status`, `error` (`headless`).
+
+**Effect:**
+- Pause the queue on `rate_limit_info.status == "rejected"` or `assistant.error == "rate_limit"`, and use `resetsAt` for "resumes at".
+- The panel can show `utilization` as a quiet warning before the limit.
+- Signed out: `assistant.error == "authentication_failed"`. Show "Claude signed out", and do not retry.
+- **Could not test:** the real shape of a rejected event, and `Login expired`. Match on `error` fields first and message text last, and keep an honest unknown-error state.
+
+### Q9. `headersHelper`: works with no env var, except in an untrusted project `.mcp.json`
+
+Local HTTP echo server, `-p` runs, sandbox `CLAUDE_CONFIG_DIR` with no sign-in (so no model turns, and the real `~/.claude.json` was not edited):
+
+| Where the server is declared | Helper ran? | Header arrived? | Helper's cwd |
+|---|---|---|---|
+| User scope | Yes, no trust needed | Yes | Config directory |
+| `--mcp-config` flag | Yes, no trust needed | Yes | Session folder |
+| Plugin (`--plugin-dir`) | Yes, no trust needed | Yes | Plugin root |
+| Project `.mcp.json`, **untrusted** | **No** | No. Server still `connected`, no header | |
+| Project `.mcp.json`, `hasTrustDialogAccepted: true` | Yes | Yes | Project folder |
+
+- The untrusted case prints `headersHelper not run — this workspace has no persisted trust…` on stderr.
+- Credential-named variables reach the helper for user scope and `--mcp-config`, and are removed for project and plugin (`S1_FAKE_TOKEN` tested). So the helper must read a file, not an env var.
+- **Windows shell:** with `SHELL` and `MSYSTEM` removed, as under a scheduled task, the helper ran in **`cmd.exe`**: `%OS%` expanded, and `$BASH_VERSION` did not. A bash-style `echo '{…}'` gave no usable header and **the server connected with no error**.
+- **Effect:** the command is `"<abs node.exe>" "<abs helper.mjs>"`. It must always print clean JSON, read its token from a file, and finish within 10 s. Not tested with a real signed-in session or with `claude plugin install` (no plugins were installed, by rule); `--plugin-dir` stood in for it.
+
+### Q10. VS Code link: exit codes clean, owner must confirm what appeared
+
+- VS Code 1.145.0, extension `anthropic.claude-code@2.1.318` installed.
+- **`code` on PATH is broken on this machine.** It resolves to a Cursor shim first, and `Cursor.exe` no longer exists: `code --version` exits **9009**. The right file is `%LOCALAPPDATA%\Programs\Microsoft VS Code\bin\code.cmd`. The registry handler for `vscode://` points at the real `Code.exe`.
+- `code.cmd` needs `cmd.exe /d /s /c` with verbatim arguments, because spawning it directly gives `EINVAL`. Paths with spaces worked.
+- Once only: `code "<temp folder>"` exit **0**, and after 5 s `cmd /c start "" "vscode://anthropic.claude-code/open?prompt=Hub%20spike%20test%3A%20ignore%20this"` exit **0**. Nothing was sent into the chat. No other folder was opened and no window was closed.
+- Exit 0 only proves the handover to Windows. **The owner must confirm:** a window for `q10 vscode folder` opened, and a Claude tab there has the text pre-filled and unsent. That window can then be closed.
+
+**Effect:** the bridge finds VS Code from the `vscode://` registry entry, not PATH. Its success message says "sent to VS Code", not "opened".
+
+### Q11. `session=`: **unverified**, keep the design
+
+- Docs (`vs-code`): `session` is an ID "from the folder open in VS Code", and if it is not found "a fresh conversation starts". The `claudeProcessWrapper` note says `-p` and SDK sessions join the session list with the wrapper set on extension 2.1.304 or later, and does not say whether they appear without it.
+- No page read says `session=` can resume a `-p` session. `sessions` says each surface keeps its own list. It may work, but that needs a visual check, and no more windows were opened.
+- **Effect:** §8 stands. The handoff is a new chat from a Hub summary plus the card key. A later owner test can open a spike folder and use `session=` with a known `-p` id; if the chat shows its history, a real resume can be added.
+
+### Recommended commands
+
+**Resolve the binary:** the highest `--version` among the npm `bin\claude.exe`, a native install and the newest `%USERPROFILE%\.vscode\extensions\anthropic.claude-code-*\resources\native-binary\claude.exe`. Refuse anything outside the tested range, which starts at 2.1.318.
+
+**Environment:** start from the bridge's own environment, with `CLAUDE*` and `ANTHROPIC*` removed. Add `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT=<above the approval window>`. Removing those variables was a precaution here because the tests ran inside a Claude session; the effect of leaving them in was not tested.
+
+```text
+<claude.exe> -p
+  --output-format stream-json --verbose --include-partial-messages
+  --input-format stream-json
+  --model <model>
+  --permission-mode acceptEdits
+  --settings <bridge>\d41-settings.json
+  --mcp-config <bridge>\approval-shim.json
+  --permission-prompt-tool mcp__hubperm__approve
+  [--resume <sessionId>]
+cwd = the registered folder, shell = false, stdio = pipe, windowsHide = true
+stdin, one line per message:  {"type":"user","message":{"role":"user","content":"<prompt>"}}
+stop:  {"type":"control_request","request_id":"<id>","request":{"subtype":"interrupt"}}
+```
+
+Do not pass `--strict-mcp-config` (it would drop the folder's servers), `--bare`, or `--dangerously-skip-permissions`. Docs say `--permission-prompts none` denies instead of waiting, so it fits only a run the owner wants never to wait.
+
+`d41-settings.json`, starting list:
+
+```json
+{ "permissions": { "ask": [
+  "Bash(rm *)", "Bash(rmdir *)", "Bash(git rm *)", "Bash(git clean *)",
+  "Bash(git commit *)", "Bash(git push *)", "Bash(git merge *)", "Bash(git rebase *)", "Bash(git reset *)",
+  "Bash(git branch *)", "Bash(git switch *)", "Bash(git checkout *)", "Bash(git worktree *)",
+  "Bash(docker *)", "Bash(psync *)",
+  "PowerShell(Remove-Item *)", "PowerShell(rm *)", "PowerShell(del *)", "PowerShell(rd *)", "PowerShell(ri *)",
+  "PowerShell(git *)", "PowerShell(docker *)", "PowerShell(psync *)"
+] } }
+```
+
+Only the rules for `rm`, `rmdir`, `git commit`, `git push`, `git branch`, `git checkout`, `git worktree`, `PowerShell(Remove-Item *)` and `PowerShell(git *)` were exercised. The others follow the same form and need a test in slice 3. `Bash(git checkout *)` also pauses harmless switches.
+
+**VS Code:**
+```text
+cmd.exe /d /s /c ""<...>\Microsoft VS Code\bin\code.cmd" "<folder>""      (windowsVerbatimArguments)
+cmd.exe /d /s /c "start "" "vscode://anthropic.claude-code/open?prompt=<URL-encoded>""
+```
+
+**`headersHelper`:** `"C:\Program Files\nodejs\node.exe" "<abs>\hub-mcp-headers.mjs"`
+
+### Event mapping for the panel
+
+| Panel needs | Event |
+|---|---|
+| Session id, model, version, plugins, servers | `system/init`: `session_id`, `model`, `claude_code_version`, `plugins`, `mcp_servers[{name,status,source}]`, `skills`, `capabilities`, `permissionMode`, `cwd`. Docs add `plugin_errors` and `mcp_server_errors` when present. Other events also carry `session_id` |
+| "Waiting for Claude" | `system/status` with `status: "requesting"`, then `stream_event/message_start` (has `ttft_ms`) |
+| Text delta | `stream_event`, `event.type == content_block_delta`, `event.delta.type == text_delta`, `event.delta.text` |
+| "Thinking" | `content_block_start` with `thinking`, `system/thinking_tokens`. Thinking text arrived empty in these runs, so show a state, not content |
+| Tool start | `stream_event`, `content_block_start`, `content_block.type == tool_use`, `.id`, `.name`. Input builds through `input_json_delta.partial_json` |
+| Tool input, final | `assistant`, `message.content[]` with `type: tool_use`. **One `assistant` event per content block**, with a shared `message.id`, so do not treat it as one per reply or append it to deltas |
+| Tool result | `user`, `message.content[]` with `type: tool_result`, `tool_use_id`, `is_error`, `content`. Also `tool_use_result` (structured) and `tool_result_meta[].permission_decision` |
+| Subagent work | `parent_tool_use_id` non-null on `assistant` and `user` (docs) |
+| Approval pending | From the shim, not the stream. Match on `tool_use_id` |
+| End of turn | `result`, last for a turn: `result`, `is_error`, `subtype`, `stop_reason`, `session_id`, `permission_denials`, `errors` |
+| Usage | `result.usage`, `result.modelUsage`, `result.total_cost_usd` (a client estimate, cumulative across `--resume` per docs). `num_turns` counted 17 for 2 API calls with 16 parallel tools, so do not show it as "turns" |
+| Limits | `rate_limit_event.rate_limit_info` |
+| Retry | `system/api_retry` (docs) |
+| Errors | `assistant.error`; `result.is_error`; process exit with no `result` means cut off |
+| Interrupted | `control_response` then `result/error_during_execution` |
+| Hooks | `system/hook_started`, `system/hook_response`. Ignore in the UI |
+
+Exit codes are not enough: signed-out exits 1 with `subtype: "success"`, and an interrupt exits 1.
+
+### Contradictions with the approved design
+
+**Needs the owner:**
+
+- **C1: "unknown commands pause" (D41) does not fully hold while the owner's user settings load.** `~/.claude/settings.json` has 259 allow rules and they apply to bridge runs. The `ask` list overrides the ones it names (proven for `git commit` and `git checkout`). But wildcard rules outside it still run freely, such as `Bash(npm run *)`, `Bash(pnpm exec *)`, `Bash(npx tsx *)`, `Bash(node -e ' *)` and `Bash(npm install *)`.
+  - *Option A, recommended:* keep the allow rules, and the ask list covers D41's named classes (delete, commit, push, deploy, branch, worktree) plus `docker`. Code run through those wildcards stays approved, as it already is in the owner's VS Code chats.
+  - *Option B:* run with `--setting-sources project,local`, so only Hub's rules apply. This probably also drops user plugins and hooks, and was not tested.
+- **C2: linking a folder and `headersHelper` (§3, §5, D42, docs/15 §5).** `hub link` writes the server into the folder's `.mcp.json`. There, a helper does not run until the folder is trusted (Q9), so the Authorization header would silently go missing.
+  - For bridge runs, this is solvable without the owner: the bridge passes the server through `--mcp-config`. Whether that entry wins over a same-named project entry was not tested.
+  - For the owner's own VS Code chats, one choice remains. *Option A, recommended:* accept the normal trust dialog once per folder. It is one click, adds no token or terminal step, and needs no edit to global config. *Option B:* the Link button sets `projects["<path>"].hasTrustDialogAccepted` in `~/.claude.json`, which docs allow. It removes the click, but Hub then edits a global file and opens that folder's other trust-gated settings.
+
+**Owner action, no design change:**
+
+- **C3: the PATH `claude` is 2.1.202, below the 2.1.302 in §3.** The bridge can use the extension's 2.1.318, so nothing is blocked on this machine. A device without the extension needs a current install. The owner may also want to update the npm copy. It was not changed in this spike.
+
+**Technical corrections, no owner decision:**
+
+- **C4: §3 and §7 "one process per turn".** S1 proved more: use a live process per chat in use, falling back to `--resume` (Q2, Q3).
+- **C5: §3 "message shape not documented".** It is documented in `agent-sdk/typescript`, though not in the CLI pages (Q3).
+- **C6: §3 on the SDK and `/login`.** It works in practice, and the choice of binary stands (Q5).
+- **C7: D41 and `acceptEdits`.** `rm` and `rmdir` are auto-approved in the folder, so `ask` rules for Bash and PowerShell are mandatory (Q4). `headless` names only `mkdir`, `touch`, `mv`, `cp` for this mode, while `permission-modes` has the full list, which the control run confirmed for `rm` and `mv`.
+- **C8: §8 step 2 "runs `code <folder>`".** PATH `code` is broken here, so resolve VS Code from the registry (Q10).
+- **C9: §7 honest states.** Signed-out cannot be detected from `init` or from `subtype` (Q8).
+- **C10: §9 "holds the queue's slot".** A wait past the idle limit becomes a tool error and the run continues. The bridge must extend the limit and own the timeout (Q4).
+- **C11: §13 gains a risk.** `--bare` becoming the default for `-p` would end subscription use and folder loading together, with no opt-out flag today (Q6). The API-key switch in §13 is the fallback, and it would still lose folder config unless explicit flags are added.
+
+### Not tested
+
+A real usage limit; `Login expired`; the visual result of Q10; `session=` with a `-p` id; `claude plugin install`; the permission tool and `--resume` combined with stream-json input; a same-named `--mcp-config` entry against a project entry; MCP progress notifications as keep-alive; waits beyond 6 minutes; `canUseTool` beyond 3 s; a stop during a pending approval; a new message after an interrupt; the machine sleeping during a wait; `--setting-sources project,local`; another device or a machine without Git Bash.
+
+### Spike notes
+
+- Model turns used: 26 to 28, counted from API messages (24 in CLI logs, 2 or 3 in the SDK run, and up to 1 in a harness crash that left no log). This is slightly over the budget of about 25. `result.total_cost_usd`, an estimate, totals about $0.11.
+- `~/.claude/settings.json` hash unchanged. No user-scope MCP server added, no `~/.claude.json` project entry for spike folders, no plugins installed. Running `claude` did write session transcripts for the spike folders into `~/.claude/projects`, where they age out by normal retention.
+- Scripts for the bridge author are in `C:\Users\MOHMED~1\AppData\Local\Temp\claude\b4558443fa0fb976\8321ad0c-531e-486e-8e1a-71bcfdf0f2e3\scratchpad\s1\`, which is temporary, so copy them before cleaning up: `harness.mjs`, `stub-perm-mcp.mjs`, `q1a-spawn-matrix.mjs`, `q1b-q2-stream-resume.mjs`, `q3-input-stream.mjs`, `q4-approvals.mjs` (`flow`, `wait`, `idle`, `matrix`), `q4b-q6b-control.mjs`, `q5-sdk.mjs`, `q6-folder-config.mjs`, `q6-q8-zero-cost.mjs`, `q7-stop.mjs` (`A`, `B`, `C`), `q9-headers-helper.mjs`, `q9b-helper-shell.mjs`, `q10-vscode.mjs`, `show.mjs`. Raw events are in `results\*.ndjson`.
