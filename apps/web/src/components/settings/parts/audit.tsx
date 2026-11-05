@@ -38,7 +38,12 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
-import { auditActionLabel, isMachineSummary, isOpaqueId } from '@/features/settings/audit-label';
+import {
+  auditActionLabel,
+  isMachineSummary,
+  isOpaqueId,
+  summaryInRow,
+} from '@/features/settings/audit-label';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { auditExportHref, type AuditFilters, type AuditRow, useAudit } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -98,7 +103,11 @@ function Target({ row }: { row: AuditRow }) {
 /** IP, client and record number: for the one row someone is checking, so they do not widen every row. */
 function RowDetail({ row }: { row: AuditRow }) {
   const t = useT<SettingsMessages>('settings');
+  const locale = useLocale();
   const items = [
+    ...(row.summary && !isMachineSummary(row.summary) && !summaryInRow(row.summary, locale)
+      ? [{ label: t.audit.col.summary, value: row.summary }]
+      : []),
     { label: t.audit.detail.code, value: row.action },
     ...(row.targetId && isOpaqueId(row.targetId) ? [{ label: t.audit.col.target, value: row.targetId }] : []),
     { label: t.audit.detail.record, value: row.id },
@@ -377,7 +386,7 @@ export function AuditTab() {
                         <Target row={r} />
                       </td>
                       <td className="px-3 py-2 text-foreground">
-                        {!isMachineSummary(r.summary) && <Bidi>{r.summary}</Bidi>}
+                        {summaryInRow(r.summary, locale) && <Bidi>{r.summary}</Bidi>}
                       </td>
                       <td className="py-1.5 pe-2">
                         <ExpandButton
@@ -424,7 +433,7 @@ export function AuditTab() {
                             {actionLabel(r.action)}
                           </span>
                         </p>
-                        {!isMachineSummary(r.summary) && (
+                        {summaryInRow(r.summary, locale) && (
                           <p className="mt-0.5 text-body-sm text-foreground">
                             <Bidi>{r.summary}</Bidi>
                           </p>

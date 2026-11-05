@@ -2,6 +2,8 @@
  * @file audit-label.ts
  * @description Audit rows in words (review m6). The machine code stays in the expanded row. An action nobody named falls back to its group, never to the code.
  */
+import { textDirection } from '@/lib/direction';
+
 export interface AuditWords {
   /** Whole codes that are not card actions, written `identity:sign_in`, because a catalog key cannot hold a dot. */
   codes: Readonly<Record<string, string>>;
@@ -37,3 +39,10 @@ export const isMachineSummary = (summary: string) => /^[a-z_]+(\.[a-z_]+)+( [A-Z
 
 export const isOpaqueId = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+
+/**
+ * What the row shows of a stored summary. The server writes its own in English, and the Arabic row already says the same through its action and target, so
+ * there it moves to the expanded row (review R12). A summary a person wrote in Arabic stays.
+ */
+export const summaryInRow = (summary: string, locale: string) =>
+  !isMachineSummary(summary) && (locale !== 'ar' || textDirection(summary) !== 'ltr');

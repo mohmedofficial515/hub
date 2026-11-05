@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { auditActionLabel, isMachineSummary, isOpaqueId } from './audit-label';
+import { auditActionLabel, isMachineSummary, isOpaqueId, summaryInRow } from './audit-label';
 
 const words = {
   codes: { 'identity:sign_in': 'Signed in' },
@@ -53,5 +53,17 @@ describe('isOpaqueId', () => {
     expect(isOpaqueId('01a1ad5f-21f5-75c6-b840-388220757239')).toBe(true);
     expect(isOpaqueId('digest.morning_time')).toBe(false);
     expect(isOpaqueId('a@x.test')).toBe(false);
+  });
+});
+
+describe('summaryInRow', () => {
+  it('keeps the server’s English out of the Arabic row, and in the English one', () => {
+    expect(summaryInRow('Lab file changed GTV-301', 'ar')).toBe(false);
+    expect(summaryInRow('Lab file changed GTV-301', 'en')).toBe(true);
+  });
+
+  it('keeps Arabic a person wrote, and never shows a code', () => {
+    expect(summaryInRow('سلّمت الجزء الأول إلى الفريق', 'ar')).toBe(true);
+    expect(summaryInRow('redesign.create GTV-309', 'en')).toBe(false);
   });
 });
