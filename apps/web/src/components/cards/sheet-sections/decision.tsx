@@ -4,9 +4,9 @@
  * @file decision.tsx
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/decision.tsx. Contract: apps/web/README.md.
  */
-import { Check, ExternalLink, Star } from 'lucide-react';
+import { Check, ChevronDown, ExternalLink, Star } from 'lucide-react';
 import { RadioGroup } from 'radix-ui';
-import { type ReactNode, useEffect, useId, useState } from 'react';
+import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
 import { ActorChip } from '@/components/cards/avatar';
 import { Pill, RoleBadge } from '@/components/cards/badges';
@@ -28,9 +28,10 @@ import { Button } from '@/components/ui/button';
 import { detectSecret, Field, SecretFilterError, Textarea } from '@/components/ui/form';
 import { writeCard } from '@/features/cards/store';
 import type { DecisionCard, DecisionOption } from '@/features/cards/types';
+import { tableOptions } from '@/features/decisions/model';
 import { useSession } from '@/features/session/session';
 import { post } from '@/lib/api/client';
-import { absolute, duration, nowMs, num, rel, when } from '@/lib/format';
+import { absolute, duration, nowMs, num, plural, rel, when } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -168,6 +169,42 @@ export function openDecideWith(key: string, optionId: string) {
   openCard(key, { action: 'decide' });
 }
 
+const disclosure = cn(
+  'hit-44 inline-flex items-center gap-1 self-start rounded-sm text-body-sm font-medium text-foreground underline-offset-4 hover:underline',
+  focusRing,
+);
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <ChevronDown
+      aria-hidden
+      className={cn(
+        'size-3.5 transition-transform duration-120 motion-reduce:transition-none',
+        open && 'rotate-180',
+      )}
+      strokeWidth={1.75}
+    />
+  );
+}
+
+/** One option in the form. Pros and cons fold, as on the lead card, so that the form stays short enough to see the pick beside the rationale (review R1). */
+function PickableOption({ option, picked }: { option: DecisionOption; picked: boolean }) {
+  const s = useT(kitMessages).sheet.decision;
+  const [open, setOpen] = useState(false);
+  const hasDetail = option.pros.length + option.cons.length > 0;
+  return (
+    <div data-picked={picked || undefined} className="flex scroll-mt-3 flex-col gap-1">
+      <DecisionOptionCard option={open ? option : { ...option, pros: [], cons: [] }} radio />
+      {hasDetail && (
+        <button type="button" aria-expanded={open} onClick={() => setOpen((v) => !v)} className={disclosure}>
+          <Chevron open={open} />
+          {open ? s.hideDetail : s.showDetail}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DecideForm({
   card,
   onSave,
@@ -187,10 +224,20 @@ function DecideForm({
   const [option, setOption] = useState(presetOption);
   const [rationale, setRationale] = useState('');
   const [tried, setTried] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const list = useRef<HTMLDivElement>(null);
+
+  // The same order and fold as the lead card. The picked option stays showing, even from the fold.
+  const { visible, folded } = tableOptions(d.options);
+  const stillFolded = showAll ? [] : folded.filter((o) => o.id !== option);
+  const shown = [...visible, ...folded.filter((o) => !stillFolded.includes(o))];
 
   useEffect(() => {
     preset = null;
-    if (presetOption) document.getElementById(`${formId}-why`)?.focus();
+    if (!presetOption) return;
+    // The option first, then the cursor without a second scroll: both are on the screen together.
+    list.current?.querySelector('[data-picked]')?.scrollIntoView({ block: 'start' });
+    document.getElementById(`${formId}-why`)?.focus({ preventScroll: true });
     // Once, when the form opens.
   }, []);
 
@@ -209,16 +256,28 @@ function DecideForm({
         <span id={`${formId}-options`}>{s.pick}</span>
       </SubHeading>
       <RadioGroup.Root
+        ref={list}
         value={option}
         onValueChange={setOption}
         aria-labelledby={`${formId}-options`}
         aria-invalid={(tried && !option) || undefined}
         className="flex flex-col gap-2"
       >
-        {d.options.map((o) => (
-          <DecisionOptionCard key={o.id} option={o} radio />
+        {shown.map((o) => (
+          <PickableOption key={o.id} option={o} picked={o.id === option} />
         ))}
       </RadioGroup.Root>
+      {folded.length > 0 && (showAll || stillFolded.length > 0) && (
+        <button
+          type="button"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((v) => !v)}
+          className={disclosure}
+        >
+          <Chevron open={showAll} />
+          {showAll ? s.fewerOptions : plural(stillFolded.length, locale, s.moreOptions)}
+        </button>
+      )}
       {tried && !option && (
         <p role="alert" className="text-body-sm font-medium text-destructive-soft-foreground">
           {s.needPick}

@@ -390,6 +390,13 @@
       "question": "Question",
       "options": "Options",
       "pick": "Pick an option",
+      "moreOptions": {
+        "one": "and 1 more option",
+        "other": "and # more options"
+      },
+      "fewerOptions": "Show fewer options",
+      "showDetail": "Pros and cons",
+      "hideDetail": "Hide pros and cons",
       "rationale": "Why this option",
       "rationaleHint": "One or two lines. They stay in the history and in the ADR.",
       "recommended": "Recommended",

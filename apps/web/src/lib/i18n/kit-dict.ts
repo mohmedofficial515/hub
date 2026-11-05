@@ -165,6 +165,10 @@ export interface KitDict {
       question: string;
       options: string;
       pick: string;
+      moreOptions: PluralForms;
+      fewerOptions: string;
+      showDetail: string;
+      hideDetail: string;
       rationale: string;
       rationaleHint: string;
       recommended: string;
