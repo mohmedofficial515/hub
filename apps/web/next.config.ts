@@ -13,6 +13,8 @@ const config: NextConfig = {
   env: {
     NEXT_PUBLIC_LAB_URL: process.env.NEXT_PUBLIC_LAB_URL ?? process.env.LAB_URL ?? 'http://localhost:6200',
   },
+  // Lets a second dev server run beside another without sharing a build folder.
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   transpilePackages: ['@hub/contracts'],
   poweredByHeader: false,
   // Compressing through the proxy would hold SSE frames back until a buffer fills, and the live stream would look dead.

@@ -7,17 +7,27 @@ import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
+import arAsk from '../../messages/ar/ask.json';
 import arAuth from '../../messages/ar/auth.json';
 import arDecisions from '../../messages/ar/decisions.json';
+import arDocs from '../../messages/ar/docs.json';
 import arKit from '../../messages/ar/kit.json';
+import arOnboarding from '../../messages/ar/onboarding.json';
 import arPlanning from '../../messages/ar/planning.json';
+import arRedesign from '../../messages/ar/redesign.json';
+import arReleases from '../../messages/ar/releases.json';
 import arShell from '../../messages/ar/shell.json';
 import arTasks from '../../messages/ar/tasks.json';
 import arWorkspaces from '../../messages/ar/workspaces.json';
+import enAsk from '../../messages/en/ask.json';
 import enAuth from '../../messages/en/auth.json';
 import enDecisions from '../../messages/en/decisions.json';
+import enDocs from '../../messages/en/docs.json';
 import enKit from '../../messages/en/kit.json';
+import enOnboarding from '../../messages/en/onboarding.json';
 import enPlanning from '../../messages/en/planning.json';
+import enRedesign from '../../messages/en/redesign.json';
+import enReleases from '../../messages/en/releases.json';
 import enShell from '../../messages/en/shell.json';
 import enTasks from '../../messages/en/tasks.json';
 import enWorkspaces from '../../messages/en/workspaces.json';
@@ -25,6 +35,11 @@ import enWorkspaces from '../../messages/en/workspaces.json';
 const catalogs = {
   ar: {
     kit: arKit,
+    ask: arAsk,
+    docs: arDocs,
+    onboarding: arOnboarding,
+    redesign: arRedesign,
+    releases: arReleases,
     shell: arShell,
     auth: arAuth,
     workspaces: arWorkspaces,
@@ -34,6 +49,11 @@ const catalogs = {
   },
   en: {
     kit: enKit,
+    ask: enAsk,
+    docs: enDocs,
+    onboarding: enOnboarding,
+    redesign: enRedesign,
+    releases: enReleases,
     shell: enShell,
     auth: enAuth,
     workspaces: enWorkspaces,
