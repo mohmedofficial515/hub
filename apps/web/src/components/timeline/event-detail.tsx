@@ -9,6 +9,7 @@ import type { CardType } from '@hub/contracts';
 
 import { Bidi, fmt, type HubCard, kitMessages, Ltr, StatusBadge, useT } from '@/components/kit';
 import type { CardEvent } from '@/features/cards/types';
+import { markdownExcerpt } from '@/lib/markdown-text';
 
 import { NS, type TimelineMessages } from './messages';
 
@@ -127,7 +128,7 @@ export function EventDetail({ card, event }: { card: HubCard & { type: CardType 
     case 'changes_requested':
       return d.note || d.reason ? <Bidi>{str(d.note ?? d.reason)}</Bidi> : null;
     case 'created':
-      return card.body ? <Bidi>{card.body}</Bidi> : null;
+      return card.body ? <Bidi>{markdownExcerpt(card.body)}</Bidi> : null;
     case 'linked':
       return d.otherCardKey ? <Ltr mono>{str(d.otherCardKey)}</Ltr> : null;
     default:

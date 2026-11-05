@@ -30,6 +30,7 @@ import {
   useT,
 } from '@/components/kit';
 import { bandOf } from '@/features/decisions/model';
+import { markdownExcerpt } from '@/lib/markdown-text';
 
 import { OpenFacts, type RowProps } from './docket';
 import type { DecisionMessages } from './messages';
@@ -109,6 +110,7 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   const titleId = `table-${card.key}`;
   // A row carries no body, so the laid-open question reads its own card.
   const body = useCardQuery(card.key).data?.body;
+  const excerpt = body ? markdownExcerpt(body) : '';
   const columns = d.options.length >= 3 ? 'lg:grid-cols-3' : '';
   const filledOption = (d.options.find((o) => o.recommended) ?? d.options[0])?.id;
 
@@ -137,9 +139,9 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
           <Bidi>{card.title}</Bidi>
         </AppLink>
       </h3>
-      {body && (
+      {excerpt && (
         <p className="line-clamp-2 max-w-prose text-body text-muted-foreground max-md:hidden">
-          <Bidi>{body}</Bidi>
+          <Bidi>{excerpt}</Bidi>
         </p>
       )}
 

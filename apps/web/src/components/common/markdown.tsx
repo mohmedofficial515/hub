@@ -10,6 +10,7 @@ import { Fragment, type ReactNode, useMemo } from 'react';
 
 import { focusRing } from '@/components/cards/meta';
 import { CopyButton } from '@/components/common/copy-button';
+import { isSafeHref } from '@/lib/markdown-text';
 import { cn } from '@/lib/utils';
 
 export interface MarkdownHeading {
@@ -39,7 +40,7 @@ export function headingsOf(source: string): MarkdownHeading[] {
 export interface MarkdownViewProps {
   source: string;
   /** Direction of the document itself. An English doc stays LTR inside the Arabic UI. */
-  dir?: 'ltr' | 'rtl' | undefined;
+  dir?: 'ltr' | 'rtl' | 'auto' | undefined;
   /** Decide where a link goes: return a node, e.g. an `AppLink` to the viewer. Otherwise it is a plain external link. */
   renderLink?: ((href: string, children: ReactNode) => ReactNode) | undefined;
   /** A control beside a heading, such as "copy link to this section". */
@@ -112,6 +113,7 @@ function Inline({ tokens, ctx }: { tokens?: Token[] | undefined; ctx: MarkdownVi
       case 'link': {
         const link = token as Tokens.Link;
         const children = <Inline tokens={link.tokens} ctx={ctx} />;
+        if (!isSafeHref(link.href)) return <Fragment key={i}>{children}</Fragment>;
         const custom = ctx.renderLink?.(link.href, children);
         if (custom) return <Fragment key={i}>{custom}</Fragment>;
         return (
@@ -309,7 +311,7 @@ function Blocks({ tokens, ctx }: { tokens: Token[]; ctx: MarkdownViewProps }): R
 /**
  * Markdown as the app's own elements (08 §5.4 `DocViewer`): anchored headings, tables that scroll inside their own
  * frame, code with copy, read-only task lists. Nothing goes through `dangerouslySetInnerHTML`, so a doc cannot inject
- * markup. Mermaid is not rendered in the lab; a Mermaid block shows as code.
+ * markup, raw HTML is dropped or shown as text, and a `javascript:` link stays as its words. Mermaid is not rendered in the lab; a Mermaid block shows as code.
  */
 export function MarkdownView(props: MarkdownViewProps) {
   const { source, dir, className } = props;

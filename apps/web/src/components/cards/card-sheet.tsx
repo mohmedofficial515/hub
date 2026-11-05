@@ -15,6 +15,7 @@ import { CardChip } from '@/components/cards/card-key';
 import { focusRing } from '@/components/cards/meta';
 import { sheetSections } from '@/components/cards/sheet-sections';
 import { CopyButton, copyText } from '@/components/common/copy-button';
+import { MarkdownView } from '@/components/common/markdown';
 import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/common/states';
 import { Bidi, fmt, Ltr } from '@/components/common/text';
@@ -588,9 +589,13 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
           <Tabs.Content value="details" className="flex flex-col gap-5 p-4 outline-none md:p-6">
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
             {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
-              <p className="text-body-lg text-foreground">
-                <Bidi>{card.body}</Bidi>
-              </p>
+              // The sheet's title is an h2, so a body's own top heading starts below it.
+              <MarkdownView
+                source={card.body}
+                dir="auto"
+                headingOffset={2}
+                copyCodeLabel={t.sheet.copyCode}
+              />
             ) : (
               // Most sections open on text of their own, and then "no description" above it is simply wrong (review M15).
               !hasOwnText(card) && <p className="text-body text-muted-foreground">{t.sheet.noBody}</p>
