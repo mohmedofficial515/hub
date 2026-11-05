@@ -116,7 +116,7 @@ Rules:
   - `acknowledge` → `[✅ Acknowledge] [🔗 Open]`
   - `deliver` → `[📦 Deliver] [🔗 Open]` — pressing asks "Reply with where you put it (never the value)"; the next text message within 10 min (state in Redis `tg:await:<chatId>`) becomes `location`; the secret filter rejects a likely secret with `telegram.secret_rejected` and the message is **not** stored.
   - `claim` → `[🙋 Claim] [🔗 Open]`
-  - `decide`, `verify`, `review` → `[🔗 Open in Hub]` only (human-only actions stay in the web UI; the URL carries `?action=decide`).
+  - `decide`, `verify`, `review` → `[🔗 Open in Hub]` only (these ask for a choice or a written reason, so the link opens the page; the URL carries `?action=decide`. The same actions work through MCP, D27).
   - everything else → `[🔗 Open]`.
 - Callback data: `<action>:<notificationId>` (≤ 64 bytes). Handler: resolve user by `chatId`,
   notification → card; call the same application service as REST with

@@ -21,7 +21,8 @@ Common conventions used below:
 - Filters live in the URL as repeatable params (`types=task&types=need`) so links are shareable.
 - `awaiting=me` means "cards whose `ownerRole` ∈ my roles and status is actionable".
 - i18n keys are given as `ns.key`; English text shown is the `en` value.
-- "Permission" names the role(s) or `any member`, and `human` when agent tokens are excluded.
+- "Permission" names the role(s) or `any member`. Actor kind plays no part (D27): a member's Claude Code may do what the member may do.
+- **First-release corrections (`15-first-release.md` wins):** the UI word for a workspace is Project, «مشروع» (D30); a Handoff is «إحالة», and «تسليم» is only a Need's delivery (D23); delete is «حذف», restored from «المحذوفات» (D28); Arabic is set in Cairo; no coloured side or top edge on any card or panel (D31); TOTP is optional unless a project requires it for a role (D34); Planning («التخطيط») is the first item under Work (15 §4).
 - Acceptance criteria are Playwright/vitest-testable statements.
 
 ---
@@ -66,7 +67,7 @@ Purpose: second factor for roles in `security.totp_required_roles` (and anyone w
   `POST /api/v1/auth/totp/setup` → `{otpauthUrl, secret}` rendered as QR (`qrcode.react`) +
   manual secret (mono, copy); `POST …/totp/confirm {code}` → shows 8 recovery codes once with
   download/copy; "I saved them" continues.
-- Acceptance: wrong code → `auth.errors.totp_invalid`; setup flow cannot be skipped for owner.
+- Acceptance: wrong code → `auth.errors.totp_invalid`; setup flow cannot be skipped for a role the project requires it of (`security.totp_required_roles` defaults to none, D34).
 
 ### 1.3 `/invite/[token]`
 
@@ -197,7 +198,7 @@ sessions, since last visit (first 5 + "see all").
   moves it, which the page sends on leaving, and the Timeline on arrival (review M4), so the list and the
   sidebar's number agree while reading; grouped per card; "See all" → timeline
   with `from=<lastSeenAt>`.
-- Actions: Claim (role), Decide/Deliver/Acknowledge open the sheet on the action (human), Refresh.
+- Actions: Claim (role), Decide/Deliver/Acknowledge open the sheet on the action, Refresh.
 - Empty states: awaiting me → "Nothing waits for you. Enjoy." (`today.empty.awaiting`); ready →
   "No ready tasks for your roles. Check the backlog." with link; since last visit → "No changes
   since {time}."
@@ -320,16 +321,16 @@ updated) with column sort; same filters.
 
 ## 7. `/[ws]/decisions`
 
-Purpose: the decision room: everything waiting for a human choice, sorted by deadline, with the
+Purpose: the decision room: everything waiting for a choice, sorted by deadline, with the
 options compared and the outcome recorded. Who: owner, pm, accountant (deciders), everyone to read
 and comment; phone-first.
 
 ```
 ┌ Decisions ─────────────────────────────────── [Open] [Decided] [All]  [+ New decision] ┐
 │ Decider: [All] [owner] [pm] [accountant] [backend] [frontend]   Kind ▾   (•) Mine     │
-│ ── Overdue (1) ───────────────────────────────────── destructive band ───────────────  │
+│ ── Overdue (1) ───────────────────────────────────── neutral rule, danger word, icon ─  │
 │ ⚠ GTV-199 Which Turkish gateway first?          owner · due 2 d ago · escalated to pm │
-│ ── Due in 24 h (1) ──────────────────────────────── warning band ────────────────────  │
+│ ── Due in 24 h (1) ──────────────────────────────── neutral rule, warning word, icon ──  │
 │ ⏰ GTV-231 Moyasar fees: customer or platform?   accountant · due in 3 h · blocks 1   │
 │ ── Later (3) ───────────────────────────────────────────────────────────────────────   │
 │ ● GTV-236 Keep 8 checkout steps?                 owner · due Fri · 2 comments          │
@@ -364,7 +365,7 @@ Decide dialog:
   bands computed client-side from `dueAt` and `decision.escalatedAt`.
 - URL: `status=open|decided|all&decider[]&kind&mine=1`.
 - Decide: `POST /cards/{key}/actions/decide {optionId, rationale, draftAdr: boolean,
-  adrRepoSourceId?}` — **human only**, role = `deciderRole` or `owner`. Result: status `decided`,
+  adrRepoSourceId?}` — role = `deciderRole` or `owner`, also through MCP (D27). Result: status `decided`,
   event `decided`, blocked cards get `unblocked`, ADR skeleton stored in `adrBody` with
   `adrStatus=drafted` when requested; the ADR PR is opened by `POST /cards/{key}/actions/open_adr_pr`
   (owner/pm) after the body is final (agents may fill it with `hub.draft_adr`). ADR block shows
@@ -385,7 +386,7 @@ Decide dialog:
 - Acceptance: a decision past due renders in the Overdue band; decide dialog refuses an empty
   rationale; after deciding, the card shows the chosen option with "Chosen" and a `decided` event
   with the rationale; a blocked task linked via `blocks` receives an `unblocked` event; an agent
-  token calling decide gets 403 `hub.cards.human_only` (API test); the ADR block shows the PR link
+  token calling decide succeeds and its event records `via: mcp` (D27, API test); the ADR block shows the PR link
   after `open_adr_pr`.
 
 ---
@@ -421,8 +422,8 @@ Deliver dialog:
   + `blocksCount` in the list projection (count of open cards with `blocked_by` this card).
 - URL: `lane=status|role&responsible[]&kind&mine=1&verified=1`.
 - Transitions: `requested→in_progress` (`start`, responsible role), `→delivered` (`deliver
-  {location, note?}`, responsible role, human), `delivered→verified` (`verify {note?}`, the
-  requester's role or pm/owner, human), any→`cancelled` (creator/owner/pm with reason).
+  {location, note?}`, responsible role), `delivered→verified` (`verify {note?}`, the
+  need's routed role, its requester, or whoever delivered it, who must write a note and is recorded as self-verified, D24), any→`cancelled` (creator/owner/pm with reason).
 - Secret filter: the API answers `400 hub.security.secret_detected {pattern}` → dialog shows
   `SecretFilterError` under the field; the dialog does not close.
 - Stale: `requested` older than `needs.stale_days` shows ⚠ and a reminder was sent (event).
@@ -458,10 +459,8 @@ prompt block [Copy] · source change card · [Acknowledge] [Apply…] [Dismiss�
 
 - Data: `GET /api/v1/workspaces/{ws}/cards?type=handoff&status[]&toRole[]&severity&handoffKind&mine=1&sort=pending_age&cursor`.
 - URL: `to[]&status[]&severity&kind&mine=1`.
-- Transitions: `pending→acknowledged` (`acknowledge`, any holder of `toRole`; agents allowed),
-  `acknowledged→applied` (`apply {taskKey? | createTask: boolean, note?}`, holder of `toRole`;
-  agents allowed), `pending|acknowledged→dismissed` (`dismiss {reason}`, holder of `toRole` or pm,
-  human).
+- Transitions: `pending→acknowledged` (`acknowledge`, any holder of `toRole`, or owner and pm with their name shown, D25),
+  `acknowledged→applied` (`apply {taskKey? | createTask: boolean, note?}`, holder of `toRole` only, D25), `pending|acknowledged→dismissed` (`dismiss {reason}`, holder of `toRole` or pm).
 - "Apply…" with `createTask` creates a task (specialty from `toRole`, prompt = the handoff prompt,
   link `relates`) and sets `appliedTaskId`.
 - Pending age > `handoffs.stale_hours` → ⚠ and the row sorts first; reminder event visible in
@@ -472,7 +471,7 @@ prompt block [Copy] · source change card · [Acknowledge] [Apply…] [Dismiss�
   handoff appears here with a ready prompt."
 - Acceptance: an `oasdiff` fixture with one breaking change produces a row with `breaking` badge,
   the diff list groups it under Breaking, `Copy prompt` copies text containing `pnpm api:sync`;
-  acknowledge via an agent token succeeds; dismiss via an agent token is 403.
+  acknowledge and dismiss via an agent token succeed for a member who may do them (D27).
 
 ---
 
@@ -500,7 +499,7 @@ Sheet (RedesignSection): status · score · summary · touches-components · scr
   `/cards?type=redesign`.
 - URL: `app&status[]&page`.
 - Actions (`POST /cards/{key}/actions/…`): `approve {note?}`, `reject {note}`, `request_changes
-  {note}` — **owner, human**; `mark_ported {ref}` — `frontend`/`pm`/`owner`. Each writes the lab
+  {note}` — **owner**, through the web or MCP (D27); `mark_ported {ref}` — `frontend`/`pm`/`owner`. Each writes the lab
   front-matter (`10-lab-integration.md` §6) and emits the event; approve also creates the port task
   (specialty `lab.port_task_specialty`) and links it.
 - Compare: `RedesignCompare` dialog with two version selects (default: base vs this), device/lang/
@@ -626,7 +625,7 @@ watchers + counts), `GET …/cards/{key}/events?cursor`, `GET/POST …/cards/{ke
 `PATCH …/cards/{key}`.
 
 - Unknown key → 404 `ErrorState` "No card GTV-999 in this workspace".
-- Archived card → banner "Archived by {actor} {time}" + Restore (owner/pm).
+- Deleted card → banner "Deleted by {actor} {time}" + Restore (owner, pm or its creator, D28).
 - Comments: markdown composer with `@` member autocomplete (`GET /members?q=`) and `GTV-`
   autocomplete (`GET /search?scope=cards&q=`); mention creates a `mention` inbox item; `Ctrl+Enter`
   sends; a comment by an agent token is labelled "(agent)".
@@ -702,7 +701,7 @@ Purpose: who is in the workspace, their roles, GitHub identity, invitations. Who
 
 - Data: `GET /api/v1/workspaces/{ws}/members` (`{user, roles, githubLogin, lastSeenAt, status}`),
   `GET …/invites`.
-- Actions (owner/pm, human): `POST …/invites {email, roles[]}` → dialog shows the invite link once
+- Actions (owner/pm): `POST …/invites {email, roles[]}` → dialog shows the invite link once
   with copy (email sent too when configured); `PATCH …/members/{id} {roles[]}` (cannot remove the
   last `owner`; owner-role changes are owner-only); `PATCH …/members/{id} {githubLogin}` (maps
   commits to the member); `POST …/members/{id}/disable` / `enable`; "Reset password link" →
@@ -793,7 +792,7 @@ Create → dialog: name, kind (mcp | hook) → result shown ONCE:
 
 - `GET/POST/DELETE /api/v1/workspaces/{ws}/tokens` (POST returns `{token}` once). The rendered
   commands use the workspace's public URL from `HUB_PUBLIC_URL`.
-- Role preview: "This token can: … Cannot (humans only): decide, verify, approve/reject, archive."
+- Role preview: "This token can do what you can, by your roles in each project (D27). Never through a token: source secrets, your own tokens and profile."
 - Acceptance: token appears in the list with its prefix; the full value is not retrievable later;
   revoking makes the next MCP call 401 (API test).
 
@@ -820,7 +819,7 @@ actor (chip), via, action, target (card chip when applicable), summary. Filters 
 | `NewCardDialog` | `+ New` everywhere, `n` shortcuts | type tabs (task / decision / need / handoff); fields per §6–§9; "Create and open" (default) / "Create". Creator becomes watcher. |
 | `CardPicker` | links, blocks, include lists | search by key/title (`/search?scope=cards`), type filter, multi-select chips. |
 | `DocPicker` | related docs, onboarding paths | tree + search; returns doc card keys. |
-| `ConfirmDialog` | destructive/irreversible actions (reject, cancel, revoke, archive, dismiss, withdraw) | reason field when required; destructive button style. |
+| `ConfirmDialog` | destructive/irreversible actions (reject, cancel, revoke, delete, dismiss, withdraw) | reason field when required; destructive button style. |
 | `Lightbox` | screenshots | arrows, captions (file name), download. |
 
 ## 20. Page-level acceptance summary (critical e2e flows, Playwright, ar + en, light + dark)

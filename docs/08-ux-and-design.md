@@ -11,9 +11,9 @@ wins. Wireframes in both documents are drawn left-to-right; the Arabic UI is the
 | P1 | **The timeline is the product.** Everything else is a filtered view of it. | Every list row in Hub is a card or an event, rendered by the same `TimelineItem`/`CardChip` components. No page invents its own row design. |
 | P2 | **Calm, dense, readable.** The team reads Hub many times a day; it must look like a well-set document, not a dashboard of widgets. | Default density `comfortable` (row ≥ 44 px); one accent colour (`primary`) for actions; type colours are used only on the type dot, badge and the card sheet header stripe — never on whole rows or backgrounds. No gradients, no drop shadows deeper than `shadow-sm`, no decorative illustration. |
 | P3 | **What waits for me comes first.** Cards routed to my roles always outrank everything else. | "Today" and "Inbox" open on the awaiting-me block; every list has an "awaiting me" quick filter; every card routed to one of my roles shows a `RoleBadge` with a filled dot. |
-| P4 | **Machines write, people decide.** The UI makes clear who wrote what. | Author chips show `user`, `agent (name)` or `system (adapter)` with distinct icons; human-only actions are visibly disabled for agent tokens in the token page; no action in the UI is ever hidden because it is machine-created. |
+| P4 | **Machines write, people decide.** The UI makes clear who wrote what. | Author chips show `user`, `agent (name)` or `system (adapter)` with distinct icons; the actor's kind is recorded and shown, and never used to refuse (D27): an action depends on the member's roles only; no action in the UI is ever hidden because it is machine-created. |
 | P5 | **Arabic is the first language, not a translation.** | Layout is designed RTL first; English is the mirror. Arabic digits are not used (Latin digits everywhere, per the Goteav sites). Card keys, paths, commands and code are always LTR isolates. |
-| P6 | **Nothing disappears.** | No delete buttons. "Archive" and "Restore" only; archived items are reachable through a filter; redacted comments keep their slot ("redacted by owner"). |
+| P6 | **Nothing disappears.** | Delete («حذف») is recoverable (D28): it hides a card everywhere, and the Deleted view («المحذوفات») restores it. There is no hard delete; redacted comments keep their slot ("redacted by owner"). |
 | P7 | **Every action is reachable by keyboard and from the command palette.** | Every primary action has a shortcut listed in §12; `Ctrl/Cmd+K` finds every page, card and action. |
 
 ## 2. Information architecture
@@ -24,6 +24,7 @@ Sidebar (per workspace)                       Counters (badge on the item)
 Today                                         —
 Inbox                                         unread count
 ───────────── Work ────────────
+Planning                                      open ideas and plans (15 §4)
 Timeline                                      new events since last visit (pill, not badge)
 Tasks                                         tasks ready for my roles
 Decisions                                     open decisions routed to my roles (red if overdue)
@@ -42,7 +43,7 @@ Settings                                      sources with errors (owner/pm)
 Workspace switcher · Locale · Theme · Me (profile, tokens, sign out)
 ```
 
-- The sidebar is per workspace; switching workspace reloads counters. The URL always carries
+- The sidebar is per project (D30: the UI says Project, «مشروع»; routes and code keep `workspace`); switching reloads counters. The URL always carries
   `/[locale]/[workspace]/…`.
 - Counters are computed by `GET /api/v1/workspaces/{ws}/counters` (cached 30 s, invalidated by SSE).
 - Top bar: breadcrumb (`Goteav › Decisions › GTV-231`), global search input (opens the palette),
@@ -102,7 +103,7 @@ the threshold.
   --info-soft:        oklch(0.95 0.03 245);  --info-soft-foreground:        oklch(0.38 0.11 245);
   --destructive-soft: oklch(0.95 0.04 27);   --destructive-soft-foreground: oklch(0.42 0.16 27);
 
-  /* card types — dot / badge border / sheet stripe. *-fg is the badge text on *-soft. */
+  /* card types — dot / icon / badge. *-fg is the badge text on *-soft. */
   --type-task:        oklch(0.52 0.16 255);  --type-task-soft:     oklch(0.94 0.03 255);  --type-task-fg:     oklch(0.36 0.14 255);
   --type-decision:    oklch(0.58 0.15 60);   --type-decision-soft: oklch(0.95 0.05 70);   --type-decision-fg: oklch(0.40 0.13 55);
   --type-need:        oklch(0.55 0.18 345);  --type-need-soft:     oklch(0.95 0.04 345);  --type-need-fg:     oklch(0.40 0.16 345);
@@ -174,8 +175,9 @@ attribute on `<html>`); `@custom-variant dark (&:is(.dark *))`, `rtl`, `ltr` are
 
 Rules of use:
 
-- Type colours: only on `TypeDot`, `StatusBadge`/`TypeBadge` (soft background + fg text), the 3 px
-  stripe at the top of `CardSheet`, and the board column header underline. Never as row background.
+- Type colours: only on `TypeDot`, the type icon and `StatusBadge`/`TypeBadge` (soft background + fg text). Never as row
+  background, and **never as a coloured side or top edge on any card, panel or sheet, in any form (D31)**: a card is one
+  neutral surface with one uniform neutral border.
 - `primary` is reserved for the one primary action per view and for links. Secondary buttons are
   `outline`; destructive actions (`reject`, `cancel`, `revoke`) use `destructive` outline and a
   confirmation.
@@ -185,15 +187,15 @@ Rules of use:
 ### 3.2 Typography
 
 ```css
---font-sans-ar: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+--font-sans-ar: "Cairo", "Segoe UI", Tahoma, sans-serif;
 --font-sans-en: "Inter", "Segoe UI", system-ui, sans-serif;
 --font-mono:    "JetBrains Mono", ui-monospace, Consolas, monospace;
 ```
 
 `<html lang="ar" dir="rtl">` sets `font-family: var(--font-sans-ar)`; `lang="en"` sets
-`var(--font-sans-en)`. Mixed content: Latin runs inside Arabic text inherit IBM Plex Sans Arabic
+`var(--font-sans-en)`. Mixed content: Latin runs inside Arabic text inherit Cairo
 (its Latin glyphs are acceptable); card keys, paths and code always use `--font-mono`. Fonts are
-loaded with `next/font/google` (`IBM_Plex_Sans_Arabic` weights 400/500/600/700, `Inter` 400/500/600,
+loaded with `next/font/google` (`Cairo` weights 400/500/600/700, the owner's choice in the approved design, D31; `Inter` 400/500/600,
 `JetBrains_Mono` 400/500) and self-hosted by Next so the app works with the internet down.
 
 Named sizes (Tailwind `--text-*` tokens; literal sizes forbidden):
@@ -319,8 +321,8 @@ Per-type renderer rules:
 | type | bold | muted | inline actions (when routed to me / permitted) |
 | --- | --- | --- | --- |
 | task | title | specialty · effort · claimer | `Claim` (ready + my specialty role), `Copy prompt`, `Open` |
-| decision | question (title) | decider role · due (warning if < 24 h) · "blocks n" | `Decide…` (human, decider role), `Open` |
-| need | title | kind · responsible role · "blocks n" | `Deliver…` / `Verify` (human), `Open` |
+| decision | question (title) | decider role · due (warning if < 24 h) · "blocks n" | `Decide…` (decider role), `Open` |
+| need | title | kind · responsible role · "blocks n" | `Deliver…` / `Verify`, `Open` |
 | change (commits) | branch (mono) + "n commits" | author · files/+/- | expand commits list (events) |
 | change (PR) | PR title | `#number` · state | `Open PR` (external) |
 | change (session) | "Session: <changed first line>" | member · duration · `no summary` warning badge | expand remaining/handoffs |
@@ -341,7 +343,7 @@ screen under 768 px. Opens on any card click; `Esc` closes; URL updates to `?car
 so refresh keeps it; full page at `/cards/GTV-123` renders the same component inline.
 
 ```
- ┌─ 3px stripe in type-<t> ───────────────────────────────────────────┐
+ ┌──────────────────────────────────────────────────────────────────┐
  │ [TypeBadge] GTV-123   [StatusBadge] [PriorityBadge]     ⋯  ✕       │  header (sticky)
  │ Title (title, editable inline for creator/owner/pm)                │
  │ RoleBadge · ActorChip created · RelativeTime · repo/branch         │
@@ -357,7 +359,7 @@ so refresh keeps it; full page at `/cards/GTV-123` renders the same component in
  └────────────────────────────────────────────────────────────────────┘
 ```
 
-Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Archive/Restore
+Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Delete/Restore
 (owner/pm), Copy link, Open full page.
 
 ### 5.4 Type sections inside CardSheet
@@ -392,7 +394,7 @@ Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Archi
 | Empty | `EmptyState`: icon (type or page icon, muted), title (title-sm), one sentence, one primary action when the user can act (e.g. "New decision"), otherwise a hint ("Decisions appear here when a teammate or an agent opens one"). |
 | Error | `ErrorState`: title "Couldn't load <thing>", the error code (mono) and a Retry button; the request id in a tooltip for support. 403 → "You don't have access to this" with the required role named. |
 | Offline / SSE down | top bar indicator turns `warning` with "Reconnecting…"; lists stay interactive from cache; mutations queue is **not** implemented — buttons disable with tooltip "Offline". |
-| No permission on an action | the button is rendered disabled with a tooltip naming the role or "Humans only" (for agent tokens this is only relevant in the Tokens page preview). |
+| No permission on an action | the button is rendered disabled with a tooltip naming the role. Permissions depend on the role only (D27). |
 
 ### 5.7 Forms
 
@@ -464,7 +466,7 @@ is synced to the server.
 ## 11. Copy tone
 
 Short, factual, present tense. Arabic uses the neutral formal register used across the Goteav
-dashboard (no dialect, no exclamation marks). Buttons are verbs ("قرّر", "استلم", "سلّم", "احجز",
+dashboard (no dialect, no exclamation marks). Buttons are verbs ("قرّر", "استلم", "سلّم" for a Need's delivery only, since a Handoff is «إحالة» per D23, "احجز",
 "وافق"). System events read as facts ("3 commits على feat/refunds"). Error messages say what to do
 next.
 

@@ -314,14 +314,13 @@ Rows of `surface: system` (`card.unblock`, `plan.sync_step`, `task.close_as_port
 Format of each entry:
 
 ```
-METHOD /path                                   auth: session | token | hook | public   role: …   HO: yes|no
+METHOD /path                                   auth: session | token | hook | public   role: …
 body: …          200|201: …          errors: …          effects: …
 ```
 
 `token` means an `mcp` API token is accepted in addition to a session. Unless stated, every
 workspace route requires an active membership (else `404 hub.workspaces.not_found`) and refuses
-mutations on a closed project (`409 hub.workspaces.closed`). **Every `HO: yes` left below is void (D27), and is removed
-as its module is built.** One apply writes one event per card touched (03 §5.2), so the entries below name that one event.
+mutations on a closed project (`409 hub.workspaces.closed`). One apply writes one event per card touched (03 §5.2), so the entries below name that one event.
 
 ### 3.1 Health and metrics
 
@@ -382,23 +381,23 @@ body: { token: string; password: string }
 errors: identity.reset_invalid 404 · identity.password_weak 400
 effects: all sessions revoked; audit
 
-POST /auth/password/change                      auth: session   HO: yes
+POST /auth/password/change                      auth: session
 body: { current: string; next: string }
 204
 errors: identity.invalid_credentials 401 · identity.password_weak 400
 effects: other refresh families revoked
 
-POST /auth/totp/setup                           auth: session   HO: yes
+POST /auth/totp/setup                           auth: session
 201: { data: { secret: string; otpauthUrl: string; qrDataUrl: string } }   // secret stored encrypted, not yet enabled
 errors: identity.totp_already_enabled 409
 
-POST /auth/totp/confirm                         auth: session   HO: yes
+POST /auth/totp/confirm                         auth: session
 body: { code: string }
 200: { data: { recoveryCodes: string[] /* 8, shown once, stored hashed */ } }
 errors: identity.totp_invalid 401
 effects: totpEnabledAt set; audit
 
-DELETE /auth/totp                               auth: session   HO: yes
+DELETE /auth/totp                               auth: session
 body: { code: string }
 204     errors: identity.totp_not_enabled 409 · identity.totp_invalid 401 · identity.totp_setup_required 403 (if a role requires it)
 
@@ -433,12 +432,12 @@ errors: workspaces.not_found 404
 GET /me/tokens                                   auth: session
 200: { data: { id; name; kind: 'mcp' | 'hook'; prefix; lastUsedAt; createdAt; revokedAt }[] }
 
-POST /me/tokens                                  auth: session   HO: yes
+POST /me/tokens                                  auth: session
 body: { name: string; kind: 'mcp' | 'hook' }                          // a token belongs to the member, not a project (15 §5)
 201: { data: { id; token: string /* full, shown once */; prefix; name; kind } }
 effects: audit identity.token.create
 
-DELETE /me/tokens/{id}                           auth: session   HO: yes
+DELETE /me/tokens/{id}                           auth: session
 204    effects: revokedAt; audit
 
 GET /workspaces/{ws}/me/channels                 auth: session
@@ -482,17 +481,17 @@ routed under the workspace.
 GET /workspaces/{ws}/members                     auth: session | token
 200: { data: { userId; email; displayName; avatarColor; roles: Role[]; status; joinedAt; lastSeenAt; githubLogins: string[]; totpEnabled: boolean }[] }
 
-PATCH /workspaces/{ws}/members/{userId}          auth: session   role: owner|pm   HO: yes
+PATCH /workspaces/{ws}/members/{userId}          auth: session   role: owner|pm
 body: { roles: Role[] /* ≥1 */ }
 200: member row
 errors: workspaces.role_invalid 400 · workspaces.last_owner 409 · workspaces.member_removed 409
 effects: audit; the member's open MCP tokens pick up the new roles on the next call
 
-POST /workspaces/{ws}/members/{userId}/remove    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/members/{userId}/remove    auth: session   role: owner|pm
 204    errors: workspaces.last_owner 409
 effects: status=removed, which ends the member's access here at once (a token belongs to the member, 15 §5, so it stays valid for their other projects); no longer their default project; their claimed tasks → unclaimed by whoever removed them (event unclaimed); audit
 
-PUT /workspaces/{ws}/members/{userId}/github-logins      auth: session   role: owner|pm   HO: yes
+PUT /workspaces/{ws}/members/{userId}/github-logins      auth: session   role: owner|pm
 body: { logins: string[] }
 200: { data: { logins: string[] } }
 effects: GithubIdentity rows replaced; existing change cards with matching authorLogin get authorUserId backfilled (job)
@@ -500,14 +499,14 @@ effects: GithubIdentity rows replaced; existing change cards with matching autho
 GET /workspaces/{ws}/invites                     auth: session   role: owner|pm
 200: { data: { id; email; roles; createdBy; expiresAt; acceptedAt }[] }
 
-POST /workspaces/{ws}/invites                    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/invites                    auth: session   role: owner|pm
 body: { email: string; roles: Role[] }
 201: { data: { id; email; roles; expiresAt; url: string /* https://hub…/ar/invite/<token>, shown once */ } }
 errors: workspaces.role_invalid 400 · common.conflict 409 (active invite for the same email)
 effects: email sent if SMTP configured; audit
 
-POST /workspaces/{ws}/invites/{id}/resend        auth: session   role: owner|pm   HO: yes   200: { data: { url } } (new token, old revoked)
-DELETE /workspaces/{ws}/invites/{id}             auth: session   role: owner|pm   HO: yes   204
+POST /workspaces/{ws}/invites/{id}/resend        auth: session   role: owner|pm   200: { data: { url } } (new token, old revoked)
+DELETE /workspaces/{ws}/invites/{id}             auth: session   role: owner|pm   204
 ```
 
 ### 3.6 Settings
@@ -519,13 +518,13 @@ GET /workspaces/{ws}/settings                    auth: session | token
 GET /workspaces/{ws}/settings/catalogue          auth: session | token
 200: { data: { key; type: 'number' | 'string' | 'boolean' | 'string[]' | 'number[]' | 'object'; schema: JsonSchema; description: { ar; en }; group: string }[] }
 
-PUT /workspaces/{ws}/settings/{key}              auth: session   role: owner|pm   HO: yes
+PUT /workspaces/{ws}/settings/{key}              auth: session   role: owner|pm
 body: { value: unknown }
 200: setting row
 errors: workspaces.setting_unknown 404 · workspaces.setting_invalid 400
 effects: audit settings.update; repeatable jobs re-scheduled when `capture.*`/`digest.*` keys change
 
-DELETE /workspaces/{ws}/settings/{key}           auth: session   role: owner|pm   HO: yes   200: setting row (back to default)
+DELETE /workspaces/{ws}/settings/{key}           auth: session   role: owner|pm   200: setting row (back to default)
 ```
 
 ### 3.7 Sources
@@ -536,21 +535,21 @@ type SourceDto = { id; kind: 'github_repo' | 'openapi' | 'lab' | 'docs_folder' |
 
 GET /workspaces/{ws}/sources                     auth: session | token   200: { data: SourceDto[] }
 
-POST /workspaces/{ws}/sources                    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources                    auth: session   role: owner|pm
 body: { kind; name: string /* ^[a-z0-9-]{2,32}$ */; config: Record<string, unknown> /* validated per kind, 03 §4.3 */; secret?: string /* GitHub token; filtered from logs */ }
 201: { data: SourceDto }
 errors: workspaces.source_kind_invalid 400 · workspaces.source_dependency_missing 422 · common.conflict 409 (name) · identity.token_scope 403 (`secret` sent with an API token, 15 §2)
 effects: repeatable job registered (06); audit (secret never logged)
 
-PATCH /workspaces/{ws}/sources/{id}              auth: session   role: owner|pm   HO: yes
+PATCH /workspaces/{ws}/sources/{id}              auth: session   role: owner|pm
 body: { name?; config?; secret?: string | null /* null clears */; enabled?: boolean }
 200: { data: SourceDto }
 
-POST /workspaces/{ws}/sources/{id}/test          auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources/{id}/test          auth: session   role: owner|pm
 200: { data: { ok: true; details: { repo?: string; defaultBranch?: string; permissions?: string[]; filesFound?: number } } }
 errors: workspaces.source_connection_failed 422 (details.reason) · github.auth_failed 502
 
-POST /workspaces/{ws}/sources/{id}/run           auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources/{id}/run           auth: session   role: owner|pm
 202: { data: { runId: string } }
 errors: workspaces.source_run_in_progress 409 · capture.source_disabled 409
 
@@ -943,7 +942,7 @@ type ReleaseDetail = { version; repo; tag; releasedAt; included: CardSummary[]; 
 GET /workspaces/{ws}/releases?status=&cursor&limit        auth: session | token   200: { data: (CardSummary & { detail: ReleaseDetail })[] }
 PATCH /workspaces/{ws}/releases/{key}            auth: session | token   role: owner|pm   body: { version?; repo?; tag?; includedKeys?: CardKey[]; notes?: Partial<ReleaseDetail['notes']> }   200: CardFull
 POST /workspaces/{ws}/releases/{key}/generate-notes   auth: session | token   role: owner|pm   200: CardFull   effects: notes skeleton rendered from included cards (07 §6.3) only for audiences still null
-POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   HO: no   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X")
+POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X")
 ```
 
 ### 3.21 Audit
@@ -1012,10 +1011,10 @@ GET /workspaces/{ws}/system                      auth: session   role: owner|pm
 GET /workspaces/{ws}/audit/export.csv?…          auth: session | token   role: owner|pm
 200: text/csv (same filters as 3.21; UTF-8 with BOM; columns id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip; a cell that looks like a formula is prefixed with ')   max 50 000 rows → else 400 audit.export_too_large
 
-POST /workspaces/{ws}/members/{userId}/disable   auth: session   role: owner   HO: yes   204
+POST /workspaces/{ws}/members/{userId}/disable   auth: session | token   role: owner|pm   204
 effects: User.status=disabled when the user has no other active workspace; otherwise Membership.status=removed (same effects as /remove); sessions + tokens revoked; audit
-POST /workspaces/{ws}/members/{userId}/enable    auth: session   role: owner   HO: yes   204
-POST /workspaces/{ws}/members/{userId}/password-reset-link   auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/members/{userId}/enable    auth: session   role: owner   204
+POST /workspaces/{ws}/members/{userId}/password-reset-link   auth: session   role: owner|pm
 201: { data: { url: string /* shown once, 24 h */ } }   effects: PasswordReset row; audit (url never logged)
 
 POST /me/channels/{channel}/test                 auth: session   (channel ∈ push | telegram | email)

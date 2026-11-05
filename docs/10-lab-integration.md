@@ -239,7 +239,7 @@ The redesign card gets `portTaskId`; the task sheet shows the redesign chip and 
 - Gallery grouped by page, versions as cards with screenshot, status badge, review score, concept
   title; "Compare" selects two; sheet shows attachments, touches-components, review summary, and
   the owner's actions with required notes.
-- Approve/Reject/Request changes are owner-only and human-only; all other members see them
+- Approve/Reject/Request changes are owner-only (permission depends on the role, not the actor kind, D27); all other members see them
   disabled with a tooltip.
 - The lab itself (`/lab/`) stays the place to *look* at a version at real size; Hub embeds it only
   in the compare dialog.
