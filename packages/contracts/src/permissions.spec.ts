@@ -58,6 +58,12 @@ describe('isAllowed', () => {
     expect(surfaceOf('card.unblock')).toBe('system');
   });
 
+  it('D28: owner and pm read every deleted card, a member the ones they created', () => {
+    expect(isAllowed('card.read_deleted', ['pm'])).toBe(true);
+    expect(isAllowed('card.read_deleted', ['qa'])).toBe(false);
+    expect(isAllowed('card.read_deleted', ['qa'], { isCreator: true })).toBe(true);
+  });
+
   it('any member may create a project (D30)', () => {
     for (const role of ROLES) expect(isAllowed('project.create', [role])).toBe(true);
   });

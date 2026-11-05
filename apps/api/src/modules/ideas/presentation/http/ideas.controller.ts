@@ -10,12 +10,17 @@ import {
   queryList,
   updateIdeaSchema,
 } from '@hub/contracts';
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { CardQueryService, CardService, CardWrittenResponseDto } from '@/modules/cards';
+import {
+  CardQueryService,
+  CardService,
+  CardWrittenResponseDto,
+  IdempotencyInterceptor,
+} from '@/modules/cards';
 import { Actor, Permissions } from '@/shared/http';
 
 class IdeasQueryDto extends createZodDto(
@@ -110,6 +115,7 @@ export class IdeasController {
   @Post(':key/to-plan')
   @HttpCode(200)
   @Permissions('idea.to_plan')
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Turn into a linked plan, accepting the idea' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   toPlan(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: ToPlanDto) {

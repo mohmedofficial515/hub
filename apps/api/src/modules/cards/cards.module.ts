@@ -23,6 +23,7 @@ import { CardWatchAction } from './application/actions/card-watch.action';
 import { CardService } from './application/card.service';
 import { CardActionRegistry } from './application/card-action.registry';
 import { CardQueryService } from './application/card-query.service';
+import { IdempotencyService } from './application/idempotency.service';
 import { CardReader } from './application/ports/card.reader';
 import { CardRepository } from './application/ports/card.repository';
 import { PrismaCardReader } from './infrastructure/prisma-card.reader';
@@ -38,6 +39,7 @@ import { TimelineController } from './presentation/http/timeline.controller';
     CardService,
     CardActionRegistry,
     CardQueryService,
+    IdempotencyService,
     IdempotencyInterceptor,
     { provide: CardRepository, useClass: PrismaCardRepository },
     { provide: CardReader, useClass: PrismaCardReader },
@@ -57,6 +59,7 @@ import { TimelineController } from './presentation/http/timeline.controller';
     CardRepository,
     CardReader,
     CardQueryService,
+    IdempotencyService,
     IdempotencyInterceptor,
   ],
 })

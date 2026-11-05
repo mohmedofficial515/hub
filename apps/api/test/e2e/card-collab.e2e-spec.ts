@@ -4,6 +4,8 @@
  */
 import type { INestApplication } from '@nestjs/common';
 
+import { IdempotencyService } from '@/modules/cards';
+
 import { aDecision, aProject, aTask, created, db, eventsOf } from '../setup/card-harness';
 import { createTestApp, type TestApp } from '../setup/create-test-app';
 
@@ -109,6 +111,38 @@ describe('card collaboration', () => {
         .set('Idempotency-Key', 'k1')
         .expect(422);
       expect(other.body.error.code).toBe('hub.common.idempotency_key_reused');
+    });
+
+    it('the same rule covers what an MCP tool calls: one key, one card, per member and tool', async () => {
+      const project = await aProject(app);
+      const pm = await project.member(['pm']);
+      const idempotency = app.get(IdempotencyService, { strict: false });
+      let runs = 0;
+      const work = async () => ({ run: (runs += 1) });
+
+      const first = await idempotency.run(pm.id, 'create_task', 'call-1', { title: 'A' }, work);
+      const again = await idempotency.run(pm.id, 'create_task', 'call-1', { title: 'A' }, work);
+      expect(first).toEqual({ result: { run: 1 }, replayed: false });
+      expect(again).toEqual({ result: { run: 1 }, replayed: true });
+      await expect(
+        idempotency.run(pm.id, 'create_task', 'call-1', { title: 'B' }, work),
+      ).rejects.toMatchObject({
+        code: 'hub.common.idempotency_key_reused',
+      });
+
+      await idempotency.run(pm.id, 'create_need', 'call-1', { title: 'B' }, work);
+      await idempotency.run('another-member', 'create_task', 'call-1', { title: 'B' }, work);
+      await idempotency.run(pm.id, 'create_task', undefined, { title: 'A' }, work);
+      expect(runs).toBe(4);
+    });
+
+    it('a failed call stores nothing, so a retry runs', async () => {
+      const idempotency = app.get(IdempotencyService, { strict: false });
+      await expect(
+        idempotency.run('member', 'create_task', 'call-2', {}, () => Promise.reject(new Error('no'))),
+      ).rejects.toThrow('no');
+      const retried = await idempotency.run('member', 'create_task', 'call-2', {}, () => Promise.resolve(7));
+      expect(retried).toEqual({ result: 7, replayed: false });
     });
 
     it('a bad link on create undoes the card', async () => {

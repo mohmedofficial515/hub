@@ -35,7 +35,8 @@ const SYSTEM_ONLY: Row = ['N', 'N', 'N', 'N', 'N', 'N', 'N'];
 const MATRIX = {
   // Any card
   'card.read': EVERYONE,
-  'card.read_deleted': OWNER_PM,
+  // Owner and pm read every deleted card; a member reads the ones they created (D28).
+  'card.read_deleted': OWNER_PM_CREATOR,
   'card.edit_content': OWNER_PM_CREATOR,
   'card.edit_routing': OWNER_PM,
   'card.delete': OWNER_PM_CREATOR,

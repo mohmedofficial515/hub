@@ -159,7 +159,9 @@ The module does not exist yet (H1-01). The contract it must follow:
    A contracts test fails when a mutating action with surface `any` has no tool, or a tool performs a `web_only` one.
 2. Set `destructive: true` for `destructiveHint`, and have the description tell Claude to confirm in the chat first.
 3. Add an optional `project` input. Resolve with `actors.forProject(principal, { argument: input.project, header })`.
-4. Call `CardService.apply` or the owning service, the same as the web, and never Prisma (dependency-cruiser enforces this
+4. A tool that creates cards wraps its work in `IdempotencyService.run(principal.userId, toolName, toolCallId, input, work)`
+   (docs/04 §1.4), since it has no route for the interceptor.
+5. Call `CardService.apply` or the owning service, the same as the web, and never Prisma (dependency-cruiser enforces this
    for `presentation/mcp/`). Reuse the REST schema from `@hub/contracts`. Return Markdown stating what changed and the
    card's URL (`docs/05` §2.3).
 

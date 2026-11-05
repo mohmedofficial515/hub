@@ -301,6 +301,16 @@ describe('plans', () => {
     await expect(db().card.count({ where: { workspaceId: project.id, type: 'task' } })).resolves.toBe(3);
   });
 
+  it('Idempotency-Key on to-tasks creates the tasks once', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const plan = await created(pm, aPlan());
+    await pm.post(`/plans/${plan.key}/to-tasks`).set('Idempotency-Key', 'tt').expect(200);
+    const again = await pm.post(`/plans/${plan.key}/to-tasks`).set('Idempotency-Key', 'tt').expect(200);
+    expect(again.headers['idempotent-replay']).toBe('true');
+    await expect(db().card.count({ where: { workspaceId: project.id, type: 'task' } })).resolves.toBe(2);
+  });
+
   it('a step is done when its task completes, undone when it reopens, and done is then offered', async () => {
     const project = await aProject(app);
     const pm = await project.member(['pm']);

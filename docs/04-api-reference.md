@@ -43,12 +43,13 @@ endpoint (documented inline). `?cursor` from another endpoint → `400 hub.commo
 ### 1.4 Idempotency
 
 - `POST` routes that **create cards** (`POST /cards`, `/capture/session`, `/handoffs/{key}/apply`
-  with `createTask`, `/redesign/{key}/approve`) accept `Idempotency-Key: <≤128 chars>`. The key is
+  with `createTask`, `/redesign/{key}/approve`, `/ideas/{key}/to-plan`, `/plans/{key}/to-tasks`) accept `Idempotency-Key: <≤128 chars>`. The key is
   stored with the actor id and a SHA-256 of the body for 24 h (Redis). Same key + same body →
   the original response replayed (header `Idempotent-Replay: true`); same key + different body →
   `422 hub.common.idempotency_key_reused`.
 - Adapters never go through HTTP; they rely on `Card.externalKey` (03 §5.1).
-- MCP tool calls pass the key automatically (`toolCallId`).
+- An MCP tool has no route, so it calls `IdempotencyService.run(userId, toolName, toolCallId, input, work)` itself, the
+  same rule and store. A failed call stores nothing and may be retried.
 
 ### 1.5 Localisation
 
@@ -285,7 +286,7 @@ and `/me/context`.
 | Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Watch / unwatch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Read any non-archived card, timeline, docs, search | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Read deleted cards | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Read deleted cards | ✓ | ✓ | C | C | C | C | C |
 | Idea: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Idea: edit / explore / accept / park / reject / reopen / turn into a plan | ✓ | ✓ | C | C | C | C | C |
 | Plan: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -571,7 +572,7 @@ query: { type?: CardType[]; status?: string[]; role?: Role[]; assignee?: string 
          sort?: 'lastEvent' | 'created' | 'due' | 'priority' (default lastEvent desc); cursor?; limit? }
 200: { data: CardSummary[], meta: { pagination } }
 
-GET /workspaces/{ws}/cards/deleted?cursor&limit  auth: session | token   (D28: all for owner/pm, your own otherwise)
+GET /workspaces/{ws}/cards/deleted?cursor&limit  auth: session | token   role: §2 "Read deleted cards" (D28: all for owner/pm, your own otherwise)
 200: { data: CardSummary[] } (newest activity first)
 
 POST /workspaces/{ws}/cards                      auth: session | token   Idempotency-Key supported

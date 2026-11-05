@@ -78,7 +78,7 @@ export class CardsController {
   }
 
   @Get('deleted')
-  @Permissions('card.read')
+  @Permissions('card.read_deleted')
   @ApiOperation({ summary: 'The Deleted view: all for owner and pm, your own otherwise (D28)' })
   @ApiOkResponse({ type: CardSummaryDto, isArray: true })
   deleted(@Actor() actor: MemberActor, @Query() page: PageQueryDto) {

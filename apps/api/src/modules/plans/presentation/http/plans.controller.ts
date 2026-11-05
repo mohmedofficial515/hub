@@ -12,12 +12,17 @@ import {
   restorePlanRevisionSchema,
   updatePlanSchema,
 } from '@hub/contracts';
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseInterceptors } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-import { CardQueryService, CardService, CardWrittenResponseDto } from '@/modules/cards';
+import {
+  CardQueryService,
+  CardService,
+  CardWrittenResponseDto,
+  IdempotencyInterceptor,
+} from '@/modules/cards';
 import { Actor, Permissions } from '@/shared/http';
 
 import { PlanReadService } from '../../application/plan-read.service';
@@ -134,6 +139,7 @@ export class PlansController {
   @Post(':key/to-tasks')
   @HttpCode(200)
   @Permissions('plan.to_tasks')
+  @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Create one task per step with none, moving the plan to in progress' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   toTasks(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: ToTasksDto) {
