@@ -1,0 +1,309 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/workspaces/{ws}/cards": {
+      "post": {
+        "operationId": "CardsController_create",
+        "parameters": [
+          {
+            "name": "ws",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardWrittenDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create a card",
+        "tags": [
+          "cards"
+        ]
+      }
+    },
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The process is up",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Postgres, Redis and the repos folder are usable",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Hub API",
+    "description": "",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      },
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "hub_access"
+      }
+    },
+    "schemas": {
+      "CreateCardDto": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "body": {
+                "type": "string",
+                "maxLength": 20000
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "P0",
+                  "P1",
+                  "P2",
+                  "P3"
+                ]
+              },
+              "ownerRole": {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "pm",
+                  "accountant",
+                  "backend",
+                  "frontend",
+                  "designer",
+                  "qa"
+                ]
+              },
+              "dueAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              "tags": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 40,
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              },
+              "module": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "repo": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "detail": {
+                "type": "object",
+                "properties": {
+                  "specialty": {
+                    "type": "string",
+                    "enum": [
+                      "backend",
+                      "frontend",
+                      "design",
+                      "qa",
+                      "ops",
+                      "docs"
+                    ]
+                  },
+                  "effort": {
+                    "type": "string",
+                    "enum": [
+                      "S",
+                      "M",
+                      "L",
+                      "XL"
+                    ]
+                  },
+                  "acceptance": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "origin": {
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "import_suggestion",
+                      "session_followup",
+                      "redesign_port",
+                      "decision",
+                      "handoff",
+                      "plan"
+                    ]
+                  }
+                },
+                "required": [
+                  "specialty"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "task"
+                ]
+              }
+            },
+            "required": [
+              "title",
+              "detail",
+              "type"
+            ]
+          }
+        ]
+      },
+      "CardWrittenDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "decision",
+              "need",
+              "change",
+              "handoff",
+              "redesign",
+              "doc",
+              "release",
+              "idea",
+              "plan"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "ownerRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "assigneeId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastEventAt": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "event": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "seq": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "kind": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "seq",
+              "kind"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "type",
+          "title",
+          "body",
+          "status",
+          "priority",
+          "ownerRole",
+          "assigneeId",
+          "lastEventAt",
+          "createdAt",
+          "event"
+        ]
+      }
+    }
+  }
+}

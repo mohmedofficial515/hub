@@ -1,0 +1,25 @@
+model DocChunk {
+  id           String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId  String   @map("workspace_id") @db.Uuid
+  docCardId    String   @map("doc_card_id") @db.Uuid
+  ordinal      Int
+  heading      String?                                  // nearest heading path "## 5 › ### 5.3"
+  anchor       String?
+  content      String                                   // ≤ ~1 500 chars, split on headings then paragraphs
+  searchVector Unsupported("tsvector")? @map("search_vector")   // trigger: heading (A) + content (B), config hub_simple
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  doc          DocDetail @relation(fields: [docCardId], references: [cardId])
+  embedding    DocChunkEmbedding?
+  @@unique([docCardId, ordinal])
+  @@index([searchVector], type: Gin)
+  @@map("doc_chunks")
+}
+
+model DocChunkEmbedding {                                // empty until H5
+  chunkId   String   @id @map("chunk_id") @db.Uuid
+  model     String
+  embedding Unsupported("vector(1024)")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  chunk     DocChunk @relation(fields: [chunkId], references: [id])
+  @@map("doc_chunk_embeddings")
+}

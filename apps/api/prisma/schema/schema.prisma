@@ -1,0 +1,14 @@
+// Generator and datasource only. Models live in one file per bounded context. The datasource URL
+// comes from prisma.config.ts (Prisma 7). Same setup as F:/Goteav/backend/prisma/schema/schema.prisma.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../../src/generated/prisma"
+  moduleFormat        = "cjs"
+  runtime             = "nodejs"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}

@@ -1,0 +1,123 @@
+{
+  "hub": {
+    "common": {
+      "validation": "الطلب غير صالح.",
+      "unauthorized": "سجّل الدخول للمتابعة.",
+      "forbidden": "ليست لديك صلاحية لهذا الإجراء.",
+      "not_found": "غير موجود.",
+      "conflict": "يتعارض هذا مع بيانات موجودة.",
+      "payload_too_large": "حجم الطلب كبير جدًا.",
+      "idempotency_key_reused": "استُخدم مفتاح منع التكرار هذا مع محتوى مختلف.",
+      "rate_limited": "طلبات كثيرة جدًا. حاول بعد قليل.",
+      "internal": "حدث خطأ من جهتنا.",
+      "unavailable": "الخدمة غير متاحة الآن."
+    },
+    "identity": {
+      "invalid_credentials": "البريد أو كلمة المرور غير صحيحة.",
+      "locked": "محاولات فاشلة كثيرة. حاول لاحقًا.",
+      "totp_required": "أدخل رمز التحقق.",
+      "totp_invalid": "رمز التحقق خاطئ أو منتهٍ.",
+      "totp_setup_required": "يتطلب دورك التحقق بخطوتين. فعّله أولًا.",
+      "totp_already_enabled": "التحقق بخطوتين مفعّل بالفعل.",
+      "totp_not_enabled": "التحقق بخطوتين غير مفعّل.",
+      "session_expired": "انتهت جلستك.",
+      "refresh_invalid": "سجّل الدخول مجددًا.",
+      "token_invalid": "رمز الواجهة البرمجية غير صالح.",
+      "token_revoked": "أُلغي رمز الواجهة البرمجية.",
+      "token_scope": "لا يمكن لهذا الرمز استدعاء هذا المسار.",
+      "account_disabled": "هذا الحساب معطّل.",
+      "invite_invalid": "هذه الدعوة غير صالحة.",
+      "invite_expired": "انتهت صلاحية هذه الدعوة.",
+      "invite_accepted": "قُبلت هذه الدعوة من قبل.",
+      "email_taken": "هذا البريد مستخدم بالفعل.",
+      "password_weak": "اختر كلمة مرور أقوى من 12 حرفًا على الأقل.",
+      "reset_invalid": "رابط إعادة التعيين غير صالح."
+    },
+    "workspaces": {
+      "not_found": "المشروع غير موجود.",
+      "no_project": "لم يُحدَّد مشروع. مرّر مشروعًا أو اربط هذا المجلد أو انتقل إلى مشروع.",
+      "slug_taken": "هذا المعرّف مستخدم لمشروع آخر.",
+      "key_prefix_taken": "بادئة المفاتيح هذه مستخدمة.",
+      "closed": "هذا المشروع مغلق.",
+      "last_owner": "يحتاج المشروع إلى مالك واحد على الأقل.",
+      "role_invalid": "دور غير معروف.",
+      "member_removed": "أُزيل هذا العضو.",
+      "setting_unknown": "إعداد غير معروف.",
+      "setting_invalid": "هذه القيمة غير صالحة لهذا الإعداد.",
+      "source_kind_invalid": "نوع مصدر غير معروف.",
+      "source_dependency_missing": "يحتاج هذا المصدر إلى مصدر مستودع أولًا.",
+      "source_connection_failed": "تعذّر الاتصال بالمصدر.",
+      "source_run_in_progress": "هذا المصدر قيد التشغيل بالفعل."
+    },
+    "cards": {
+      "not_found": "البطاقة غير موجودة.",
+      "type_mismatch": "لا ينطبق هذا الإجراء على هذا النوع من البطاقات.",
+      "invalid_transition": "لا يمكن نقل هذه البطاقة إلى تلك الحالة من حالتها الحالية.",
+      "archived": "هذه البطاقة محذوفة. استعدها أولًا.",
+      "link_self": "لا يمكن ربط البطاقة بنفسها.",
+      "link_exists": "هذا الرابط موجود بالفعل.",
+      "link_cycle": "سيُنشئ هذا الرابط حلقة.",
+      "comment_not_found": "التعليق غير موجود.",
+      "comment_not_author": "يمكن لكاتب التعليق فقط تعديله.",
+      "external_key_exists": "توجد بطاقة بهذا المفتاح الخارجي."
+    },
+    "tasks": {
+      "already_claimed": "هذه المهمة محجوزة بالفعل.",
+      "not_claimer": "يمكن فقط لمن حجز هذه المهمة القيام بذلك.",
+      "specialty_role_mismatch": "هذه المهمة خارج أدوارك."
+    },
+    "decisions": {
+      "not_decider": "هذا القرار موجّه إلى دور آخر.",
+      "already_decided": "اتُّخذ هذا القرار بالفعل.",
+      "option_not_found": "هذا الخيار ليس ضمن هذا القرار.",
+      "options_min": "يحتاج القرار إلى خيارين على الأقل.",
+      "adr_source_missing": "لا يوجد مستودع مُعدّ لهذا السجل.",
+      "adr_not_drafted": "اكتب مسودة السجل أولًا.",
+      "adr_already_open": "يوجد طلب دمج مفتوح لهذا السجل.",
+      "adr_pr_failed": "رفض GitHub طلب الدمج."
+    },
+    "needs": {
+      "not_responsible": "هذا الطلب موجّه إلى دور آخر.",
+      "location_required": "اذكر أين وُضعت القيمة.",
+      "self_verify_note_required": "يتطلب التحقق من تسليمك أنت كتابة ملاحظة."
+    },
+    "handoffs": {
+      "not_recipient": "هذه الإحالة موجّهة إلى دور آخر.",
+      "already_acknowledged": "أُقرّ باستلام هذه الإحالة من قبل."
+    },
+    "redesign": {
+      "owner_only": "يمكن للمالك فقط القيام بذلك.",
+      "not_in_review": "هذا الإصدار ليس قيد المراجعة.",
+      "lab_unavailable": "مجلد المختبر غير متاح.",
+      "write_failed": "تعذّرت كتابة الحالة في المختبر."
+    },
+    "plans": {
+      "step_not_found": "هذه الخطوة ليست ضمن هذه الخطة.",
+      "revision_not_found": "هذه المراجعة غير موجودة."
+    },
+    "docs": {
+      "not_found": "المستند غير موجود.",
+      "reindex_running": "الفهرسة قيد التشغيل بالفعل."
+    },
+    "capture": {
+      "payload_invalid": "بيانات الخطاف غير صالحة.",
+      "import_running": "يوجد استيراد قيد التشغيل.",
+      "source_disabled": "هذا المصدر معطّل."
+    },
+    "notifications": {
+      "push_invalid_subscription": "اشتراك الإشعارات هذا غير صالح.",
+      "telegram_code_invalid": "رمز Telegram هذا غير صالح.",
+      "telegram_already_linked": "تم ربط Telegram بالفعل.",
+      "channel_invalid": "قناة غير معروفة."
+    },
+    "github": {
+      "auth_failed": "رفض GitHub الرمز.",
+      "rate_limited": "بلغنا حد طلبات GitHub. حاول لاحقًا.",
+      "repo_not_found": "المستودع غير موجود على GitHub.",
+      "clone_failed": "تعذّر استنساخ المستودع."
+    },
+    "security": {
+      "secret_detected": "يبدو هذا سرًا ({pattern} في {field}). اذكر مكان حفظ القيمة لا القيمة نفسها."
+    }
+  }
+}

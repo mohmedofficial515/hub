@@ -1,0 +1,86 @@
+model User {
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  email         String    @unique                       // stored lower-cased; validated by Zod
+  passwordHash  String    @map("password_hash")         // argon2id
+  displayName   String    @map("display_name")
+  locale        String    @default("ar")                // "ar" | "en"
+  avatarColor   String    @map("avatar_color")          // one of 12 token names, assigned at creation
+  totpSecretEnc String?   @map("totp_secret_enc")       // AES-256-GCM with HUB_SECRET_KEY, base64
+  totpEnabledAt DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  status        String    @default("active")            // active | disabled
+  lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(3)
+  defaultWorkspaceId String? @map("default_workspace_id") @db.Uuid // switch_project sets it
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships   Membership[]
+  sessions      Session[]
+  apiTokens     ApiToken[]
+  @@map("users")
+}
+
+model Invite {
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  email         String
+  roles         String[]                                // role keys (§4.1)
+  tokenHash     String    @unique @map("token_hash")    // sha256 of the 32-byte url token
+  createdById   String    @map("created_by_id") @db.Uuid
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)   // 7 days
+  acceptedAt    DateTime? @map("accepted_at") @db.Timestamptz(3)
+  acceptedUserId String?  @map("accepted_user_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@index([workspaceId, email])
+  @@map("invites")
+}
+
+model Session {                                          // refresh-token family, one row per refresh token
+  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  userAgent    String?   @map("user_agent")
+  ip           String?
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)       // 30 days
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  user         User      @relation(fields: [userId], references: [id])
+  @@index([userId, familyId])
+  @@map("sessions")
+}
+
+model ApiToken {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String                                     // "Claude Code — laptop"
+  kind        String    @default("mcp")                  // mcp | hook  (hook tokens may only call /capture/*, /me and /me/context)
+  prefix      String    @unique                          // "hub_" + 8 chars, part of the shown token, used for lookup
+  tokenHash   String    @map("token_hash")               // sha256 of the full token
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
+  user        User      @relation(fields: [userId], references: [id])
+  @@index([userId])
+  @@map("api_tokens")
+}
+
+model PasswordReset {
+  id String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  tokenHash String @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  usedAt DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@map("password_resets")
+}
+
+model LoginAttempt {
+  id BigInt @id @default(autoincrement())
+  email String
+  ip String
+  succeeded Boolean
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+  @@map("login_attempts")
+}

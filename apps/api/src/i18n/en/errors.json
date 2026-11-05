@@ -1,0 +1,123 @@
+{
+  "hub": {
+    "common": {
+      "validation": "The request is not valid.",
+      "unauthorized": "Sign in to continue.",
+      "forbidden": "You do not have permission to do this.",
+      "not_found": "Not found.",
+      "conflict": "This conflicts with existing data.",
+      "payload_too_large": "The request is too large.",
+      "idempotency_key_reused": "This idempotency key was used with a different body.",
+      "rate_limited": "Too many requests. Try again shortly.",
+      "internal": "Something went wrong on our side.",
+      "unavailable": "The service is not available right now."
+    },
+    "identity": {
+      "invalid_credentials": "Wrong email or password.",
+      "locked": "Too many failed attempts. Try again later.",
+      "totp_required": "Enter your verification code.",
+      "totp_invalid": "The verification code is wrong or expired.",
+      "totp_setup_required": "Your role requires two-step verification. Set it up first.",
+      "totp_already_enabled": "Two-step verification is already on.",
+      "totp_not_enabled": "Two-step verification is not on.",
+      "session_expired": "Your session expired.",
+      "refresh_invalid": "Sign in again.",
+      "token_invalid": "The API token is not valid.",
+      "token_revoked": "The API token was revoked.",
+      "token_scope": "This token cannot call this route.",
+      "account_disabled": "This account is disabled.",
+      "invite_invalid": "This invite is not valid.",
+      "invite_expired": "This invite has expired.",
+      "invite_accepted": "This invite was already accepted.",
+      "email_taken": "This email is already in use.",
+      "password_weak": "Choose a stronger password of at least 12 characters.",
+      "reset_invalid": "This reset link is not valid."
+    },
+    "workspaces": {
+      "not_found": "Project not found.",
+      "no_project": "No project selected. Pass a project, link this folder, or switch to one.",
+      "slug_taken": "This project slug is taken.",
+      "key_prefix_taken": "This key prefix is taken.",
+      "closed": "This project is closed.",
+      "last_owner": "A project needs at least one owner.",
+      "role_invalid": "Unknown role.",
+      "member_removed": "This member was removed.",
+      "setting_unknown": "Unknown setting.",
+      "setting_invalid": "This value is not valid for the setting.",
+      "source_kind_invalid": "Unknown source kind.",
+      "source_dependency_missing": "This source needs a repository source first.",
+      "source_connection_failed": "Could not connect to the source.",
+      "source_run_in_progress": "This source is already running."
+    },
+    "cards": {
+      "not_found": "Card not found.",
+      "type_mismatch": "This action does not apply to this card type.",
+      "invalid_transition": "This card cannot move to that status from where it is.",
+      "archived": "This card is deleted. Restore it first.",
+      "link_self": "A card cannot link to itself.",
+      "link_exists": "This link already exists.",
+      "link_cycle": "This link would form a cycle.",
+      "comment_not_found": "Comment not found.",
+      "comment_not_author": "Only the author can edit this comment.",
+      "external_key_exists": "A card with this external key already exists."
+    },
+    "tasks": {
+      "already_claimed": "This task is already claimed.",
+      "not_claimer": "Only the member who claimed this task can do this.",
+      "specialty_role_mismatch": "This task is outside your roles."
+    },
+    "decisions": {
+      "not_decider": "This decision is routed to another role.",
+      "already_decided": "This decision was already made.",
+      "option_not_found": "That option is not on this decision.",
+      "options_min": "A decision needs at least two options.",
+      "adr_source_missing": "No repository is set up for this ADR.",
+      "adr_not_drafted": "Draft the ADR first.",
+      "adr_already_open": "A pull request is already open for this ADR.",
+      "adr_pr_failed": "GitHub refused the pull request."
+    },
+    "needs": {
+      "not_responsible": "This need is routed to another role.",
+      "location_required": "Say where the value was put.",
+      "self_verify_note_required": "Verifying your own delivery needs a note."
+    },
+    "handoffs": {
+      "not_recipient": "This handoff is routed to another role.",
+      "already_acknowledged": "This handoff was already acknowledged."
+    },
+    "redesign": {
+      "owner_only": "Only the owner can do this.",
+      "not_in_review": "This version is not in review.",
+      "lab_unavailable": "The lab folder is not available.",
+      "write_failed": "Could not write the status to the lab."
+    },
+    "plans": {
+      "step_not_found": "That step is not on this plan.",
+      "revision_not_found": "That revision does not exist."
+    },
+    "docs": {
+      "not_found": "Document not found.",
+      "reindex_running": "Indexing is already running."
+    },
+    "capture": {
+      "payload_invalid": "The hook payload is not valid.",
+      "import_running": "An import is already running.",
+      "source_disabled": "This source is disabled."
+    },
+    "notifications": {
+      "push_invalid_subscription": "This push subscription is not valid.",
+      "telegram_code_invalid": "This Telegram code is not valid.",
+      "telegram_already_linked": "Telegram is already linked.",
+      "channel_invalid": "Unknown channel."
+    },
+    "github": {
+      "auth_failed": "GitHub rejected the token.",
+      "rate_limited": "GitHub rate limit reached. Try again later.",
+      "repo_not_found": "Repository not found on GitHub.",
+      "clone_failed": "Could not clone the repository."
+    },
+    "security": {
+      "secret_detected": "This looks like a secret ({pattern} in {field}). Say where the value is kept, not the value."
+    }
+  }
+}

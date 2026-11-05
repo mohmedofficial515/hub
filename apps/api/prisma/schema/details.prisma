@@ -1,0 +1,166 @@
+model TaskDetail {
+  cardId       String    @id @map("card_id") @db.Uuid
+  specialty    String                                   // backend | frontend | design | qa | ops | docs
+  effort       String?                                  // S | M | L | XL
+  acceptance   String?                                  // markdown checklist
+  prompt       String?                                  // markdown, the ready-to-run prompt (rendered by digests when empty and source=import)
+  origin       String    @default("manual")             // manual | import_suggestion | session_followup | redesign_port | decision | handoff | plan
+  claimedById  String?   @map("claimed_by_id") @db.Uuid
+  claimedAt    DateTime? @map("claimed_at") @db.Timestamptz(3)
+  branch       String?
+  prUrl        String?   @map("pr_url")
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(3)
+  doneAt       DateTime? @map("done_at") @db.Timestamptz(3)
+  card         Card      @relation(fields: [cardId], references: [id])
+  @@map("task_details")
+}
+
+model DecisionDetail {
+  cardId          String    @id @map("card_id") @db.Uuid
+  kind            String                                // product | technical | financial | design
+  question        String
+  options         Json                                  // [{ id, title, pros: string[], cons: string[], cost?: string, recommended?: boolean }]
+  deciderRole     String    @map("decider_role")        // == card.ownerRole
+  chosenOptionId  String?   @map("chosen_option_id")
+  rationale       String?
+  decidedById     String?   @map("decided_by_id") @db.Uuid
+  decidedAt       DateTime? @map("decided_at") @db.Timestamptz(3)
+  remindersSent   Json      @default("[]") @map("reminders_sent")   // [24, 2]
+  escalatedAt     DateTime? @map("escalated_at") @db.Timestamptz(3)
+  escalatedToRole String?   @map("escalated_to_role")
+  adrRepoSourceId String?   @map("adr_repo_source_id") @db.Uuid     // where the ADR PR goes (default: backend docs source)
+  adrPath         String?   @map("adr_path")            // docs/adr/0017-….md
+  adrPrUrl        String?   @map("adr_pr_url")
+  adrStatus       String    @default("none") @map("adr_status")      // none | drafted | pr_opened | merged | failed
+  adrBody         String?   @map("adr_body")            // markdown drafted by agent or skeleton
+  card            Card      @relation(fields: [cardId], references: [id])
+  @@map("decision_details")
+}
+
+model NeedDetail {
+  cardId           String    @id @map("card_id") @db.Uuid
+  kind             String                               // token | account | contract | value_check | file | access | other
+  responsibleRole  String    @map("responsible_role")   // == card.ownerRole
+  location         String?                              // where the value was put (never the value); secret-filtered
+  deliveredById    String?   @map("delivered_by_id") @db.Uuid
+  deliveredAt      DateTime? @map("delivered_at") @db.Timestamptz(3)
+  verifiedById     String?   @map("verified_by_id") @db.Uuid
+  verifiedAt       DateTime? @map("verified_at") @db.Timestamptz(3)
+  verificationNote String?   @map("verification_note")
+  card             Card      @relation(fields: [cardId], references: [id])
+  @@map("need_details")
+}
+
+model ChangeDetail {
+  cardId        String    @id @map("card_id") @db.Uuid
+  kind          String                                  // commits | pull_request | session
+  repoSourceId  String?   @map("repo_source_id") @db.Uuid
+  authorLogin   String?   @map("author_login")
+  authorUserId  String?   @map("author_user_id") @db.Uuid
+  commits       Json      @default("[]")                // [{ sha, message, at, files, additions, deletions }] (≤ 200)
+  commitCount   Int       @default(0) @map("commit_count")
+  filesChanged  Int       @default(0) @map("files_changed")
+  additions     Int       @default(0)
+  deletions     Int       @default(0)
+  windowStart   DateTime? @map("window_start") @db.Timestamptz(3)
+  windowEnd     DateTime? @map("window_end") @db.Timestamptz(3)
+  prNumber      Int?      @map("pr_number")
+  prState       String?   @map("pr_state")              // open | merged | closed
+  prUrl         String?   @map("pr_url")
+  session       Json?                                   // { sessionId, changed, remaining, durationSec, noSummary, toolSummary? }
+  card          Card      @relation(fields: [cardId], references: [id])
+  @@map("change_details")
+}
+
+model HandoffDetail {
+  cardId          String    @id @map("card_id") @db.Uuid
+  fromRole        String    @map("from_role")
+  toRole          String    @map("to_role")             // == card.ownerRole
+  kind            String                                // contract | component | design | data | other
+  severity        String    @default("info")            // breaking | notable | info
+  summary         String                                // one paragraph, template or agent
+  prompt          String?                               // ready prompt for the receiving agent
+  payload         Json      @default("{}")              // contract: oasdiff changelog json; component: list of files
+  sourceCardId    String?   @map("source_card_id") @db.Uuid   // the change card that caused it
+  acknowledgedById String?  @map("acknowledged_by_id") @db.Uuid
+  acknowledgedAt  DateTime? @map("acknowledged_at") @db.Timestamptz(3)
+  appliedById     String?   @map("applied_by_id") @db.Uuid
+  appliedAt       DateTime? @map("applied_at") @db.Timestamptz(3)
+  appliedTaskId   String?   @map("applied_task_id") @db.Uuid
+  card            Card      @relation(fields: [cardId], references: [id])
+  @@map("handoff_details")
+}
+
+model RedesignDetail {
+  cardId            String    @id @map("card_id") @db.Uuid
+  app               String                              // web | dashboard
+  page              String                              // "wallet"
+  version           String                              // "v2-flight-path"
+  labPath           String    @map("lab_path")          // "web/wallet/v2-flight-path"
+  labUrl            String    @map("lab_url")           // "/lab/#/web/wallet/v2-flight-path"
+  base              String?                             // "v1-baseline"
+  touchesComponents String[]  @default([]) @map("touches_components")
+  reviewScore       Int?      @map("review_score")      // from review.md "score: 86"
+  reviewSummary     String?   @map("review_summary")
+  frontMatter       Json      @default("{}") @map("front_matter")
+  readmeHash        String    @map("readme_hash")
+  approvedById      String?   @map("approved_by_id") @db.Uuid
+  approvedAt        DateTime? @map("approved_at") @db.Timestamptz(3)
+  rejectedById      String?   @map("rejected_by_id") @db.Uuid
+  rejectedAt        DateTime? @map("rejected_at") @db.Timestamptz(3)
+  decisionNote      String?   @map("decision_note")
+  portTaskId        String?   @map("port_task_id") @db.Uuid
+  portedRef         String?   @map("ported_ref")        // "feat/x@abc123 (Goteav-Dashboard)"
+  card              Card      @relation(fields: [cardId], references: [id])
+  @@map("redesign_details")
+}
+
+model DocDetail {
+  cardId        String    @id @map("card_id") @db.Uuid
+  sourceId      String    @map("source_id") @db.Uuid
+  path          String                                  // "docs/21-confirmation-safety.md"
+  kind          String                                  // doc | adr | status | readme | other
+  lang          String    @default("en")                // en | ar (from suffix ".ar.md" or detection)
+  headings      Json      @default("[]")                // [{ level, text, anchor }]
+  wordCount     Int       @default(0) @map("word_count")
+  lastCommitSha String?   @map("last_commit_sha")     // null for local_path sources
+  contentHash   String?   @map("content_hash")        // sha256 of the file, how local_path detects change
+  lastIndexedAt DateTime  @map("last_indexed_at") @db.Timestamptz(3)
+  card          Card      @relation(fields: [cardId], references: [id])
+  chunks        DocChunk[]
+  @@unique([sourceId, path])
+  @@map("doc_details")
+}
+
+model ReleaseDetail {
+  cardId      String    @id @map("card_id") @db.Uuid
+  version     String                                    // "2026-10-30" or "1.4.0"
+  repo        String?
+  tag         String?
+  releasedAt  DateTime? @map("released_at") @db.Timestamptz(3)
+  includedIds String[]  @default([]) @map("included_ids")   // card ids included
+  notes       Json      @default("{}")                  // { team: md, owner: md, accountant: md }
+  card        Card      @relation(fields: [cardId], references: [id])
+  @@map("release_details")
+}
+
+model IdeaDetail {
+  cardId     String  @id @map("card_id") @db.Uuid
+  problem    String?                                 // markdown
+  notes      String?                                 // markdown
+  role       String?                                 // optional role the idea concerns
+  planCardId String? @map("plan_card_id") @db.Uuid   // set by "turn into a plan"
+  card       Card    @relation(fields: [cardId], references: [id])
+  @@map("idea_details")
+}
+
+model PlanDetail {
+  cardId       String    @id @map("card_id") @db.Uuid
+  steps        Json      @default("[]")               // ordered { id, title, role?, taskKey?, done }[]
+  revision     Int       @default(1)                  // bumped by each body save; history is in plan_revised events
+  sourceIdeaId String?   @map("source_idea_id") @db.Uuid
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(3)
+  card         Card      @relation(fields: [cardId], references: [id])
+  @@map("plan_details")
+}
