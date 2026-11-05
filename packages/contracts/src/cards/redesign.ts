@@ -39,7 +39,7 @@ export const createRedesignSchema = z.object({
     base: z.string().max(100).optional(),
     touchesComponents: z.array(z.string().max(200)).max(200).optional(),
     reviewScore: z.number().int().optional(),
-    reviewSummary: z.string().max(2000).optional(),
+    reviewSummary: z.string().max(2000).nullable().optional(),
     frontMatter: z.record(z.string(), z.unknown()).optional(),
     readmeHash: z.string().min(1).max(128),
   }),
