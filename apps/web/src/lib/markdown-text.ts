@@ -67,7 +67,6 @@ export function markdownExcerpt(source: string): string {
 /** Web and mail links, and the app's own paths. A `javascript:` or `data:` link in an imported body stays as its words. */
 export function isSafeHref(href: string): boolean {
   // Browsers ignore tabs and newlines inside a scheme, and leading spaces, so they must not hide one here.
-
   const clean = href.replace(/[\u0000- ]/g, '');
   const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(clean)?.[1]?.toLowerCase();
   return scheme === undefined || scheme === 'http' || scheme === 'https' || scheme === 'mailto';
