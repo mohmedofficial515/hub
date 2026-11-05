@@ -27,6 +27,8 @@ const inter = Inter({
   weight: ['400', '500', '600', '700'],
   variable: '--font-inter',
   display: 'swap',
+  // Its metric fallback matches Arabic with a local Arial before Cairo is reached in the stack (review R4).
+  adjustFontFallback: false,
 });
 const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
