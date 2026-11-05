@@ -76,7 +76,7 @@ type Actor = (Principal & { workspaceId: string; roles: Role[] })
 
 | Mechanism | How | Notes |
 | --- | --- | --- |
-| Cookie session | `hub_access` (JWT, 15 min, `jose` HS256 with `HUB_JWT_SECRET`), `hub_refresh` (opaque, 30 days, `Path=/api/v1/auth/refresh`) — both `HttpOnly; SameSite=Lax`, and `Secure` when `HUB_PUBLIC_URL` is https (15 D33 runs on plain http://localhost). Signing out, ending a session and disabling a member take effect on the next request, because the session row is read each time. | Refresh rotation per family; reuse of a rotated token revokes the family (`401 hub.identity.refresh_invalid`). |
+| Cookie session | `hub_access` (JWT, 15 min, `jose` HS256 with `HUB_JWT_SECRET`), `hub_refresh` (opaque, 30 days, `Path=/api/v1/auth/refresh`), `hub_session` (`1`, no secret, 30 days, `Path=/`, tells the web middleware a session may be alive once `hub_access` has gone) — all `HttpOnly; SameSite=Lax`, and `Secure` when `HUB_PUBLIC_URL` is https (15 D33 runs on plain http://localhost). Signing out, ending a session and disabling a member take effect on the next request, because the session row is read each time. | Refresh rotation per family; reuse of a rotated token revokes the family (`401 hub.identity.refresh_invalid`). |
 | API token | `Authorization: Bearer hub_<prefix8>_<secret>` | Lookup by `prefix`, compare SHA-256. The token belongs to the member. The project is the `{ws}` in the path; on MCP it is the `project` argument, else the `X-Hub-Project` header, else the member's default project (15 §5). A project the member is not in → `404 hub.workspaces.not_found`. `kind=hook` tokens may only call `/capture/*`, `/me` and `/me/context` → else `403 hub.identity.token_scope`. Roles are resolved live from `Membership.roles` on every call. `lastUsedAt` updated at most once per minute. |
 | CSRF | Cookie requests to mutating methods must send `X-Requested-With: hub` (custom header → CORS preflight). Same-origin only (`CORS` allows `https://hub.goteav.lan` and the configured `HUB_PUBLIC_URL`). | |
 | TOTP | Members holding a role in `security.totp_required_roles` must have TOTP enabled; otherwise every workspace route answers `403 hub.identity.totp_setup_required` until they enrol. Sign-in returns `totpRequired` when enabled. | |
@@ -342,7 +342,7 @@ GET /metrics                                    auth: `Authorization: Bearer <ME
 ```
 POST /auth/sign-in                              auth: public   rate: 10/min/IP
 body: { email: string; password: string }
-200: { data: { user: Me; totpRequired: false } }                      // sets hub_access + hub_refresh
+200: { data: { user: Me; totpRequired: false } }                      // sets hub_access + hub_refresh + hub_session
 200: { data: { totpRequired: true; challenge: string } }              // no cookies yet; challenge valid 5 min
 errors: identity.invalid_credentials 401 · identity.locked 423 · identity.account_disabled 403
 effects: LoginAttempt row; audit identity.sign_in

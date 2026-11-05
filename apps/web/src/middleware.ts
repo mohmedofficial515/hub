@@ -2,6 +2,8 @@
  * @file middleware.ts
  * @description Locale prefix and the auth redirect (docs/09 §1). It only looks for a session cookie, because a real check
  * needs the API: an expired session is caught by the client's 401 handling, which refreshes or sends the member to sign-in.
+ * The refresh cookie never reaches a page URL, so `hub_session` stands for it. A session from before that marker still has
+ * `hub_access` for up to 15 minutes and gets the marker on its next refresh; past that it signs in once.
  */
 import { type NextRequest, NextResponse } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
@@ -12,7 +14,7 @@ const intl = createIntlMiddleware(routing);
 
 const PUBLIC_SEGMENTS = new Set(['sign-in', 'totp', 'invite', 'reset', 'forgot']);
 const ACCESS_COOKIE = 'hub_access';
-const REFRESH_COOKIE = 'hub_refresh';
+const SESSION_MARKER_COOKIE = 'hub_session';
 
 export default function middleware(request: NextRequest) {
   const response = intl(request);
@@ -20,7 +22,7 @@ export default function middleware(request: NextRequest) {
   if (response.headers.has('location')) return response;
 
   const [locale = routing.defaultLocale, first] = request.nextUrl.pathname.split('/').filter(Boolean);
-  const signedIn = request.cookies.has(ACCESS_COOKIE) || request.cookies.has(REFRESH_COOKIE);
+  const signedIn = request.cookies.has(ACCESS_COOKIE) || request.cookies.has(SESSION_MARKER_COOKIE);
   if (!signedIn && !(first && PUBLIC_SEGMENTS.has(first))) {
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/sign-in`;

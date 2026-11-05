@@ -117,9 +117,9 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<RefreshResultDto> {
     assertCsrfHeader(request);
-    const token = cookieOf(request, REFRESH_COOKIE);
-    if (!token) throw new AppException('hub.identity.refresh_invalid');
     try {
+      const token = cookieOf(request, REFRESH_COOKIE);
+      if (!token) throw new AppException('hub.identity.refresh_invalid');
       const session = await this.sessions.rotate(token);
       setSessionCookies(response, session, this.config, this.clock.now());
       return { expiresAt: session.accessExpiresAt.toISOString() };

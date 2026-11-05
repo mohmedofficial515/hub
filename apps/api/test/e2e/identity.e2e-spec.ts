@@ -56,6 +56,12 @@ describe('identity', () => {
       }
       expect(access).toContain('Path=/;');
       expect(refresh).toContain('Path=/api/v1/auth/refresh');
+      // Pages never see the refresh cookie, so the web middleware reads this one. It says nothing a thief could use.
+      const marker = cookies.find((line) => line.startsWith('hub_session=')) ?? '';
+      expect(marker).toMatch(/^hub_session=1;/);
+      expect(marker).toContain('Path=/;');
+      expect(marker).toContain('HttpOnly');
+      expect(marker).toContain('Max-Age=2592000');
     });
 
     it('accepts the email in any case, records the attempt and the audit row', async () => {
@@ -241,6 +247,11 @@ describe('identity', () => {
       const unknown = browser();
       unknown.setCookie('hub_refresh', 'nope', '/api/v1/auth/refresh');
       await unknown.post('/auth/refresh').expect(401);
+      // A refused refresh ends the marker too, so middleware does not keep treating this browser as signed in.
+      const noRefresh = browser();
+      noRefresh.setCookie('hub_session', '1');
+      await noRefresh.post('/auth/refresh').expect(401);
+      expect(noRefresh.cookie('hub_session')).toBeUndefined();
 
       const account = await anAccount(db());
       const user = browser();
@@ -259,6 +270,7 @@ describe('identity', () => {
       const refresh = user.cookie('hub_refresh') as string;
       await user.post('/auth/sign-out').expect(204);
       expect(user.cookie('hub_access')).toBeUndefined();
+      expect(user.cookie('hub_session')).toBeUndefined();
 
       const stale = browser();
       stale.setCookie('hub_access', access);
