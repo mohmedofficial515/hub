@@ -203,6 +203,7 @@
     "label": "بطاقة {key}",
     "actionsLabel": "إجراءات البطاقة",
     "more": "خيارات أخرى",
+    "copyCode": "انسخ الكود",
     "watch": "تابع",
     "unwatch": "أوقف المتابعة",
     "watching": "تتابعها",
@@ -235,6 +236,15 @@
     "history": {
       "empty": "لا أحداث بعد.",
       "via": "عبر {via}",
+      "viaNames": {
+        "web": "الواجهة",
+        "mcp": "MCP",
+        "hook": "خطّاف الجلسة",
+        "adapter": "محوّل المصدر",
+        "import": "الاستيراد",
+        "scheduler": "المجدول",
+        "telegram": "تيليجرام"
+      },
       "fields": "الحقل",
       "selfVerified": "تحقق ذاتي",
       "kinds": {

@@ -203,6 +203,7 @@
     "label": "Card {key}",
     "actionsLabel": "Card actions",
     "more": "More options",
+    "copyCode": "Copy code",
     "watch": "Watch",
     "unwatch": "Stop watching",
     "watching": "Watching",
@@ -235,6 +236,15 @@
     "history": {
       "empty": "No events yet.",
       "via": "via {via}",
+      "viaNames": {
+        "web": "the web app",
+        "mcp": "MCP",
+        "hook": "session hook",
+        "adapter": "source adapter",
+        "import": "import",
+        "scheduler": "the scheduler",
+        "telegram": "Telegram"
+      },
       "fields": "Field",
       "selfVerified": "Self-verified",
       "kinds": {

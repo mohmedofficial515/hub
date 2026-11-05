@@ -100,6 +100,7 @@ export interface KitDict {
     notFound: string;
     notFoundBody: string;
     created: string;
+    copyCode: string;
     tabs: { details: string; comments: string; history: string; links: string };
     noBody: string;
     comments: {
@@ -117,6 +118,7 @@ export interface KitDict {
       via: string;
       fields: string;
       selfVerified: string;
+      viaNames: Record<string, string>;
       fieldNames: Record<string, string>;
       values: Record<string, string>;
     };

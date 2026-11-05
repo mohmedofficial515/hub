@@ -17,7 +17,7 @@ import { sheetSections } from '@/components/cards/sheet-sections';
 import { CopyButton, copyText } from '@/components/common/copy-button';
 import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/common/states';
-import { Bidi, fill, fmt, Ltr } from '@/components/common/text';
+import { Bidi, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
 import { closeCard, setQuery, type SheetTab, takeOpener, useRoute } from '@/components/shell/router';
 import { Button, IconButton } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import { detectSecret, Field, SecretFilterError, Select, Textarea, TextInput } f
 import { tabTriggerClass } from '@/components/ui/tabs-class';
 import { Tooltip } from '@/components/ui/tooltip';
 import { actionsFor, type AvailableAction, usePerformAction } from '@/features/cards/actions';
+import { eventFacts } from '@/features/cards/history';
 import {
   addComment,
   addLink,
@@ -201,43 +202,39 @@ function CommentsTab({ card }: { card: HubCard }) {
   );
 }
 
-/** "field: from → to" rows (09 §14); the arrow mirrors because it follows the reading direction. */
-function EventData({ data }: { data: Record<string, string | number | boolean | null> }) {
+/** "field: from → to" rows (09 §14), of the fields a member can read; the arrow mirrors because it follows the reading direction. */
+function EventData({ data }: { data: Record<string, unknown> }) {
   const t = useT(kitMessages);
   const h = t.sheet.history;
-  // Internal fields stay out of a sentence a member reads: the title repeats the sheet's, and the flag is already in the verb.
-  const { from, to, field, title: _title, selfVerified: _self, ...rest } = data;
-  const shown = Object.entries(rest).filter(([, v]) => v !== null && v !== '');
-  if (from === undefined && !shown.length) return null;
-  const word = (value: unknown) => {
-    const text = String(value);
-    return t.status[text] ?? h.values[text] ?? text;
-  };
-  const Value = ({ value }: { value: unknown }) => {
-    const text = String(value);
-    return t.status[text] || h.values[text] ? <span>{word(value)}</span> : <Ltr>{text}</Ltr>;
+  const members = useMembers().data ?? [];
+  const { change, rows } = eventFacts(data, h.fieldNames, (id) => members.find((m) => m.id === id)?.name);
+  if (!change && !rows.length) return null;
+  const Value = ({ value }: { value: string | null }) => {
+    if (value === null) return <span>{h.values['none']}</span>;
+    const known = t.status[value] ?? h.values[value];
+    return known ? <span>{known}</span> : <Bidi>{value}</Bidi>;
   };
   return (
     <dl className="mt-1 flex flex-col gap-0.5 text-body-sm text-muted-foreground">
-      {from !== undefined && to !== undefined && (
+      {change && (
         <div className="flex flex-wrap items-center gap-1.5">
-          {field && <dt className="font-medium">{h.fieldNames[String(field)] ?? String(field)}:</dt>}
+          {change.label && <dt className="font-medium">{change.label}:</dt>}
           <dd className="flex flex-wrap items-center gap-1.5">
-            <Value value={from} />
+            <Value value={change.from} />
             <span aria-hidden className="rtl:-scale-x-100">
               →
             </span>
             <span className="text-foreground">
-              <Value value={to} />
+              <Value value={change.to} />
             </span>
           </dd>
         </div>
       )}
-      {shown.map(([k, v]) => (
-        <div key={k} className="flex flex-wrap gap-1.5">
-          <dt className="font-medium">{h.fieldNames[k] ?? k}:</dt>
+      {rows.map((row) => (
+        <div key={row.key} className="flex flex-wrap gap-1.5">
+          <dt className="font-medium">{row.label}:</dt>
           <dd className="min-w-0 break-words">
-            <Value value={v} />
+            <Value value={row.value} />
           </dd>
         </div>
       ))}
@@ -248,6 +245,7 @@ function EventData({ data }: { data: Record<string, string | number | boolean | 
 function HistoryTab({ card }: { card: HubCard }) {
   const t = useT(kitMessages);
   const events = [...card.events].reverse();
+  const viaName = (via: string) => t.sheet.history.viaNames[via];
   if (!events.length) return <p className="text-body text-muted-foreground">{t.sheet.history.empty}</p>;
   return (
     <ol className="flex flex-col gap-4">
@@ -257,9 +255,11 @@ function HistoryTab({ card }: { card: HubCard }) {
             <ActorChip kind={e.actorKind} memberId={e.actorId} adapter={e.adapter} />
             <span className="text-foreground">{eventLabel(t, e)}</span>
             <RelativeTime iso={e.at} className="text-body-sm text-muted-foreground" />
-            <span className="text-body-sm text-muted-foreground">
-              {fill(t.sheet.history.via, { via: <Ltr mono>{e.via}</Ltr> })}
-            </span>
+            {viaName(e.via) && (
+              <span className="text-body-sm text-muted-foreground">
+                {fmt(t.sheet.history.via, { via: viaName(e.via) ?? '' })}
+              </span>
+            )}
           </div>
           <EventData data={e.data} />
         </li>
