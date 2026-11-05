@@ -34,13 +34,23 @@ import {
   when,
 } from '@/components/kit';
 import type { Priority } from '@/features/cards/types';
-import { PRIORITIES, type SortKey } from '@/features/tasks/model';
+import { isFinished, PRIORITIES, type SortKey } from '@/features/tasks/model';
 import { isHubError } from '@/lib/api/errors';
 
 import type { TaskMessages } from './messages';
 import { MoveButton, type OnMove, TaskFacts } from './task-bits';
 
-function SortHead({ id, label, sort, desc }: { id: SortKey; label: string; sort: SortKey; desc: boolean }) {
+function SortHead({
+  id,
+  label,
+  sort,
+  desc,
+}: {
+  id: SortKey;
+  label: string;
+  sort: SortKey | null;
+  desc: boolean;
+}) {
   const t = useT<TaskMessages>('tasks');
   const active = sort === id;
   const Icon = active ? (desc ? ArrowDown : ArrowUp) : ChevronsUpDown;
@@ -79,7 +89,7 @@ export function TaskList({
   primaryKey,
 }: {
   tasks: TaskCard[];
-  sort: SortKey;
+  sort: SortKey | null;
   desc: boolean;
   rowProps: (id: string) => Record<string, unknown>;
   onMove: OnMove;
@@ -210,7 +220,7 @@ export function TaskList({
                 </td>
                 <td className="px-2.5 py-2 align-top">
                   {/* 09 §6: owner and pm edit priority in place. */}
-                  {canPrioritise ? (
+                  {canPrioritise && !isFinished(card) ? (
                     <label>
                       <span className="sr-only">{fmt(t.table.setPriority, { key: card.key })}</span>
                       <Select

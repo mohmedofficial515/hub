@@ -52,6 +52,24 @@ describe('columnsOf', () => {
 });
 
 describe('sortList', () => {
+  const mixed = () => [
+    task('T-1', { status: 'done', priority: 'P0' }),
+    task('T-2', { status: 'ready', priority: 'P2' }),
+    task('T-3', { status: 'done', priority: 'P3' }),
+    task('T-4', { status: 'in_progress', priority: 'P1' }),
+    task('T-5', { status: 'backlog', priority: 'P0' }),
+  ];
+
+  it('with no column chosen, puts open work first by priority and finished work last', () => {
+    const sorted = sortList(mixed(), { status: null, sort: null, desc: false }, 'me', roles);
+    expect(sorted.map((c) => c.key)).toEqual(['T-5', 'T-4', 'T-2', 'T-1', 'T-3']);
+  });
+
+  it('an explicit sort by priority may still mix them', () => {
+    const sorted = sortList(mixed(), { status: null, sort: 'priority', desc: false }, 'me', roles);
+    expect(sorted.slice(0, 2).map((c) => c.status)).toContain('done');
+  });
+
   it('hides cancelled unless asked for, and sorts keys by number', () => {
     const cards = [task('T-10'), task('T-9'), task('T-1', { status: 'cancelled' })];
     const sorted = sortList(cards, { status: null, sort: 'key', desc: false }, 'me', roles);

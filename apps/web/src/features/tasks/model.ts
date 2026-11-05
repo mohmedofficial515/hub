@@ -67,13 +67,20 @@ export function columnsOf(cards: TaskCard[], memberId: string, roles: readonly R
   ) as Record<Column, TaskCard[]>;
 }
 
+/** A finished task: last in the default order, and no longer worth prioritising. */
+const FINISHED: ReadonlySet<string> = new Set(['done', 'cancelled']);
+export const isFinished = (card: Pick<TaskCard, 'status'>) => FINISHED.has(card.status);
+
 export function sortList(
   cards: TaskCard[],
-  { status, sort, desc }: { status: string | null; sort: SortKey; desc: boolean },
+  { status, sort, desc }: { status: string | null; sort: SortKey | null; desc: boolean },
   memberId: string,
   roles: readonly Role[],
 ) {
   const order = byPriority(memberId, roles);
+  // No column chosen: open work by priority, finished work after it. A chosen column may mix them (review M5).
+  const openFirst = (a: TaskCard, b: TaskCard) =>
+    Number(FINISHED.has(a.status)) - Number(FINISHED.has(b.status)) || order(a, b);
   const compare: Record<SortKey, (a: TaskCard, b: TaskCard) => number> = {
     key: (a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }),
     priority: order,
@@ -84,5 +91,5 @@ export function sortList(
   const dir = desc ? -1 : 1;
   return cards
     .filter((c) => (status ? c.status === status : c.status !== 'cancelled'))
-    .sort((a, b) => dir * (compare[sort] ?? order)(a, b));
+    .sort((a, b) => (sort ? dir * compare[sort](a, b) : openFirst(a, b)));
 }

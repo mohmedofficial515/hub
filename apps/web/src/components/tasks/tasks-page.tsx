@@ -118,7 +118,7 @@ function TasksBoardOrList() {
   const moduleFilter = useFilter('module');
   const q = (useFilter('q') ?? '').trim().toLowerCase();
   const status = useFilter('status');
-  const sort = (useFilter('sort') as SortKey | null) ?? 'priority';
+  const sort = useFilter('sort') as SortKey | null;
   const desc = useFilter('order') === 'desc';
 
   // A link to a folded column, such as Today's "see the backlog", opens it.
