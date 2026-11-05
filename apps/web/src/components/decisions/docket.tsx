@@ -37,6 +37,7 @@ import {
   when,
 } from '@/components/kit';
 import { type Band, bandOf, closedAt, routedToMe } from '@/features/decisions/model';
+import { textDirection } from '@/lib/direction';
 
 import type { DecisionMessages } from './messages';
 
@@ -204,7 +205,20 @@ export function OpenRow({ card, rowProps }: { card: DecisionCard; rowProps: RowP
       meta={
         <>
           <OpenFacts card={card} gutter={gutter} />
-          <p className="basis-full truncate text-body-sm text-muted-foreground">
+          {/* The cut falls at the line's own end only when the line itself has the text's direction (review R5). */}
+          <p
+            dir={
+              d.options.length
+                ? textDirection(
+                    orList(
+                      d.options.map((o) => o.title),
+                      locale,
+                    ),
+                  )
+                : undefined
+            }
+            className="basis-full truncate text-start text-body-sm text-muted-foreground"
+          >
             {d.options.length ? (
               <Bidi>
                 {orList(

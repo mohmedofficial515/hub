@@ -6,6 +6,7 @@
  */
 import { Fragment, type ReactNode } from 'react';
 
+import { textDirection } from '@/lib/direction';
 import { cn } from '@/lib/utils';
 
 /** Replace `{name}` placeholders with plain values. */
@@ -50,10 +51,11 @@ const CARD_KEY = /^[A-Z][A-Z0-9]{1,5}-\d+$/;
  */
 export function Bidi({ children }: { children: string }) {
   const parts = children.split(ISOLATE);
-  // The whole string is isolated too and takes its direction from its own text: the API has one language, so an English title's "?" stays at its end in the Arabic UI.
-  if (parts.length === 1) return <bdi>{children}</bdi>;
+  // The whole string is isolated too and takes its direction from most of its letters: an English title's "?" stays at its end in the Arabic UI, and an Arabic line that opens with a product name stays Arabic.
+  const dir = textDirection(children);
+  if (parts.length === 1) return <bdi dir={dir}>{children}</bdi>;
   return (
-    <bdi>
+    <bdi dir={dir}>
       {parts.map((part, i) =>
         i % 2 === 1 ? (
           // A card key never breaks at its hyphen. A slug may: it can be longer than the line.
