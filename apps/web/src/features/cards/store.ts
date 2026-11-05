@@ -259,7 +259,11 @@ export function removeLink(key: string, kind: LinkKind, otherKey: string) {
 export function setArchived(key: string, archived: boolean) {
   const at = archived ? isoNow() : undefined;
   return writeCard({ key, removeFromLists: archived, card: (c) => ({ ...c, archivedAt: at }) }, () =>
-    post<CardFullDto>(`${cardsPath(ws())}/${key}/${archived ? 'delete' : 'restore'}`),
+    // `delete` takes an optional reason, so its body must be an object.
+    post<CardFullDto>(
+      `${cardsPath(ws())}/${key}/${archived ? 'delete' : 'restore'}`,
+      archived ? {} : undefined,
+    ),
   );
 }
 

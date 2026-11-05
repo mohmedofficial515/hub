@@ -30,6 +30,7 @@ import {
   StatusBadge,
   TypeBadge,
   typeClass,
+  useCardQuery,
   type useKeyboardList,
   useLocale,
   useMedia,
@@ -53,9 +54,9 @@ export function StepMeter({ done, total, className }: { done: number; total: num
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <span className="sr-only">{t.row.steps}</span>
-      <Ltr className="tabular-nums">
+      <span className="tabular-nums">
         {fmt(t.row.progress, { done: num(done, locale), total: num(total, locale) })}
-      </Ltr>
+      </span>
       <span aria-hidden className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
         <span className="block h-full rounded-full bg-foreground" style={{ width: `${percent}%` }} />
       </span>
@@ -81,7 +82,10 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
   };
 
   const isPlan = card.type === 'plan';
-  const text = isPlan ? excerptOf(card.body) : excerptOf(card.idea.problem);
+  // A row carries no body, so the focal plan reads its own card. Until that answers, it claims nothing about its text.
+  const full = useCardQuery(isPlan ? card.key : null);
+  const text = isPlan ? excerptOf(full.data?.body) : excerptOf(card.idea.problem);
+  const noText = isPlan ? (full.data ? kit.sections.plan.noBody : '') : t.focal.noProblem;
   const progress = isPlan ? progressOf(card) : null;
   const steps = isPlan ? card.plan.steps.slice(0, STEPS_ON_FOCAL) : [];
   const more = isPlan ? card.plan.steps.length - steps.length : 0;
@@ -112,7 +116,7 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
           </AppLink>
         </h2>
         <p className="line-clamp-3 max-w-prose text-body text-muted-foreground">
-          <Bidi>{text || (isPlan ? kit.sections.plan.noBody : t.focal.noProblem)}</Bidi>
+          <Bidi>{text || noText}</Bidi>
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
           {action && available && (
@@ -225,7 +229,7 @@ export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps
         <>
           {isMineHere(card, me.id, roles) && <MineMark />}
           {card.idea.role && <RoleBadge role={card.idea.role} outline={false} className="text-body-sm" />}
-          <p className="basis-full truncate text-body-sm text-muted-foreground">
+          <p className="line-clamp-1 basis-full text-body-sm text-muted-foreground">
             <Bidi>{text || t.row.noText}</Bidi>
           </p>
           {!wide && button && <div className="relative z-10 mt-1 flex basis-full *:flex-1">{button}</div>}
@@ -242,7 +246,6 @@ export function PlanRow({ card, rowProps }: { card: PlanCard; rowProps: RowProps
   const wide = useMedia('(min-width: 768px)');
   const next = nextActionOf(card, roles, me.id);
   const { done, total } = progressOf(card);
-  const text = excerptOf(card.body, 140);
   const button = next && (
     <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />
   );
@@ -259,11 +262,6 @@ export function PlanRow({ card, rowProps }: { card: PlanCard; rowProps: RowProps
         <>
           {isMineHere(card, me.id, roles) && <MineMark />}
           {total > 0 ? <StepMeter done={done} total={total} /> : <span>{t.row.noSteps}</span>}
-          {text && (
-            <p className="basis-full truncate text-body-sm text-muted-foreground">
-              <Bidi>{text}</Bidi>
-            </p>
-          )}
           {!wide && button && <div className="relative z-10 mt-1 flex basis-full *:flex-1">{button}</div>}
         </>
       }

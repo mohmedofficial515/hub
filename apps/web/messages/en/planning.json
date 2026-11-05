@@ -9,9 +9,9 @@
       "other": "# ideas open"
     },
     "plans": {
-      "zero": "no plans in motion",
-      "one": "1 plan in motion",
-      "other": "# plans in motion"
+      "zero": ", no plans in motion",
+      "one": ", 1 plan in motion",
+      "other": ", # plans in motion"
     }
   },
   "newIdea": "New idea",

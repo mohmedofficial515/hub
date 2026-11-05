@@ -445,6 +445,10 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
   const Section = sheetSections[card.type];
   // The API's answer for this member: owner, pm and the card's creator (D28).
   const canArchive = card.allowedActions.includes(card.archivedAt ? 'card.restore' : 'card.delete');
+  const restoreCard = () =>
+    void setArchived(card.key, false).catch((error: unknown) =>
+      showToast({ tone: 'error', message: isHubError(error) ? error.message : t.actionFailed }),
+    );
   const copyLink = () => void copyText(location.href).then(() => showToast({ message: t.copy.copied }));
 
   return (
@@ -485,7 +489,7 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
                 </DropdownMenu.Item>
                 {canArchive && (
                   <DropdownMenu.Item
-                    onSelect={() => (card.archivedAt ? void setArchived(card.key, false) : setArchive(true))}
+                    onSelect={() => (card.archivedAt ? restoreCard() : setArchive(true))}
                     className={menuItemClass}
                   >
                     {card.archivedAt ? (
@@ -548,7 +552,7 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
               {fmt(t.sheet.archived, { when: '' })} <RelativeTime iso={card.archivedAt} />
             </p>
             {canArchive && (
-              <Button size="sm" className="ms-auto" onClick={() => void setArchived(card.key, false)}>
+              <Button size="sm" className="ms-auto" onClick={restoreCard}>
                 {t.sheet.restore}
               </Button>
             )}
@@ -617,12 +621,18 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
         description={t.sheet.archiveBody}
         confirmLabel={t.sheet.archive}
         onConfirm={() => {
-          void setArchived(card.key, true);
-          showToast({
-            message: fmt(t.sheet.deleted, { key: card.key }),
-            onUndo: () => void setArchived(card.key, false),
-          });
+          // The toast waits for the API: a refused delete must not say it happened.
+          const refused = (error: unknown) =>
+            showToast({ tone: 'error', message: isHubError(error) ? error.message : t.actionFailed });
           closeCard();
+          setArchived(card.key, true)
+            .then(() =>
+              showToast({
+                message: fmt(t.sheet.deleted, { key: card.key }),
+                onUndo: () => void setArchived(card.key, false).catch(refused),
+              }),
+            )
+            .catch(refused);
         }}
       />
     </>

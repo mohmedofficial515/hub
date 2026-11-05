@@ -104,7 +104,7 @@ export function PlanningPage() {
   const openIdeas = ideas.filter((c) => (ACTIVE_IDEAS as readonly string[]).includes(c.status)).length;
   const movingPlans = plans.filter((c) => (ACTIVE_PLANS as readonly string[]).includes(c.status)).length;
   const closedCount = ideas.length + plans.length - openIdeas - movingPlans;
-  const summary = `${plural(openIdeas, locale, t.summary.ideas)} ${plural(movingPlans, locale, t.summary.plans)}`;
+  const summary = `${plural(openIdeas, locale, t.summary.ideas)}${plural(movingPlans, locale, t.summary.plans)}`;
 
   const dialogs = (
     <>
