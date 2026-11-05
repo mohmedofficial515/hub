@@ -111,7 +111,10 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   const [showAll, setShowAll] = useState(false);
   const { visible, folded, filledId } = tableOptions(d.options);
   const shown = showAll ? [...visible, ...folded] : visible;
-  const columns = shown.length >= 3 ? 'lg:grid-cols-3' : '';
+  // Three tiles sit in a row from 768, so they leave no hole. More wrap, and two have the width to themselves.
+  const columns =
+    shown.length === 3 ? 'md:grid-cols-3' : cn('md:grid-cols-2', shown.length > 3 && 'lg:grid-cols-3');
+  const recommended = d.options.filter((o) => o.recommended).length;
 
   return (
     <article
@@ -144,8 +147,13 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
         </p>
       )}
 
+      {recommended >= 2 && (
+        <p className="text-body-sm text-muted-foreground">
+          {plural(recommended, locale, t.table.manyRecommended)}
+        </p>
+      )}
       {shown.length > 0 && (
-        <ul className={cn('grid gap-2', wide && 'md:grid-cols-2', columns)}>
+        <ul className={cn('grid items-start gap-2', wide && columns)}>
           {shown.map((option) => (
             <li key={option.id} className="flex min-w-0">
               <OptionTile card={card} option={option} filled={option.id === filledId} />

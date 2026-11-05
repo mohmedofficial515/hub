@@ -52,6 +52,10 @@
       "other": "and # more options"
     },
     "fewerOptions": "Show fewer options",
+    "manyRecommended": {
+      "two": "Two options are recommended, and the choice is yours",
+      "other": "# options are recommended, and the choice is yours"
+    },
     "openCard": "Open card",
     "question": "Question"
   },
