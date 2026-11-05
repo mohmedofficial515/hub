@@ -49,9 +49,33 @@ serves it until you add the folder.
 'use client';
 import { useRef } from 'react';
 import { Scale } from 'lucide-react';
-import { Button, CardRow, EmptyState, ErrorState, FilterBar, kitMessages, openCard, PageContainer, PageHeader, SectionHeader, SkeletonRows, StatusBadge, useCardsQuery, useFilter, useKeyboardList, useT } from '@/components/kit';
+import {
+  Button,
+  CardRow,
+  EmptyState,
+  ErrorState,
+  FilterBar,
+  kitMessages,
+  openCard,
+  PageContainer,
+  PageHeader,
+  SectionHeader,
+  SkeletonRows,
+  StatusBadge,
+  useCardsQuery,
+  useFilter,
+  useKeyboardList,
+  useT,
+} from '@/components/kit';
 
-interface Messages { title: string; status: string; list: string; emptyTitle: string; emptyBody: string; thing: string }
+interface Messages {
+  title: string;
+  status: string;
+  list: string;
+  emptyTitle: string;
+  emptyBody: string;
+  thing: string;
+}
 
 export function DecisionsPage() {
   const t = useT<Messages>('decisions');
@@ -65,7 +89,12 @@ export function DecisionsPage() {
   return (
     <PageContainer>
       <PageHeader title={t.title} />
-      <FilterBar mine={{ page: 'decisions' }} groups={[{ param: 'status', label: t.status, options: [{ value: 'open', label: kit.status.open ?? '' }] }]} />
+      <FilterBar
+        mine={{ page: 'decisions' }}
+        groups={[
+          { param: 'status', label: t.status, options: [{ value: 'open', label: kit.status.open ?? '' }] },
+        ]}
+      />
       <section aria-labelledby="list-title" className="flex flex-col gap-3">
         <SectionHeader ref={heading} id="list-title" title={t.list} count={rows.length} />
         {query.isPending ? (
@@ -73,14 +102,28 @@ export function DecisionsPage() {
         ) : query.isError ? (
           <ErrorState thing={t.thing} onRetry={() => void query.refetch()} />
         ) : rows.length === 0 ? (
-          <EmptyState icon={Scale} title={t.emptyTitle}>{t.emptyBody}</EmptyState>
+          <EmptyState icon={Scale} title={t.emptyTitle}>
+            {t.emptyBody}
+          </EmptyState>
         ) : (
           <ul data-hub-list className="flex flex-col gap-2">
             {rows.map((c) => (
               <li key={c.key}>
-                <CardRow {...list.rowProps(c.key)} cardKey={c.key} type={c.type} title={c.title} priority={c.priority}
+                <CardRow
+                  {...list.rowProps(c.key)}
+                  cardKey={c.key}
+                  type={c.type}
+                  title={c.title}
+                  priority={c.priority}
                   meta={<StatusBadge status={c.status} />}
-                  action={c.awaiting === 'decide' && <Button onClick={() => openCard(c.key, { action: 'decide' })}>{kit.actions.decide}</Button>} />
+                  action={
+                    c.awaiting === 'decide' && (
+                      <Button onClick={() => openCard(c.key, { action: 'decide' })}>
+                        {kit.actions.decide}
+                      </Button>
+                    )
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -93,34 +136,34 @@ export function DecisionsPage() {
 
 Differences from the design's page code when you port:
 
-| The design | Here |
-|---|---|
-| `from '../../kit'` | `from '@/components/kit'` |
-| `useT(messages)` with an `i18n.ts` | `useT<Messages>('<view>')` |
-| `card.title[locale]`, any `{ ar, en }` | `card.title`. The API has one text |
-| `useSession().loading`, `scenario` | the query's `isPending`, `isError`. There are no scenarios |
-| `useCards()` with everything loaded | `useCardsQuery(filters)`: the server filters. A row has no detail: see below |
-| `actOn`, `patchCard`, `addCard` | `usePerformAction`, `writeCard`, `createCard` |
-| Decisions' coloured band rules | neutral: `bg-border`, with the icon and words carrying the urgency (D31). Change this at port |
-| Sparklines and trend words | removed unless a real history exists (docs/15 §8). Never fake data |
-| `?scenario=`, fake clock, `@lab/mocks` | gone. `nowMs()` is the real time |
+| The design                             | Here                                                                                          |
+| -------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `from '../../kit'`                     | `from '@/components/kit'`                                                                     |
+| `useT(messages)` with an `i18n.ts`     | `useT<Messages>('<view>')`                                                                    |
+| `card.title[locale]`, any `{ ar, en }` | `card.title`. The API has one text                                                            |
+| `useSession().loading`, `scenario`     | the query's `isPending`, `isError`. There are no scenarios                                    |
+| `useCards()` with everything loaded    | `useCardsQuery(filters)`: the server filters. A row has no detail: see below                  |
+| `actOn`, `patchCard`, `addCard`        | `usePerformAction`, `writeCard`, `createCard`                                                 |
+| Decisions' coloured band rules         | neutral: `bg-border`, with the icon and words carrying the urgency (D31). Change this at port |
+| Sparklines and trend words             | removed unless a real history exists (docs/15 §8). Never fake data                            |
+| `?scenario=`, fake clock, `@lab/mocks` | gone. `nowMs()` is the real time                                                              |
 
 ## Data
 
 Read through hooks. All keys are in `qk` (`features/cards/keys.ts`), and that is what makes a page live.
 
-| Hook | Returns |
-|---|---|
-| `useCardsQuery(filters)` | the list query. `data.items: CardListItem[]`. `filters`: `type status role assignee q archived flags awaiting sort limit`. `archived: true` is the Deleted view («المحذوفات»), which owner, pm and a card's creator may read |
-| `useCards()` | only the rows, for a picker or a count |
-| `useCardQuery(key)`, `useCard(key)` | one `HubCard`, full: `card.decision`, `card.need`, `card.task`, `card.handoff`, `card.redesign`, `card.doc`, `card.release`, `card.change`, `card.idea`, `card.plan` |
-| `useCardEvents(key)`, `useCardComments(key)` | History and Comments |
-| `useCardSearch(q, { types, limit })` | server search |
-| `useAwaiting()` | my stack, from `GET /cards?awaiting=me`, with `group` and `action`. The API says the verb (`card.awaiting`), so it swaps as the card moves (review B2) |
-| `useReadyTasks()` | `GET /tasks/ready` |
-| `useMyCounts()` | the numbers on the sidebar. "Mine" comes from the same list as the rows, so they cannot disagree |
-| `useSession()` | `{ me, roles, isOwner, isManager, workspace, loading, error }`, live for the project in the URL |
-| `useMembers()`, `useMember(id)`, `useMe()`, `useWorkspace()`, `useWorkspaces()`, `useToday()` | |
+| Hook                                                                                          | Returns                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useCardsQuery(filters)`                                                                      | the list query. `data.items: CardListItem[]`. `filters`: `type status role assignee q archived flags awaiting sort limit`. `archived: true` is the Deleted view («المحذوفات»), which owner, pm and a card's creator may read |
+| `useCards()`                                                                                  | only the rows, for a picker or a count                                                                                                                                                                                       |
+| `useCardQuery(key)`, `useCard(key)`                                                           | one `HubCard`, full: `card.decision`, `card.need`, `card.task`, `card.handoff`, `card.redesign`, `card.doc`, `card.release`, `card.change`, `card.idea`, `card.plan`                                                         |
+| `useCardEvents(key)`, `useCardComments(key)`                                                  | History and Comments                                                                                                                                                                                                         |
+| `useCardSearch(q, { types, limit })`                                                          | server search                                                                                                                                                                                                                |
+| `useAwaiting()`                                                                               | my stack, from `GET /cards?awaiting=me`, with `group` and `action`. The API says the verb (`card.awaiting`), so it swaps as the card moves (review B2)                                                                       |
+| `useReadyTasks()`                                                                             | `GET /tasks/ready`                                                                                                                                                                                                           |
+| `useMyCounts()`                                                                               | the numbers on the sidebar. "Mine" comes from the same list as the rows, so they cannot disagree                                                                                                                             |
+| `useSession()`                                                                                | `{ me, roles, isOwner, isManager, workspace, loading, error }`, live for the project in the URL                                                                                                                              |
+| `useMembers()`, `useMember(id)`, `useMe()`, `useWorkspace()`, `useWorkspaces()`, `useToday()` |                                                                                                                                                                                                                              |
 
 **A row is not a card.** `CardListItem` is `CardSummary`, with no detail. For a page that needs detail on rows, write a hook on the type's own list
 endpoint and map with `toHubCard` from `features/cards/map.ts`. Put it under `qk.cardList(ws, { yourFilter })`, because anything under that prefix is
@@ -134,14 +177,16 @@ refresh and errors. It holds every endpoint in the snapshot, so prefer its types
 
 ```ts
 const perform = usePerformAction();
-perform(card.key, 'claim');                             // every card action. Toast, closes the sheet, optimistic, rollback
-perform(card.key, 'decide', { optionId, rationale });   // ActionPayload: see features/cards/rules.ts
+perform(card.key, 'claim'); // every card action. Toast, closes the sheet, optimistic, rollback
+perform(card.key, 'decide', { optionId, rationale }); // ActionPayload: see features/cards/rules.ts
 ```
 
 The status moves at once from the shared machine, and if the API refuses, everything returns and a toast shows the API's words. Anything else goes through `writeCard`, the one optimistic path:
 
 ```ts
-await writeCard({ key, fields: { priority: 'P0' } }, () => patch(`workspaces/${ws}/cards/${key}`, { priority: 'P0' }));
+await writeCard({ key, fields: { priority: 'P0' } }, () =>
+  patch(`workspaces/${ws}/cards/${key}`, { priority: 'P0' }),
+);
 // { removeFromLists: true } hides a row; { card: (c) => ... } changes only the full card
 ```
 
@@ -179,13 +224,13 @@ templates and `plural(n, locale, forms)` for counts, not next-intl's `t()`, beca
 
 `/[locale]/[ws]/<view>`, with the sheet as `?card=GTV-123&action=decide&tab=comments` over any page.
 
-| API | Use |
-|---|---|
-| `useRoute()` | `{ locale, ws, view, cardKey, query: URLSearchParams }` |
-| `navigate(view, { query?, replace? })`, `goTo(path)` | another view; any path of the app |
-| `<AppLink view="tasks" query={{ status: 'ready' }}>`, `<AppLink card="GTV-231" action="decide">` | a real `<a href>`. Use it for any place |
-| `setQuery({ status: 'ready', other: null })` | filters on this view, shallow |
-| `openCard(key, { action?, tab?, opener? })`, `closeCard()` | the sheet. Shallow too |
+| API                                                                                              | Use                                                     |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `useRoute()`                                                                                     | `{ locale, ws, view, cardKey, query: URLSearchParams }` |
+| `navigate(view, { query?, replace? })`, `goTo(path)`                                             | another view; any path of the app                       |
+| `<AppLink view="tasks" query={{ status: 'ready' }}>`, `<AppLink card="GTV-231" action="decide">` | a real `<a href>`. Use it for any place                 |
+| `setQuery({ status: 'ready', other: null })`                                                     | filters on this view, shallow                           |
+| `openCard(key, { action?, tab?, opener? })`, `closeCard()`                                       | the sheet. Shallow too                                  |
 
 ## Rules
 
