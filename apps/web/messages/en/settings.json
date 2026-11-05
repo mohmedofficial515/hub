@@ -143,9 +143,9 @@
     "pathInvalid": "Each folder must be an absolute path, like F:/Goteav/backend.",
     "security": {
       "title": "Security",
-      "body": "Who must use two-step sign-in. A member holding one of these roles enrols before any project page answers.",
+      "body": "Two-step sign-in is optional unless a role is chosen here. A member holding a chosen role enrols before any page of this project opens.",
       "roles": "Roles that must use two-step sign-in",
-      "hint": "By default the owner, PM and accountant."
+      "hint": "With none chosen, each member decides for themselves in their profile."
     },
     "close": {
       "sectionTitle": "Close project",
