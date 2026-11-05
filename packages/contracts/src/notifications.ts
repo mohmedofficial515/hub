@@ -47,6 +47,11 @@ export const inboxItemSchema = z.object({
     action: z.string().optional(),
     /** How many updates a merged `watch_update` holds (docs/07 §2). */
     count: z.number().int().optional(),
+    /** Where an item with no card leads: a view of the app and its query. */
+    link: z.object({ view: z.string(), query: z.record(z.string(), z.string()).optional() }).optional(),
+    /** What the stored title was rendered from, so a page can say it again in its own language, from the live card. */
+    i18nKey: z.string().optional(),
+    params: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
   }),
   groupKey: z.string().nullable(),
   createdAt: z.string(),

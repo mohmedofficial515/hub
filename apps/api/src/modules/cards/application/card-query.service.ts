@@ -70,6 +70,7 @@ interface ReadContext {
   readonly actor: Actor;
   readonly users: ReadonlyMap<string, UserCard>;
   readonly blocked: ReadonlySet<string>;
+  readonly blocking: ReadonlyMap<string, number>;
   readonly portTasks: ReadonlyMap<string, CardView>;
   readonly now: Date;
   readonly staleHandoffBefore: Date;
@@ -98,6 +99,10 @@ function detailDto(detail: JsonObject | null, users: ReadonlyMap<string, UserCar
     }
   }
   return result;
+}
+
+function withIncluded(detail: JsonObject | null, included: readonly CardSummary[] | undefined) {
+  return detail && included ? { ...detail, included: included as unknown as JsonObject[] } : detail;
 }
 
 function detailUserIds(detail: JsonObject | null): string[] {
@@ -156,14 +161,19 @@ export class CardQueryService {
       ...(card.createdById ? [card.createdById] : []),
       ...detailUserIds(card.detail),
     ]);
-    const [users, blocked] = await Promise.all([
+    const [users, blocked, blocking] = await Promise.all([
       this.reader.findUsers([...userIds, ...extraUsers]),
       this.reader.findBlocked(actor.workspaceId, ids),
+      this.reader.countBlocking(
+        actor.workspaceId,
+        cards.map((card) => card.id),
+      ),
     ]);
     const context: ReadContext = {
       actor,
       users,
       blocked,
+      blocking,
       portTasks: new Map(ports.map((port) => [port.id, port])),
       ...moments,
     };
@@ -253,6 +263,7 @@ export class CardQueryService {
       createdBy: this.actorRef(card.createdByKind, card.createdById, card.createdVia, context.users),
       source: card.source,
       flags: this.flags(card, context),
+      blocksCount: context.blocking.get(card.id) ?? 0,
       awaiting:
         awaitedAction(this.actionable(card, context), context.actor.roles, context.actor.userId)?.action ??
         null,
@@ -387,10 +398,35 @@ export class CardQueryService {
 
   async withDetail(actor: Actor, cards: readonly CardView[]): Promise<CardWithDetail[]> {
     const context = await this.context(actor, cards);
+    const included = await this.includedOf(actor, cards);
     return cards.map((card) => ({
       ...this.toSummary(card, context),
-      detail: detailDto(card.detail, context.users),
+      detail: withIncluded(detailDto(card.detail, context.users), included.get(card.id)),
     }));
+  }
+
+  /** What each release includes, as summaries (docs/04 §3.20). A deleted card drops out. */
+  private async includedOf(actor: Actor, cards: readonly CardView[]): Promise<Map<string, CardSummary[]>> {
+    const byRelease = new Map<string, readonly string[]>();
+    for (const card of cards) {
+      if (card.type === 'release') byRelease.set(card.id, (card.detail?.['includedIds'] ?? []) as string[]);
+    }
+    if (byRelease.size === 0) return new Map();
+    const rows = await this.reader.findByIds(actor.workspaceId, [...new Set([...byRelease.values()].flat())]);
+    const summaries = await this.summaries(
+      actor,
+      rows.filter((row) => row.archivedAt === null),
+    );
+    const byId = new Map(summaries.map((summary) => [summary.id, summary]));
+    return new Map(
+      [...byRelease].map(([id, ids]) => [
+        id,
+        ids.flatMap((included) => {
+          const summary = byId.get(included);
+          return summary ? [summary] : [];
+        }),
+      ]),
+    );
   }
 
   /** The cards each of these blocks, as summaries: the `blocks` column on Decisions and Needs. */
@@ -458,9 +494,10 @@ export class CardQueryService {
     );
     const actionable = this.actionable(card, context);
     const facts = permissionFactsFor(card, actor.userId);
+    const included = await this.includedOf(actor, [card]);
     return {
       ...this.toSummary(card, context),
-      detail: detailDto(card.detail, context.users),
+      detail: withIncluded(detailDto(card.detail, context.users), included.get(card.id)),
       body: card.body,
       links: links.map((link) => ({ kind: link.kind, card: this.toSummary(link.card, context) })),
       watchers: watchers.map((watcher) => ({

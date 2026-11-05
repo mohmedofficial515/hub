@@ -87,5 +87,6 @@
   "loading": "Loading the releases",
   "tagged": "Tag {tag}",
   "untagged": "No tag yet",
-  "noNotes": "No notes for this audience yet."
+  "noNotes": "No notes for this audience yet.",
+  "wroteByTemplate": "Hub’s template"
 }

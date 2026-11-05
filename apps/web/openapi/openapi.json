@@ -7494,6 +7494,11 @@
               "noSummary"
             ]
           },
+          "blocksCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
           "awaiting": {
             "type": "string",
             "nullable": true
@@ -7521,6 +7526,7 @@
           "createdBy",
           "source",
           "flags",
+          "blocksCount",
           "awaiting"
         ]
       },
@@ -8632,6 +8638,11 @@
               "noSummary"
             ]
           },
+          "blocksCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
           "awaiting": {
             "type": "string",
             "nullable": true
@@ -9292,6 +9303,209 @@
                       "type": "string"
                     }
                   },
+                  "included": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "key": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "task",
+                            "decision",
+                            "need",
+                            "change",
+                            "handoff",
+                            "redesign",
+                            "doc",
+                            "release",
+                            "idea",
+                            "plan"
+                          ]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": "string",
+                          "enum": [
+                            "P0",
+                            "P1",
+                            "P2",
+                            "P3"
+                          ]
+                        },
+                        "ownerRole": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "assignee": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "avatarColor": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "displayName",
+                            "avatarColor"
+                          ],
+                          "nullable": true
+                        },
+                        "module": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "repo": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "branch": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "dueAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "closedAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "archivedAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "commentCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "lastEventAt": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "createdBy": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "user",
+                                "agent",
+                                "system"
+                              ]
+                            },
+                            "userId": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "displayName": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "via": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "userId",
+                            "displayName",
+                            "via"
+                          ]
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "flags": {
+                          "type": "object",
+                          "properties": {
+                            "blocked": {
+                              "type": "boolean"
+                            },
+                            "overdue": {
+                              "type": "boolean"
+                            },
+                            "escalated": {
+                              "type": "boolean"
+                            },
+                            "stale": {
+                              "type": "boolean"
+                            },
+                            "noSummary": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "blocked",
+                            "overdue",
+                            "escalated",
+                            "stale",
+                            "noSummary"
+                          ]
+                        },
+                        "blocksCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "awaiting": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "key",
+                        "type",
+                        "title",
+                        "status",
+                        "priority",
+                        "ownerRole",
+                        "assignee",
+                        "module",
+                        "repo",
+                        "branch",
+                        "tags",
+                        "dueAt",
+                        "closedAt",
+                        "archivedAt",
+                        "commentCount",
+                        "lastEventAt",
+                        "createdAt",
+                        "createdBy",
+                        "source",
+                        "flags",
+                        "blocksCount",
+                        "awaiting"
+                      ]
+                    }
+                  },
                   "notes": {
                     "type": "object",
                     "properties": {
@@ -9609,6 +9823,11 @@
                         "noSummary"
                       ]
                     },
+                    "blocksCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "awaiting": {
                       "type": "string",
                       "nullable": true
@@ -9636,6 +9855,7 @@
                     "createdBy",
                     "source",
                     "flags",
+                    "blocksCount",
                     "awaiting"
                   ]
                 }
@@ -9865,6 +10085,7 @@
           "createdBy",
           "source",
           "flags",
+          "blocksCount",
           "awaiting",
           "detail",
           "body",
@@ -10041,6 +10262,11 @@
               "stale",
               "noSummary"
             ]
+          },
+          "blocksCount": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "awaiting": {
             "type": "string",
@@ -10702,6 +10928,209 @@
                       "type": "string"
                     }
                   },
+                  "included": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "key": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "task",
+                            "decision",
+                            "need",
+                            "change",
+                            "handoff",
+                            "redesign",
+                            "doc",
+                            "release",
+                            "idea",
+                            "plan"
+                          ]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": "string",
+                          "enum": [
+                            "P0",
+                            "P1",
+                            "P2",
+                            "P3"
+                          ]
+                        },
+                        "ownerRole": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "assignee": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "type": "string"
+                            },
+                            "avatarColor": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "displayName",
+                            "avatarColor"
+                          ],
+                          "nullable": true
+                        },
+                        "module": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "repo": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "branch": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "tags": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "dueAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "closedAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "archivedAt": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "commentCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "lastEventAt": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "createdBy": {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "user",
+                                "agent",
+                                "system"
+                              ]
+                            },
+                            "userId": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "displayName": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "via": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "userId",
+                            "displayName",
+                            "via"
+                          ]
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "flags": {
+                          "type": "object",
+                          "properties": {
+                            "blocked": {
+                              "type": "boolean"
+                            },
+                            "overdue": {
+                              "type": "boolean"
+                            },
+                            "escalated": {
+                              "type": "boolean"
+                            },
+                            "stale": {
+                              "type": "boolean"
+                            },
+                            "noSummary": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "blocked",
+                            "overdue",
+                            "escalated",
+                            "stale",
+                            "noSummary"
+                          ]
+                        },
+                        "blocksCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "awaiting": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "key",
+                        "type",
+                        "title",
+                        "status",
+                        "priority",
+                        "ownerRole",
+                        "assignee",
+                        "module",
+                        "repo",
+                        "branch",
+                        "tags",
+                        "dueAt",
+                        "closedAt",
+                        "archivedAt",
+                        "commentCount",
+                        "lastEventAt",
+                        "createdAt",
+                        "createdBy",
+                        "source",
+                        "flags",
+                        "blocksCount",
+                        "awaiting"
+                      ]
+                    }
+                  },
                   "notes": {
                     "type": "object",
                     "properties": {
@@ -11019,6 +11448,11 @@
                         "noSummary"
                       ]
                     },
+                    "blocksCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "awaiting": {
                       "type": "string",
                       "nullable": true
@@ -11046,6 +11480,7 @@
                     "createdBy",
                     "source",
                     "flags",
+                    "blocksCount",
                     "awaiting"
                   ]
                 }
@@ -11254,6 +11689,7 @@
           "createdBy",
           "source",
           "flags",
+          "blocksCount",
           "awaiting",
           "detail",
           "body",
@@ -11765,6 +12201,11 @@
                   "noSummary"
                 ]
               },
+              "blocksCount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "awaiting": {
                 "type": "string",
                 "nullable": true
@@ -12425,6 +12866,209 @@
                           "type": "string"
                         }
                       },
+                      "included": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "task",
+                                "decision",
+                                "need",
+                                "change",
+                                "handoff",
+                                "redesign",
+                                "doc",
+                                "release",
+                                "idea",
+                                "plan"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "priority": {
+                              "type": "string",
+                              "enum": [
+                                "P0",
+                                "P1",
+                                "P2",
+                                "P3"
+                              ]
+                            },
+                            "ownerRole": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "assignee": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "avatarColor": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "displayName",
+                                "avatarColor"
+                              ],
+                              "nullable": true
+                            },
+                            "module": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "repo": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "branch": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "dueAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "closedAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "archivedAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "commentCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lastEventAt": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "createdBy": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "user",
+                                    "agent",
+                                    "system"
+                                  ]
+                                },
+                                "userId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "displayName": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "via": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "userId",
+                                "displayName",
+                                "via"
+                              ]
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "flags": {
+                              "type": "object",
+                              "properties": {
+                                "blocked": {
+                                  "type": "boolean"
+                                },
+                                "overdue": {
+                                  "type": "boolean"
+                                },
+                                "escalated": {
+                                  "type": "boolean"
+                                },
+                                "stale": {
+                                  "type": "boolean"
+                                },
+                                "noSummary": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "blocked",
+                                "overdue",
+                                "escalated",
+                                "stale",
+                                "noSummary"
+                              ]
+                            },
+                            "blocksCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "awaiting": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "key",
+                            "type",
+                            "title",
+                            "status",
+                            "priority",
+                            "ownerRole",
+                            "assignee",
+                            "module",
+                            "repo",
+                            "branch",
+                            "tags",
+                            "dueAt",
+                            "closedAt",
+                            "archivedAt",
+                            "commentCount",
+                            "lastEventAt",
+                            "createdAt",
+                            "createdBy",
+                            "source",
+                            "flags",
+                            "blocksCount",
+                            "awaiting"
+                          ]
+                        }
+                      },
                       "notes": {
                         "type": "object",
                         "properties": {
@@ -12581,6 +13225,7 @@
               "createdBy",
               "source",
               "flags",
+              "blocksCount",
               "awaiting",
               "detail"
             ]
@@ -12800,6 +13445,11 @@
                   "noSummary"
                 ]
               },
+              "blocksCount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "awaiting": {
                 "type": "string",
                 "nullable": true
@@ -13460,6 +14110,209 @@
                           "type": "string"
                         }
                       },
+                      "included": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "key": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "task",
+                                "decision",
+                                "need",
+                                "change",
+                                "handoff",
+                                "redesign",
+                                "doc",
+                                "release",
+                                "idea",
+                                "plan"
+                              ]
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string"
+                            },
+                            "priority": {
+                              "type": "string",
+                              "enum": [
+                                "P0",
+                                "P1",
+                                "P2",
+                                "P3"
+                              ]
+                            },
+                            "ownerRole": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "assignee": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "displayName": {
+                                  "type": "string"
+                                },
+                                "avatarColor": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "displayName",
+                                "avatarColor"
+                              ],
+                              "nullable": true
+                            },
+                            "module": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "repo": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "branch": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "tags": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "dueAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "closedAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "archivedAt": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "commentCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "lastEventAt": {
+                              "type": "string"
+                            },
+                            "createdAt": {
+                              "type": "string"
+                            },
+                            "createdBy": {
+                              "type": "object",
+                              "properties": {
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "user",
+                                    "agent",
+                                    "system"
+                                  ]
+                                },
+                                "userId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "displayName": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "via": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "kind",
+                                "userId",
+                                "displayName",
+                                "via"
+                              ]
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "flags": {
+                              "type": "object",
+                              "properties": {
+                                "blocked": {
+                                  "type": "boolean"
+                                },
+                                "overdue": {
+                                  "type": "boolean"
+                                },
+                                "escalated": {
+                                  "type": "boolean"
+                                },
+                                "stale": {
+                                  "type": "boolean"
+                                },
+                                "noSummary": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "blocked",
+                                "overdue",
+                                "escalated",
+                                "stale",
+                                "noSummary"
+                              ]
+                            },
+                            "blocksCount": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "awaiting": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "key",
+                            "type",
+                            "title",
+                            "status",
+                            "priority",
+                            "ownerRole",
+                            "assignee",
+                            "module",
+                            "repo",
+                            "branch",
+                            "tags",
+                            "dueAt",
+                            "closedAt",
+                            "archivedAt",
+                            "commentCount",
+                            "lastEventAt",
+                            "createdAt",
+                            "createdBy",
+                            "source",
+                            "flags",
+                            "blocksCount",
+                            "awaiting"
+                          ]
+                        }
+                      },
                       "notes": {
                         "type": "object",
                         "properties": {
@@ -13616,6 +14469,7 @@
               "createdBy",
               "source",
               "flags",
+              "blocksCount",
               "awaiting",
               "detail"
             ],
@@ -13634,6 +14488,39 @@
                 "type": "integer",
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
+              },
+              "link": {
+                "type": "object",
+                "properties": {
+                  "view": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "view"
+                ]
+              },
+              "i18nKey": {
+                "type": "string"
+              },
+              "params": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                }
               }
             }
           },
@@ -15962,6 +16849,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -15989,6 +16881,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -16159,6 +17052,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -16186,6 +17084,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -16356,6 +17255,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -16383,6 +17287,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -16553,6 +17458,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -16580,6 +17490,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -16750,6 +17661,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -16777,6 +17693,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -18262,6 +19179,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -18922,6 +19844,209 @@
                             "type": "string"
                           }
                         },
+                        "included": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "task",
+                                  "decision",
+                                  "need",
+                                  "change",
+                                  "handoff",
+                                  "redesign",
+                                  "doc",
+                                  "release",
+                                  "idea",
+                                  "plan"
+                                ]
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "P0",
+                                  "P1",
+                                  "P2",
+                                  "P3"
+                                ]
+                              },
+                              "ownerRole": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "assignee": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "displayName": {
+                                    "type": "string"
+                                  },
+                                  "avatarColor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "displayName",
+                                  "avatarColor"
+                                ],
+                                "nullable": true
+                              },
+                              "module": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "repo": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "branch": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "dueAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "closedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "archivedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "commentCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "lastEventAt": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "createdBy": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user",
+                                      "agent",
+                                      "system"
+                                    ]
+                                  },
+                                  "userId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "displayName": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "via": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "userId",
+                                  "displayName",
+                                  "via"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "object",
+                                "properties": {
+                                  "blocked": {
+                                    "type": "boolean"
+                                  },
+                                  "overdue": {
+                                    "type": "boolean"
+                                  },
+                                  "escalated": {
+                                    "type": "boolean"
+                                  },
+                                  "stale": {
+                                    "type": "boolean"
+                                  },
+                                  "noSummary": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "blocked",
+                                  "overdue",
+                                  "escalated",
+                                  "stale",
+                                  "noSummary"
+                                ]
+                              },
+                              "blocksCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "awaiting": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "type",
+                              "title",
+                              "status",
+                              "priority",
+                              "ownerRole",
+                              "assignee",
+                              "module",
+                              "repo",
+                              "branch",
+                              "tags",
+                              "dueAt",
+                              "closedAt",
+                              "archivedAt",
+                              "commentCount",
+                              "lastEventAt",
+                              "createdAt",
+                              "createdBy",
+                              "source",
+                              "flags",
+                              "blocksCount",
+                              "awaiting"
+                            ]
+                          }
+                        },
                         "notes": {
                           "type": "object",
                           "properties": {
@@ -19078,6 +20203,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting",
                 "detail"
               ]
@@ -19249,6 +20375,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -19909,6 +21040,209 @@
                             "type": "string"
                           }
                         },
+                        "included": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "task",
+                                  "decision",
+                                  "need",
+                                  "change",
+                                  "handoff",
+                                  "redesign",
+                                  "doc",
+                                  "release",
+                                  "idea",
+                                  "plan"
+                                ]
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "P0",
+                                  "P1",
+                                  "P2",
+                                  "P3"
+                                ]
+                              },
+                              "ownerRole": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "assignee": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "displayName": {
+                                    "type": "string"
+                                  },
+                                  "avatarColor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "displayName",
+                                  "avatarColor"
+                                ],
+                                "nullable": true
+                              },
+                              "module": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "repo": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "branch": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "dueAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "closedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "archivedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "commentCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "lastEventAt": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "createdBy": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user",
+                                      "agent",
+                                      "system"
+                                    ]
+                                  },
+                                  "userId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "displayName": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "via": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "userId",
+                                  "displayName",
+                                  "via"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "object",
+                                "properties": {
+                                  "blocked": {
+                                    "type": "boolean"
+                                  },
+                                  "overdue": {
+                                    "type": "boolean"
+                                  },
+                                  "escalated": {
+                                    "type": "boolean"
+                                  },
+                                  "stale": {
+                                    "type": "boolean"
+                                  },
+                                  "noSummary": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "blocked",
+                                  "overdue",
+                                  "escalated",
+                                  "stale",
+                                  "noSummary"
+                                ]
+                              },
+                              "blocksCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "awaiting": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "type",
+                              "title",
+                              "status",
+                              "priority",
+                              "ownerRole",
+                              "assignee",
+                              "module",
+                              "repo",
+                              "branch",
+                              "tags",
+                              "dueAt",
+                              "closedAt",
+                              "archivedAt",
+                              "commentCount",
+                              "lastEventAt",
+                              "createdAt",
+                              "createdBy",
+                              "source",
+                              "flags",
+                              "blocksCount",
+                              "awaiting"
+                            ]
+                          }
+                        },
                         "notes": {
                           "type": "object",
                           "properties": {
@@ -20065,6 +21399,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting",
                 "detail"
               ]
@@ -20236,6 +21571,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -20263,6 +21603,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting"
               ]
             }
@@ -20562,6 +21903,11 @@
                             "stale",
                             "noSummary"
                           ]
+                        },
+                        "blocksCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
                         },
                         "awaiting": {
                           "type": "string",
@@ -21223,6 +22569,209 @@
                                     "type": "string"
                                   }
                                 },
+                                "included": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "key": {
+                                        "type": "string"
+                                      },
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "task",
+                                          "decision",
+                                          "need",
+                                          "change",
+                                          "handoff",
+                                          "redesign",
+                                          "doc",
+                                          "release",
+                                          "idea",
+                                          "plan"
+                                        ]
+                                      },
+                                      "title": {
+                                        "type": "string"
+                                      },
+                                      "status": {
+                                        "type": "string"
+                                      },
+                                      "priority": {
+                                        "type": "string",
+                                        "enum": [
+                                          "P0",
+                                          "P1",
+                                          "P2",
+                                          "P3"
+                                        ]
+                                      },
+                                      "ownerRole": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "assignee": {
+                                        "type": "object",
+                                        "properties": {
+                                          "id": {
+                                            "type": "string"
+                                          },
+                                          "displayName": {
+                                            "type": "string"
+                                          },
+                                          "avatarColor": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "id",
+                                          "displayName",
+                                          "avatarColor"
+                                        ],
+                                        "nullable": true
+                                      },
+                                      "module": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "repo": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "branch": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "tags": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "dueAt": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "closedAt": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "archivedAt": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "commentCount": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "lastEventAt": {
+                                        "type": "string"
+                                      },
+                                      "createdAt": {
+                                        "type": "string"
+                                      },
+                                      "createdBy": {
+                                        "type": "object",
+                                        "properties": {
+                                          "kind": {
+                                            "type": "string",
+                                            "enum": [
+                                              "user",
+                                              "agent",
+                                              "system"
+                                            ]
+                                          },
+                                          "userId": {
+                                            "type": "string",
+                                            "nullable": true
+                                          },
+                                          "displayName": {
+                                            "type": "string",
+                                            "nullable": true
+                                          },
+                                          "via": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "kind",
+                                          "userId",
+                                          "displayName",
+                                          "via"
+                                        ]
+                                      },
+                                      "source": {
+                                        "type": "string"
+                                      },
+                                      "flags": {
+                                        "type": "object",
+                                        "properties": {
+                                          "blocked": {
+                                            "type": "boolean"
+                                          },
+                                          "overdue": {
+                                            "type": "boolean"
+                                          },
+                                          "escalated": {
+                                            "type": "boolean"
+                                          },
+                                          "stale": {
+                                            "type": "boolean"
+                                          },
+                                          "noSummary": {
+                                            "type": "boolean"
+                                          }
+                                        },
+                                        "required": [
+                                          "blocked",
+                                          "overdue",
+                                          "escalated",
+                                          "stale",
+                                          "noSummary"
+                                        ]
+                                      },
+                                      "blocksCount": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "awaiting": {
+                                        "type": "string",
+                                        "nullable": true
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "key",
+                                      "type",
+                                      "title",
+                                      "status",
+                                      "priority",
+                                      "ownerRole",
+                                      "assignee",
+                                      "module",
+                                      "repo",
+                                      "branch",
+                                      "tags",
+                                      "dueAt",
+                                      "closedAt",
+                                      "archivedAt",
+                                      "commentCount",
+                                      "lastEventAt",
+                                      "createdAt",
+                                      "createdBy",
+                                      "source",
+                                      "flags",
+                                      "blocksCount",
+                                      "awaiting"
+                                    ]
+                                  }
+                                },
                                 "notes": {
                                   "type": "object",
                                   "properties": {
@@ -21379,6 +22928,7 @@
                         "createdBy",
                         "source",
                         "flags",
+                        "blocksCount",
                         "awaiting",
                         "detail"
                       ]
@@ -23341,6 +24891,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -23374,6 +24929,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting",
                 "rank",
                 "highlight"
@@ -23549,6 +25105,11 @@
                         "noSummary"
                       ]
                     },
+                    "blocksCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
                     "awaiting": {
                       "type": "string",
                       "nullable": true
@@ -23576,6 +25137,7 @@
                     "createdBy",
                     "source",
                     "flags",
+                    "blocksCount",
                     "awaiting"
                   ]
                 },
@@ -23795,6 +25357,11 @@
                   "noSummary"
                 ]
               },
+              "blocksCount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "awaiting": {
                 "type": "string",
                 "nullable": true
@@ -23822,6 +25389,7 @@
               "createdBy",
               "source",
               "flags",
+              "blocksCount",
               "awaiting"
             ]
           },
@@ -24285,6 +25853,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -24945,6 +26518,209 @@
                             "type": "string"
                           }
                         },
+                        "included": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "task",
+                                  "decision",
+                                  "need",
+                                  "change",
+                                  "handoff",
+                                  "redesign",
+                                  "doc",
+                                  "release",
+                                  "idea",
+                                  "plan"
+                                ]
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "P0",
+                                  "P1",
+                                  "P2",
+                                  "P3"
+                                ]
+                              },
+                              "ownerRole": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "assignee": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "displayName": {
+                                    "type": "string"
+                                  },
+                                  "avatarColor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "displayName",
+                                  "avatarColor"
+                                ],
+                                "nullable": true
+                              },
+                              "module": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "repo": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "branch": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "dueAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "closedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "archivedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "commentCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "lastEventAt": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "createdBy": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user",
+                                      "agent",
+                                      "system"
+                                    ]
+                                  },
+                                  "userId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "displayName": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "via": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "userId",
+                                  "displayName",
+                                  "via"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "object",
+                                "properties": {
+                                  "blocked": {
+                                    "type": "boolean"
+                                  },
+                                  "overdue": {
+                                    "type": "boolean"
+                                  },
+                                  "escalated": {
+                                    "type": "boolean"
+                                  },
+                                  "stale": {
+                                    "type": "boolean"
+                                  },
+                                  "noSummary": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "blocked",
+                                  "overdue",
+                                  "escalated",
+                                  "stale",
+                                  "noSummary"
+                                ]
+                              },
+                              "blocksCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "awaiting": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "type",
+                              "title",
+                              "status",
+                              "priority",
+                              "ownerRole",
+                              "assignee",
+                              "module",
+                              "repo",
+                              "branch",
+                              "tags",
+                              "dueAt",
+                              "closedAt",
+                              "archivedAt",
+                              "commentCount",
+                              "lastEventAt",
+                              "createdAt",
+                              "createdBy",
+                              "source",
+                              "flags",
+                              "blocksCount",
+                              "awaiting"
+                            ]
+                          }
+                        },
                         "notes": {
                           "type": "object",
                           "properties": {
@@ -25101,6 +26877,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting",
                 "detail"
               ]
@@ -25393,6 +27170,11 @@
                     "noSummary"
                   ]
                 },
+                "blocksCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
                 "awaiting": {
                   "type": "string",
                   "nullable": true
@@ -26053,6 +27835,209 @@
                             "type": "string"
                           }
                         },
+                        "included": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string",
+                                "enum": [
+                                  "task",
+                                  "decision",
+                                  "need",
+                                  "change",
+                                  "handoff",
+                                  "redesign",
+                                  "doc",
+                                  "release",
+                                  "idea",
+                                  "plan"
+                                ]
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "priority": {
+                                "type": "string",
+                                "enum": [
+                                  "P0",
+                                  "P1",
+                                  "P2",
+                                  "P3"
+                                ]
+                              },
+                              "ownerRole": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "assignee": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "displayName": {
+                                    "type": "string"
+                                  },
+                                  "avatarColor": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "displayName",
+                                  "avatarColor"
+                                ],
+                                "nullable": true
+                              },
+                              "module": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "repo": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "branch": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "tags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "dueAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "closedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "archivedAt": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "commentCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "lastEventAt": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "createdBy": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user",
+                                      "agent",
+                                      "system"
+                                    ]
+                                  },
+                                  "userId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "displayName": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "via": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "userId",
+                                  "displayName",
+                                  "via"
+                                ]
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "flags": {
+                                "type": "object",
+                                "properties": {
+                                  "blocked": {
+                                    "type": "boolean"
+                                  },
+                                  "overdue": {
+                                    "type": "boolean"
+                                  },
+                                  "escalated": {
+                                    "type": "boolean"
+                                  },
+                                  "stale": {
+                                    "type": "boolean"
+                                  },
+                                  "noSummary": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "blocked",
+                                  "overdue",
+                                  "escalated",
+                                  "stale",
+                                  "noSummary"
+                                ]
+                              },
+                              "blocksCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "awaiting": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "type",
+                              "title",
+                              "status",
+                              "priority",
+                              "ownerRole",
+                              "assignee",
+                              "module",
+                              "repo",
+                              "branch",
+                              "tags",
+                              "dueAt",
+                              "closedAt",
+                              "archivedAt",
+                              "commentCount",
+                              "lastEventAt",
+                              "createdAt",
+                              "createdBy",
+                              "source",
+                              "flags",
+                              "blocksCount",
+                              "awaiting"
+                            ]
+                          }
+                        },
                         "notes": {
                           "type": "object",
                           "properties": {
@@ -26209,6 +28194,7 @@
                 "createdBy",
                 "source",
                 "flags",
+                "blocksCount",
                 "awaiting",
                 "detail"
               ]
@@ -26394,6 +28380,11 @@
                       "stale",
                       "noSummary"
                     ]
+                  },
+                  "blocksCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   },
                   "awaiting": {
                     "type": "string",
@@ -27055,6 +29046,209 @@
                               "type": "string"
                             }
                           },
+                          "included": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "key": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "task",
+                                    "decision",
+                                    "need",
+                                    "change",
+                                    "handoff",
+                                    "redesign",
+                                    "doc",
+                                    "release",
+                                    "idea",
+                                    "plan"
+                                  ]
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "priority": {
+                                  "type": "string",
+                                  "enum": [
+                                    "P0",
+                                    "P1",
+                                    "P2",
+                                    "P3"
+                                  ]
+                                },
+                                "ownerRole": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "assignee": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "displayName": {
+                                      "type": "string"
+                                    },
+                                    "avatarColor": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "displayName",
+                                    "avatarColor"
+                                  ],
+                                  "nullable": true
+                                },
+                                "module": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "repo": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "branch": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "tags": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "dueAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "closedAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "archivedAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "commentCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "lastEventAt": {
+                                  "type": "string"
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "createdBy": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "user",
+                                        "agent",
+                                        "system"
+                                      ]
+                                    },
+                                    "userId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "displayName": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "via": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "userId",
+                                    "displayName",
+                                    "via"
+                                  ]
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "flags": {
+                                  "type": "object",
+                                  "properties": {
+                                    "blocked": {
+                                      "type": "boolean"
+                                    },
+                                    "overdue": {
+                                      "type": "boolean"
+                                    },
+                                    "escalated": {
+                                      "type": "boolean"
+                                    },
+                                    "stale": {
+                                      "type": "boolean"
+                                    },
+                                    "noSummary": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "blocked",
+                                    "overdue",
+                                    "escalated",
+                                    "stale",
+                                    "noSummary"
+                                  ]
+                                },
+                                "blocksCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "awaiting": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "key",
+                                "type",
+                                "title",
+                                "status",
+                                "priority",
+                                "ownerRole",
+                                "assignee",
+                                "module",
+                                "repo",
+                                "branch",
+                                "tags",
+                                "dueAt",
+                                "closedAt",
+                                "archivedAt",
+                                "commentCount",
+                                "lastEventAt",
+                                "createdAt",
+                                "createdBy",
+                                "source",
+                                "flags",
+                                "blocksCount",
+                                "awaiting"
+                              ]
+                            }
+                          },
                           "notes": {
                             "type": "object",
                             "properties": {
@@ -27211,6 +29405,7 @@
                   "createdBy",
                   "source",
                   "flags",
+                  "blocksCount",
                   "awaiting",
                   "detail"
                 ]
@@ -27421,6 +29616,11 @@
                       "noSummary"
                     ]
                   },
+                  "blocksCount": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
                   "awaiting": {
                     "type": "string",
                     "nullable": true
@@ -28081,6 +30281,209 @@
                               "type": "string"
                             }
                           },
+                          "included": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "key": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "type": "string",
+                                  "enum": [
+                                    "task",
+                                    "decision",
+                                    "need",
+                                    "change",
+                                    "handoff",
+                                    "redesign",
+                                    "doc",
+                                    "release",
+                                    "idea",
+                                    "plan"
+                                  ]
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "priority": {
+                                  "type": "string",
+                                  "enum": [
+                                    "P0",
+                                    "P1",
+                                    "P2",
+                                    "P3"
+                                  ]
+                                },
+                                "ownerRole": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "assignee": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "displayName": {
+                                      "type": "string"
+                                    },
+                                    "avatarColor": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "displayName",
+                                    "avatarColor"
+                                  ],
+                                  "nullable": true
+                                },
+                                "module": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "repo": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "branch": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "tags": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "dueAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "closedAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "archivedAt": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "commentCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "lastEventAt": {
+                                  "type": "string"
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "createdBy": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "user",
+                                        "agent",
+                                        "system"
+                                      ]
+                                    },
+                                    "userId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "displayName": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "via": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "kind",
+                                    "userId",
+                                    "displayName",
+                                    "via"
+                                  ]
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "flags": {
+                                  "type": "object",
+                                  "properties": {
+                                    "blocked": {
+                                      "type": "boolean"
+                                    },
+                                    "overdue": {
+                                      "type": "boolean"
+                                    },
+                                    "escalated": {
+                                      "type": "boolean"
+                                    },
+                                    "stale": {
+                                      "type": "boolean"
+                                    },
+                                    "noSummary": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "blocked",
+                                    "overdue",
+                                    "escalated",
+                                    "stale",
+                                    "noSummary"
+                                  ]
+                                },
+                                "blocksCount": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "awaiting": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "key",
+                                "type",
+                                "title",
+                                "status",
+                                "priority",
+                                "ownerRole",
+                                "assignee",
+                                "module",
+                                "repo",
+                                "branch",
+                                "tags",
+                                "dueAt",
+                                "closedAt",
+                                "archivedAt",
+                                "commentCount",
+                                "lastEventAt",
+                                "createdAt",
+                                "createdBy",
+                                "source",
+                                "flags",
+                                "blocksCount",
+                                "awaiting"
+                              ]
+                            }
+                          },
                           "notes": {
                             "type": "object",
                             "properties": {
@@ -28237,6 +30640,7 @@
                   "createdBy",
                   "source",
                   "flags",
+                  "blocksCount",
                   "awaiting",
                   "detail"
                 ]

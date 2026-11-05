@@ -216,6 +216,21 @@ export class PrismaCardReader extends CardReader {
     return new Set(rows.map((row) => row.toCardId));
   }
 
+  async countBlocking(workspaceId: string, ids: readonly string[]): Promise<Map<string, number>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.tx.cardLink.groupBy({
+      by: ['fromCardId'],
+      where: {
+        workspaceId,
+        kind: 'blocks',
+        fromCardId: { in: [...ids] },
+        to: { closedAt: null, archivedAt: null },
+      },
+      _count: { _all: true },
+    });
+    return new Map(rows.map((row) => [row.fromCardId, row._count._all]));
+  }
+
   async findLinks(workspaceId: string, cardId: string): Promise<LinkRow[]> {
     const rows = await this.tx.cardLink.findMany({
       where: {

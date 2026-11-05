@@ -84,6 +84,6 @@ export class ReleaseNotesService {
         );
       }
     }
-    return this.cards.apply(actor, { cardId: release.id }, 'release.edit', { notes: filled });
+    return this.cards.apply(actor, { cardId: release.id }, 'release.generate_notes', { notes: filled });
   }
 }

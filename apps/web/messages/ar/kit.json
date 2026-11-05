@@ -669,7 +669,8 @@
       "wroteBy": "كتبها",
       "template": "هيكل من قالب Hub. يمكن صقله من Claude Code.",
       "copy": "انسخ ملاحظات {name}",
-      "noNotes": "لا ملاحظات لهذه الفئة بعد."
+      "noNotes": "لا ملاحظات لهذه الفئة بعد.",
+      "templateName": "قالب Hub"
     },
     "task": {
       "pasteHint": "في Claude Code الصق {cmd}",

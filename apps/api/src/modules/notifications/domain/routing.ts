@@ -35,6 +35,8 @@ export interface Notice {
   readonly watchers?: boolean;
   /** The card action the item asks for. */
   readonly action?: string;
+  /** Where an item with no card leads. */
+  readonly link?: { readonly view: string; readonly query?: Readonly<Record<string, string>> };
   readonly params?: Readonly<Record<string, string | number>>;
 }
 

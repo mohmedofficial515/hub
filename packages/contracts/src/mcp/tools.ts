@@ -524,7 +524,7 @@ const TOOL_TABLE = {
     description:
       'Edit a release: version, tag, included cards, notes per audience. `generateNotes` fills empty notes from the included cards.',
     input: key.extend({ ...editReleaseSchema.shape, generateNotes: z.boolean().optional() }),
-    actions: ['release.edit'],
+    actions: ['release.edit', 'release.generate_notes'],
     routes: [`PATCH ${W}/releases/:key`, `POST ${W}/releases/:key/generate-notes`],
   },
   release: {

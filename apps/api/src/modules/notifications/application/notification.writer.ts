@@ -63,7 +63,11 @@ export class NotificationWriter {
           ...target.params,
           ...notice.params,
         },
-        data: { ...(target.card ? { cardKey: target.card.key } : {}), ...action },
+        data: {
+          ...(target.card ? { cardKey: target.card.key } : {}),
+          ...action,
+          ...(notice.link ? { link: notice.link } : {}),
+        },
       });
       if (!row) continue;
       // Names what changed and carries no text: the page reads it through the API (docs/04 §4).

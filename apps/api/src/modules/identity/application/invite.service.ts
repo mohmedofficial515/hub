@@ -127,7 +127,7 @@ export class InviteService {
       return created;
     });
     const url = this.inviteUrl(workspace.defaultLocale, token);
-    await this.mailInvite(email, workspace.name, workspace.defaultLocale, url);
+    this.mailInvite(email, workspace.name, workspace.defaultLocale, url);
     return {
       id: invite.id,
       email,
@@ -161,7 +161,7 @@ export class InviteService {
       });
     });
     const url = this.inviteUrl(workspace.defaultLocale, token);
-    await this.mailInvite(invite.email, workspace.name, workspace.defaultLocale, url);
+    this.mailInvite(invite.email, workspace.name, workspace.defaultLocale, url);
     return { url };
   }
 
@@ -321,6 +321,7 @@ export class InviteService {
       recipients: leads.map(({ user }) => ({ userId: user.id, locale: user.locale })),
       i18nKey: 'member_joined',
       params: { name },
+      data: { link: { view: 'members' } },
     });
   }
 
@@ -328,19 +329,22 @@ export class InviteService {
     return `${this.config.HUB_PUBLIC_URL.replace(/\/$/, '')}/${locale}/invite/${token}`;
   }
 
-  /** Best effort: the owner still has the link when mail is down or not configured. */
-  private async mailInvite(to: string, project: string, locale: string, url: string): Promise<void> {
+  /**
+   * Best effort, and not waited for: the owner already has the link, so a slow or absent mail server must not hold the answer. A mail server that refuses
+   * or times out is only a warning.
+   */
+  private mailInvite(to: string, project: string, locale: string, url: string): void {
     const arabic = locale === 'ar';
-    try {
-      await this.mailer.send({
+    void this.mailer
+      .send({
         to,
         subject: arabic ? `دعوة للانضمام إلى ${project} في Hub` : `Join ${project} on Hub`,
         text: arabic
           ? `تمت دعوتك إلى ${project}. افتح هذا الرابط خلال 7 أيام:\n${url}`
           : `You are invited to ${project}. Open this link within 7 days:\n${url}`,
+      })
+      .catch((error: unknown) => {
+        this.logger.warn(`Invite mail failed: ${error instanceof Error ? error.name : 'unknown'}`);
       });
-    } catch (error) {
-      this.logger.warn(`Invite mail failed: ${error instanceof Error ? error.name : 'unknown'}`);
-    }
   }
 }

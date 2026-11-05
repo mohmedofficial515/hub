@@ -32,6 +32,7 @@ import {
   nowMs,
   openCard,
   Pill,
+  plural,
   type RedesignCard,
   rel,
   RoleBadge,
@@ -81,6 +82,7 @@ function useMetaOf() {
 
 function Signals({ card, meta }: { card: StackCard; meta: string | undefined }) {
   const t = useT<TodayMessages>(NS);
+  const kit = useT(kitMessages);
   const locale = useLocale();
   const { roles } = useSession();
   const h = card.dueAt ? hoursFromNow(card.dueAt) : null;
@@ -104,6 +106,11 @@ function Signals({ card, meta }: { card: StackCard; meta: string | undefined }) 
         <Pill tone="warning" icon={Clock}>
           {fmt(t.stack.dueSoon, { rel: rel(card.dueAt, locale) })}
         </Pill>
+      )}
+      {(card.blocksCount ?? 0) > 0 && (
+        <span className="text-body-sm text-muted-foreground">
+          {plural(card.blocksCount ?? 0, locale, kit.blocksCount)}
+        </span>
       )}
       {stale && (
         <Pill tone="warning" icon={Clock}>

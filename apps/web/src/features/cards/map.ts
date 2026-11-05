@@ -41,6 +41,7 @@ export interface CardSummaryDto {
   createdAt: string;
   createdBy?: ActorRef | null;
   flags?: CardFlags;
+  blocksCount?: number;
   awaiting?: string | null;
 }
 
@@ -102,6 +103,7 @@ export function toListItem(dto: CardSummaryDto): CardListItem {
     branch: orUndefined(dto.branch),
     tags: dto.tags ?? [],
     commentCount: dto.commentCount ?? 0,
+    blocksCount: dto.blocksCount ?? 0,
     archivedAt: orUndefined(dto.archivedAt),
     awaiting: dto.awaiting,
   };
@@ -162,10 +164,10 @@ function shapeDetail(dto: CardFullDto, detail: Record<string, unknown>): Record<
   }
   if (dto.type === 'release') {
     const notes = (detail['notes'] ?? {}) as Record<string, string | null | undefined>;
-    const included = detail['included'] as { key: string }[] | undefined;
+    const included = detail['included'] as CardSummaryDto[] | undefined;
     return {
       ...detail,
-      ...(included ? { includedKeys: included.map((c) => c.key) } : {}),
+      ...(included ? { included: included.map(toListItem), includedKeys: included.map((c) => c.key) } : {}),
       notes: {
         team: notes['team'] ?? '',
         owner: notes['owner'] ?? '',

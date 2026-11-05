@@ -120,6 +120,8 @@ export abstract class CardReader {
 
   /** Both ends of every link, the other card not deleted. */
   abstract findLinks(workspaceId: string, cardId: string): Promise<LinkRow[]>;
+  /** How many open cards each of these blocks. A card blocking nothing is absent. */
+  abstract countBlocking(workspaceId: string, ids: readonly string[]): Promise<Map<string, number>>;
 
   /** The keys of the open cards blocking each of these: card id to keys. */
   abstract findBlockerKeys(workspaceId: string, ids: readonly string[]): Promise<Map<string, string[]>>;

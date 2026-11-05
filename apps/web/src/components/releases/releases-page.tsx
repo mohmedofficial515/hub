@@ -253,7 +253,7 @@ function Manifest({
               <ActorChip
                 kind={author.kind}
                 memberId={author.memberId}
-                adapter={author.kind === 'system' ? 'digests' : undefined}
+                adapter={author.kind === 'system' ? t.wroteByTemplate : undefined}
               />
             </p>
           </div>

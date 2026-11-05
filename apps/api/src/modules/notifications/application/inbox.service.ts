@@ -97,7 +97,13 @@ export class InboxService {
   }
 
   private toItem(row: Row, cards: ReadonlyMap<string, CardWithDetail>): InboxItem {
-    const { cardKey, action, count } = row.data as { cardKey?: string; action?: string; count?: number };
+    const { cardKey, action, count, link, i18n } = row.data as {
+      cardKey?: string;
+      action?: string;
+      count?: number;
+      link?: { view: string; query?: Record<string, string> };
+      i18n?: { key?: string; params?: Record<string, string | number> };
+    };
     return {
       id: row.id,
       kind: row.kind as NotificationKind,
@@ -108,6 +114,9 @@ export class InboxService {
         ...(cardKey ? { cardKey } : {}),
         ...(action ? { action } : {}),
         ...(count ? { count } : {}),
+        ...(link ? { link } : {}),
+        ...(i18n?.key ? { i18nKey: i18n.key } : {}),
+        ...(i18n?.params ? { params: i18n.params } : {}),
       },
       groupKey: row.group_key,
       createdAt: row.created_at.toISOString(),

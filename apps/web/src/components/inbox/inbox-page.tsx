@@ -67,7 +67,7 @@ import { asCard, useRunAction } from '@/features/timeline/run-action';
 import { isHubError } from '@/lib/api/errors';
 
 import { type InboxMessages, NS } from './messages';
-import { InboxRow, type ItemLink, linkButtonClass } from './row';
+import { InboxRow, type ItemLink, linkButtonClass, toItemLink } from './row';
 
 export function InboxPage() {
   const t = useT<InboxMessages>(NS);
@@ -128,6 +128,7 @@ export function InboxPage() {
 
   const linkOf = (item: InboxItem): ItemLink | undefined => {
     if (item.card) return undefined;
+    if (item.data.link) return toItemLink(item.data.link);
     if (item.kind === 'brief') return { view: 'today' };
     return undefined;
   };

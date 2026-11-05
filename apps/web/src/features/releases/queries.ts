@@ -40,13 +40,13 @@ export function useFinishedCards() {
 
 /** How many cards a release holds, whichever way the API named them. */
 export const includedCount = (r: ReleaseCard['release']) =>
-  Math.max(r.includedKeys.length, r.includedIds?.length ?? 0);
+  r.included?.length ?? Math.max(r.includedKeys.length, r.includedIds?.length ?? 0);
 
 /**
- * The cards a release includes, with their type and title. The API answers with ids and has no read by id, so they come from the pool of finished cards.
- * A card older than the pool still counts in `includedCount`, and is simply not listed.
+ * The cards a release includes, with their type and title. The API sends them. A release being planned in this page, before it is saved, picks from the pool.
  */
 export function useIncluded(r: ReleaseCard['release'], pool: readonly CardListItem[]): CardListItem[] {
+  if (r.included) return r.included;
   const ids = new Set([...r.includedKeys, ...(r.includedIds ?? [])]);
   return pool.filter((c) => ids.has(c.id) || ids.has(c.key));
 }

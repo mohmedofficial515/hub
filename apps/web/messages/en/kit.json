@@ -657,7 +657,8 @@
       "wroteBy": "Written by",
       "template": "A skeleton from Hub’s template. It can be polished from Claude Code.",
       "copy": "Copy the {name} notes",
-      "noNotes": "No notes for this audience yet."
+      "noNotes": "No notes for this audience yet.",
+      "templateName": "Hub’s template"
     },
     "task": {
       "pasteHint": "In Claude Code paste {cmd}",

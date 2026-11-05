@@ -247,6 +247,8 @@ export interface ReleaseDetail {
   includedKeys: string[];
   /** What the API stores. Resolve it to cards with `useIncluded` (features/releases). */
   includedIds?: string[] | undefined;
+  /** The included cards, as the API sends them. */
+  included?: CardListItem[] | undefined;
   notes: { team: string; owner: string; accountant: string };
 }
 
@@ -297,6 +299,8 @@ export interface CardCore {
   branch?: string | undefined;
   tags: string[];
   commentCount: number;
+  /** How many open cards wait on this one. */
+  blocksCount?: number | undefined;
   archivedAt?: string | undefined;
   /** The verb waiting on this member, or null (review B2). The API's answer, from the card's state. */
   awaiting?: string | null | undefined;

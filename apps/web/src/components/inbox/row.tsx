@@ -42,6 +42,7 @@ import {
   useT,
   type ViewId,
 } from '@/components/kit';
+import { views } from '@/components/shell/views';
 import type { InboxGroup } from '@/features/inbox/group';
 
 import { type InboxMessages, NS } from './messages';
@@ -108,16 +109,29 @@ function useSwipe(onArchive: () => void) {
 }
 
 /**
- * The API stores a title once, in the language the member had then, with the card's title of that moment. For a kind that says only "why this reached me"
- * the page writes it again from the live card, so an edit shows here and it follows the page's language. Others carry a fact of their moment, and stay.
+ * The API stores a title once, in the language the member had then, with the card's title of that moment. The page says it again from what it was rendered
+ * from: the sentence in the page's language, the card's title as it is now. The stored title is the fallback, for an item older than this or a key the page does not know.
  */
 export function titleOf(item: InboxGroup['lead'], titles: InboxMessages['row']['titles']) {
-  const template = (titles as Record<string, string>)[item.kind];
-  return template && item.card ? (
-    fill(template, { title: <Bidi>{item.card.title}</Bidi> })
-  ) : (
-    <Bidi>{item.title}</Bidi>
+  const template = (titles as Record<string, string>)[item.data.i18nKey ?? item.kind];
+  const params = item.data.params ?? {};
+  const values: Record<string, ReactNode> = Object.fromEntries(
+    Object.entries(params).map(([name, value]) => [name, <Bidi key={name}>{String(value)}</Bidi>]),
   );
+  const title = item.card?.title ?? params['title'];
+  if (title !== undefined) values['title'] = <Bidi key="title">{String(title)}</Bidi>;
+  const known =
+    template && [...template.matchAll(/\{(\w+)\}/g)].every(([, name]) => values[name ?? ''] !== undefined);
+  return known ? fill(template, values) : <Bidi>{item.title}</Bidi>;
+}
+
+/** Where an item with no card leads. An unknown view is no link at all: the API may know more views than this page. */
+export function toItemLink(link: {
+  view: string;
+  query?: Record<string, string> | undefined;
+}): ItemLink | undefined {
+  if (!views.some((view) => view.id === link.view)) return undefined;
+  return { view: link.view as ViewId, ...(link.query ? { query: link.query } : {}) };
 }
 
 export function InboxRow({

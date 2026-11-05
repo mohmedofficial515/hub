@@ -179,7 +179,14 @@ export class SourceRunnerService {
       const envelopes = await this.txHost.withTransaction(() =>
         this.writer.deliver(
           { workspaceId: source.workspaceId, actorId: null, params: { name: source.name } },
-          [{ kind: 'system', i18nKey: 'source_failing', roles: ['owner', 'pm'] }],
+          [
+            {
+              kind: 'system',
+              i18nKey: 'source_failing',
+              roles: ['owner', 'pm'],
+              link: { view: 'settings', query: { tab: 'sources' } },
+            },
+          ],
         ),
       );
       for (const envelope of envelopes) await this.realtime.publishEnvelope(source.workspaceId, envelope);

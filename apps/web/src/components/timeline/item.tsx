@@ -44,6 +44,7 @@ import {
   useT,
 } from '@/components/kit';
 import type { CardEvent } from '@/features/cards/types';
+import { includedCount } from '@/features/releases/queries';
 import { foldedEvents, type StreamRow } from '@/features/timeline/stream';
 
 import { authorOf, EventDetail } from './event-detail';
@@ -108,6 +109,9 @@ function Facts({ card, event }: { card: HubCard; event: CardEvent }) {
             <Pill tone="warning" icon={Clock}>
               {fmt(t.row.dueIn, { rel: rel(due, locale) })}
             </Pill>
+          )}
+          {open && (card.blocksCount ?? 0) > 0 && (
+            <span>{plural(card.blocksCount ?? 0, locale, kit.blocksCount)}</span>
           )}
         </>
       );
@@ -188,7 +192,7 @@ function Facts({ card, event }: { card: HubCard; event: CardEvent }) {
               {card.release.version}
             </Ltr>
           )}
-          <span>{plural(card.release.includedKeys.length, locale, t.row.included)}</span>
+          <span>{plural(includedCount(card.release), locale, t.row.included)}</span>
         </>
       );
     default:

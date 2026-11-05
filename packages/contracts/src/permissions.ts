@@ -102,6 +102,7 @@ const MATRIX = {
   // Releases
   'release.create': OWNER_PM,
   'release.edit': OWNER_PM,
+  'release.generate_notes': OWNER_PM,
   'release.release': OWNER_PM,
 
   // Ideas (D29)

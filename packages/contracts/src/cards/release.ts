@@ -31,6 +31,15 @@ export const createReleaseSchema = cardCreateBaseSchema.extend({
 });
 export type CreateReleaseInput = z.infer<typeof createReleaseSchema>;
 
+export const generatedNotesSchema = z.object({
+  notes: z.object({
+    team: z.string().optional(),
+    owner: z.string().optional(),
+    accountant: z.string().optional(),
+  }),
+});
+export type GeneratedNotesInput = z.infer<typeof generatedNotesSchema>;
+
 export const editReleaseSchema = z.object({
   version: z.string().trim().min(1).max(60).optional(),
   repo: z.string().max(80).nullable().optional(),

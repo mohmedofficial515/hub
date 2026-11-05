@@ -79,7 +79,24 @@
       "review_requested": "جاهزة للمراجعة: {title}",
       "mention": "إشارة إليك: {title}",
       "task_ready": "جاهزة للحجز: {title}",
-      "escalation": "تجاوزت موعدها وصُعّدت: {title}"
+      "escalation": "تجاوزت موعدها وصُعّدت: {title}",
+      "watch_update": "تغيّرت: {title}",
+      "watch_comment": "تعليق جديد: {title}",
+      "watch_decided": "حُسم: {title}",
+      "need_delivered": "سُلّم وينتظر التحقق: {title}",
+      "unblocked": "لم تعد محجوبة: {title}",
+      "deadline_reminder": "موعدها خلال {hours} ساعة: {title}",
+      "deadline_overdue": "تجاوزت موعدها: {title}",
+      "handoff_stale": "انتظرتك طويلًا: {title}",
+      "need_stale": "بقي مفتوحًا طويلًا: {title}",
+      "task_still_working": "هل ما زلت تعمل عليها؟ {title}",
+      "release_created": "إصدار جديد مخطط له: {title}",
+      "release_released": "صدر: {title}",
+      "session_no_summary": "جلستك بلا ملخص بعد",
+      "member_joined": "انضم {name} إلى المشروع",
+      "source_failing": "فشل المصدر {name} ثلاث مرات متتالية",
+      "brief_ready": "موجزك ليوم {date} جاهز",
+      "weekly_ready": "ملخص الأسبوع {date} جاهز"
     }
   },
   "archive": {

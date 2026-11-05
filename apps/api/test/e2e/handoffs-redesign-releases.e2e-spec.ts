@@ -430,6 +430,27 @@ describe('releases', () => {
     expect(notes.owner).toContain('Refund');
     expect(notes.owner).not.toContain(task.key);
     expect(notes.accountant).toBe('Written by hand');
+
+    // docs/04 §3.20: the included cards come with the release, however old. And History can tell the template from a person.
+    const full = (await pm.get(`/cards/${release.key}`).expect(200)).body.data;
+    expect(full.detail.included).toEqual([expect.objectContaining({ key: task.key, title: 'Refund' })]);
+    const { body: events } = await pm.get(`/cards/${release.key}/events`).expect(200);
+    const last = (events.data.items as { data: { generated?: boolean } }[]).at(-1);
+    expect(last?.data.generated).toBe(true);
+  });
+
+  it('a deleted card drops out of what a release includes', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm', 'backend']);
+    const task = await created(pm, aTask());
+    const release = await created(pm, {
+      type: 'release',
+      title: 'R',
+      detail: { version: '1', includedKeys: [task.key] },
+    });
+    await pm.post(`/cards/${task.key}/delete`, {}).expect(200);
+    const full = (await pm.get(`/cards/${release.key}`).expect(200)).body.data;
+    expect(full.detail.included).toEqual([]);
   });
 
   it('release: planned to released, tells everyone, and refuses twice', async () => {

@@ -74,10 +74,8 @@ export function notesAuthor(
     data: Record<string, unknown>;
   }[],
 ): { kind: 'user' | 'agent' | 'system'; memberId?: string | undefined } {
-  const touched = events.filter((e) => {
-    return e.kind === 'notes_generated' || /"field":"notes"/.test(JSON.stringify(e.data));
-  });
+  const touched = events.filter((e) => /"field":"notes"/.test(JSON.stringify(e.data)));
   const last = touched.at(-1);
-  if (!last || last.kind === 'notes_generated') return { kind: 'system' };
+  if (!last || last.data['generated'] === true) return { kind: 'system' };
   return { kind: last.actorKind, memberId: last.actorId };
 }

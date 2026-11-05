@@ -108,6 +108,8 @@ export const cardSummarySchema = z.object({
   createdBy: actorRefSchema,
   source: z.string(),
   flags: cardFlagsSchema,
+  /** How many open cards wait on this one (docs/09 §6). */
+  blocksCount: z.number().int(),
   /** The verb waiting on the current member, or null (review B2). */
   awaiting: z.string().nullable(),
 });
@@ -244,6 +246,8 @@ export const releaseDetailSchema = z.object({
   tag: z.string().nullable(),
   releasedAt: nullableDate,
   includedIds: z.array(z.string()),
+  /** The included cards themselves (docs/04 §3.20), older ones and all. A deleted one drops out. */
+  included: z.array(cardSummarySchema).optional(),
   notes: z.object({
     team: z.string().nullable().optional(),
     owner: z.string().nullable().optional(),

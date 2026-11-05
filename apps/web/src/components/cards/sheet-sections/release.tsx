@@ -59,7 +59,7 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
           <ActorChip
             kind={author.kind}
             memberId={author.memberId}
-            adapter={author.kind === 'system' ? 'digests' : undefined}
+            adapter={author.kind === 'system' ? own.templateName : undefined}
           />
         </p>
         <Tabs.Root defaultValue="team" dir={locale === 'ar' ? 'rtl' : 'ltr'}>

@@ -267,6 +267,7 @@ export type CardSummaryDto = {
         stale: boolean;
         noSummary: boolean;
     };
+    blocksCount: number;
     awaiting: string | null;
 };
 
@@ -455,6 +456,7 @@ export type CardWrittenResponseDto = {
         stale: boolean;
         noSummary: boolean;
     };
+    blocksCount: number;
     awaiting: string | null;
     detail: {
         cardId: string;
@@ -602,6 +604,46 @@ export type CardWrittenResponseDto = {
         tag: string | null;
         releasedAt: string | null;
         includedIds: Array<string>;
+        included?: Array<{
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            blocksCount: number;
+            awaiting: string | null;
+        }>;
         notes: {
             team?: string | null;
             owner?: string | null;
@@ -670,6 +712,7 @@ export type CardWrittenResponseDto = {
                 stale: boolean;
                 noSummary: boolean;
             };
+            blocksCount: number;
             awaiting: string | null;
         };
     }>;
@@ -754,6 +797,7 @@ export type CardFullResponseDto = {
         stale: boolean;
         noSummary: boolean;
     };
+    blocksCount: number;
     awaiting: string | null;
     detail: {
         cardId: string;
@@ -901,6 +945,46 @@ export type CardFullResponseDto = {
         tag: string | null;
         releasedAt: string | null;
         includedIds: Array<string>;
+        included?: Array<{
+            id: string;
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: 'P0' | 'P1' | 'P2' | 'P3';
+            ownerRole: string | null;
+            assignee: {
+                id: string;
+                displayName: string;
+                avatarColor: string;
+            } | null;
+            module: string | null;
+            repo: string | null;
+            branch: string | null;
+            tags: Array<string>;
+            dueAt: string | null;
+            closedAt: string | null;
+            archivedAt: string | null;
+            commentCount: number;
+            lastEventAt: string;
+            createdAt: string;
+            createdBy: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            source: string;
+            flags: {
+                blocked: boolean;
+                overdue: boolean;
+                escalated: boolean;
+                stale: boolean;
+                noSummary: boolean;
+            };
+            blocksCount: number;
+            awaiting: string | null;
+        }>;
         notes: {
             team?: string | null;
             owner?: string | null;
@@ -969,6 +1053,7 @@ export type CardFullResponseDto = {
                 stale: boolean;
                 noSummary: boolean;
             };
+            blocksCount: number;
             awaiting: string | null;
         };
     }>;
@@ -1128,6 +1213,7 @@ export type TimelineRowDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -1275,6 +1361,46 @@ export type TimelineRowDto = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -1350,6 +1476,7 @@ export type InboxItemDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -1497,6 +1624,46 @@ export type InboxItemDto = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -1530,6 +1697,16 @@ export type InboxItemDto = {
         cardKey?: string;
         action?: string;
         count?: number;
+        link?: {
+            view: string;
+            query?: {
+                [key: string]: string;
+            };
+        };
+        i18nKey?: string;
+        params?: {
+            [key: string]: string | number;
+        };
     };
     groupKey: string | null;
     createdAt: string;
@@ -2039,6 +2216,7 @@ export type SummaryDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     released: Array<{
@@ -2078,6 +2256,7 @@ export type SummaryDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     merged: Array<{
@@ -2117,6 +2296,7 @@ export type SummaryDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     newHandoffs: Array<{
@@ -2156,6 +2336,7 @@ export type SummaryDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     newNeeds: Array<{
@@ -2195,6 +2376,7 @@ export type SummaryDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     topActors: Array<{
@@ -2486,6 +2668,7 @@ export type TodayDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -2633,6 +2816,46 @@ export type TodayDto = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -2699,6 +2922,7 @@ export type TodayDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -2846,6 +3070,46 @@ export type TodayDto = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -2912,6 +3176,7 @@ export type TodayDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     }>;
     noSummarySessions: Array<{
@@ -2981,6 +3246,7 @@ export type TodayDto = {
                     stale: boolean;
                     noSummary: boolean;
                 };
+                blocksCount: number;
                 awaiting: string | null;
                 detail: {
                     cardId: string;
@@ -3128,6 +3394,46 @@ export type TodayDto = {
                     tag: string | null;
                     releasedAt: string | null;
                     includedIds: Array<string>;
+                    included?: Array<{
+                        id: string;
+                        key: string;
+                        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                        title: string;
+                        status: string;
+                        priority: 'P0' | 'P1' | 'P2' | 'P3';
+                        ownerRole: string | null;
+                        assignee: {
+                            id: string;
+                            displayName: string;
+                            avatarColor: string;
+                        } | null;
+                        module: string | null;
+                        repo: string | null;
+                        branch: string | null;
+                        tags: Array<string>;
+                        dueAt: string | null;
+                        closedAt: string | null;
+                        archivedAt: string | null;
+                        commentCount: number;
+                        lastEventAt: string;
+                        createdAt: string;
+                        createdBy: {
+                            kind: 'user' | 'agent' | 'system';
+                            userId: string | null;
+                            displayName: string | null;
+                            via: string;
+                        };
+                        source: string;
+                        flags: {
+                            blocked: boolean;
+                            overdue: boolean;
+                            escalated: boolean;
+                            stale: boolean;
+                            noSummary: boolean;
+                        };
+                        blocksCount: number;
+                        awaiting: string | null;
+                    }>;
                     notes: {
                         team?: string | null;
                         owner?: string | null;
@@ -3526,6 +3832,7 @@ export type SearchResultDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         rank: number;
         highlight: string;
@@ -3568,6 +3875,7 @@ export type SearchResultDto = {
                 stale: boolean;
                 noSummary: boolean;
             };
+            blocksCount: number;
             awaiting: string | null;
         };
         path: string;
@@ -3619,6 +3927,7 @@ export type DocHitDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
     };
     path: string;
@@ -3725,6 +4034,7 @@ export type TreeDtoSchema0 = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -3872,6 +4182,46 @@ export type TreeDtoSchema0 = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -3969,6 +4319,7 @@ export type LabPageDto = {
             stale: boolean;
             noSummary: boolean;
         };
+        blocksCount: number;
         awaiting: string | null;
         detail: {
             cardId: string;
@@ -4116,6 +4467,46 @@ export type LabPageDto = {
             tag: string | null;
             releasedAt: string | null;
             includedIds: Array<string>;
+            included?: Array<{
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                blocksCount: number;
+                awaiting: string | null;
+            }>;
             notes: {
                 team?: string | null;
                 owner?: string | null;
@@ -4186,6 +4577,7 @@ export type CompareDto = {
                 stale: boolean;
                 noSummary: boolean;
             };
+            blocksCount: number;
             awaiting: string | null;
             detail: {
                 cardId: string;
@@ -4333,6 +4725,46 @@ export type CompareDto = {
                 tag: string | null;
                 releasedAt: string | null;
                 includedIds: Array<string>;
+                included?: Array<{
+                    id: string;
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: 'P0' | 'P1' | 'P2' | 'P3';
+                    ownerRole: string | null;
+                    assignee: {
+                        id: string;
+                        displayName: string;
+                        avatarColor: string;
+                    } | null;
+                    module: string | null;
+                    repo: string | null;
+                    branch: string | null;
+                    tags: Array<string>;
+                    dueAt: string | null;
+                    closedAt: string | null;
+                    archivedAt: string | null;
+                    commentCount: number;
+                    lastEventAt: string;
+                    createdAt: string;
+                    createdBy: {
+                        kind: 'user' | 'agent' | 'system';
+                        userId: string | null;
+                        displayName: string | null;
+                        via: string;
+                    };
+                    source: string;
+                    flags: {
+                        blocked: boolean;
+                        overdue: boolean;
+                        escalated: boolean;
+                        stale: boolean;
+                        noSummary: boolean;
+                    };
+                    blocksCount: number;
+                    awaiting: string | null;
+                }>;
                 notes: {
                     team?: string | null;
                     owner?: string | null;
@@ -4408,6 +4840,7 @@ export type CompareDto = {
                 stale: boolean;
                 noSummary: boolean;
             };
+            blocksCount: number;
             awaiting: string | null;
             detail: {
                 cardId: string;
@@ -4555,6 +4988,46 @@ export type CompareDto = {
                 tag: string | null;
                 releasedAt: string | null;
                 includedIds: Array<string>;
+                included?: Array<{
+                    id: string;
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: 'P0' | 'P1' | 'P2' | 'P3';
+                    ownerRole: string | null;
+                    assignee: {
+                        id: string;
+                        displayName: string;
+                        avatarColor: string;
+                    } | null;
+                    module: string | null;
+                    repo: string | null;
+                    branch: string | null;
+                    tags: Array<string>;
+                    dueAt: string | null;
+                    closedAt: string | null;
+                    archivedAt: string | null;
+                    commentCount: number;
+                    lastEventAt: string;
+                    createdAt: string;
+                    createdBy: {
+                        kind: 'user' | 'agent' | 'system';
+                        userId: string | null;
+                        displayName: string | null;
+                        via: string;
+                    };
+                    source: string;
+                    flags: {
+                        blocked: boolean;
+                        overdue: boolean;
+                        escalated: boolean;
+                        stale: boolean;
+                        noSummary: boolean;
+                    };
+                    blocksCount: number;
+                    awaiting: string | null;
+                }>;
                 notes: {
                     team?: string | null;
                     owner?: string | null;

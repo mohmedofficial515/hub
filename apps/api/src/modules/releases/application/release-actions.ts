@@ -6,6 +6,8 @@ import {
   createReleaseSchema,
   type EditReleaseInput,
   editReleaseSchema,
+  type GeneratedNotesInput,
+  generatedNotesSchema,
   type ReleaseInput,
   releaseSchema,
   ROLES,
@@ -82,6 +84,23 @@ export class ReleaseEditAction implements CardActionDefinition<EditReleaseInput>
     return {
       detail,
       event: { kind: 'field_changed', data: { changes: names.map((field) => ({ field })) } },
+    };
+  }
+}
+
+/** The template's skeleton, told apart from a person's edit in History: `generated` on the event (docs/07 §6.3). */
+@Injectable()
+@CardActionHandler()
+export class ReleaseGenerateNotesAction implements CardActionDefinition<GeneratedNotesInput> {
+  readonly action = 'release.generate_notes';
+  readonly payload = generatedNotesSchema;
+
+  plan({ card, payload }: CardActionContext<GeneratedNotesInput>): CardActionPlan {
+    if (!card) throw new Error('release.generate_notes needs a card');
+    if (Object.keys(payload.notes).length === 0) return { noop: true };
+    return {
+      detail: { notes: { ...(card.detail?.['notes'] as JsonObject), ...defined(payload.notes) } },
+      event: { kind: 'field_changed', data: { changes: [{ field: 'notes' }], generated: true } },
     };
   }
 }
