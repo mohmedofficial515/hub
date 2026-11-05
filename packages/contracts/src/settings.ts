@@ -69,7 +69,7 @@ export const SETTINGS = {
     type: 'number',
     group: 'handoffs',
     description: {
-      ar: 'متى يعد التسليم معلقا طويلا',
+      ar: 'متى تعد الإحالة معلقة طويلا',
       en: 'Hours before a pending handoff counts as stale',
     },
   }),

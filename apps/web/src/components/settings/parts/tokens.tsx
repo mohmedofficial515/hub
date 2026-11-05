@@ -106,7 +106,7 @@ function CreateTokenDialog({ open, onClose }: { open: boolean; onClose: () => vo
     ? `claude mcp add --transport http --scope user hub ${hubApiUrl()}/mcp --header "Authorization: Bearer ${created.token}"`
     : '';
   const linkCommand = `hub link ${ws}`;
-  const packCommand = created ? `npx @hub/team-pack init --url ${hubApiUrl()} --token ${created.token}` : '';
+  const packCommand = created ? `hub init --url ${hubApiUrl()} --token ${created.token}` : '';
 
   return (
     <Modal
