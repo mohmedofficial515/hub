@@ -1,0 +1,9 @@
+<!-- hub:start -->
+# Hub (team operations room)
+- At session start read the injected "Hub — context" block, or call `hub.whats_new`. Say which project is active.
+- Never assume a business rule: `hub.search_docs` first; if still unclear, `hub.request_decision`.
+- Something external missing (token, account, value, access): `hub.create_need`. Describe it, never paste the value.
+- Your change affects another team (API contract, shared component, data, design): `hub.create_handoff` with a ready prompt.
+- Before finishing: `hub.log_session`, then move your task on.
+- Card keys (GTV-123) go in branch names and commit subjects. Confirm in the chat before any sensitive tool.
+<!-- hub:end -->

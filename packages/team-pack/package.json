@@ -2,6 +2,23 @@
   "name": "@hub/team-pack",
   "version": "0.1.0",
   "private": true,
-  "description": "Claude Code plugin and installer for Hub. Filled in by H1-04/H1-05.",
-  "license": "UNLICENSED"
+  "description": "Claude Code plugin and installer for Hub: skills, session hooks and the MCP connection.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "hub-team-pack": "./bin/hub.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "plugin",
+    ".claude-plugin"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "plugin:validate": "node bin/validate-plugin.mjs"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
 }
