@@ -29,7 +29,7 @@ import {
   Bidi,
   CardChip,
   cn,
-  fmt,
+  fill,
   focusRing,
   IconButton,
   plural,
@@ -113,7 +113,11 @@ function useSwipe(onArchive: () => void) {
  */
 export function titleOf(item: InboxGroup['lead'], titles: InboxMessages['row']['titles']) {
   const template = (titles as Record<string, string>)[item.kind];
-  return template && item.card ? fmt(template, { title: item.card.title }) : item.title;
+  return template && item.card ? (
+    fill(template, { title: <Bidi>{item.card.title}</Bidi> })
+  ) : (
+    <Bidi>{item.title}</Bidi>
+  );
 }
 
 export function InboxRow({
@@ -215,7 +219,7 @@ export function InboxRow({
             )}
             {cardKey ? (
               <AppLink card={cardKey} onClick={onOpen} className={cn('min-w-0', titleClass)}>
-                <Bidi>{title}</Bidi>
+                {title}
               </AppLink>
             ) : link ? (
               <AppLink
@@ -224,10 +228,10 @@ export function InboxRow({
                 onClick={onOpen}
                 className={cn('min-w-0', titleClass)}
               >
-                <Bidi>{title}</Bidi>
+                {title}
               </AppLink>
             ) : (
-              <Bidi>{title}</Bidi>
+              { title }
             )}
           </p>
           {lead.body && (

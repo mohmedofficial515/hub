@@ -15,6 +15,7 @@ import { type EventDto, toEvent } from '@/features/cards/map';
 import { get, getPage } from '@/lib/api/client';
 
 import { markSeen } from '../today/seen';
+import { useSeenOnLeave } from '../today/use-today';
 import { asCard } from './run-action';
 import { freshIds, reconcile, type StreamRow } from './stream';
 
@@ -113,6 +114,16 @@ export function useTimeline(filters: TimelineFilters) {
     loadingOlder: query.isFetchingNextPage,
     loadOlder: query.fetchNextPage,
   };
+}
+
+/** What a member watches arrive is seen: the sidebar's number stays at zero here, and leaving marks the moment for the next visit's line. */
+export function useSeenWhileHere(fresh: ReadonlySet<string>, ready: boolean) {
+  const { ws } = useRoute();
+  const client = useQueryClient();
+  useEffect(() => {
+    if (ready && fresh.size > 0) void markSeen(ws, client).catch(() => undefined);
+  }, [fresh, ready, ws, client]);
+  useSeenOnLeave(ready);
 }
 
 /**

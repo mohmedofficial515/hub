@@ -48,9 +48,10 @@ const ISOLATE =
  */
 export function Bidi({ children }: { children: string }) {
   const parts = children.split(ISOLATE);
-  if (parts.length === 1) return <>{children}</>;
+  // The whole string is isolated too and takes its direction from its own text: the API has one language, so an English title's "?" stays at its end in the Arabic UI.
+  if (parts.length === 1) return <bdi>{children}</bdi>;
   return (
-    <>
+    <bdi>
       {parts.map((part, i) =>
         i % 2 === 1 ? (
           <bdi key={i} dir="ltr">
@@ -60,6 +61,6 @@ export function Bidi({ children }: { children: string }) {
           <Fragment key={i}>{part}</Fragment>
         ),
       )}
-    </>
+    </bdi>
   );
 }

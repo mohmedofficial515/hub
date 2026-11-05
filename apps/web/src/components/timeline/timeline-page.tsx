@@ -50,7 +50,12 @@ import {
 } from '@/components/kit';
 import { useRunAction } from '@/features/timeline/run-action';
 import { buildDays, buildRail, countEvents, newestOfCard } from '@/features/timeline/stream';
-import { type TimelineFilters as Filters, useLastVisit, useTimeline } from '@/features/timeline/use-timeline';
+import {
+  type TimelineFilters as Filters,
+  useLastVisit,
+  useSeenWhileHere,
+  useTimeline,
+} from '@/features/timeline/use-timeline';
 import { isHubError } from '@/lib/api/errors';
 
 import { clearFilters, TimelineFilters, useActiveFilters } from './filters';
@@ -102,6 +107,7 @@ export function TimelinePage() {
   const since = useLastVisit();
   const stream = useTimeline(useApiFilters());
   const { rows, pending, fresh } = stream;
+  useSeenWhileHere(fresh, !!since);
   const known = useCards();
   const activeFilters = useActiveFilters();
 
