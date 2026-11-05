@@ -11,18 +11,28 @@ import { TriangleAlert } from 'lucide-react';
 import arShell from '../../messages/ar/shell.json';
 import enShell from '../../messages/en/shell.json';
 
-/** Runs before paint, as the locale layout's does. A crash must not flash the wrong theme. */
-const THEME = `(function(){try{var c=/(?:^|; )hub-theme=(dark|light)/.exec(document.cookie);var d=c?c[1]==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
+/** React does not run a script it inserts itself, and no layout is left to set the theme, so it is read here. */
+function isDark() {
+  if (typeof window === 'undefined') return false;
+  const saved = /(?:^|; )hub-theme=(dark|light)/.exec(document.cookie)?.[1];
+  return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const locale =
     typeof window !== 'undefined' && window.location.pathname.split('/')[1] === 'en' ? 'en' : 'ar';
   const t = (locale === 'en' ? enShell : arShell).boundary;
+  const dark = isDark();
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'} suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      className={dark ? 'dark' : undefined}
+      style={{ colorScheme: dark ? 'dark' : 'light' }}
+      suppressHydrationWarning
+    >
       <head>
         <title>{`${t.crashTitle} · Hub`}</title>
-        <script dangerouslySetInnerHTML={{ __html: THEME }} />
       </head>
       <body>
         <main
