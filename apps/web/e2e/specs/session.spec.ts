@@ -47,6 +47,8 @@ test('with the access cookie gone, a reload stays on the page after exactly one 
     const page = await context.newPage();
     await page.goto(view(locale, ws, 'tasks'));
     await heading(page).waitFor();
+    // Nothing in flight: a 401 here would start a refresh that the reload then abandons.
+    await settled(page);
 
     await context.clearCookies({ name: 'hub_access' });
     const seen = watch(page);

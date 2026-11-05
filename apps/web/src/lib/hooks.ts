@@ -18,10 +18,12 @@ export function useUnsavedGuard(dirty: boolean) {
 
 /** The tab's name, most specific first: "Tasks · Goteav · Hub". */
 export function useDocumentTitle(...parts: (string | undefined)[]) {
-  const title = [...parts.filter(Boolean), 'Hub'].join(' · ');
+  const name = parts.filter(Boolean).join(' · ');
+  // A page that already names Hub ("Sign in to Hub") does not say it twice. An empty name leaves the title to whoever set it.
+  const title = /\bHub$/.test(name) ? name : `${name} · Hub`;
   useEffect(() => {
-    document.title = title;
-  }, [title]);
+    if (name) document.title = title;
+  }, [name, title]);
 }
 
 /** Matches a media query. The lab renders client-side only, so there is no hydration concern. */

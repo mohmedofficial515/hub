@@ -73,8 +73,11 @@ export function ErrorState({
   requestId,
   onRetry,
   forbiddenRole,
+  detail,
   className,
 }: {
+  /** A sentence under the title, above the retry. */
+  detail?: string | undefined;
   thing?: string | undefined;
   /** Overrides the built title, for messages like "No card GTV-999 in this workspace". */
   title?: string | undefined;
@@ -98,6 +101,7 @@ export function ErrorState({
           {fmt(t.error.forbiddenRole, { role: forbiddenRole })}
         </p>
       )}
+      {detail && <p className="mt-1.5 max-w-md text-body text-muted-foreground">{detail}</p>}
       {code && (
         <p
           className="mt-1.5 text-body-sm text-muted-foreground"

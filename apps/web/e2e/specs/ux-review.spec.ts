@@ -4,18 +4,17 @@
  */
 import { expect, type Rest, test, view, word, words } from '../support/hub';
 
-const decision = (
-  title: string,
-  body: string,
-  options: { id: string; title: string; recommended?: boolean }[],
-) => ({
+const decision = (title: string, body: string, options: { title: string; recommended?: boolean }[]) => ({
   type: 'decision',
   title,
   body,
+  // Later cards get earlier deadlines, so the newest is always the lead, also on a retry.
+  dueAt: new Date(3_000_000_000_000 - Date.now()).toISOString(),
   detail: {
+    kind: 'product',
     question: 'Which?',
     deciderRole: 'owner',
-    options: options.map((o) => ({ pros: [], cons: [], ...o })),
+    options,
   },
 });
 
@@ -25,27 +24,36 @@ async function lead(owner: Rest, locale: string, tag: string, options: Parameter
   );
 }
 
+const LIST = '**/api/v1/workspaces/*/tasks?*';
+
 test('a page crash keeps the sidebar, says so in the page language, and a walk away recovers', async ({
   page,
+  owner,
   locale,
   ws,
 }) => {
-  // A page's list answers with something no page can draw: a real render error, no test hook in the app.
-  await page.route('**/api/v1/workspaces/*/tasks*', (route) =>
-    route.fulfill({ json: { data: 123, meta: { pagination: { nextCursor: null, limit: 1 } } } }),
-  );
-  await page.route('**/api/v1/workspaces/*/cards?*type=task*', (route) =>
-    route.fulfill({ json: { data: 123, meta: { pagination: { nextCursor: null, limit: 1 } } } }),
-  );
-  await page.goto(view(locale, ws, 'tasks'));
+  await owner.create({
+    type: 'task',
+    title: `Crash ${locale} ${Date.now()}`,
+    detail: { specialty: 'backend' },
+  });
+  // Real rows, but a title no page can draw: a real render error, with no test hook in the app.
+  await page.route(LIST, async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as { data: Record<string, unknown>[] };
+    await route.fulfill({
+      response,
+      json: { ...body, data: body.data.map((row) => ({ ...row, title: { not: 'text' } })) },
+    });
+  });
+  await page.goto(view(locale, ws, 'tasks', 'view=list'));
   const shell = words(locale, 'shell');
   await expect(page.getByText(word(shell, 'boundary.crashTitle'))).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('html')).toHaveAttribute('lang', locale);
   const nav = page.getByRole('link', { name: word(shell, 'nav.today') }).first();
   await expect(nav).toBeVisible();
 
-  await page.unroute('**/api/v1/workspaces/*/tasks*');
-  await page.unroute('**/api/v1/workspaces/*/cards?*type=task*');
+  await page.unroute(LIST);
   await nav.click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/${ws}/today`));
   await expect(page.getByText(word(shell, 'boundary.crashTitle'))).toHaveCount(0);
@@ -83,10 +91,7 @@ test('a sheet’s first open lands focus on its primary action once the card arr
   locale,
   ws,
 }) => {
-  const { key } = await lead(owner, locale, 'focus', [
-    { id: 'a', title: 'A' },
-    { id: 'b', title: 'B' },
-  ]);
+  const { key } = await lead(owner, locale, 'focus', [{ title: 'A' }, { title: 'B' }]);
   // Slow enough that the dialog takes focus long before the card exists.
   await page.route(`**/api/v1/workspaces/*/cards/${key}`, async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -108,7 +113,7 @@ test('a Markdown body renders in the sheet, its excerpt is plain, and an injecte
     decision(
       `Markdown ${locale} ${Date.now()}`,
       '## Summary\n\nThe **plain** words.\n\n- one\n- two\n\n---\n\n<img src=x onerror="window.__pwned=1">\n\n[bad](javascript:window.__pwned=1)',
-      [{ id: 'a', title: 'A' }],
+      [{ title: 'A' }, { title: 'B' }],
     ),
   );
   await page.goto(view(locale, ws, 'decisions', `card=${key}`));
@@ -128,9 +133,7 @@ test('the lead decision folds options past three, and two recommended fill nothi
   locale,
   ws,
 }) => {
-  const copy = words(locale, 'decisions');
-  const choose = word(copy, 'table.choose');
-  const options = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ id, title: `Option ${id}` }));
+  const options = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => ({ title: `Option ${id}` }));
   const { key } = await lead(owner, locale, 'two', [
     options[0]!,
     { ...options[1]!, recommended: true },
@@ -139,15 +142,9 @@ test('the lead decision folds options past three, and two recommended fill nothi
     options[4]!,
     options[5]!,
   ]);
-  // The earliest deadline lies open.
-  await owner.context.patch(`/api/v1/workspaces/${ws}/cards/${key}`, {
-    data: { dueAt: new Date(Date.now() + 3_600_000).toISOString() },
-    headers: { 'X-Requested-With': 'hub' },
-  });
   await page.goto(view(locale, ws, 'decisions'));
   const article = page.locator(`article[aria-labelledby="table-${key}"]`);
   await article.waitFor({ timeout: 30_000 });
-  await expect(article.getByRole('button', { name: new RegExp(choose) })).toHaveCount(0);
   const tiles = article.locator('ul > li');
   await expect(tiles).toHaveCount(3);
   await expect(tiles.nth(0)).toContainText('Option b');

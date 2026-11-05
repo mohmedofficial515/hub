@@ -21,8 +21,7 @@ export function PageCrash({ error, reset }: CaughtError) {
   const t = useT(messages).boundary;
   return (
     <PageContainer>
-      <ErrorState title={t.crashTitle} code={error.digest} onRetry={reset} />
-      <p className="text-center text-body text-muted-foreground">{t.crashBody}</p>
+      <ErrorState title={t.crashTitle} detail={t.crashBody} code={error.digest} onRetry={reset} />
     </PageContainer>
   );
 }
@@ -32,8 +31,7 @@ export function FullPageCrash({ error, reset }: CaughtError) {
   const t = useT(messages).boundary;
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-1 bg-background p-4">
-      <ErrorState title={t.crashTitle} code={error.digest} onRetry={reset} />
-      <p className="max-w-md text-center text-body text-muted-foreground">{t.crashBody}</p>
+      <ErrorState title={t.crashTitle} detail={t.crashBody} code={error.digest} onRetry={reset} />
     </main>
   );
 }
@@ -46,8 +44,7 @@ function NotFoundBody() {
   }, [t.notFoundTitle]);
   return (
     <>
-      <ErrorState title={t.notFoundTitle} code="404" />
-      <p className="max-w-md text-center text-body text-muted-foreground">{t.notFoundBody}</p>
+      <ErrorState title={t.notFoundTitle} detail={t.notFoundBody} code="404" className="pb-0" />
       <a href={`/${locale}/workspaces`} className="mt-4">
         <Button variant="primary" tabIndex={-1}>
           {t.toProjects}

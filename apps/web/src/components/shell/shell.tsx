@@ -5,6 +5,7 @@
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/shell.tsx. Contract: apps/web/README.md.
  */
 import { MotionConfig } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import { Direction, Tooltip as RadixTooltip } from 'radix-ui';
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -37,7 +38,11 @@ import { messages } from '@/lib/i18n';
 function useViewFocus() {
   const t = useT(messages);
   const { view } = useRoute();
-  useDocumentTitle(t.nav[view], useSession().workspace?.name);
+  // An unknown address parses as Today. It is not, and its 404 page names itself.
+  const segment = usePathname().split('/')[3];
+  const known = !segment || segment === view;
+  const project = useSession().workspace?.name;
+  useDocumentTitle(known ? t.nav[view] : undefined, known ? project : undefined);
   const first = useRef(true);
   useLayoutEffect(() => {
     if (first.current) {
@@ -135,10 +140,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   useViewFocus();
 
-  // A session that cannot be refreshed is over. The next request would only fail again.
+  // A session that cannot be refreshed is over. The next request would only fail again, so every query that got a 401 shares one navigation.
+  const leaving = useRef(false);
   useEffect(
     () =>
       onSignedOut(() => {
+        if (leaving.current) return;
+        leaving.current = true;
         const next = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
         window.location.assign(`/${locale}/sign-in?next=${next}`);
       }),
