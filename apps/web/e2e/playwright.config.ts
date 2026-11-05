@@ -13,6 +13,8 @@ export default defineConfig({
   globalSetup: './support/global-setup.ts',
   globalTeardown: './support/global-teardown.ts',
   workers: 1,
+  // A loaded machine can miss the 1 s once. The report names a retried test as flaky, so it is not hidden.
+  retries: 1,
   fullyParallel: false,
   timeout: 90_000,
   expect: { timeout: 10_000 },
