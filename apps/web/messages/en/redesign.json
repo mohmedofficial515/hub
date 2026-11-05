@@ -6,7 +6,45 @@
     "other": "# versions wait for your verdict."
   },
   "metaOther": "Lab pages and their versions. The owner decides, and anyone can compare.",
-  "openLab": "Open lab",
+  "views": {
+    "label": "View",
+    "review": "Review",
+    "gallery": "Gallery"
+  },
+  "gallery": {
+    "meta": "Every page and version of the lab, each in its own frame.",
+    "toolbar": "Gallery controls",
+    "navLabel": "Lab pages and versions",
+    "tokens": "Tokens",
+    "live": "Live page",
+    "pick": "Page and version",
+    "pickPrompt": "Pick a page or the tokens",
+    "noPages": "No pages yet.",
+    "pages": {
+      "one": "1 page",
+      "other": "# pages"
+    },
+    "welcomeTitle": "The lab",
+    "welcomeBody": "{pages}, {versions}. Pick a version or the tokens from the list.",
+    "compare": "Compare",
+    "vs": "with",
+    "scenario": "Data scenario",
+    "widths": {
+      "390": "Phone",
+      "768": "Tablet",
+      "1440": "Desktop",
+      "fill": "Fill"
+    },
+    "popout": "Open frame",
+    "openCard": "Open {key}: status, review and verdict",
+    "brief": "Page brief",
+    "noNotes": "This version has no notes.",
+    "nothing": "Nothing to show yet for {version}.",
+    "noShotNamed": "No screenshot named {name}, so all of them are shown.",
+    "downTitle": "The lab is not running",
+    "downBody": "Pictures and the review still work. {command} starts the lab with Hub.",
+    "downRetry": "Check again"
+  },
   "filters": {
     "app": "App",
     "status": "Status"

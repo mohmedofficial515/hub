@@ -13,6 +13,7 @@ import { type CardFullDto, toHubCard } from '@/features/cards/map';
 import type { CardAttachment, RedesignCard } from '@/features/cards/types';
 import { get } from '@/lib/api/client';
 
+import { LAB_BASE } from './gallery';
 import { shotsFrom } from './lab';
 
 export type BriefStatus = 'brief' | 'researching' | 'designing' | 'decided' | 'ported';
@@ -24,6 +25,10 @@ export interface LabPage {
   route?: string | undefined;
   liveUrl?: string | undefined;
   status: BriefStatus;
+  /** The page brief, as Markdown. */
+  brief?: string | undefined;
+  /** The versions with a `page.tsx`. Null until a scan has said. */
+  renderable: string[] | null;
   /** Oldest first: a page reads in the order its versions were made. */
   versionKeys: string[];
 }
@@ -36,6 +41,7 @@ export interface LabPageDto {
   liveUrl?: string | null;
   status?: string | null;
   brief?: string | null;
+  renderable?: string[] | null;
   versions: CardFullDto[];
 }
 
@@ -62,6 +68,8 @@ export function toLabData(rows: readonly LabPageDto[]): LabData {
       route: row.route ?? undefined,
       liveUrl: row.liveUrl ?? undefined,
       status: (BRIEF_STATUSES.has(row.status ?? '') ? row.status : 'brief') as BriefStatus,
+      brief: row.brief ?? undefined,
+      renderable: row.renderable ?? null,
       versionKeys: versions.map((v) => v.key),
     };
   });
@@ -74,6 +82,25 @@ export function useLabPages() {
     queryKey: qk.cardList(ws, { view: 'lab-pages' }),
     enabled: !!ws,
     queryFn: async () => toLabData(await get<LabPageDto[]>(`workspaces/${ws}/redesign/pages`)),
+  });
+}
+
+/**
+ * Whether the lab answers behind Hub's proxy. It is a separate process and may be down while Hub is up, which is a state of the page and not an error. A
+ * quick look at one frame, and again every few seconds while it is down.
+ */
+export function useLabRunning() {
+  return useQuery({
+    queryKey: ['lab-running'] as const,
+    retry: false,
+    refetchInterval: (query) => (query.state.data === false ? 5_000 : false),
+    queryFn: async () => {
+      try {
+        return (await fetch(`${LAB_BASE}/frame-hub.html`, { cache: 'no-store' })).ok;
+      } catch {
+        return false;
+      }
+    },
   });
 }
 

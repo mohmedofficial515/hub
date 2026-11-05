@@ -205,6 +205,8 @@ export interface RedesignDetail {
   version: string;
   labPath: string;
   labUrl: string;
+  /** The version's README front-matter, as the scanner read it. */
+  frontMatter?: Record<string, unknown> | undefined;
   base?: string | undefined;
   concept: string;
   touchesComponents: string[];

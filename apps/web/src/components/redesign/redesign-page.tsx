@@ -2,10 +2,11 @@
 
 /**
  * @file redesign-page.tsx
- * @description The owner's verdict on lab versions. A version in review is laid open, every other is a tile, and each lab page opens
- * with a rail of all its versions. Ported from the design's `pages/redesign/page.tsx`, reading the lab through the API.
+ * @description The Redesign and lab module (docs/16 §6, D39): one page with two views. Review is the owner's verdict on lab versions: a version in review
+ * is laid open, every other is a tile, and each lab page opens with a rail of all its versions. Gallery is the lab itself (`lab-gallery.tsx`). Ported from
+ * the design's `pages/redesign/page.tsx`, reading the lab through the API.
  */
-import { ChevronRight, ExternalLink, GitCompareArrows, Maximize2, Palette, SearchX, X } from 'lucide-react';
+import { ChevronRight, GitCompareArrows, Maximize2, Palette, SearchX, X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -31,6 +32,7 @@ import {
   PageHeader,
   plural,
   type RedesignCard,
+  Segmented,
   setQuery,
   Skeleton,
   StatusBadge,
@@ -45,11 +47,12 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
-import { compareDefaults, labHome, togglePicked } from '@/features/redesign/lab';
+import { compareDefaults, togglePicked } from '@/features/redesign/lab';
 import { type LabPage, useLabPages } from '@/features/redesign/queries';
 import { isHubError } from '@/lib/api/errors';
 import type { RedesignMessages } from '@/lib/i18n/page-dicts';
 
+import { LabGallery } from './lab-gallery';
 import { ShotThumb, useDefaultShot } from './shot';
 
 const RedesignCompare = dynamic(() => import('./compare'), { ssr: false });
@@ -66,7 +69,42 @@ const toneOf = (status: string) => iconTone[statusTone(status)] ?? iconTone.mute
 
 type RowProps = { 'data-row': string; 'data-row-list': string; tabIndex: number };
 
+/** Review and Gallery. One Tab stop, and the choice is in the address. */
+function ViewTabs() {
+  const t = useT<RedesignMessages>('redesign');
+  const route = useRoute();
+  return (
+    <Segmented
+      label={t.views.label}
+      value={route.query.get('view') === 'gallery' ? 'gallery' : 'review'}
+      options={[
+        { value: 'review', label: t.views.review },
+        { value: 'gallery', label: t.views.gallery },
+      ]}
+      onChange={(view) => setQuery({ view: view === 'gallery' ? 'gallery' : null }, { replace: false })}
+    />
+  );
+}
+
 export function RedesignPage() {
+  const route = useRoute();
+  return route.query.get('view') === 'gallery' ? <GalleryView /> : <ReviewView />;
+}
+
+/** The gallery wants the page's whole width, so it steps out of the reading column under the same header. */
+function GalleryView() {
+  const t = useT<RedesignMessages>('redesign');
+  return (
+    <div className="flex flex-col gap-4 pt-4 md:pt-6">
+      <div className="px-4 md:px-6">
+        <PageHeader title={t.title} meta={t.gallery.meta} actions={<ViewTabs />} />
+      </div>
+      <LabGallery />
+    </div>
+  );
+}
+
+function ReviewView() {
   const t = useT<RedesignMessages>('redesign');
   const kit = useT(kitMessages);
   const locale = useLocale();
@@ -137,20 +175,7 @@ export function RedesignPage() {
             ? plural(inReview, locale, t.metaOwner)
             : t.metaOther
       }
-      actions={
-        <a
-          href={labHome()}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(
-            'inline-flex h-11 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-body font-medium text-foreground transition-colors duration-150 hover:bg-accent md:h-9',
-            focusRing,
-          )}
-        >
-          {t.openLab}
-          <ExternalLink aria-hidden className="size-4 rtl:-scale-x-100" strokeWidth={1.75} />
-        </a>
-      }
+      actions={<ViewTabs />}
     />
   );
 

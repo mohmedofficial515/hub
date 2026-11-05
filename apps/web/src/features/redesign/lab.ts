@@ -1,9 +1,9 @@
 /**
  * @file lab.ts
  * @description The lab's rules with no React: reading a screenshot's file name, choosing the closest picture, the default compare
- * pair, and the address of a version in the lab (docs/15 §3, docs/10 §3).
+ * pair (docs/15 §3). A version's address is the gallery's: `versionQuery` in `gallery.ts`.
  */
-import type { CardAttachment, RedesignDetail } from '@/features/cards/types';
+import type { CardAttachment } from '@/features/cards/types';
 
 export type ShotDir = 'rtl' | 'ltr';
 export type ShotTheme = 'light' | 'dark';
@@ -73,12 +73,4 @@ export function compareDefaults(card: VersionRef, versions: readonly VersionRef[
 export function togglePicked(picked: readonly string[], key: string, pageKeys: readonly string[]): string[] {
   if (picked.includes(key)) return picked.filter((k) => k !== key);
   return [...picked.filter((k) => pageKeys.includes(k)), key].slice(-2);
-}
-
-export const labHome = () => (process.env.NEXT_PUBLIC_LAB_URL ?? 'http://localhost:6200').replace(/\/+$/, '');
-
-/** Where a version opens. The scanner's `labUrl` when it is a full address, otherwise the lab's hash route on `LAB_URL`. */
-export function labHref(r: Pick<RedesignDetail, 'app' | 'page' | 'version' | 'labUrl'>) {
-  if (/^https?:\/\//.test(r.labUrl ?? '')) return r.labUrl;
-  return `${labHome()}/#/${r.app}/${r.page}/${r.version}`;
 }

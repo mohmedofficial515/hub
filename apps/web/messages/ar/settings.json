@@ -486,7 +486,8 @@
     "backupNoneNote": "لا تعمل مهمة نسخ احتياطي في هذا الإصدار.",
     "workerNever": "لا نبض بعد.",
     "oldestNone": "لا شيء منتظر",
-    "labAddress": "العنوان {url}."
+    "labAddress": "العنوان {url}.",
+    "labDown": "لا يعمل"
   },
   "audit": {
     "title": "سجل التدقيق",

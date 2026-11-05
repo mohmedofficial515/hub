@@ -3,7 +3,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { compareDefaults, labHref, parseShot, pickShot, shotsFrom, togglePicked } from './lab';
+import { versionQuery } from './gallery';
+import { compareDefaults, parseShot, pickShot, shotsFrom, togglePicked } from './lab';
 
 const shot = (name: string) => parseShot(name, `/x/${name}`);
 
@@ -68,10 +69,14 @@ describe('togglePicked', () => {
   });
 });
 
-describe('labHref', () => {
-  it('uses a full address as it came, and otherwise the hash route', () => {
-    const base = { app: 'web', page: 'wallet', version: 'v2' } as const;
-    expect(labHref({ ...base, labUrl: 'http://lab/x' })).toBe('http://lab/x');
-    expect(labHref({ ...base, labUrl: '/lab/web/wallet/v2' })).toMatch(/\/#\/web\/wallet\/v2$/);
+describe('versionQuery', () => {
+  it('opens a version in the gallery, on Hub', () => {
+    expect(versionQuery({ app: 'web', page: 'wallet', version: 'v2' })).toEqual({
+      view: 'gallery',
+      app: 'web',
+      page: 'wallet',
+      a: 'v2',
+      b: null,
+    });
   });
 });

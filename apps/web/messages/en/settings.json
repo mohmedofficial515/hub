@@ -455,7 +455,8 @@
     "backupNoneNote": "No backup job runs in this release.",
     "workerNever": "No heartbeat yet.",
     "oldestNone": "Nothing waiting",
-    "labAddress": "Address {url}."
+    "labAddress": "Address {url}.",
+    "labDown": "Not running"
   },
   "audit": {
     "title": "Audit log",

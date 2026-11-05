@@ -22,9 +22,11 @@ import { Lightbox } from '@/components/common/lightbox';
 import { MarkdownView } from '@/components/common/markdown';
 import { RelativeTime } from '@/components/common/relative-time';
 import { Bidi, fmt, Ltr } from '@/components/common/text';
+import { hrefFor } from '@/components/shell/router';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
-import { compareDefaults, labHref, type ShotMeta, shotsFrom } from '@/features/redesign/lab';
+import { versionQuery } from '@/features/redesign/gallery';
+import { compareDefaults, type ShotMeta, shotsFrom } from '@/features/redesign/lab';
 import { useVersionFiles } from '@/features/redesign/queries';
 import { usePageVersions } from '@/features/redesign/sheet-support';
 import { useT } from '@/lib/i18n';
@@ -160,7 +162,12 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
           <Bidi>{r.concept}</Bidi>
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <a href={labHref(r)} target="_blank" rel="noreferrer" className={linkClass}>
+          <a
+            href={hrefFor('redesign', { card: null, query: versionQuery(r) })}
+            target="_blank"
+            rel="noreferrer"
+            className={linkClass}
+          >
             {s.openLab}
             <ExternalLink aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
           </a>

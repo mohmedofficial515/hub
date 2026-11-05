@@ -26,6 +26,7 @@ import {
   useT,
   when,
 } from '@/components/kit';
+import { useLabRunning } from '@/features/redesign/queries';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { useHealth, useSettings, useSources, useSystem } from '@/features/settings/queries';
 import { intervalSecOf, sourceState } from '@/features/settings/source-state';
@@ -244,6 +245,7 @@ function Panels({ sys }: { sys: SystemData }) {
 }
 
 export function SystemTab() {
+  const labRunning = useLabRunning();
   const t = useT<SettingsMessages>('settings');
   const locale = useLocale();
   const s = t.system;
@@ -344,7 +346,8 @@ export function SystemTab() {
           {sys.version.lab && (
             <ServiceRow
               name={s.services.lab}
-              state="ok"
+              state={labRunning.data === undefined ? 'unknown' : labRunning.data ? 'ok' : 'failed'}
+              problem={s.labDown}
               detail={fmt(s.labAddress, { url: sys.version.lab })}
             />
           )}

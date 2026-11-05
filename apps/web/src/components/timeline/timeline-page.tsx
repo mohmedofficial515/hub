@@ -22,6 +22,7 @@ import {
   ErrorState,
   fmt,
   focusRing,
+  hrefFor,
   type HubCard,
   IconButton,
   kitMessages,
@@ -48,6 +49,7 @@ import {
   useT,
   when as whenLabel,
 } from '@/components/kit';
+import { versionQuery } from '@/features/redesign/gallery';
 import { useRunAction } from '@/features/timeline/run-action';
 import { buildDays, buildRail, countEvents, newestOfCard } from '@/features/timeline/stream';
 import {
@@ -528,9 +530,12 @@ export function TimelinePage() {
                                     <ExternalLink aria-hidden className="size-3.5" strokeWidth={1.75} />
                                   </a>
                                 )}
-                                {card.type === 'redesign' && card.redesign.labUrl && (
+                                {card.type === 'redesign' && (
                                   <a
-                                    href={card.redesign.labUrl}
+                                    href={hrefFor('redesign', {
+                                      card: null,
+                                      query: versionQuery(card.redesign),
+                                    })}
                                     target="_blank"
                                     rel="noreferrer"
                                     className={cn(

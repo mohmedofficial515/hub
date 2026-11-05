@@ -8,6 +8,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import createIntlMiddleware from 'next-intl/middleware';
 
+import { labPathAllowed } from './features/redesign/lab-path';
 import { routing } from './i18n/routing';
 
 const intl = createIntlMiddleware(routing);
@@ -16,7 +17,20 @@ const PUBLIC_SEGMENTS = new Set(['sign-in', 'totp', 'invite', 'reset', 'forgot']
 const ACCESS_COOKIE = 'hub_access';
 const SESSION_MARKER_COOKIE = 'hub_session';
 
+/** The lab behind Hub's proxy: a member's, like every page, and only the lab's own files (docs/16 §6). The dev server keeps its own list of folders too. */
+function labGate(request: NextRequest) {
+  if (!labPathAllowed(request.nextUrl.pathname)) return new NextResponse(null, { status: 404 });
+  if (request.cookies.has(ACCESS_COOKIE) || request.cookies.has(SESSION_MARKER_COOKIE))
+    return NextResponse.next();
+  if (!request.headers.get('accept')?.includes('text/html')) return new NextResponse(null, { status: 401 });
+  const url = request.nextUrl.clone();
+  url.pathname = `/${routing.defaultLocale}/sign-in`;
+  url.search = `?next=${encodeURIComponent(request.nextUrl.pathname)}`;
+  return NextResponse.redirect(url);
+}
+
 export default function middleware(request: NextRequest) {
+  if (/^\/lab(\/|$)/.test(request.nextUrl.pathname)) return labGate(request);
   const response = intl(request);
   // The intl middleware decided to redirect (no locale prefix yet): let it, the next request comes back here.
   if (response.headers.has('location')) return response;
@@ -35,6 +49,6 @@ export default function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the API proxy, Next's own files and anything with an extension.
-  matcher: ['/((?!api|_next|.*\\..*).*)'],
+  // Everything except the API proxy, Next's own files and anything with an extension. The lab's files have extensions and are still looked at.
+  matcher: ['/lab', '/lab/:path*', '/((?!api|_next|lab(?:/|$)|.*\\..*).*)'],
 };

@@ -15,6 +15,7 @@ import {
   cn,
   fmt,
   focusRing,
+  hrefFor,
   IconButton,
   kitMessages,
   Ltr,
@@ -31,7 +32,8 @@ import {
   useT,
 } from '@/components/kit';
 import type { RedesignCard } from '@/features/cards/types';
-import { labHref, pickShot, type ShotDir, type ShotTheme } from '@/features/redesign/lab';
+import { versionQuery } from '@/features/redesign/gallery';
+import { pickShot, type ShotDir, type ShotTheme } from '@/features/redesign/lab';
 import { useShots } from '@/features/redesign/queries';
 import type { RedesignMessages } from '@/lib/i18n/page-dicts';
 
@@ -206,7 +208,7 @@ function Pane({
           </label>
           {r && (
             <a
-              href={labHref(r)}
+              href={hrefFor('redesign', { card: null, query: versionQuery(r) })}
               target="_blank"
               rel="noreferrer"
               aria-label={`${t.openInLab}: ${r.version}`}

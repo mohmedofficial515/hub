@@ -44,6 +44,22 @@ function projectCss(): Plugin {
 }
 
 /**
+ * Hub's proxy rewrites a query as it passes: Vite's `?import&raw` arrives as `?import=&raw=`, and Vite would then transform a README as code. Put back
+ * the bare flags before Vite reads them.
+ */
+function bareQueryFlags(): Plugin {
+  return {
+    name: 'hub-lab-bare-query-flags',
+    configureServer(server) {
+      server.middlewares.use((req, _res, next) => {
+        if (req.url?.includes('=')) req.url = req.url.replace(/([?&][\w-]+)=(?=&|$)/g, '$1');
+        next();
+      });
+    },
+  };
+}
+
+/**
  * Real project files import each other through `@/…`. Resolve that alias against the
  * project the importing file lives in, so `@web/components/ui/button` and
  * `@dash/components/ui/button` both keep working inside the lab.
@@ -95,7 +111,9 @@ export default defineConfig({
   root: path.resolve(ROOT, 'lab'),
   // Hub serves the lab on its own origin at this path, so every address the lab writes carries it.
   base: '/lab/',
-  plugins: [projectCss(), projectAlias(), watchVersions(), react(), tailwindcss()],
+  // The gallery routes by hash and the frames are named files, so an unknown path is simply not found.
+  appType: 'mpa',
+  plugins: [bareQueryFlags(), projectCss(), projectAlias(), watchVersions(), react(), tailwindcss()],
   resolve: {
     alias: {
       '@lab': path.resolve(ROOT, 'shared'),
