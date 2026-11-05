@@ -1,0 +1,55 @@
+{
+  "title": "Your projects",
+  "new": "New project",
+  "loading": "Loading projects",
+  "emptyTitle": "No projects yet",
+  "emptyBody": "Create your first project to begin.",
+  "awaiting": {
+    "zero": "Nothing waiting for you",
+    "one": "1 card waiting for you",
+    "other": "# cards waiting for you"
+  },
+  "count": {
+    "one": "1 project",
+    "other": "# projects"
+  },
+  "status": {
+    "active": "Active",
+    "paused": "Paused",
+    "closed": "Closed"
+  },
+  "wizard": {
+    "title": "New project",
+    "stepOne": "Step 1 of 2: name and keys",
+    "stepTwo": "Step 2 of 2: how the project starts",
+    "next": "Next",
+    "back": "Back",
+    "create": "Create project",
+    "failed": "The project was not created. Try again.",
+    "name": "Project name",
+    "nameRequired": "Enter a name to continue.",
+    "slug": "Name in the URL",
+    "slugHint": "Lowercase letters, numbers and hyphens.",
+    "slugInvalid": "Use 2 to 32 lowercase letters, numbers or hyphens.",
+    "slugTaken": "That name is taken. Choose another.",
+    "prefix": "Key prefix",
+    "prefixHint": "Like GTV in GTV-123. 2 to 6 capital letters.",
+    "prefixInvalid": "Use 2 to 6 capital letters.",
+    "prefixTaken": "That prefix is taken. Choose another.",
+    "timezone": "Time zone",
+    "description": "Description (optional)",
+    "template": "Roles",
+    "templates": {
+      "team": {
+        "label": "Full team",
+        "hint": "All seven roles are available for people you invite."
+      },
+      "solo": {
+        "label": "Working alone for now",
+        "hint": "Owner and project manager. Add other roles later in Settings."
+      }
+    },
+    "docsPath": "Local docs folder (optional)",
+    "docsPathHint": "A full path on this machine. It is read, and nothing is written there."
+  }
+}

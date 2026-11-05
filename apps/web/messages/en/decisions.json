@@ -1,0 +1,110 @@
+{
+  "title": "Decisions",
+  "errorThing": "decisions",
+  "loading": "Loading decisions",
+  "summary": {
+    "mine": {
+      "zero": "",
+      "one": "1 waits for you",
+      "other": "# wait for you"
+    },
+    "overdue": {
+      "one": ", 1 overdue",
+      "other": ", # overdue"
+    },
+    "open": {
+      "zero": "No open decisions.",
+      "one": "1 open in the workspace.",
+      "other": "# open in the workspace."
+    },
+    "noneMine": "None are routed to your roles."
+  },
+  "status": {
+    "label": "Decision status",
+    "open": "Open",
+    "decided": "Decided",
+    "all": "All"
+  },
+  "decider": "Decider",
+  "kind": "Kind",
+  "allKinds": "All kinds",
+  "kinds": {
+    "product": "Product",
+    "technical": "Technical",
+    "financial": "Financial",
+    "design": "Design"
+  },
+  "bands": {
+    "overdue": "Overdue",
+    "soon": "Due in 24 h",
+    "later": "Later",
+    "recorded": "Recorded",
+    "recent": "Recently decided"
+  },
+  "seeAllDecided": "All recorded decisions",
+  "table": {
+    "choose": "Choose this",
+    "chooseOption": "Choose: {option}",
+    "showDetail": "Pros and cons",
+    "hideDetail": "Hide pros and cons",
+    "openCard": "Open card",
+    "question": "Question"
+  },
+  "row": {
+    "overdue": "{d} overdue",
+    "dueSoon": "Due {rel}",
+    "due": "Due {when}",
+    "noDue": "No deadline",
+    "escalated": "Escalated to {role}",
+    "comments": {
+      "one": "1 comment",
+      "other": "# comments"
+    },
+    "options": {
+      "one": "1 option",
+      "other": "# options"
+    },
+    "chosen": "Chose: {option}",
+    "noOptions": "No options added yet",
+    "denied": "This decision is for the {role} role"
+  },
+  "empty": {
+    "openTitle": "No open decisions",
+    "openBody": "When an agent or a teammate needs a choice they cannot make, it appears here.",
+    "decidedTitle": "No decisions recorded yet",
+    "decidedBody": "Decided questions stay here with their reasons and ADRs.",
+    "mineTitle": "Nothing waits for your decision",
+    "mineBody": "That is for the current filters. Other roles still have open decisions.",
+    "filteredTitle": "No decisions match these filters",
+    "clear": "Clear filters"
+  },
+  "new": {
+    "button": "New decision",
+    "title": "New decision",
+    "question": "Question",
+    "questionHint": "One question, answerable by a choice.",
+    "kind": "Kind",
+    "context": "Context",
+    "contextHint": "What waits on this, and what do we know now?",
+    "decider": "Decider",
+    "deciderHint": "Suggested from the kind. You can change it.",
+    "due": "Due",
+    "options": "Options",
+    "optionsHint": "At least two.",
+    "option": "Option {n}",
+    "optionTitle": "Option title",
+    "pros": "Pros",
+    "cons": "Cons",
+    "perLine": "One point per line",
+    "cost": "Cost (optional)",
+    "recommended": "I recommend this one",
+    "addOption": "Add an option",
+    "removeOption": "Remove option {n}",
+    "blocks": "Blocks",
+    "blocksHint": "Cards waiting on this decision.",
+    "docs": "Related docs",
+    "create": "Create decision",
+    "required": "Write the question to continue.",
+    "needTwo": "Give at least two options a title."
+  }
+}

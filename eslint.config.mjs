@@ -27,6 +27,7 @@ export default tseslint.config(
       'apps/api/src/generated/**',
       'apps/api/openapi/**',
       'apps/web/openapi/**',
+      'apps/web/src/lib/api/generated/**',
       '**/next-env.d.ts',
       'docs/**',
       'patches/**',

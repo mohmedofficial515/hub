@@ -1,0 +1,507 @@
+{
+  "title": "Settings",
+  "personalNote": "Your personal settings. The owner and PM manage the rest of the workspace’s settings.",
+  "errorThing": "settings",
+  "loading": "Loading settings",
+  "tabsLabel": "Settings sections",
+  "forbiddenRoles": "{owner} or {pm}",
+  "backToMine": "Go to my settings",
+  "tabs": {
+    "general": "General",
+    "sources": "Sources",
+    "roles": "Roles",
+    "notifications": "Notifications",
+    "tokens": "Tokens",
+    "system": "System",
+    "audit": "Audit"
+  },
+  "strip": {
+    "label": "Last 24 hours",
+    "start": "24 h ago",
+    "now": "now",
+    "ok": {
+      "one": "1 healthy hour",
+      "other": "# healthy hours"
+    },
+    "partial": {
+      "one": "1 hour with hiccups",
+      "other": "# hours with hiccups"
+    },
+    "failed": {
+      "one": "1 failed hour",
+      "other": "# failed hours"
+    },
+    "idle": {
+      "one": "1 hour without a run",
+      "other": "# hours without a run"
+    }
+  },
+  "general": {
+    "defaultValue": "Default: {value}",
+    "nameRequired": "Write the workspace’s name.",
+    "numberInvalid": "Write a whole number above zero.",
+    "offsetsInvalid": "Write hours separated by commas, like 24, 2.",
+    "timeInvalid": "Write the time in 24-hour format, like 07:30.",
+    "unsaved": {
+      "one": "1 unsaved change",
+      "other": "# unsaved changes"
+    },
+    "savedForms": {
+      "one": "Saved 1 change",
+      "other": "Saved # changes"
+    },
+    "discard": "Discard",
+    "save": "Save changes",
+    "workspace": {
+      "title": "Workspace",
+      "body": "Every date in Hub is shown in this timezone.",
+      "name": "Name",
+      "slug": "Slug",
+      "slugHint": "Fixed after creation.",
+      "prefix": "Key prefix",
+      "prefixHint": "Starts every card key.",
+      "timezone": "Timezone",
+      "locale": "Default language",
+      "arabic": "Arabic",
+      "english": "English"
+    },
+    "decisions": {
+      "title": "Decisions",
+      "body": "When the decider gets a reminder, and when a decision escalates to the PM.",
+      "reminders": "Remind before the deadline (hours)",
+      "escalation": "Escalate after the deadline (hours)",
+      "dueDays": "Default deadline (days)"
+    },
+    "staleness": {
+      "title": "Staleness",
+      "body": "After this long the item shows as stale and the responsible role gets a reminder.",
+      "handoff": "Handoff not acknowledged (hours)",
+      "need": "Need not delivered (days)"
+    },
+    "digests": {
+      "title": "Digests and quiet hours",
+      "body": "Saving reschedules the digest right away. During quiet hours, push and Telegram wait and arrive together afterwards.",
+      "morning": "Morning brief",
+      "weeklyDay": "Weekly summary day",
+      "weeklyTime": "Weekly summary time",
+      "days": {
+        "SAT": "Saturday",
+        "SUN": "Sunday",
+        "MON": "Monday"
+      },
+      "quietFrom": "Quiet from",
+      "quietTo": "Quiet until"
+    },
+    "onboarding": {
+      "title": "Reading paths",
+      "body": "What a new member reads on the Onboarding page, per role, in this order.",
+      "role": "Role",
+      "kinds": {
+        "doc": "Doc",
+        "card": "Card",
+        "url": "Link",
+        "action": "Action"
+      },
+      "moveUp": "Move “{title}” up",
+      "moveDown": "Move “{title}” down",
+      "remove": "Remove “{title}”",
+      "itemTitle": "Title",
+      "kind": "Kind",
+      "ref": "Reference",
+      "refHint": "A doc path, a card key or a link.",
+      "add": "Add to the path",
+      "titleRequired": "Write a title.",
+      "refRequired": "Write the reference."
+    },
+    "archive": {
+      "sectionTitle": "Archive workspace",
+      "sectionBody": "Stops capture and notifications, and keeps the data read-only. Owner only.",
+      "title": "Archive this workspace?",
+      "body": "All sources and notifications stop, and no new cards can be created. The data stays readable.",
+      "typeSlug": "Type {slug} to confirm",
+      "action": "Archive workspace",
+      "ownerOnly": "Only the owner can archive",
+      "labDone": "The lab does not really archive the workspace, but the request is in the audit log."
+    }
+  },
+  "sources": {
+    "problemsSr": {
+      "one": "1 source with a problem",
+      "other": "# sources with problems"
+    },
+    "needAttention": {
+      "one": "1 source needs you",
+      "other": "# sources need you"
+    },
+    "others": "Other sources",
+    "allHealthy": "All sources are healthy ({n})",
+    "kinds": {
+      "github_repo": "GitHub repo",
+      "openapi": "OpenAPI contract",
+      "lab": "Lab",
+      "docs_folder": "Docs folder"
+    },
+    "running": "Running",
+    "since": "Started {when}. So far: {runs}.",
+    "failedRuns": {
+      "one": "1 failed run",
+      "other": "# failed runs"
+    },
+    "why": "What happened",
+    "toDo": "What you need to do",
+    "errorCode": "Code",
+    "fixExclude": "Exclude {glob} and run",
+    "edit": "Edit",
+    "viewRuns": "Run history",
+    "runNow": "Run now",
+    "test": "Test connection",
+    "disable": "Disable",
+    "enable": "Enable",
+    "menu": "Options for {name}",
+    "add": "Add source",
+    "lastRun": "Last run {when}.",
+    "cardsToday": {
+      "one": "1 card in 24 h.",
+      "other": "# cards in 24 h."
+    },
+    "runsTitle": "Run history of {name}",
+    "lastSuccess": "Last successful run: {when}",
+    "runStatus": {
+      "ok": "Passed",
+      "failed": "Failed"
+    },
+    "runCounts": "{created} new, {updated} updated",
+    "sameError": "The failed runs show the same error, so running it again will not solve it.",
+    "fixed": "{name} is working again",
+    "ranForms": {
+      "zero": "{name} ran: nothing new",
+      "one": "{name} ran: 1 new card",
+      "other": "{name} ran: # new cards"
+    },
+    "testGithub": "Connection works: {repo}, branch {branch}, read access.",
+    "testDocs": "Connection works: the path matches 186 files.",
+    "testLab": "Connection works: the folder exists with 64 versions.",
+    "testOpenapi": "Connection works: found {path}.",
+    "enabled": "Enabled {name}",
+    "disabled": "Disabled {name}",
+    "disableTitle": "Disable {name}?",
+    "disableBody": "Its repeating job stops and no new cards arrive from it. Its existing cards stay as they are, and you can enable it at any time.",
+    "form": {
+      "addTitle": "Add {kind}",
+      "editTitle": "Edit {name}",
+      "name": "Source name",
+      "nameHint": "Lowercase letters, digits and hyphens.",
+      "nameInvalid": "Use 2 to 32 lowercase letters, digits and hyphens.",
+      "nameTaken": "A source with this name already exists.",
+      "nameLocked": "A source’s name stays fixed, because its cards keep it.",
+      "repo": "Repository",
+      "repoInvalid": "Write the repository as owner/repo.",
+      "branch": "Default branch",
+      "app": "App",
+      "patterns": "Branches to follow",
+      "listHint": "Separated by commas.",
+      "token": "GitHub token",
+      "tokenHint": "Stored encrypted and never shown again.",
+      "tokenRequired": "Paste the token to continue.",
+      "tokenStored": "The token is stored encrypted and cannot be shown.",
+      "replaceToken": "Replace token",
+      "repoSource": "Parent repository",
+      "path": "Path",
+      "fromRole": "Sent by",
+      "toRole": "Received by",
+      "include": "Include",
+      "exclude": "Exclude",
+      "kinds": "Kind rules",
+      "root": "Root path",
+      "rootHint": "Set on the host. It cannot change from here.",
+      "apps": "Apps",
+      "test": "Test connection",
+      "testAuthFailed": "GitHub said: Bad credentials (401). Check the token and its access to the repository.",
+      "add": "Add source",
+      "save": "Save",
+      "saved": "Saved {name}",
+      "added": "Added {name}. Its first run starts within minutes."
+    },
+    "importBlock": {
+      "title": "Import Goteav history",
+      "body": "A one-time import from {path}: decisions, suggestions, status notes and contract changes. Running it again is safe because it skips what is already here.",
+      "last": "Last import: {when}",
+      "decisions": "decisions",
+      "tasks": "tasks",
+      "statusNotes": "status notes",
+      "contractChanges": "contract changes",
+      "skipped": "skipped",
+      "action": "Import",
+      "confirmTitle": "Import again?",
+      "confirmBody": "It reads the files again and skips what was already imported, so no card is duplicated.",
+      "done": "Import finished: nothing new."
+    }
+  },
+  "roles": {
+    "title": "The seven roles",
+    "noHolders": "Nobody",
+    "matrixTitle": "Who can do what",
+    "matrixBody": "Read only. Change a member’s roles on the Members page.",
+    "action": "Action",
+    "pickRole": "Show the permissions of",
+    "humanOnly": "Humans only",
+    "viaMcp": "Available through MCP",
+    "cells": {
+      "y": "Allowed",
+      "n": "Not allowed",
+      "R": "When routed to this role",
+      "S": "When the specialty maps here",
+      "A": "Assignee only",
+      "C": "Creator only",
+      "T": "Rename and timezone only"
+    },
+    "groups": {
+      "create": "Create",
+      "edit": "Edit",
+      "tasks": "Tasks",
+      "decisions": "Decisions",
+      "needs": "Needs",
+      "handoffs": "Handoffs",
+      "redesign": "Redesign",
+      "cards": "Cards and releases",
+      "workspace": "Workspace"
+    },
+    "specialtyTitle": "Specialty to role",
+    "specialtyBody": "Who can claim a task by its specialty, and who sees it under “Ready for my roles”.",
+    "specialtyLegend": "Roles for {specialty}",
+    "specialtyEmpty": "Choose at least one role.",
+    "specialtySave": "Save mapping",
+    "specialtyReset": "Back to default",
+    "specialtySaved": "Saved the specialty mapping"
+  },
+  "notifications": {
+    "title": "Channels",
+    "intro": "Every notification reaches your Inbox. Choose what also reaches you outside Hub, and when.",
+    "channels": {
+      "inApp": "In Hub",
+      "push": "Browser push",
+      "telegram": "Telegram",
+      "email": "Email"
+    },
+    "inAppStatus": "Everything arrives in your Inbox.",
+    "alwaysOn": "Always on",
+    "modes": {
+      "off": "Off",
+      "immediate": "Immediate",
+      "digest": "In the digest"
+    },
+    "modeLegend": "How {channel} sends",
+    "test": "Send test",
+    "testSent": "Sent a test notification by {channel}.",
+    "testNeedsLink": "Turn the channel on first",
+    "pushOn": "On for {browser} since {date}.",
+    "pushOff": "Not on for this browser.",
+    "pushEnable": "Enable on this browser",
+    "pushRemove": "Remove this browser",
+    "pushRemoved": "Removed this browser",
+    "pushEnabled": "Notifications are on for this browser",
+    "telegramLinked": "Linked as {name}.",
+    "telegramOff": "Not linked yet.",
+    "telegramLink": "Link Telegram",
+    "telegramUnlink": "Unlink",
+    "telegramUnlinked": "Unlinked Telegram",
+    "telegramSteps": "Open {bot} in Telegram and send this command:",
+    "telegramExpires": "The code lasts 10 minutes. This one is a lab example.",
+    "telegramSimulate": "I sent it",
+    "telegramDone": "Linked Telegram",
+    "copyCode": "Copy the command",
+    "qrNote": "Illustration, not scannable.",
+    "kindsTitle": "What each channel sends",
+    "kindsBody": "A channel that is off sends nothing, and keeps its choices for later.",
+    "kindCol": "Notification",
+    "channelOff": "{channel} is off",
+    "autosave": "Changes save as you make them.",
+    "kinds": {
+      "routed_decision": "Decision routed to my role",
+      "routed_need": "Need routed to my role",
+      "routed_handoff": "Handoff routed to my role",
+      "mention": "Mention of me",
+      "watch_update": "Update on what I watch",
+      "deadline_reminder": "Deadline reminder",
+      "escalation": "Escalation",
+      "unblocked": "Task unblocked",
+      "task_ready": "Task ready for my role",
+      "brief": "Morning brief",
+      "system": "System alert"
+    },
+    "quietTitle": "Quiet hours",
+    "quietBody": "Notifications wait during these hours and arrive together afterwards. The workspace’s hours run from {from} to {to}.",
+    "quietWorkspace": "Workspace hours",
+    "quietOwn": "My hours",
+    "quietFrom": "From",
+    "quietTo": "Until",
+    "timeInvalid": "Write the time in 24-hour format, like 07:30."
+  },
+  "tokens": {
+    "title": "My tokens",
+    "intro": "These connect your own Claude Code to Hub. A token shows in full once, when you create it, and only its prefix after that.",
+    "name": "Name",
+    "nameHint": "The device and the tool, like Claude Code on my laptop.",
+    "nameRequired": "Write a name you will recognise later.",
+    "kind": "Kind",
+    "kinds": {
+      "mcp": "MCP",
+      "hook": "Hook"
+    },
+    "prefix": "Prefix",
+    "lastUsed": "Last used",
+    "createdCol": "Created",
+    "actions": "Actions",
+    "neverUsed": "Never used",
+    "create": "Create token",
+    "createTitle": "New token",
+    "createdTitle": "Token created",
+    "can": "It can",
+    "cannot": "It cannot",
+    "canList": {
+      "mcp": "Read cards, docs and the timeline, create tasks, decisions, needs and handoffs, claim and run tasks for your roles, comment and log sessions.",
+      "hook": "Send session facts to Hub, nothing else."
+    },
+    "cannotList": {
+      "mcp": "Decide, verify, approve or reject, archive: these are for humans only.",
+      "hook": "Anything else, including reading cards."
+    },
+    "onceWarning": "You won’t see this token again. Copy it now.",
+    "exampleLabel": "Lab example, not a real token",
+    "tokenLabel": "Token",
+    "copyToken": "Copy the token",
+    "copyCommand": "Copy the command",
+    "mcpCommand": "Set it up in Claude Code with one command",
+    "packCommand": "Or install the team pack",
+    "savedIt": "I copied it, close",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke “{name}”?",
+    "revokeBody": "Anything using it gets a 401 from its next request. This cannot be undone: you would create a new token.",
+    "revoked": "Revoked the token",
+    "revokedTitle": "Revoked tokens",
+    "revokedOn": "Revoked {date}",
+    "emptyTitle": "No tokens yet",
+    "emptyBody": "Create one to connect your own Claude Code to Hub."
+  },
+  "system": {
+    "allGood": "Everything is running",
+    "issues": {
+      "one": "1 issue needs a look",
+      "other": "# issues need a look"
+    },
+    "checkedAt": "Checked at",
+    "refresh": "Refresh",
+    "refreshed": "Status refreshed",
+    "ok": "Running",
+    "down": "Down",
+    "heartbeatStale": "Worker heartbeat stale",
+    "staleWorker": "Worker heartbeat stale: the last beat was {rel}. Sources and notifications stop until it returns. Restart the worker service on the host.",
+    "services": {
+      "api": "API",
+      "worker": "Worker",
+      "postgres": "Postgres",
+      "redis": "Redis",
+      "web": "Web",
+      "lab": "Lab"
+    },
+    "versionUptime": "Version {version}, up for {uptime}.",
+    "version": "Version {version}.",
+    "heartbeat": "Last beat {rel}.",
+    "dbDetail": "{cards} cards and {events} events.",
+    "redisDetail": "Queues and the event stream.",
+    "vitalsLabel": "Running figures",
+    "outbox": "Notifications waiting",
+    "outboxFailed": {
+      "one": "1 notification failed",
+      "other": "# notifications failed"
+    },
+    "outboxNoFailed": "None failed",
+    "oldest": "Oldest one waiting",
+    "oldestNote": "Usually sent within a minute",
+    "sse": "Live connections",
+    "sseNote": "Browsers open right now",
+    "backup": "Last backup",
+    "lagTitle": "Source lag",
+    "lagBody": "Time since the last successful run. It counts as late past three times the run period.",
+    "lagSource": "Source",
+    "lagInterval": "Interval",
+    "lagCol": "Lag",
+    "lagDisabled": "Disabled",
+    "queuesTitle": "Queues",
+    "queue": "Queue",
+    "waiting": "Waiting",
+    "active": "Active",
+    "failed": "Failed",
+    "delayed": "Delayed",
+    "storageTitle": "Storage",
+    "disk": "Repos volume",
+    "of": "of",
+    "dbSize": "Database:",
+    "backupFull": "Last backup: {when}."
+  },
+  "audit": {
+    "title": "Audit log",
+    "appendOnly": "Append-only: rows are added, never edited or deleted, and they hold no secrets.",
+    "export": "Export CSV",
+    "exported": {
+      "one": "Exported 1 row",
+      "other": "Exported # rows"
+    },
+    "filtersToggle": "Filters",
+    "filtersCount": "Filters ({n})",
+    "filters": {
+      "actor": "Actor",
+      "action": "Action",
+      "via": "Via",
+      "from": "From",
+      "to": "To"
+    },
+    "groups": {
+      "cards": "Cards",
+      "members": "Members",
+      "identity": "Identity and tokens",
+      "settings": "Settings",
+      "sources": "Sources",
+      "capture": "Capture",
+      "redesign": "Redesign",
+      "digests": "Digests",
+      "system": "System"
+    },
+    "via": {
+      "web": "Web",
+      "mcp": "MCP",
+      "hook": "Hook",
+      "adapter": "Adapter",
+      "scheduler": "Scheduler",
+      "telegram": "Telegram"
+    },
+    "rangeInvalid": "The start date is after the end date.",
+    "count": {
+      "zero": "No rows",
+      "one": "1 row",
+      "other": "# rows"
+    },
+    "clear": "Clear filters",
+    "col": {
+      "time": "Time",
+      "actor": "Actor",
+      "via": "Via",
+      "action": "Action",
+      "target": "Target",
+      "summary": "Summary",
+      "more": "Details"
+    },
+    "expand": "Details of {action}",
+    "detail": {
+      "record": "Record",
+      "ip": "IP address",
+      "client": "Client",
+      "none": "None"
+    },
+    "more": "Show more ({n})",
+    "noMatchTitle": "No rows match these filters",
+    "noMatchBody": "Widen the dates or clear the filters.",
+    "emptyTitle": "No records yet",
+    "emptyBody": "Every admin action, decision and delivery shows up here as it happens."
+  }
+}

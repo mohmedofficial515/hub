@@ -1,0 +1,194 @@
+{
+  "nav": {
+    "today": "Today",
+    "inbox": "Inbox",
+    "timeline": "Timeline",
+    "tasks": "Tasks",
+    "decisions": "Decisions",
+    "needs": "Needs",
+    "handoffs": "Handoffs",
+    "redesign": "Redesign",
+    "releases": "Releases",
+    "docs": "Docs",
+    "ask": "Ask",
+    "onboarding": "Onboarding",
+    "members": "Members",
+    "settings": "Settings",
+    "planning": "Planning"
+  },
+  "groups": {
+    "work": "Work",
+    "knowledge": "Knowledge",
+    "workspace": "Project"
+  },
+  "counts": {
+    "inbox": {
+      "one": "1 unread",
+      "other": "# unread"
+    },
+    "timeline": {
+      "one": "1 event since your last visit",
+      "other": "# events since your last visit"
+    },
+    "tasks": {
+      "one": "1 task ready for you",
+      "other": "# tasks ready for you"
+    },
+    "decisions": {
+      "one": "1 decision routed to you",
+      "other": "# decisions routed to you"
+    },
+    "decisionsOverdue": {
+      "one": "1 decision routed to you, overdue",
+      "other": "# decisions routed to you, some overdue"
+    },
+    "needs": {
+      "one": "1 need routed to you",
+      "other": "# needs routed to you"
+    },
+    "handoffs": {
+      "one": "1 handoff waiting for you",
+      "other": "# handoffs waiting for you"
+    },
+    "redesign": {
+      "one": "1 version in review",
+      "other": "# versions in review"
+    },
+    "onboarding": {
+      "one": "1 step left",
+      "other": "# steps left"
+    },
+    "members": {
+      "one": "1 pending invite",
+      "other": "# pending invites"
+    },
+    "settings": {
+      "one": "1 source with a problem",
+      "other": "# sources with problems"
+    },
+    "planning": {
+      "one": "1 open idea or plan",
+      "other": "# open ideas and plans"
+    }
+  },
+  "sidebar": {
+    "label": "Main navigation",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "workspace": "Project",
+    "switchTo": "Switch project",
+    "allWorkspaces": "All projects",
+    "language": "Language",
+    "toEnglish": "English",
+    "toArabic": "العربية",
+    "themeToDark": "Dark theme",
+    "themeToLight": "Light theme",
+    "me": "My account",
+    "profile": "Profile",
+    "tokens": "Access tokens",
+    "shortcuts": "Keyboard shortcuts",
+    "signOut": "Sign out",
+    "shortcutsOn": "Single-key shortcuts are on",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "newProject": "New project"
+  },
+  "header": {
+    "breadcrumb": "Breadcrumb",
+    "search": "Search cards and pages",
+    "newCard": "New card",
+    "live": "Live",
+    "reconnecting": "Reconnecting…",
+    "me": "My account",
+    "connecting": "Connecting…",
+    "notLive": "Live updates are off"
+  },
+  "skip": "Skip to content",
+  "palette": {
+    "label": "Command palette",
+    "placeholder": "Search for a card, page or command…",
+    "empty": "No results. Try a card key like GTV-231.",
+    "recent": "Recent",
+    "pages": "Pages",
+    "cards": "Cards",
+    "actions": "Commands",
+    "jump": "Open {key}",
+    "hint": "Arrows move, Enter opens, Esc closes",
+    "act": {
+      "newTask": "New task",
+      "newDecision": "New decision",
+      "newNeed": "New need",
+      "newHandoff": "New handoff",
+      "toggleTheme": "Toggle light and dark",
+      "toggleLanguage": "Switch language",
+      "switchWorkspace": "Switch project",
+      "copyMcp": "Copy my MCP setup",
+      "showShortcuts": "Show shortcuts"
+    },
+    "mcpCopied": "Copied the MCP setup"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "disable": "Single-key shortcuts",
+    "disableHint": "Turn them off if they clash with a screen reader or voice input. Ctrl+K and Esc keep working.",
+    "groups": {
+      "nav": "Navigation",
+      "go": "Go to",
+      "lists": "Lists",
+      "cards": "Cards"
+    },
+    "items": {
+      "palette": "Command palette",
+      "help": "This list",
+      "sidebar": "Collapse or expand the sidebar",
+      "newTask": "New task",
+      "newDecision": "New decision",
+      "newNeed": "New need",
+      "newHandoff": "New handoff",
+      "move": "Next or previous row",
+      "open": "Open the row",
+      "undo": "Undo the last action",
+      "refresh": "Refresh the page",
+      "timelineFilters": "Timeline: jump to the filters",
+      "inboxRead": "Inbox: mark the row read or unread",
+      "inboxReadAll": "Inbox: mark all read",
+      "tasksView": "Tasks: switch between board and list",
+      "redesignPick": "Redesign: add the version to compare",
+      "claim": "Claim the task",
+      "decide": "Decide",
+      "acknowledge": "Acknowledge the handoff",
+      "watch": "Watch the card",
+      "copyKey": "Copy the card key",
+      "close": "Close the card or dialog"
+    }
+  },
+  "newCard": {
+    "title": "New card",
+    "types": "Card type",
+    "titleLabel": "Title",
+    "titleHint": "One short line that says what is needed.",
+    "role": "Responsible role",
+    "priority": "Priority",
+    "body": "Details (optional)",
+    "create": "Create",
+    "createOpen": "Create and open",
+    "created": "Created {key}",
+    "required": "Write a title to continue.",
+    "failed": "The card was not created. Try again."
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "body": "Pick a page from the sidebar."
+  },
+  "viewError": "this page",
+  "gate": {
+    "session": "your session",
+    "notMember": "You are not a member of this project",
+    "notMemberBody": "Ask its owner for an invitation, or pick one of your projects.",
+    "toProjects": "To my projects"
+  },
+  "placeholder": {
+    "title": "This page is being moved in",
+    "body": "It arrives with the next build group. The sidebar, cards and search work now."
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "title": "Members",
+  "meta": {
+    "one": "1 active member",
+    "other": "# active members"
+  },
+  "loading": "Loading members",
+  "errorThing": "members",
+  "invite": "Invite member",
+  "you": "You",
+  "online": "Online now",
+  "search": "Search members…",
+  "roster": "Team",
+  "rolesFilter": "Role",
+  "col": {
+    "name": "Member",
+    "roles": "Roles",
+    "github": "GitHub",
+    "lastSeen": "Last seen",
+    "actions": "Actions"
+  },
+  "noGithub": "No login",
+  "noGithubHint": "Commits are not attributed until a login is mapped.",
+  "mapGithub": "Map a login",
+  "twoFactorMissing": "Two-step sign-in is required for this role",
+  "noMatchTitle": "No member matches this search",
+  "noMatchBody": "Try another name, or clear the role filter.",
+  "noMatchAction": "Clear filters",
+  "disabledTitle": "Disabled accounts",
+  "disabledOn": "Disabled {date}",
+  "enable": "Enable",
+  "enabled": "Enabled {name}",
+  "invites": {
+    "title": "Waiting to join",
+    "sent": "Invited by {name} {when}",
+    "expires": "Expires {when}",
+    "expiresSoon": "Expires {when}",
+    "resend": "Resend",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke the invite to {email}?",
+    "revokeBody": "The link stops working right away. You can invite the same person again later.",
+    "revoked": "Revoked the invite to {email}",
+    "resendTitle": "New invite link",
+    "resendBody": "The previous link to {email} no longer works.",
+    "emptyTitle": "No pending invites",
+    "emptyBody": "Everyone you invited has joined. Invite someone when you need to.",
+    "emptyBodySole": "Invite the first member to join you in this workspace."
+  },
+  "inviteDialog": {
+    "title": "Invite a member",
+    "email": "Email",
+    "emailHint": "The link is sent to this address when email is set up on Hub.",
+    "emailInvalid": "Write a valid email address.",
+    "emailTaken": "An active invite exists for this address.",
+    "emailMember": "This address belongs to a member.",
+    "roles": "Roles",
+    "rolesRequired": "Choose at least one role.",
+    "ownerOnly": "Only an owner can grant the owner role.",
+    "send": "Create invite",
+    "createdTitle": "Invite created",
+    "createdBody": "Send this link to {email}. It opens the join page with the roles you chose, and expires in 7 days."
+  },
+  "once": {
+    "warning": "You won’t see this link again. Copy it now.",
+    "example": "Lab example, not a real link",
+    "linkLabel": "Link",
+    "copy": "Copy the link",
+    "done": "I copied it, close"
+  },
+  "menu": {
+    "label": "Options for {name}",
+    "profile": "My profile",
+    "roles": "Change roles",
+    "github": "GitHub logins",
+    "reset": "Password reset link",
+    "revoke": "Revoke all sessions and tokens",
+    "disable": "Disable account"
+  },
+  "rolesDialog": {
+    "title": "Roles of {name}",
+    "hint": "MCP tokens pick up the new roles on their next request.",
+    "required": "A member needs at least one role.",
+    "lastOwner": "You can’t remove the owner role from the workspace’s last owner.",
+    "ownerOnly": "Only an owner can change the owner role.",
+    "save": "Save roles",
+    "saved": "Saved roles of {name}"
+  },
+  "githubDialog": {
+    "title": "GitHub logins of {name}",
+    "label": "Logins",
+    "hint": "Separated by commas. The next capture attributes commits to this member, and older change cards update in the background.",
+    "invalid": "Use valid GitHub logins, separated by commas.",
+    "save": "Save",
+    "saved": "Saved logins of {name}"
+  },
+  "resetDialog": {
+    "title": "Password reset link",
+    "body": "Send it to {name} over a safe channel. It expires in 24 hours."
+  },
+  "revokeDialog": {
+    "title": "Revoke all sessions and tokens of {name}?",
+    "body": "They are signed out everywhere, and their tokens stop from the next request. They will need to sign in and create new tokens.",
+    "action": "Revoke all",
+    "done": "Revoked sessions and tokens of {name}"
+  },
+  "disableDialog": {
+    "title": "Disable {name}?",
+    "body": "They can no longer sign in, their sessions and tokens stop, and their claimed tasks are released. Their work stays in the history, and you can enable them later.",
+    "action": "Disable account",
+    "done": "Disabled {name}"
+  },
+  "profile": {
+    "title": "My profile",
+    "displayName": "Display name",
+    "nameRequired": "Write your name.",
+    "locale": "Language",
+    "arabic": "Arabic",
+    "english": "English",
+    "passwordTitle": "Password",
+    "current": "Current password",
+    "next": "New password",
+    "tooShort": "Use at least 12 characters.",
+    "needCurrent": "Write your current password.",
+    "totpTitle": "Two-step sign-in",
+    "totpOn": "On.",
+    "totpOff": "Off.",
+    "totpRequired": "Your role requires it, so it can’t be turned off.",
+    "totpEnable": "Turn on",
+    "totpDisable": "Turn off",
+    "save": "Save",
+    "saved": "Saved your profile"
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "title": "Today",
+  "greeting": {
+    "morning": "Good morning, {name}",
+    "summary": {
+      "zero": "Nothing is waiting this morning.",
+      "one": "1 thing is waiting",
+      "other": "# things are waiting"
+    },
+    "overdue": {
+      "one": ", and 1 is overdue.",
+      "other": ", and # are overdue.",
+      "zero": "."
+    }
+  },
+  "refresh": "Refresh",
+  "refreshed": "Page refreshed",
+  "updated": "Updated {when}",
+  "counters": {
+    "label": "At a glance",
+    "tiles": {
+      "inbox": "Inbox unread",
+      "decisions": "My decisions",
+      "needs": "My needs",
+      "handoffs": "My handoffs",
+      "redesigns": "Redesigns in review"
+    },
+    "scope": "of {all} open",
+    "scopeNeeds": "of {all} open or awaiting a check",
+    "scopeNone": "none open",
+    "overdue": {
+      "one": "1 overdue",
+      "other": "# overdue",
+      "zero": "none overdue"
+    },
+    "series": "Last 7 days: {values}",
+    "quietAll": "A quiet week: nothing is open."
+  },
+  "stack": {
+    "title": "Awaiting me",
+    "cleared": "{n} cleared today",
+    "groups": {
+      "urgent": "Overdue or escalated",
+      "soon": "Due within 24 hours",
+      "rest": "Everything else"
+    },
+    "overdueBy": "{d} overdue",
+    "escalated": "Escalated to me",
+    "dueSoon": "Due {rel}",
+    "due": "Due {when}",
+    "stale": "Not received for {d}",
+    "breaking": "Breaking change",
+    "seeAll": "See all ({total})",
+    "emptyTitle": "Nothing is waiting.",
+    "emptyBody": "Decisions, needs and handoffs routed to my roles show up here first.",
+    "actionFor": "{action} {key}"
+  },
+  "runway": {
+    "title": "Deadlines in the next 72 hours",
+    "now": "now",
+    "overdue": "Overdue",
+    "day24": "24 h",
+    "later": "later",
+    "empty": "No deadlines in the next 72 hours.",
+    "pin": "{key}, {type}: {title}, due {when}",
+    "pinInStack": "{key}, {type}: {title}, due {when}. Jump to it in Awaiting me.",
+    "inStackNote": {
+      "one": "And 1 more in Awaiting me above.",
+      "other": "And # more in Awaiting me above."
+    },
+    "escalated": "escalated",
+    "jump": "in my stack"
+  },
+  "ready": {
+    "title": "Ready for my roles",
+    "claim": "Claim",
+    "claimTask": "Claim {key}",
+    "blockedBy": "Blocked by {key}",
+    "effort": "Effort",
+    "specialty": {
+      "backend": "Backend",
+      "frontend": "Frontend",
+      "design": "Design",
+      "qa": "QA",
+      "ops": "Ops",
+      "docs": "Docs"
+    },
+    "toast": "Claimed {key}. Paste this in Claude Code to start:",
+    "blockedToast": "{key} is blocked by {blocker}, so it cannot be claimed yet.",
+    "emptyTitle": "No ready tasks for my roles.",
+    "emptyBody": "Ready tasks for my specialties appear here, highest priority first.",
+    "emptyLink": "Check the backlog"
+  },
+  "letter": {
+    "title": "Morning letter",
+    "signed": "Written by your agent at {when}",
+    "collapse": "Show less",
+    "expand": "Read the whole letter",
+    "absentTitle": "Your agent has not written today’s letter yet",
+    "absentBody": "Run {cmd} in Claude Code and it writes one from the sections on this page."
+  },
+  "since": {
+    "title": "Since your last visit",
+    "seeAll": "See all in the timeline ({total})",
+    "tide": "You were here {when}",
+    "pinned": "API contract change",
+    "cards": "Cards",
+    "commits": {
+      "one": "1 commit",
+      "other": "# commits"
+    },
+    "events": {
+      "one": "1 event",
+      "other": "# events",
+      "zero": "no events"
+    },
+    "viaAgent": "via agent",
+    "kinds": {
+      "commits": "pushed commits",
+      "pr_opened": "opened a PR",
+      "pr_merged": "merged a PR",
+      "session": "logged a session",
+      "handoff": "contract handoff",
+      "decided": "made a decision",
+      "redesign": "sent a redesign to review",
+      "doc": "updated a doc",
+      "release": "released",
+      "need_delivered": "delivered a need"
+    },
+    "empty": "No changes since {when}.",
+    "system": "System"
+  },
+  "sessions": {
+    "title": "Sessions without summary",
+    "noSummary": "No summary",
+    "hint": "Run {cmd} in Claude Code to write the summary.",
+    "minutes": "{n} min",
+    "files": {
+      "one": "1 file",
+      "other": "# files"
+    },
+    "commits": {
+      "one": "1 commit",
+      "other": "# commits"
+    },
+    "empty": "Every session of yours has a summary."
+  },
+  "team": {
+    "title": "Team this week",
+    "week": "{from} – {to}",
+    "up": "up {n}",
+    "down": "down {n}",
+    "same": "no change",
+    "lastWeek": "from last week ({n})",
+    "activity": "Activity, last 14 days",
+    "activityShort": "Activity, last 7 days",
+    "activityHint": "Sessions, commits and closed cards per day. Members are sorted by name.",
+    "fewer": "Fewer",
+    "more": "More",
+    "cell": {
+      "zero": "{name}, {date}: no activity",
+      "one": "{name}, {date}: 1 event",
+      "other": "{name}, {date}: # events"
+    },
+    "readoutIdle": "Hover a day, or move to it with the arrow keys, to see the exact count.",
+    "online": "Online now",
+    "offline": "Offline",
+    "lastSeen": "Last seen {rel}",
+    "focus": "Working on",
+    "noFocus": "No claimed task",
+    "today": "today",
+    "member": "Member",
+    "handoffsApplied": "Handoffs applied",
+    "flow": "Card flow by type",
+    "flowHint": "Created against closed this week.",
+    "created": "created",
+    "closed": "closed",
+    "netMore": "{n} more open",
+    "netFewer": "{n} fewer open",
+    "netEven": "even"
+  },
+  "sources": {
+    "title": "Capture sources",
+    "kinds": {
+      "github_repo": "GitHub repo",
+      "openapi": "OpenAPI contract",
+      "lab": "Redesign lab",
+      "docs_folder": "Docs folder"
+    },
+    "ok": "Live, synced {rel}",
+    "lagging": "{d} behind",
+    "failing": "Failing",
+    "lastSuccess": "Last success {when}",
+    "runs": "Runs in 24 h",
+    "cards": "Cards in 24 h",
+    "summaryOk": "{n} live",
+    "summaryLag": "{n} behind",
+    "summaryFail": "{n} failing",
+    "allLive": "Every source is live."
+  },
+  "loading": "Loading Today",
+  "errorThing": "Today"
+}

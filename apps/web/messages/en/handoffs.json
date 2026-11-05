@@ -1,0 +1,87 @@
+{
+  "title": "Handoffs",
+  "errorThing": "handoffs",
+  "loading": "Loading handoffs",
+  "summary": {
+    "pending": {
+      "zero": "Everything handed over was received.",
+      "one": "1 not received yet",
+      "other": "# not received yet"
+    },
+    "mine": {
+      "zero": ".",
+      "one": ", 1 waits for you.",
+      "other": ", # wait for you."
+    }
+  },
+  "relay": {
+    "label": "Handoff stages",
+    "pending": "Waiting to be received",
+    "acknowledged": "Received, not applied",
+    "applied": "Applied",
+    "all": "All, with dismissed",
+    "breaking": {
+      "one": "1 breaking",
+      "other": "# breaking"
+    },
+    "stale": {
+      "one": "1 stale",
+      "other": "# stale"
+    }
+  },
+  "filters": {
+    "to": "To",
+    "severity": "Severity",
+    "kind": "Kind",
+    "allKinds": "All kinds"
+  },
+  "desk": {
+    "to": "To {role}"
+  },
+  "row": {
+    "route": "From {from} to {to}",
+    "stale": "Not received for {d}",
+    "ackBy": "Received by {name} {rel}",
+    "appliedBy": "Applied by {name} {rel}",
+    "dismissed": "Dismissed: {reason}",
+    "showChanges": "Show changes",
+    "hideChanges": "Hide changes",
+    "changeCount": {
+      "one": "1 change",
+      "other": "# changes"
+    },
+    "fileCount": {
+      "one": "1 file",
+      "other": "# files"
+    },
+    "breakingCount": {
+      "one": "1 breaking",
+      "other": "# breaking"
+    },
+    "changesWithBreaking": "{changes}, {breaking}",
+    "prompt": "What you will copy"
+  },
+  "empty": {
+    "title": "No handoffs to your roles",
+    "body": "When the API contract or a shared component changes, the handoff appears here with a ready prompt.",
+    "filteredTitle": "No handoffs match these filters",
+    "stageTitle": "Nothing at this stage",
+    "clear": "Clear filters"
+  },
+  "new": {
+    "button": "New handoff",
+    "title": "Manual handoff",
+    "to": "To",
+    "kind": "Kind",
+    "severity": "Severity",
+    "summary": "What changed?",
+    "summaryHint": "A line or two the receiver can follow without opening the code.",
+    "prompt": "Prompt for the receiving agent (optional)",
+    "promptHint": "Such as: Run pnpm api:sync, then update the refund form.",
+    "files": "Files or endpoints",
+    "perLine": "One per line",
+    "change": "Change card",
+    "create": "Send handoff",
+    "required": "Say what changed to continue."
+  }
+}

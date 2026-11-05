@@ -1,0 +1,96 @@
+{
+  "title": "Timeline",
+  "errorThing": "the timeline",
+  "meta": {
+    "zero": "No matching events",
+    "one": "1 event in this view",
+    "other": "# events in this view"
+  },
+  "refresh": "Show new events",
+  "refreshed": "New events added",
+  "newEvents": {
+    "one": "1 arrived while you were here",
+    "other": "# arrived while you were here"
+  },
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "dayEvents": {
+    "one": "1 event",
+    "other": "# events"
+  },
+  "quiet": "{d} quiet",
+  "tide": "Your last visit: {when}",
+  "filters": {
+    "open": "Filters",
+    "openCount": "Filters ({n})",
+    "title": "Filter the timeline",
+    "done": "Done",
+    "clear": "Clear filters",
+    "roles": "Role",
+    "types": "Card type",
+    "repo": "Repo",
+    "anyRepo": "All repos",
+    "module": "Module",
+    "anyModule": "All modules",
+    "member": "Member",
+    "anyMember": "All members",
+    "range": "Date range",
+    "anyRange": "All time",
+    "rangeToday": "Today",
+    "rangeWeek": "Last 7 days",
+    "rangeVisit": "Since my last visit",
+    "rangeCustom": "Custom range"
+  },
+  "rail": {
+    "label": "Jump to a day"
+  },
+  "row": {
+    "more": {
+      "other": "+#"
+    },
+    "less": "Hide",
+    "copyPrompt": "Copy prompt",
+    "openPr": "Open PR",
+    "openLab": "Open in lab",
+    "commits": {
+      "one": "1 commit",
+      "other": "# commits"
+    },
+    "files": {
+      "one": "1 file",
+      "other": "# files"
+    },
+    "blocks": {
+      "one": "Blocks 1 card",
+      "other": "Blocks # cards"
+    },
+    "dueIn": "Due {rel}",
+    "overdueBy": "{d} overdue",
+    "pendingFor": "Pending for {d}",
+    "noSummary": "No summary",
+    "score": "Score {n}/100",
+    "included": {
+      "one": "Includes 1 card",
+      "other": "Includes # cards"
+    },
+    "escalatedTo": "Escalated to {role}",
+    "onto": "into {base}",
+    "hasSummary": "With summary",
+    "route": "{from} to {to}",
+    "takenBy": "Claimed by {name}",
+    "unclaimed": "Not claimed"
+  },
+  "empty": {
+    "noMatch": "No events match these filters",
+    "noMatchBody": "Widen the date range or clear the filters.",
+    "firstTitle": "No events yet",
+    "firstBody": "The timeline fills up as soon as a source is connected or a card is created.",
+    "firstLink": "Connect a source in Settings"
+  },
+  "older": "Load older",
+  "olderLoaded": {
+    "one": "Loaded 1 older event",
+    "other": "Loaded # older events"
+  },
+  "start": "This is where the record starts."
+}

@@ -1,0 +1,79 @@
+{
+  "title": "Inbox",
+  "errorThing": "your inbox",
+  "summary": {
+    "unread": {
+      "zero": "Nothing unread",
+      "one": "1 unread",
+      "other": "# unread"
+    }
+  },
+  "waitingLine": {
+    "one": "1 card waits for you in Today",
+    "other": "# cards wait for you in Today"
+  },
+  "allRead": "All read",
+  "markAll": "Mark all read",
+  "markedAll": {
+    "one": "Marked 1 notification read",
+    "other": "Marked # notifications read"
+  },
+  "filters": {
+    "show": "Show",
+    "unread": "Unread",
+    "all": "All",
+    "showAll": "Show all notifications",
+    "kind": "Notification kind",
+    "anyKind": "All kinds",
+    "kinds": {
+      "routed": "Routed to me",
+      "mention": "Mentions",
+      "watch": "Watching",
+      "reminder": "Reminders",
+      "brief": "Briefs",
+      "system": "System"
+    },
+    "clear": "Clear filters"
+  },
+  "rest": {
+    "unread": "Unread",
+    "all": "All notifications",
+    "earlier": "Earlier",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "row": {
+    "unread": "Unread",
+    "more": {
+      "one": "+1 on this card",
+      "other": "+# on this card"
+    },
+    "markRead": "Mark read",
+    "markUnread": "Mark unread",
+    "archive": "Archive",
+    "restore": "Restore",
+    "openToday": "Open Today",
+    "openSettings": "Open sources",
+    "archived": "Notification archived",
+    "restored": "Notification restored",
+    "swipe": "Archive",
+    "readNow": "Marked read",
+    "unreadNow": "Marked unread"
+  },
+  "archive": {
+    "show": "Show archived ({n})",
+    "hide": "Back to the inbox",
+    "title": "Archived",
+    "empty": "No archived notifications."
+  },
+  "empty": {
+    "allTitle": "No notifications yet",
+    "allBody": "Notifications appear here when something is routed to your roles, you are mentioned, or a card you watch changes.",
+    "unreadTitle": "You’re all caught up",
+    "unreadBody": "New notifications land here as they arrive.",
+    "needsTitle": "Nothing waits for you",
+    "needsBody": "When a card is routed to you, it shows here with its action.",
+    "kindTitle": "No notifications of this kind",
+    "kindBody": "Try another kind, or clear the filters."
+  }
+}

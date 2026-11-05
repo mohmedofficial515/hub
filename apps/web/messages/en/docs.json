@@ -1,0 +1,45 @@
+{
+  "title": "Docs",
+  "meta": "The project’s documentation as it is in Git, in one place to read.",
+  "search": "Search docs…",
+  "searchLabel": "Search the docs through the Ask page",
+  "treeLabel": "Docs tree",
+  "sourceCount": {
+    "one": "1 doc",
+    "other": "# docs"
+  },
+  "expand": "Open {name}",
+  "collapse": "Close {name}",
+  "recentTitle": "Recently updated",
+  "recentBody": "Pick a doc from the tree, or start with what changed.",
+  "back": "All docs",
+  "stale": "Stale",
+  "staleHint": "The source moved and indexing has not run yet. The text may differ from Git.",
+  "updated": "Updated {when}",
+  "words": {
+    "one": "1 word",
+    "other": "# words"
+  },
+  "commit": "commit",
+  "copyPath": "Copy the path {path}",
+  "openGithub": "Open in GitHub",
+  "twin": "Doc language",
+  "twinNames": {
+    "ar": "العربية",
+    "en": "English"
+  },
+  "outline": "In this doc",
+  "referencedBy": "Referenced by",
+  "notReferenced": "No card references this doc yet.",
+  "sectionLink": "Link to the section {name}",
+  "copyCode": "Copy code",
+  "card": "Doc card",
+  "excerptNote": "Lab mock: shortened sample text. The real file is in Git.",
+  "emptyTitle": "No docs indexed",
+  "emptyBody": "Add a docs folder source in Settings.",
+  "emptyAction": "Open sources",
+  "errorThing": "the docs",
+  "loading": "Loading the docs",
+  "notFound": "This doc does not exist",
+  "notFoundBody": "Its file may have moved or been removed. Pick a doc from the tree."
+}

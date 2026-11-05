@@ -1,0 +1,76 @@
+{
+  "title": "Needs",
+  "errorThing": "needs",
+  "loading": "Loading needs",
+  "summary": {
+    "mine": {
+      "zero": "",
+      "one": "1 waits for you.",
+      "other": "# wait for you."
+    },
+    "open": {
+      "zero": "Nothing open",
+      "one": "1 open",
+      "other": "# open"
+    },
+    "delivered": {
+      "zero": ".",
+      "one": ", 1 awaiting a check.",
+      "other": ", # awaiting a check."
+    }
+  },
+  "rule": {
+    "lead": "Hub keeps the address and the value stays in the vault: every delivery here is a place to go, and no secret passes through."
+  },
+  "filters": {
+    "responsible": "Responsible",
+    "kind": "Kind",
+    "allKinds": "All kinds",
+    "lanes": "Group by",
+    "byStatus": "By status",
+    "byRole": "By role",
+    "verifiedGroup": "Finished",
+    "showVerified": "Show verified"
+  },
+  "stages": {
+    "requested": "Requested",
+    "in_progress": "In progress",
+    "delivered": "Delivered",
+    "verified": "Verified",
+    "cancelled": "Cancelled",
+    "emptyRequested": "No new requests.",
+    "emptyProgress": "Nobody is working on a request right now.",
+    "emptyDelivered": "Nothing waits for a check.",
+    "emptyVerified": "Nothing has been verified yet."
+  },
+  "row": {
+    "requestedBy": "From {name}, {rel}",
+    "requestedByStale": "From {name}",
+    "stale": "Stale for {d}",
+    "deliveredAt": "Delivered {rel}",
+    "verifiedAt": "Verified {rel}",
+    "blocksTitle": "Cards waiting on this need"
+  },
+  "empty": {
+    "title": "Nothing is needed from outside right now",
+    "body": "When the team needs a token, an account, a contract or a value check, the request appears here.",
+    "filteredTitle": "No needs match these filters",
+    "clear": "Clear filters"
+  },
+  "new": {
+    "button": "New need",
+    "title": "New need",
+    "what": "What is needed?",
+    "whatHint": "The thing’s name, not its value: “PayTR live token”.",
+    "kind": "Kind",
+    "responsible": "Responsible",
+    "responsibleHint": "Suggested from the kind. You can change it.",
+    "body": "Details",
+    "bodyHint": "What exactly, and where it will be used. Do not paste any value here.",
+    "due": "Due (optional)",
+    "blocks": "Blocks",
+    "blocksHint": "Cards waiting on this need.",
+    "create": "Create need",
+    "required": "Say what is needed to continue."
+  }
+}

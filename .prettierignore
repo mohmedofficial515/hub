@@ -10,3 +10,4 @@ apps/api/openapi
 apps/web/openapi
 apps/api/prisma/migrations
 next-env.d.ts
+apps/web/src/lib/api/generated

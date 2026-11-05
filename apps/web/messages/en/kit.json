@@ -1,0 +1,695 @@
+{
+  "types": {
+    "task": "Task",
+    "decision": "Decision",
+    "need": "Need",
+    "change": "Change",
+    "handoff": "Handoff",
+    "redesign": "Redesign",
+    "doc": "Doc",
+    "release": "Release",
+    "idea": "Idea",
+    "plan": "Plan"
+  },
+  "roles": {
+    "owner": "Owner",
+    "pm": "PM",
+    "accountant": "Accountant",
+    "backend": "Backend",
+    "frontend": "Frontend",
+    "designer": "Designer",
+    "qa": "QA"
+  },
+  "routed": "Routed to your role: {role}",
+  "moreRoles": "+{n}",
+  "status": {
+    "backlog": "Backlog",
+    "ready": "Ready",
+    "claimed": "Claimed",
+    "in_progress": "In progress",
+    "in_review": "In review",
+    "done": "Done",
+    "cancelled": "Cancelled",
+    "open": "Open",
+    "decided": "Decided",
+    "withdrawn": "Withdrawn",
+    "superseded": "Superseded",
+    "requested": "Requested",
+    "delivered": "Delivered",
+    "verified": "Verified",
+    "pending": "Pending",
+    "acknowledged": "Acknowledged",
+    "applied": "Applied",
+    "dismissed": "Dismissed",
+    "draft": "Draft",
+    "review": "In review",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "ported": "Ported",
+    "reference": "Reference",
+    "recorded": "Recorded",
+    "current": "Current",
+    "stale": "Stale",
+    "removed": "Removed",
+    "planned": "Planned",
+    "released": "Released",
+    "overdue": "Overdue",
+    "escalated": "Escalated",
+    "blocked": "Blocked",
+    "merged": "Merged",
+    "exploring": "Exploring",
+    "accepted": "Accepted",
+    "parked": "Parked",
+    "abandoned": "Abandoned"
+  },
+  "actions": {
+    "decide": "Decide",
+    "withdraw": "Withdraw",
+    "deliver": "Deliver",
+    "start": "Start",
+    "verify": "Verify",
+    "cancel": "Cancel",
+    "acknowledge": "Acknowledge",
+    "apply": "Apply",
+    "dismiss": "Dismiss",
+    "approve": "Approve",
+    "reject": "Reject",
+    "request_changes": "Request changes",
+    "claim": "Claim",
+    "unclaim": "Unclaim",
+    "send_to_review": "Send to review",
+    "mark_ported": "Mark ported",
+    "release": "Mark released",
+    "mark_ready": "Mark ready",
+    "reopen": "Send back",
+    "submit_review": "Submit for review",
+    "complete": "Mark done",
+    "resume": "Back to work",
+    "reject_delivery": "Reject delivery",
+    "explore": "Start exploring",
+    "accept": "Accept",
+    "park": "Park",
+    "to_plan": "Turn into a plan",
+    "to_tasks": "Create tasks",
+    "finish": "Finish plan",
+    "abandon": "Abandon",
+    "mark_backlog": "Back to backlog"
+  },
+  "actionsByType": {
+    "need": {
+      "cancel": "Cancel request"
+    },
+    "task": {
+      "cancel": "Cancel task"
+    }
+  },
+  "done": {
+    "decide": "Decision recorded on {key}",
+    "withdraw": "Withdrew {key}",
+    "deliver": "Delivered {key}",
+    "start": "Started {key}",
+    "verify": "Verified {key}",
+    "cancel": "Cancelled {key}",
+    "acknowledge": "Acknowledged {key}",
+    "apply": "Applied {key}",
+    "dismiss": "Dismissed {key}",
+    "approve": "Approved {key}",
+    "reject": "Rejected {key}",
+    "request_changes": "Requested changes on {key}",
+    "claim": "Claimed {key}",
+    "unclaim": "Unclaimed {key}",
+    "send_to_review": "Sent {key} to review",
+    "mark_ported": "Marked {key} ported",
+    "release": "Released {key}",
+    "mark_ready": "Moved {key} to ready",
+    "reopen": "Sent {key} back",
+    "submit_review": "Submitted {key} for review",
+    "complete": "Marked {key} done",
+    "resume": "{key} is back to work",
+    "reject_delivery": "Rejected delivery of {key}",
+    "explore": "Exploring {key}",
+    "accept": "Accepted {key}",
+    "park": "Parked {key}",
+    "to_plan": "Turned {key} into a plan",
+    "to_tasks": "Created tasks for {key}",
+    "finish": "Finished {key}",
+    "abandon": "Abandoned {key}",
+    "mark_backlog": "{key} is back in the backlog"
+  },
+  "undo": "Undo",
+  "dismiss": "Dismiss",
+  "close": "Close",
+  "cancel": "Not now",
+  "retry": "Retry",
+  "all": "All",
+  "filters": {
+    "mine": "Mine",
+    "open": "Filters",
+    "openCount": "Filters ({n})",
+    "remove": "Remove the filter: {name}"
+  },
+  "mineMark": "Yours",
+  "sourceStatus": {
+    "ok": "Live",
+    "lagging": "Behind",
+    "failing": "Failing",
+    "disabled": "Off"
+  },
+  "search": "Search",
+  "copy": {
+    "copied": "Copied",
+    "label": "Copy {text}",
+    "key": "Copy key",
+    "link": "Copy link"
+  },
+  "relative": {
+    "justNow": "just now"
+  },
+  "actor": {
+    "agentSuffix": "(agent)",
+    "system": "System"
+  },
+  "online": "Online now",
+  "lastSeen": "Last seen {rel}",
+  "error": {
+    "title": "Couldn’t load {thing}",
+    "code": "Code",
+    "requestId": "Request ID",
+    "forbidden": "You don’t have access to this",
+    "forbiddenRole": "This section needs the {role} role."
+  },
+  "empty": {
+    "comingNext": "Coming next"
+  },
+  "loading": {
+    "still": "Still loading…"
+  },
+  "secret": {
+    "title": "This text looks like it contains a secret ({pattern})",
+    "body": "Remove it and describe where the value is stored instead."
+  },
+  "toast": {
+    "undoHint": "Press {key} to undo",
+    "blocked": "{key} is blocked by {blocker}"
+  },
+  "confirm": {
+    "reason": "Reason",
+    "reasonRequired": "Write a reason to continue."
+  },
+  "sheet": {
+    "label": "Card {key}",
+    "actionsLabel": "Card actions",
+    "more": "More options",
+    "watch": "Watch",
+    "unwatch": "Stop watching",
+    "watching": "Watching",
+    "copyKey": "Copy key",
+    "copyLink": "Copy link",
+    "archive": "Delete",
+    "restore": "Restore",
+    "archived": "Deleted",
+    "archiveTitle": "Delete this card?",
+    "archiveBody": "It disappears from every page, count and search result. You can restore it from Deleted.",
+    "notFound": "No card {key} in this workspace",
+    "notFoundBody": "Check the key, or search for it from the search bar.",
+    "created": "Created by",
+    "tabs": {
+      "details": "Details",
+      "comments": "Comments",
+      "history": "History",
+      "links": "Links"
+    },
+    "noBody": "This card has no description.",
+    "comments": {
+      "empty": "No comments yet. Write the first one.",
+      "placeholder": "Write a comment. Use GTV- to link a card.",
+      "label": "New comment",
+      "send": "Send",
+      "hint": "Ctrl+Enter sends",
+      "redacted": "This comment was redacted",
+      "agent": "(agent)"
+    },
+    "history": {
+      "empty": "No events yet.",
+      "via": "via {via}",
+      "fields": "Field",
+      "selfVerified": "Self-verified",
+      "kinds": {
+        "created": "created the card",
+        "status_changed": "changed the status",
+        "field_changed": "edited a field",
+        "claimed": "claimed",
+        "unclaimed": "unclaimed",
+        "commented": "commented",
+        "linked": "added a link",
+        "unlinked": "removed a link",
+        "decided": "made the decision",
+        "reminder_sent": "sent a reminder",
+        "escalated": "escalated",
+        "delivered": "delivered",
+        "verified": "verified",
+        "acknowledged": "acknowledged",
+        "applied": "applied",
+        "dismissed": "dismissed",
+        "commit": "pushed a commit",
+        "pr_opened": "opened a PR",
+        "pr_merged": "merged a PR",
+        "pr_closed": "closed a PR",
+        "session_logged": "logged a session",
+        "approved": "approved",
+        "rejected": "rejected",
+        "changes_requested": "requested changes",
+        "ported": "ported",
+        "unblocked": "unblocked",
+        "archived": "archived",
+        "restored": "restored",
+        "redacted": "redacted a comment",
+        "watch": "started watching",
+        "unwatch": "stopped watching"
+      },
+      "fieldNames": {
+        "status": "Status",
+        "priority": "Priority",
+        "by": "By",
+        "byKey": "Replaced by",
+        "branch": "Branch",
+        "adrStatus": "ADR status",
+        "note": "Note",
+        "reason": "Reason",
+        "location": "Location",
+        "rationale": "Why",
+        "optionTitle": "Option",
+        "optionId": "Option",
+        "channels": "Channels",
+        "kind": "Kind",
+        "via": "Via",
+        "offsetHours": "Hours before due",
+        "afterHours": "Hours after due",
+        "afterDays": "After (days)",
+        "toRole": "To",
+        "number": "Number",
+        "head": "Branch",
+        "base": "Base",
+        "excerpt": "Excerpt",
+        "otherCardKey": "Card",
+        "task": "Task",
+        "files": "Files",
+        "ref": "Ref"
+      },
+      "values": {
+        "pr_opened": "PR open",
+        "none": "None",
+        "inbox": "Inbox",
+        "owner": "Owner",
+        "pm": "PM",
+        "accountant": "Accountant",
+        "backend": "Backend",
+        "frontend": "Frontend",
+        "designer": "Designer",
+        "qa": "QA"
+      }
+    },
+    "links": {
+      "empty": "No links yet.",
+      "kinds": {
+        "blocks": "Blocks",
+        "blocked_by": "Blocked by",
+        "relates": "Relates to",
+        "parent": "Child of",
+        "duplicates": "Duplicates"
+      },
+      "add": "Add link",
+      "key": "Card key",
+      "kind": "Link type",
+      "invalid": "No card has this key.",
+      "self": "A card cannot link to itself."
+    },
+    "fields": {
+      "due": "Due",
+      "overdue": "{d} overdue",
+      "dueIn": "Due {rel}",
+      "responsible": "Responsible",
+      "requester": "Requested by",
+      "kind": "Kind",
+      "severity": "Severity",
+      "module": "Module",
+      "from": "From",
+      "to": "To",
+      "branch": "Branch",
+      "reason": "Reason",
+      "note": "Note",
+      "noteOptional": "Note (optional)"
+    },
+    "task": {
+      "specialty": "Specialty",
+      "specialties": {
+        "backend": "Backend",
+        "frontend": "Frontend",
+        "design": "Design",
+        "qa": "QA",
+        "ops": "Ops",
+        "docs": "Docs"
+      },
+      "effort": "Effort",
+      "acceptance": "Acceptance",
+      "prompt": "Start command",
+      "promptHint": "Paste it in Claude Code to start.",
+      "claimer": "Claimed by",
+      "unclaimed": "Not claimed yet",
+      "origin": "Origin",
+      "origins": {
+        "manual": "Manual",
+        "import_suggestion": "Imported suggestion",
+        "session_followup": "Session follow-up",
+        "redesign_port": "Redesign port",
+        "decision": "From a decision",
+        "handoff": "From a handoff"
+      },
+      "pr": "PR",
+      "blockedBy": "Blocked by {key}"
+    },
+    "decision": {
+      "question": "Question",
+      "options": "Options",
+      "pick": "Pick an option",
+      "rationale": "Why this option",
+      "rationaleHint": "One or two lines. They stay in the history and in the ADR.",
+      "recommended": "Recommended",
+      "chosen": "Chosen",
+      "pros": "Pros",
+      "cons": "Cons",
+      "cost": "Cost",
+      "decider": "Decider",
+      "decidedBy": "Decided by",
+      "reminders": "Reminders",
+      "noReminders": "No reminder sent",
+      "escalated": "Escalated to {role} {when}",
+      "adr": "Decision record (ADR)",
+      "adrNone": "No ADR yet.",
+      "adrStatus": {
+        "none": "None",
+        "drafted": "Drafted",
+        "pr_opened": "PR open",
+        "merged": "Merged",
+        "failed": "Failed"
+      },
+      "adrHint": "Draft it with {cmd} in Claude Code.",
+      "save": "Record decision",
+      "needPick": "Pick an option before saving."
+    },
+    "need": {
+      "steps": {
+        "requested": "Requested",
+        "in_progress": "In progress",
+        "delivered": "Delivered",
+        "verified": "Verified"
+      },
+      "kinds": {
+        "token": "Token",
+        "account": "Account",
+        "contract": "Contract",
+        "value_check": "Value check",
+        "file": "File",
+        "access": "Access",
+        "other": "Other"
+      },
+      "location": "Where the value is",
+      "locationHint": "Write where you put it, never the value itself.",
+      "locationPending": "Shown after delivery.",
+      "deliveredBy": "Delivered by",
+      "verifiedBy": "Verified by",
+      "verifyNote": "Verification note",
+      "saveDeliver": "Record delivery",
+      "saveVerify": "Record verification"
+    },
+    "change": {
+      "kinds": {
+        "commits": "Commits",
+        "pull_request": "Pull request",
+        "session": "Session"
+      },
+      "author": "Author",
+      "commits": "commits",
+      "files": "files",
+      "added": "added",
+      "removed": "removed",
+      "commitList": "Commits",
+      "pr": "PR",
+      "prStates": {
+        "open": "Open",
+        "merged": "Merged",
+        "closed": "Closed"
+      },
+      "session": "Session",
+      "changed": "Changed",
+      "remaining": "Remaining",
+      "noSummary": "No summary",
+      "noSummaryHint": "Run {cmd} in Claude Code to write the summary.",
+      "duration": "Duration",
+      "openPr": "Open PR"
+    },
+    "handoff": {
+      "route": "Route",
+      "kinds": {
+        "contract": "API contract",
+        "component": "Component",
+        "design": "Design",
+        "data": "Data",
+        "other": "Other"
+      },
+      "severities": {
+        "breaking": "Breaking",
+        "notable": "Notable",
+        "info": "Info"
+      },
+      "pendingAge": "Pending for {d}",
+      "summary": "Summary",
+      "diff": "Changes",
+      "breaking": "Breaking",
+      "nonBreaking": "Non-breaking",
+      "before": "Before",
+      "after": "After",
+      "schemas": "Schemas changed",
+      "files": "Files",
+      "viewRaw": "View JSON",
+      "hideRaw": "Hide JSON",
+      "prompt": "Prompt for the receiving agent",
+      "source": "Source change",
+      "appliedTask": "Applying task",
+      "ackHint": "Acknowledging tells the team you saw the change. Applying it comes later.",
+      "saveAck": "Record acknowledgement",
+      "saveApply": "Record as applied"
+    },
+    "redesign": {
+      "lab": "Lab",
+      "openLab": "Open in lab",
+      "compare": "Compare",
+      "base": "Base",
+      "score": "Review score",
+      "review": "Review",
+      "openReview": "Open review.md",
+      "touches": "Touches components",
+      "shots": "Screenshots",
+      "noteRequired": "A note is required.",
+      "noteOptional": "Note (optional)",
+      "saveApprove": "Record approval",
+      "saveReject": "Record rejection",
+      "saveChanges": "Send change request",
+      "portTask": "Port task",
+      "ported": "Ported to"
+    },
+    "doc": {
+      "path": "Path",
+      "kinds": {
+        "doc": "Doc",
+        "adr": "ADR",
+        "status": "Status",
+        "readme": "README",
+        "other": "Other"
+      },
+      "source": "Source",
+      "commit": "Last commit",
+      "words": "words",
+      "outline": "Outline",
+      "referencedBy": "Referenced by",
+      "openGithub": "Open in GitHub",
+      "indexed": "Indexed {when}"
+    },
+    "release": {
+      "version": "Version",
+      "repo": "Repo",
+      "released": "Released",
+      "included": "Includes",
+      "notes": "Notes",
+      "noteTabs": {
+        "team": "Team",
+        "owner": "Owner",
+        "accountant": "Accountant"
+      }
+    },
+    "notLoaded": "This card did not load."
+  },
+  "blocksCount": {
+    "one": "Blocks 1 card",
+    "other": "Blocks # cards"
+  },
+  "sections": {
+    "pickField": {
+      "add": "Choose",
+      "remove": "Remove {key}"
+    },
+    "pickers": {
+      "cardTitle": "Pick cards",
+      "docTitle": "Pick docs",
+      "searchCards": "Search by key or title",
+      "searchDocs": "Search by path or title",
+      "typeFilter": "Card type",
+      "allTypes": "All types",
+      "results": "Results",
+      "noResults": "Nothing matches your search",
+      "noResultsBody": "Try another word, or paste the full card key.",
+      "noDocs": "No docs indexed yet",
+      "noDocsBody": "Docs appear here once a docs source is connected in Settings.",
+      "selected": "Selected",
+      "remove": "Remove {key}",
+      "confirm": "Add",
+      "count": {
+        "zero": "Nothing picked yet",
+        "one": "1 picked",
+        "other": "# picked"
+      },
+      "hint": "Arrows move, Enter picks, Ctrl+Enter adds",
+      "tree": "Docs tree"
+    },
+    "rowAction": {
+      "needsRole": "This is for the {role} role"
+    },
+    "lightbox": {
+      "previous": "Previous screenshot",
+      "next": "Next screenshot",
+      "close": "Close",
+      "download": "Download {name}",
+      "count": "{n} of {total}",
+      "label": "Screenshot viewer"
+    },
+    "change": {
+      "window": "Window",
+      "state": "State",
+      "moreCommits": {
+        "one": "and 1 more commit on GitHub",
+        "other": "and # more commits on GitHub"
+      },
+      "files": {
+        "one": "1 file",
+        "other": "# files"
+      },
+      "related": "Related cards",
+      "login": "GitHub account",
+      "sizeLabel": "Change size: {added} lines added, {removed} lines removed"
+    },
+    "decision": {
+      "rationaleShort": "Write at least {n} characters, so the team can later see why you chose this.",
+      "draftAdr": "Draft the ADR now",
+      "draftAdrHint": "You or the PM can edit it before opening the PR.",
+      "adrRepo": "ADR repo",
+      "repos": {
+        "backend": "Backend docs",
+        "dashboard": "Dashboard docs",
+        "web": "Web docs",
+        "hub": "Hub docs"
+      },
+      "openPr": "Open a PR for this ADR",
+      "viewPr": "View PR",
+      "reason": "Reason",
+      "replacedBy": "Replaced by",
+      "related": "Related docs",
+      "withdrawnNote": "This decision was withdrawn before it was made."
+    },
+    "doc": {
+      "read": "Read it on the Docs page",
+      "stale": "The source moved and indexing has not run yet",
+      "lang": "Language",
+      "langs": {
+        "ar": "Arabic",
+        "en": "English"
+      }
+    },
+    "handoff": {
+      "copyPrompt": "Copy prompt",
+      "promptCopied": "Prompt copied. Paste it in Claude Code.",
+      "howApplied": "How was it applied?",
+      "createTask": "Create a task for this handoff",
+      "createTaskHint": "The prompt above becomes the task’s start command.",
+      "linkTask": "Link an existing task",
+      "noTask": "Applied without a task",
+      "taskTitle": "Task title",
+      "taskKey": "Task key",
+      "taskInvalid": "No task has this key.",
+      "ackBy": "Acknowledged by",
+      "appliedBy": "Applied by",
+      "reason": "Why it was dismissed",
+      "stale": "Waiting too long"
+    },
+    "need": {
+      "pointer": "Where the value is, not the value",
+      "copy": "Copy the location",
+      "examples": "Examples of what goes here",
+      "rule": "Hub keeps the address only. The value stays in the vault and never passes through here.",
+      "savedAs": "The team will see this",
+      "rawValue": "a raw value",
+      "verifyHint": "Open the location below and check the value works, then record it. Keep the value out of the note.",
+      "selfHint": "You delivered this need, so this is recorded as self-verified. Say how you checked the value works, without the value itself.",
+      "selfRequired": "Self-verifying needs a note.",
+      "selfVerified": "Self-verified",
+      "cancelled": "This request was cancelled",
+      "reason": "Reason"
+    },
+    "release": {
+      "wroteBy": "Written by",
+      "template": "A skeleton from Hub’s template. It can be polished from Claude Code.",
+      "copy": "Copy the {name} notes"
+    },
+    "task": {
+      "pasteHint": "In Claude Code paste {cmd}",
+      "copyPrompt": "Copy prompt",
+      "pr": "Pull request",
+      "openPr": "Open PR #{n}",
+      "prOptional": "PR link (optional)",
+      "submitNote": "Note for the reviewer (optional)",
+      "saveSubmit": "Submit for review",
+      "reopenNote": "What needs changing?",
+      "reopenRequired": "Write what needs changing, so the claimer knows.",
+      "saveReopen": "Send back",
+      "started": "Started",
+      "finished": "Finished",
+      "bindBranch": "Bind a branch",
+      "branchLabel": "Branch name",
+      "branchHint": "It also binds by itself when a session log names the task key.",
+      "saveBranch": "Bind",
+      "addBlocker": "Add a blocker",
+      "addDoc": "Link a doc",
+      "blockerTitle": "Cards this task waits on",
+      "docTitle": "Docs related to this task",
+      "overdue": "{d} overdue",
+      "dueSoon": "{d} left"
+    },
+    "idea": {
+      "problem": "Problem",
+      "notes": "Notes",
+      "planLink": "Plan",
+      "noProblem": "The problem has not been written yet."
+    },
+    "plan": {
+      "body": "Plan",
+      "steps": "Steps",
+      "noBody": "The plan has not been written yet.",
+      "noSteps": "No steps yet.",
+      "progress": "{done} of {total}"
+    }
+  },
+  "actionFailed": "That did not go through. Everything is back as it was.",
+  "languages": {
+    "ar": "العربية",
+    "en": "English"
+  }
+}

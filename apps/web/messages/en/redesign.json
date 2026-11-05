@@ -1,0 +1,112 @@
+{
+  "title": "Redesign",
+  "metaOwner": {
+    "zero": "No versions wait for your verdict.",
+    "one": "One version waits for your verdict.",
+    "other": "# versions wait for your verdict."
+  },
+  "metaOther": "Lab pages and their versions. The owner decides, and anyone can compare.",
+  "openLab": "Open lab",
+  "filters": {
+    "app": "App",
+    "status": "Status"
+  },
+  "apps": {
+    "web": "Web",
+    "dashboard": "Dashboard",
+    "hub": "Hub"
+  },
+  "brief": {
+    "brief": "Brief",
+    "researching": "Researching",
+    "designing": "Designing",
+    "decided": "Decided",
+    "ported": "Ported"
+  },
+  "briefLabel": "Page stage",
+  "live": "Live page",
+  "versions": {
+    "one": "1 version",
+    "other": "# versions"
+  },
+  "hidden": {
+    "one": "1 more page has no version in this status",
+    "other": "# more pages have no version in this status"
+  },
+  "showAllPages": "Show all pages",
+  "onlyThisPage": "Show only this page",
+  "railLabel": "Versions of {page}, oldest to newest",
+  "score": "Review score",
+  "scoreOf": "Review score {score} out of 100",
+  "basedOn": "Based on {base}",
+  "noShot": "No screenshots for this version yet",
+  "enlarge": "Enlarge the {version} screenshot",
+  "shotAlt": "Screenshot of {version}",
+  "compareWithBase": "Compare with base",
+  "addToCompare": "Add {version} to compare",
+  "removeFromCompare": "Remove {version} from compare",
+  "ownerDecides": "Owner decides",
+  "components": {
+    "zero": "Touches no shared components",
+    "one": "Touches 1 component",
+    "other": "Touches # components"
+  },
+  "noComponents": "Touches no shared components",
+  "bar": {
+    "pickOne": "Pick two versions to compare.",
+    "pickAnother": "Pick a second version of {page}.",
+    "ready": "{a} with {b}",
+    "open": "Compare",
+    "clear": "Clear selection",
+    "label": "Compare selection"
+  },
+  "emptyTitle": "No lab pages yet",
+  "emptyBody": "Create a page brief in apps/lab, as the redesign-workflow skill explains.",
+  "emptyCmd": "apps/lab",
+  "noMatchTitle": "No versions match these filters",
+  "noMatchBody": "Try another status, or show every version.",
+  "clearFilters": "Clear filters",
+  "errorThing": "lab pages",
+  "loading": "Loading lab pages",
+  "compare": {
+    "title": "Compare two versions",
+    "description": "Size, language and theme apply to both versions.",
+    "versionA": "First version",
+    "versionB": "Second version",
+    "swap": "Swap the two versions",
+    "device": "Size",
+    "fill": "Fill",
+    "lang": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "arabic": "Arabic",
+    "english": "English",
+    "mode": "View",
+    "split": "Side by side",
+    "curtain": "Curtain",
+    "showing": "Showing",
+    "sync": "Sync scroll",
+    "notes": "Notes",
+    "closest": "No shot with these settings. Closest: {name}",
+    "noShot": "No screenshots for this version",
+    "noShotBody": "Open it in the lab to see it at real size.",
+    "openInLab": "Open in lab",
+    "curtainLabel": "Curtain position between the two versions",
+    "close": "Close compare",
+    "a": "A",
+    "b": "B",
+    "noScore": "Not reviewed yet"
+  },
+  "sheet": {
+    "enlarge": "Enlarge {name}",
+    "markPortedRef": "Port reference",
+    "markPortedHint": "In the form: branch@sha (repo)",
+    "refRequired": "Write the port reference.",
+    "savePorted": "Record the port",
+    "reviewTitle": "Review of {version}",
+    "copyCode": "Copy code",
+    "closeReview": "Close",
+    "noShots": "No screenshots for this version yet."
+  }
+}
