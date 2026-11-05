@@ -71,7 +71,9 @@ describe('DesktopSidebar', () => {
   it('says the count in words', async () => {
     stubFetch(api);
     mount();
-    expect(await screen.findByRole('link', { name: 'Tasks, 1 task ready for you' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: 'Tasks, 1 task ready in the project' }),
+    ).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Inbox, 3 unread' })).toBeInTheDocument();
   });
 

@@ -71,6 +71,11 @@
   },
   "ready": {
     "title": "Ready for my roles",
+    "titleProject": {
+      "zero": "No tasks ready in the project",
+      "one": "1 task ready in the project",
+      "other": "# tasks ready in the project"
+    },
     "claim": "Claim",
     "claimTask": "Claim {key}",
     "effort": "Effort",
@@ -84,6 +89,8 @@
     },
     "emptyTitle": "No ready tasks for my roles.",
     "emptyBody": "Ready tasks for my specialties appear here, highest priority first.",
+    "emptyTitleProject": "No tasks ready in the project.",
+    "emptyBodyProject": "Every ready task in the project appears here, highest priority first.",
     "emptyLink": "Check the backlog"
   },
   "letter": {

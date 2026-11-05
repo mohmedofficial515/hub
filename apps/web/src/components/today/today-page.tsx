@@ -5,6 +5,7 @@
  * @description My start page (docs/09 §4), on `GET /today`: two lanes, what I act on and what I read. The stack, Ready and the band read the same lists
  * the sidebar does, so a number and its rows cannot disagree, and the stream keeps all of it current.
  */
+import { seesAllReadyWork } from '@hub/contracts';
 import { Inbox, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -101,7 +102,7 @@ export function TodayPage() {
     [data?.changesSince.events],
   );
   const stackKeys = useMemo(() => new Set(stack.map((c) => c.key)), [stack]);
-  const showReady = roles.some((r) => BUILDER_ROLES.includes(r));
+  const showReady = seesAllReadyWork(roles) || roles.some((r) => BUILDER_ROLES.includes(r));
   const overdue = stack.filter(isOverdue).length;
 
   // A refresh keeps the page where it is: the icon spins, the content stays (review M7, 08 §3.4).

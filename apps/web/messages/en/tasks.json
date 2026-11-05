@@ -7,6 +7,11 @@
       "one": "1 ready for your roles",
       "other": "# ready for your roles"
     },
+    "readyProject": {
+      "zero": "No tasks ready in the project",
+      "one": "1 task ready in the project",
+      "other": "# tasks ready in the project"
+    },
     "mine": {
       "zero": "",
       "one": ", 1 in your hands",

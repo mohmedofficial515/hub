@@ -19,6 +19,7 @@ export interface ShellDict {
     | 'timeline'
     | 'planning'
     | 'tasks'
+    | 'tasksProject'
     | 'decisions'
     | 'decisionsOverdue'
     | 'needs'

@@ -34,6 +34,11 @@
       "one": "1 task ready for you",
       "other": "# tasks ready for you"
     },
+    "tasksProject": {
+      "zero": "No tasks ready in the project",
+      "one": "1 task ready in the project",
+      "other": "# tasks ready in the project"
+    },
     "decisions": {
       "one": "1 decision routed to you",
       "other": "# decisions routed to you"

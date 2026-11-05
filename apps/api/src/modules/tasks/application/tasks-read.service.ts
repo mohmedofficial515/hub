@@ -6,10 +6,9 @@ import {
   type CardSummary,
   type CardWithDetail,
   parseSetting,
+  readySpecialties,
   settingDefault,
-  SPECIALTIES,
   type Specialty,
-  SPECIALTY_ROLES,
 } from '@hub/contracts';
 import { Injectable } from '@nestjs/common';
 
@@ -28,13 +27,6 @@ export class TasksReadService {
     private readonly cards: CardRepository,
   ) {}
 
-  private specialtiesOf(actor: Actor): Specialty[] {
-    if (actor.roles.includes('owner') || actor.roles.includes('pm')) return [...SPECIALTIES];
-    return SPECIALTIES.filter((specialty) =>
-      SPECIALTY_ROLES[specialty].some((role) => actor.roles.includes(role)),
-    );
-  }
-
   /** Ready and not blocked, for one specialty or all of mine, urgent first then oldest. */
   async ready(
     actor: Actor,
@@ -47,7 +39,7 @@ export class TasksReadService {
         ? settingDefault('tasks.ready_limit_per_role')
         : parseSetting('tasks.ready_limit_per_role', stored),
     );
-    const specialties = specialty ? [specialty] : this.specialtiesOf(actor);
+    const specialties = specialty ? [specialty] : readySpecialties(actor.roles);
     const page = await this.query.listWithDetail(actor, 'task', {
       statuses: ['ready'],
       where: {

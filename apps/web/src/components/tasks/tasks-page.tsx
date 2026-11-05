@@ -4,6 +4,7 @@
  * @file tasks-page.tsx
  * @description Ported from v5 `pages/tasks/page.tsx`. The board or the list, and the Deleted view at `?view=deleted`. Reasons: `F:/Goteav/redesign/hub/today/v5-peacock-app/pages/tasks/NOTES.md`.
  */
+import { seesAllReadyWork } from '@hub/contracts';
 import { Kanban, List, Plus, SearchX, SquareCheck } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
@@ -221,8 +222,9 @@ function TasksBoardOrList() {
   }, [view]);
 
   // The filled button is the next thing this page wants from me: the first Ready task I can claim (kit README, filled-button rule).
+  const seesAll = seesAllReadyWork(roles);
   const canClaim = (c: TaskCard) =>
-    inMyRole(c, roles) &&
+    (seesAll || inMyRole(c, roles)) &&
     openBlockers(c).length === 0 &&
     actionsFor(c, roles, me.id).some((a) => a.action === 'claim' && a.enabled);
   const primaryKey = byColumn.ready.find(canClaim)?.key;
@@ -296,7 +298,7 @@ function TasksBoardOrList() {
         loading ? (
           <Skeleton className="mt-1.5 h-4 w-52 max-w-full" />
         ) : error || empty ? undefined : (
-          plural(readyForMe, locale, t.summary.ready) +
+          plural(readyForMe, locale, seesAll ? t.summary.readyProject : t.summary.ready) +
           (inHands ? plural(inHands, locale, t.summary.mine) : '') +
           (awaitingReview ? plural(awaitingReview, locale, t.summary.review) : '')
         )

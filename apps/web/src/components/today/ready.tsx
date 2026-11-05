@@ -4,6 +4,7 @@
  * @file ready.tsx
  * @description Tasks I could take now. `GET /tasks/ready` leaves blocked ones out, so every row here can be claimed.
  */
+import { seesAllReadyWork } from '@hub/contracts';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ListTodo } from 'lucide-react';
 import { useRef } from 'react';
@@ -18,10 +19,13 @@ import {
   fmt,
   focusRing,
   Ltr,
+  plural,
   SectionHeader,
   type TaskCard,
   useKeyboardList,
+  useLocale,
   usePerformAction,
+  useSession,
   useT,
 } from '@/components/kit';
 
@@ -33,6 +37,8 @@ export function ReadyTasks({
   tasks: (CardListItem & { task?: Partial<TaskCard['task']> | undefined })[];
 }) {
   const t = useT<TodayMessages>(NS);
+  const locale = useLocale();
+  const seesAll = seesAllReadyWork(useSession().roles);
   const perform = usePerformAction();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const list = useKeyboardList({
@@ -47,12 +53,12 @@ export function ReadyTasks({
         ref={headingRef}
         id="ready-title"
         icon={ListTodo}
-        title={t.ready.title}
-        count={tasks.length}
+        title={seesAll ? plural(tasks.length, locale, t.ready.titleProject) : t.ready.title}
+        {...(seesAll ? {} : { count: tasks.length })}
       />
       {tasks.length === 0 ? (
-        <EmptyState icon={ListTodo} title={t.ready.emptyTitle}>
-          {t.ready.emptyBody}{' '}
+        <EmptyState icon={ListTodo} title={seesAll ? t.ready.emptyTitleProject : t.ready.emptyTitle}>
+          {seesAll ? t.ready.emptyBodyProject : t.ready.emptyBody}{' '}
           <AppLink
             view="tasks"
             query={{ status: 'backlog' }}

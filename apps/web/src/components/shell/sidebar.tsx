@@ -81,7 +81,10 @@ function badgeFor(
         : null;
     case 'tasks':
       return counts.tasksReady
-        ? { value: counts.tasksReady, label: say(t.counts.tasks, counts.tasksReady) }
+        ? {
+            value: counts.tasksReady,
+            label: say(manager ? t.counts.tasksProject : t.counts.tasks, counts.tasksReady),
+          }
         : null;
     case 'decisions':
       return counts.decisions.mine

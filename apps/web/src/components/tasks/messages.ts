@@ -9,6 +9,6 @@ import type catalog from '../../../messages/en/tasks.json';
 type Catalog = typeof catalog;
 
 export type TaskMessages = Omit<Catalog, 'summary' | 'board'> & {
-  summary: { ready: PluralForms; mine: PluralForms; review: PluralForms };
+  summary: { ready: PluralForms; readyProject: PluralForms; mine: PluralForms; review: PluralForms };
   board: Omit<Catalog['board'], 'blocked' | 'count'> & { blocked: PluralForms; count: PluralForms };
 };

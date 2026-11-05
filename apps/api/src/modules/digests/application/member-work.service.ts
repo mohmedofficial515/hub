@@ -9,8 +9,7 @@ import {
   type CardWithDetail,
   type MemberActor,
   type NoSummarySession,
-  SPECIALTIES,
-  SPECIALTY_ROLES,
+  readySpecialties,
 } from '@hub/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -53,12 +52,7 @@ export class MemberWorkService {
 
   /** Ready, unblocked tasks for my specialties, urgent first. Owner and pm see every specialty. */
   async ready(actor: Actor, stack?: readonly CardWithDetail[]): Promise<CardWithDetail[]> {
-    const manager = actor.roles.includes('owner') || actor.roles.includes('pm');
-    const specialties = manager
-      ? [...SPECIALTIES]
-      : SPECIALTIES.filter((specialty) =>
-          SPECIALTY_ROLES[specialty].some((role) => actor.roles.includes(role)),
-        );
+    const specialties = readySpecialties(actor.roles);
     if (specialties.length === 0) return [];
     const page = await this.query.listWithDetail(actor, 'task', {
       statuses: ['ready'],
