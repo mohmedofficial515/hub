@@ -139,8 +139,8 @@ function NavItem({
 }) {
   const t = useT(messages);
   const locale = useLocale();
-  const { view: current } = useRoute();
-  const active = current === view.id;
+  const { view: current, known } = useRoute();
+  const active = known && current === view.id;
   const Icon = view.icon;
   const label = t.nav[view.id];
   const pill = view.id === 'timeline';

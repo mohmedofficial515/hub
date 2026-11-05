@@ -14,7 +14,7 @@ export interface ShellDict {
   nav: Record<ViewId, string>;
   groups: Record<NavGroup, string>;
   boundary: Record<
-    'crashTitle' | 'crashBody' | 'retry' | 'notFoundTitle' | 'notFoundBody' | 'toProjects',
+    'crashTitle' | 'crashBody' | 'retry' | 'notFoundTitle' | 'notFoundBody' | 'toProjects' | 'toToday',
     string
   >;
   /** Counter badges in words (08 §6: `aria-label="3 unread"`), `#` is the number. */

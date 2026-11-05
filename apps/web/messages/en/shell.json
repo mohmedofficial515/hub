@@ -203,6 +203,7 @@
     "retry": "Try again",
     "notFoundTitle": "This page does not exist",
     "notFoundBody": "The link may be old or mistyped.",
-    "toProjects": "To projects"
+    "toProjects": "To projects",
+    "toToday": "To Today"
   }
 }

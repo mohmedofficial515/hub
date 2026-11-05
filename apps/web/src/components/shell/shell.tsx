@@ -5,7 +5,6 @@
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/shell.tsx. Contract: apps/web/README.md.
  */
 import { MotionConfig } from 'framer-motion';
-import { usePathname } from 'next/navigation';
 import { Direction, Tooltip as RadixTooltip } from 'radix-ui';
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -37,10 +36,8 @@ import { messages } from '@/lib/i18n';
 /** Moving between views: announce it and put focus on the new page's title, or on main until it has loaded. */
 function useViewFocus() {
   const t = useT(messages);
-  const { view } = useRoute();
+  const { view, known } = useRoute();
   // An unknown address parses as Today. It is not, and its 404 page names itself.
-  const segment = usePathname().split('/')[3];
-  const known = !segment || segment === view;
   const project = useSession().workspace?.name;
   useDocumentTitle(known ? t.nav[view] : undefined, known ? project : undefined);
   const first = useRef(true);

@@ -6,10 +6,12 @@
  */
 import { useEffect } from 'react';
 
+import { focusRing } from '@/components/cards/meta';
 import { PageContainer } from '@/components/common/layout';
 import { ErrorState } from '@/components/common/states';
-import { Button } from '@/components/ui/button';
+import { useRoute } from '@/components/shell/router';
 import { messages, useLocale, useT } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 export interface CaughtError {
   error: Error & { digest?: string };
@@ -36,19 +38,22 @@ export function FullPageCrash({ error, reset }: CaughtError) {
   );
 }
 
-function NotFoundBody() {
+function NotFoundBody({ href, action }: { href: string; action: string }) {
   const t = useT(messages).boundary;
-  const locale = useLocale();
   useEffect(() => {
     document.title = `${t.notFoundTitle} · Hub`;
   }, [t.notFoundTitle]);
   return (
     <>
       <ErrorState title={t.notFoundTitle} detail={t.notFoundBody} code="404" className="pb-0" />
-      <a href={`/${locale}/workspaces`} className="mt-4">
-        <Button variant="primary" tabIndex={-1}>
-          {t.toProjects}
-        </Button>
+      <a
+        href={href}
+        className={cn(
+          'mt-4 inline-flex h-11 items-center rounded-md bg-primary px-4 text-body font-medium text-primary-foreground hover:bg-primary-hover md:h-9',
+          focusRing,
+        )}
+      >
+        {action}
       </a>
     </>
   );
@@ -56,19 +61,24 @@ function NotFoundBody() {
 
 /** An unknown address with no project around it. */
 export function FullPageNotFound() {
+  const t = useT(messages).boundary;
+  const locale = useLocale();
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-1 bg-background p-4">
-      <NotFoundBody />
+      <NotFoundBody href={`/${locale}/workspaces`} action={t.toProjects} />
     </main>
   );
 }
 
 /** An unknown view of a project: the sidebar stays, so the way out is right there. */
 export function PageNotFound() {
+  const t = useT(messages).boundary;
+  const locale = useLocale();
+  const { ws } = useRoute();
   return (
     <PageContainer>
       <div className="flex flex-col items-center gap-1">
-        <NotFoundBody />
+        <NotFoundBody href={`/${locale}/${ws}/today`} action={t.toToday} />
       </div>
     </PageContainer>
   );

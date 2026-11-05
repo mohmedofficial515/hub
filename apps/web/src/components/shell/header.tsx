@@ -60,13 +60,17 @@ export function LiveIndicator() {
 
 function Breadcrumb() {
   const t = useT(messages);
-  const { view, cardKey } = useRoute();
+  const { view, known, cardKey } = useRoute();
   const { workspace } = useSession();
   const crumbs = [
     { key: 'ws', node: <span className="max-md:hidden">{workspace?.name}</span> },
     {
       key: 'view',
-      node: cardKey ? (
+      node: !known ? (
+        <span aria-current="page" className="font-semibold text-foreground">
+          {t.boundary.notFoundTitle}
+        </span>
+      ) : cardKey ? (
         <AppLink view={view} className={cn('rounded-sm underline-offset-4 hover:underline', focusRing)}>
           {t.nav[view]}
         </AppLink>

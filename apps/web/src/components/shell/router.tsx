@@ -21,7 +21,9 @@ export type SheetTab = 'details' | 'comments' | 'history' | 'links';
 export interface Route {
   locale: string;
   ws: string;
+  /** `today` when the address names no view. `known` tells that apart from really being on Today. */
   view: ViewId;
+  known: boolean;
   cardKey: string | null;
   query: URLSearchParams;
 }
@@ -33,7 +35,14 @@ const isView = (v: string | undefined): v is ViewId => !!v && (VIEW_IDS as reado
 export function parseRoute(pathname: string, search: string | URLSearchParams): Route {
   const [locale = 'ar', ws = '', view] = pathname.split('/').filter(Boolean);
   const query = new URLSearchParams(search);
-  return { locale, ws, view: isView(view) ? view : 'today', cardKey: query.get('card'), query };
+  return {
+    locale,
+    ws,
+    view: isView(view) ? view : 'today',
+    known: !view || isView(view),
+    cardKey: query.get('card'),
+    query,
+  };
 }
 
 export function useRoute(): Route {
