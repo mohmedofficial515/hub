@@ -259,7 +259,7 @@ Changed from the design:
 - `ActorChip` and `Avatar` read `useMember`. `Member.name` is one string, and `lastActiveAt` may be absent.
 - `showToast({ tone: 'error' })` for a refusal. Without `onUndo` a toast has no Undo.
 - Sheet sections: `components/cards/sheet-sections/<type>.tsx`, registered in `index.ts`. A section's file-local strings are in `kit.json` under `sections.<file>`. Editing is `?action=edit`, with shared parts in `edit-bits.tsx`: task, decision, idea and plan have it. `idea.tsx` holds the "Turn into a plan" form, and `plan.tsx` holds steps and revisions.
-- `RedesignSection` lost the curtain compare: the Redesign page's author moves `pages/redesign/parts/compare.tsx` here. Screenshots are the card's attachments.
+- `RedesignSection` opens the curtain compare from `components/redesign/compare.tsx`. Screenshots are the card's attachments, served by the API from the lab folder (`features/redesign/lab.ts` reads their names).
 - `to_plan`, `to_tasks` and the other Idea and Plan verbs come from the contract, so the sheet offers them already. `to_tasks` is the one action that keeps its sheet open.
 - The Deleted view is `tasks?view=deleted` (`components/tasks/deleted-view.tsx`). `DeletedLink` is the way in from a filter panel.
 - A list with detail: `fetchDetailRows` (`features/cards/rows.ts`). A row still has no `body`: read the card (`useCardQuery`) when you need the text.
