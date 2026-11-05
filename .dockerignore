@@ -1,0 +1,13 @@
+# Keeps secrets and machine state out of the build context (docs/13 §5).
+.env
+.env.*
+!.env.example
+.git
+**/node_modules
+**/dist
+**/.next
+**/.next-*
+**/.tmp
+**/*.log
+apps/web/test-results
+apps/web/playwright-report
