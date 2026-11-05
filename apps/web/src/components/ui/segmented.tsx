@@ -53,7 +53,7 @@ export function Segmented<V extends string>({
             {...itemProps(i)}
             onClick={() => onChange(option.value)}
             className={cn(
-              'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-sm px-3 text-body-sm font-medium whitespace-nowrap transition-colors duration-120 md:h-7.5',
+              'inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-sm px-3 text-body-sm md:min-w-0 font-medium whitespace-nowrap transition-colors duration-120 md:h-7.5',
               active
                 ? 'bg-foreground text-background'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
