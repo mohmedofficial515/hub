@@ -35,3 +35,19 @@ export const byOutcome = (a: DecisionCard, b: DecisionCard) =>
 export const routedToMe = (card: DecisionCard, roles: readonly Role[]) =>
   roles.includes(card.decision.deciderRole) ||
   (!!card.decision.escalatedToRole && roles.includes(card.decision.escalatedToRole));
+
+/** How many options the laid-open question shows before the rest fold (review M4). */
+export const TABLE_OPTIONS = 3;
+
+/**
+ * Recommended options first, at most three showing, the rest folded. The one filled Choose is the recommended option, or the first when none is.
+ * With two or more recommended, Hub does not guess which the owner means: none is filled (owner decision 2026-11-05).
+ */
+export function tableOptions<T extends { id: string; recommended?: boolean | undefined }>(
+  options: readonly T[],
+) {
+  const recommended = options.filter((option) => option.recommended);
+  const ordered = [...recommended, ...options.filter((option) => !option.recommended)];
+  const filledId = recommended.length >= 2 ? null : (ordered[0]?.id ?? null);
+  return { visible: ordered.slice(0, TABLE_OPTIONS), folded: ordered.slice(TABLE_OPTIONS), filledId };
+}

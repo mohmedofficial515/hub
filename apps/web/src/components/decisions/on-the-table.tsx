@@ -29,36 +29,33 @@ import {
   useMedia,
   useT,
 } from '@/components/kit';
-import { bandOf } from '@/features/decisions/model';
+import { bandOf, tableOptions } from '@/features/decisions/model';
 import { markdownExcerpt } from '@/lib/markdown-text';
 
 import { OpenFacts, type RowProps } from './docket';
 import type { DecisionMessages } from './messages';
 
-/** One option on the table. A phone folds its pros and cons, one press away, so "Choose this" is never blind (review M11). */
+/** One option on the table. Its pros and cons fold at every width, one press away, so "Choose this" is never blind (review M11, M4). */
 function OptionTile({
   card,
   option,
-  wide,
   filled,
 }: {
   card: DecisionCard;
   option: DecisionCard['decision']['options'][number];
-  wide: boolean;
   filled: boolean;
 }) {
   const t = useT<DecisionMessages>('decisions');
   const [open, setOpen] = useState(false);
   const hasDetail = option.pros.length > 0 || option.cons.length > 0;
-  const showDetail = wide || open;
   return (
     <DecisionOptionCard
-      option={showDetail ? option : { ...option, pros: [], cons: [] }}
+      option={open ? option : { ...option, pros: [], cons: [] }}
       stacked
       className="w-full bg-background"
       footer={
         <div className="flex flex-col gap-2">
-          {!wide && hasDetail && (
+          {hasDetail && (
             <button
               type="button"
               aria-expanded={open}
@@ -111,8 +108,10 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   // A row carries no body, so the laid-open question reads its own card.
   const body = useCardQuery(card.key).data?.body;
   const excerpt = body ? markdownExcerpt(body) : '';
-  const columns = d.options.length >= 3 ? 'lg:grid-cols-3' : '';
-  const filledOption = (d.options.find((o) => o.recommended) ?? d.options[0])?.id;
+  const [showAll, setShowAll] = useState(false);
+  const { visible, folded, filledId } = tableOptions(d.options);
+  const shown = showAll ? [...visible, ...folded] : visible;
+  const columns = shown.length >= 3 ? 'lg:grid-cols-3' : '';
 
   return (
     <article
@@ -145,14 +144,35 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
         </p>
       )}
 
-      {d.options.length > 0 && (
+      {shown.length > 0 && (
         <ul className={cn('grid gap-2', wide && 'md:grid-cols-2', columns)}>
-          {d.options.map((option) => (
+          {shown.map((option) => (
             <li key={option.id} className="flex min-w-0">
-              <OptionTile card={card} option={option} wide={wide} filled={option.id === filledOption} />
+              <OptionTile card={card} option={option} filled={option.id === filledId} />
             </li>
           ))}
         </ul>
+      )}
+      {folded.length > 0 && (
+        <button
+          type="button"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((v) => !v)}
+          className={cn(
+            'hit-44 inline-flex items-center gap-1 self-start rounded-sm text-body-sm font-medium text-foreground underline-offset-4 hover:underline',
+            focusRing,
+          )}
+        >
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              'size-3.5 transition-transform duration-120 motion-reduce:transition-none',
+              showAll && 'rotate-180',
+            )}
+            strokeWidth={1.75}
+          />
+          {showAll ? t.table.fewerOptions : plural(folded.length, locale, t.table.moreOptions)}
+        </button>
       )}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 empty:hidden">

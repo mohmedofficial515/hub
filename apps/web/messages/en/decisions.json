@@ -47,6 +47,11 @@
     "chooseOption": "Choose: {option}",
     "showDetail": "Pros and cons",
     "hideDetail": "Hide pros and cons",
+    "moreOptions": {
+      "one": "and 1 more option",
+      "other": "and # more options"
+    },
+    "fewerOptions": "Show fewer options",
     "openCard": "Open card",
     "question": "Question"
   },
