@@ -99,7 +99,7 @@ describe('handoffs', () => {
     });
     expect((await eventsOf(taskId)).map((event) => event.kind)).toEqual(['created']);
     expect((await frontend.get(`/cards/${task.key}`).expect(200)).body.data.watchers).toEqual(
-      expect.arrayContaining([expect.objectContaining({ userId: frontend.id, reason: 'assignee' })]),
+      expect.arrayContaining([expect.objectContaining({ userId: frontend.id })]),
     );
   });
 

@@ -87,7 +87,8 @@ export class TasksController {
 
   @Post(':key/claim')
   @HttpCode(200)
-  @Permissions('task.claim')
+  // `apply` refuses with this action's own code, which the route-level check would hide.
+  @Permissions('card.read')
   @ApiOperation({ summary: 'Claim a task' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   claim(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: ClaimDto) {
@@ -105,7 +106,8 @@ export class TasksController {
 
   @Post(':key/start')
   @HttpCode(200)
-  @Permissions('task.start')
+  // `apply` refuses with this action's own code, which the route-level check would hide.
+  @Permissions('card.read')
   @ApiOperation({ summary: 'Start a claimed task' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   start(@Actor() actor: MemberActor, @Param('key') key: string) {
@@ -114,7 +116,8 @@ export class TasksController {
 
   @Post(':key/submit-review')
   @HttpCode(200)
-  @Permissions('task.submit_review')
+  // `apply` refuses with this action's own code, which the route-level check would hide.
+  @Permissions('card.read')
   @ApiOperation({ summary: 'Send a task to review' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   submit(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: SubmitDto) {

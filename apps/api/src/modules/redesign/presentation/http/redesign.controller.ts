@@ -76,7 +76,8 @@ export class RedesignController {
 
   @Post(':key/approve')
   @HttpCode(200)
-  @Permissions('redesign.approve')
+  // `apply` refuses with this action's own code, which the route-level check would hide.
+  @Permissions('card.read')
   @UseInterceptors(IdempotencyInterceptor)
   @ApiOperation({ summary: 'Approve a version, creating its port task' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
@@ -86,7 +87,8 @@ export class RedesignController {
 
   @Post(':key/reject')
   @HttpCode(200)
-  @Permissions('redesign.reject')
+  // `apply` refuses with this action's own code, which the route-level check would hide.
+  @Permissions('card.read')
   @ApiOperation({ summary: 'Reject a version, with a note' })
   @ApiOkResponse({ type: CardWrittenResponseDto })
   reject(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: NoteDto) {

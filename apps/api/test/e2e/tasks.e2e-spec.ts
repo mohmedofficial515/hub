@@ -80,6 +80,15 @@ describe('tasks', () => {
       expect(body.error.code).toBe('hub.tasks.specialty_role_mismatch');
     });
 
+    it('a role with no claim at all gets the same code, not a generic refusal', async () => {
+      const project = await aProject(app);
+      const pm = await project.member(['pm']);
+      const accountant = await project.member(['accountant']);
+      const task = await created(pm, aTask());
+      const { body } = await accountant.post(`/tasks/${task.key}/claim`).expect(403);
+      expect(body.error.code).toBe('hub.tasks.specialty_role_mismatch');
+    });
+
     it('another’s claim answers already_claimed, naming them; claiming again is a no-op', async () => {
       const project = await aProject(app);
       const pm = await project.member(['pm']);
