@@ -20,6 +20,8 @@ export interface OnboardingItemDto {
   minutes?: number | null | undefined;
   command?: string | null | undefined;
   phase?: StepPhase | null | undefined;
+  /** The doc's card, when it is indexed. */
+  cardKey?: string | null | undefined;
 }
 
 export interface OnboardingGroupDto {
@@ -40,6 +42,7 @@ export interface OnboardingStep {
   auto: boolean;
   done: boolean;
   roles: Role[];
+  cardKey?: string | undefined;
 }
 
 /** What a known action opens or runs (docs/09 §13). */
@@ -81,6 +84,7 @@ export function mergeGroups(groups: readonly OnboardingGroupDto[]): OnboardingSt
         auto: item.kind === 'action',
         done: item.done ?? false,
         roles: [role],
+        cardKey: item.cardKey ?? undefined,
       });
     }
   }

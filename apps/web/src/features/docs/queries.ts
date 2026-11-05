@@ -79,14 +79,14 @@ export type DocWithContent = DocCard & {
 interface DocContentDto extends CardFullDto {
   content?: string | null;
   unavailable?: 'missing' | 'secret' | null;
-  source?: { id: string; name: string };
+  docSource?: { id: string; name: string };
   toc?: DocHeading[];
   mentionedBy?: CardSummaryDto[];
 }
 
 export function toDocWithContent(dto: DocContentDto): DocWithContent {
   return {
-    ...withSource(toHubCard(dto) as DocCard, dto.source?.name),
+    ...withSource(toHubCard(dto) as DocCard, dto.docSource?.name),
     content: dto.content ?? null,
     unavailable: dto.unavailable ?? null,
     toc: dto.toc ?? [],

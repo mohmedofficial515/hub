@@ -5,14 +5,14 @@
  * @description The Releases page's reads and its two writes that are not card actions (docs/04 §3.20). All under the cards prefix, so the stream and
  * every write keep them current.
  */
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
 import { qk } from '@/features/cards/keys';
 import { type CardFullDto, toHubCard } from '@/features/cards/map';
 import { useCardsQuery, writeCard } from '@/features/cards/store';
-import type { CardListItem, HubCard, ReleaseCard } from '@/features/cards/types';
-import { get, getPage, patch, post } from '@/lib/api/client';
+import type { CardListItem, ReleaseCard } from '@/features/cards/types';
+import { getPage, patch, post } from '@/lib/api/client';
 
 import { FINISHED, hasNotes } from './rules';
 
@@ -38,27 +38,17 @@ export function useFinishedCards() {
   });
 }
 
+/** How many cards a release holds, whichever way the API named them. */
+export const includedCount = (r: ReleaseCard['release']) =>
+  Math.max(r.includedKeys.length, r.includedIds?.length ?? 0);
+
 /**
- * The cards a release includes, with their type and title. Rows already in a cache answer at once; the rest are read one by one, under each card's key,
- * so a card changing elsewhere changes here too.
+ * The cards a release includes, with their type and title. The API answers with ids and has no read by id, so they come from the pool of finished cards.
+ * A card older than the pool still counts in `includedCount`, and is simply not listed.
  */
-export function useIncluded(
-  keys: readonly string[],
-  pool: readonly CardListItem[],
-): (CardListItem | HubCard)[] {
-  const { ws } = useRoute();
-  const known = new Map(pool.map((c) => [c.key, c]));
-  const missing = keys.filter((k) => !known.has(k));
-  const reads = useQueries({
-    queries: missing.map((key) => ({
-      queryKey: qk.card(ws, key),
-      queryFn: async () => toHubCard(await get<CardFullDto>(`workspaces/${ws}/cards/${key}`)),
-    })),
-  });
-  reads.forEach((read) => {
-    if (read.data) known.set(read.data.key, read.data);
-  });
-  return keys.map((k) => known.get(k)).filter((c): c is CardListItem | HubCard => !!c);
+export function useIncluded(r: ReleaseCard['release'], pool: readonly CardListItem[]): CardListItem[] {
+  const ids = new Set([...r.includedKeys, ...(r.includedIds ?? [])]);
+  return pool.filter((c) => ids.has(c.id) || ids.has(c.key));
 }
 
 const releasePath = (ws: string, key: string) => `workspaces/${ws}/releases/${key}`;

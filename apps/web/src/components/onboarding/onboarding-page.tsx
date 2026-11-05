@@ -295,7 +295,8 @@ function StepRow({
 const useDocKeyOf = () => {
   const tree = useDocTree();
   const all: readonly DocCard[] = tree.data?.all ?? [];
-  return (step: OnboardingStep) => (step.kind === 'doc' ? findDocByPath(step.ref, all)?.key : undefined);
+  return (step: OnboardingStep) =>
+    step.kind === 'doc' ? (step.cardKey ?? findDocByPath(step.ref, all)?.key) : undefined;
 };
 
 export function OnboardingPage() {

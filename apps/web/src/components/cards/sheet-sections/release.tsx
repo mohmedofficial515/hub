@@ -13,6 +13,7 @@ import { CopyButton } from '@/components/common/copy-button';
 import { Bidi, Ltr } from '@/components/common/text';
 import { tabTriggerClass } from '@/components/ui/tabs-class';
 import { useCardEvents } from '@/features/cards/store';
+import { useFinishedCards, useIncluded } from '@/features/releases/queries';
 import { notesAuthor } from '@/features/releases/rules';
 import { absolute } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
@@ -27,6 +28,8 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
   const notes = ['team', 'owner', 'accountant'] as const;
   const events = useCardEvents(card.key);
   const author = notesAuthor(events.data ?? []);
+  const finished = useFinishedCards();
+  const included = useIncluded(r, finished.data?.items ?? []);
   return (
     <div className="flex flex-col gap-5">
       <Facts>
@@ -43,8 +46,8 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
       <div className="flex flex-col gap-1.5">
         <SubHeading>{s.included}</SubHeading>
         <div className="flex flex-wrap gap-2">
-          {r.includedKeys.map((key) => (
-            <CardChip key={key} k={key} showTitle />
+          {included.map((c) => (
+            <CardChip key={c.key} k={c.key} type={c.type} title={c.title} showTitle />
           ))}
         </div>
       </div>

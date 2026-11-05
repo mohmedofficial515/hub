@@ -245,6 +245,8 @@ export interface ReleaseDetail {
   tag?: string | undefined;
   releasedAt?: string | undefined;
   includedKeys: string[];
+  /** What the API stores. Resolve it to cards with `useIncluded` (features/releases). */
+  includedIds?: string[] | undefined;
   notes: { team: string; owner: string; accountant: string };
 }
 

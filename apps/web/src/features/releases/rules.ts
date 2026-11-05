@@ -24,12 +24,17 @@ export function eligibleForRelease(
   cards: readonly CardListItem[],
   releases: readonly ReleaseCard[],
 ): CardListItem[] {
-  const taken = new Set(releases.flatMap((r) => r.release.includedKeys));
+  const taken = new Set(
+    releases.flatMap((r) => [...r.release.includedKeys, ...(r.release.includedIds ?? [])]),
+  );
   const shipped = releases.filter((r) => r.status === 'released').map((r) => Date.parse(releasedAt(r)));
   const since = shipped.length ? Math.max(...shipped) : 0;
   return cards.filter(
     (c) =>
-      FINISHED[c.type] === c.status && !taken.has(c.key) && Date.parse(c.closedAt ?? c.lastEventAt) > since,
+      FINISHED[c.type] === c.status &&
+      !taken.has(c.key) &&
+      !taken.has(c.id) &&
+      Date.parse(c.closedAt ?? c.lastEventAt) > since,
   );
 }
 
@@ -70,7 +75,7 @@ export function notesAuthor(
   }[],
 ): { kind: 'user' | 'agent' | 'system'; memberId?: string | undefined } {
   const touched = events.filter((e) => {
-    return e.kind === 'notes_generated' || /notes/.test(JSON.stringify([e.data['field'], e.data['fields']]));
+    return e.kind === 'notes_generated' || /"field":"notes"/.test(JSON.stringify(e.data));
   });
   const last = touched.at(-1);
   if (!last || last.kind === 'notes_generated') return { kind: 'system' };

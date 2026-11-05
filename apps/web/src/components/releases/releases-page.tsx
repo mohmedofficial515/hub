@@ -56,6 +56,7 @@ import {
   useT,
 } from '@/components/kit';
 import {
+  includedCount,
   rebuildNotes,
   restoreNotes,
   useFinishedCards,
@@ -129,7 +130,7 @@ function Manifest({
   const perform = usePerformAction();
   const events = useCardEvents(card.key);
   const r = card.release;
-  const rows = useIncluded(r.includedKeys, pool);
+  const rows = useIncluded(r, pool);
   const author = notesAuthor(events.data ?? []);
   const audiences = ['team', 'owner', 'accountant'] as const;
 
@@ -217,7 +218,7 @@ function Manifest({
           <h4 className="flex items-center gap-2 text-body font-semibold text-foreground">
             {t.includedTitle}
             <span className="text-body-sm font-normal text-muted-foreground">
-              {plural(r.includedKeys.length, locale, t.included)}
+              {plural(includedCount(r), locale, t.included)}
             </span>
           </h4>
           {TYPE_ORDER.filter((type) => rows.some((c) => c.type === type)).map((type) => (
@@ -303,7 +304,7 @@ function ShippedRow({
   const t = useT<ReleasesMessages>('releases');
   const locale = useLocale();
   const iso = releaseDate(card);
-  const rows = useIncluded(card.release.includedKeys, pool);
+  const rows = useIncluded(card.release, pool);
   return (
     // The date column is this list's spine: a release is first of all a moment.
     <li className="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2 md:grid-cols-[3.5rem_minmax(0,1fr)] md:gap-3">
@@ -330,7 +331,7 @@ function ShippedRow({
                 {card.release.tag}
               </Ltr>
             )}
-            <span>{plural(card.release.includedKeys.length, locale, t.included)}</span>
+            <span>{plural(includedCount(card.release), locale, t.included)}</span>
             <TypeCounts cards={rows} />
           </>
         }
