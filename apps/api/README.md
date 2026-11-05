@@ -13,12 +13,12 @@ pnpm db:deploy                                    # or `pnpm db:migrate` when ch
 pnpm --filter @hub/api dev                        # http://localhost:7310/api/v1/health/ready, /api/docs
 ```
 
-| Command                 | What                                                          |
-| ----------------------- | ------------------------------------------------------------- |
-| `pnpm check` (root)     | lint, typecheck, arch, unit, OpenAPI snapshot                 |
-| `pnpm test:e2e`         | real Postgres and Redis through Testcontainers                |
-| `pnpm api:sync`         | re-export OpenAPI into `apps/web/openapi` after an API change |
-| `pnpm migrations:check` | lint of migration SQL (in `apps/api`)                         |
+| Command                 | What                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `pnpm check` (root)     | lint, typecheck, arch, unit, OpenAPI snapshot                                     |
+| `pnpm test:e2e`         | real Postgres and Redis through Testcontainers                                    |
+| `pnpm api:sync`         | re-export OpenAPI into `apps/web/openapi` after an API change                     |
+| `pnpm migrations:check` | lint of migration SQL (in `apps/api`)                                             |
 | `pnpm import:goteav`    | Goteav's history into project `goteav`; `--dry-run` writes nothing (`docs/06` §7) |
 
 `@hub/contracts` is built to `dist` on install. Tests and typecheck read its source; a running API reads `dist`,
