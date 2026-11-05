@@ -65,4 +65,46 @@ describe('MarkdownView', () => {
     );
     expect(asked).toEqual(['/a']);
   });
+
+  it('an Arabic body that opens with an English word stays right to left, with 5xx and 100 MB whole', () => {
+    const { container } = renderWithApp(
+      <MarkdownView
+        dir="auto"
+        source={'Sentry لا يرى أخطاء 5xx عندما يتجاوز الملف 100 MB.\n\n- Sentry يبلّغ عن 5xx'}
+      />,
+    );
+    expect(container.firstElementChild?.getAttribute('dir')).toBe('rtl');
+    expect(container.querySelector('p')?.getAttribute('dir')).toBeNull();
+    expect([...container.querySelectorAll('bdi')].map((b) => [b.getAttribute('dir'), b.textContent])).toEqual(
+      [
+        ['ltr', '5xx'],
+        ['ltr', '100 MB'],
+        ['ltr', '5xx'],
+      ],
+    );
+  });
+
+  it('an English body stays left to right', () => {
+    const { container } = renderWithApp(
+      <MarkdownView dir="auto" source={'The 5xx rate is up, says «سنتري».'} />,
+    );
+    expect(container.firstElementChild?.getAttribute('dir')).toBe('ltr');
+    expect(container.querySelector('bdi')).toBeNull();
+  });
+
+  it('an English paragraph in an Arabic body turns alone, and in a list keeps the bullet', () => {
+    const { container } = renderWithApp(
+      <MarkdownView
+        dir="auto"
+        source={
+          'فقرة عربية طويلة بما يكفي لتكون الأغلبية في هذا المستند كله.\n\nIt ends with a full stop.\n\n- بند عربي طويل بعض الشيء\n- Ticket with a code'
+        }
+      />,
+    );
+    const [arabic, english] = [...container.querySelectorAll('p')];
+    expect(arabic?.getAttribute('dir')).toBeNull();
+    expect(english?.getAttribute('dir')).toBe('ltr');
+    expect(container.querySelector('ul')?.getAttribute('dir')).toBeNull();
+    expect(container.querySelector('li:last-child bdi')?.getAttribute('dir')).toBe('ltr');
+  });
 });
