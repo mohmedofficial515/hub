@@ -313,7 +313,9 @@ export function NeedSection({ card, action, cancelAction, perform }: SectionProp
             <span className="flex flex-wrap items-center gap-2">
               <ActorChip memberId={n.verifiedById} />
               {n.verifiedAt && <RelativeTime iso={n.verifiedAt} className="text-muted-foreground" />}
-              {n.selfVerified && <Pill tone="info">{m.selfVerified}</Pill>}
+              {(n.selfVerified || n.verifiedById === n.deliveredById) && (
+                <Pill tone="info">{m.selfVerified}</Pill>
+              )}
             </span>
           </Fact>
         )}
