@@ -24,7 +24,9 @@ Hub becomes the place the owner works from, not only where they record work:
 | D38 | **Chat engine:** the official Claude Code on the owner's own device, on the owner's own subscription sign-in. Hub never reads, stores or relays Claude credentials. D06 stands: the Hub server makes no model calls. |
 | D39 | **The lab moves into Hub** as `apps/lab`, and appears inside Hub's shell, merged with the Redesign page. |
 | D40 | **Agent queue with schedules** on the main machine, with limits. A missed run starts when the machine is back. |
-| D41 | **Default agent permission:** read and edit inside the project folder freely. Pause for approval on unknown commands, delete, commit, push, deploy and creating a branch or worktree. |
+| D41 | **Default agent permission:** read and edit inside the project folder freely. Pause for approval on delete, commit, push, deploy, creating a branch or worktree, and `docker`. **Owner's choice on C1:** the owner's 259 global allow rules stay loaded, so a command they allow and this list does not name runs without asking; any other unknown command pauses. |
+| D44 | **Folder trust (owner's choice on C2):** when the owner presses Link on a folder, Hub writes that folder's trust acceptance into `~/.claude.json`, so no trust dialog appears. Only on that explicit press, only for that folder, atomically, keeping every other key, with a backup. If the file's shape is not as expected, Hub changes nothing and says to accept the dialog once. This file is internal to Claude Code and can change with updates. |
+| D45 | **VS Code handoff confirmed by the owner:** the spike's folder window opened with the prompt pre-filled and not sent. |
 | D42 | **Connect:** automatic on the main machine, and one command with browser approval on any other. Linking a folder is a button in Hub. No token copying and no new terminal. |
 | D43 | **Devices reach Hub through Tailscale.** Hub is never open to the public internet. This amends D33 for those devices. |
 
