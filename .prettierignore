@@ -1,0 +1,12 @@
+# The plan is prose reviewed by hand; it is not reformatted by tooling.
+docs
+patches
+pnpm-lock.yaml
+dist
+.next
+coverage
+apps/api/src/generated
+apps/api/openapi
+apps/web/openapi
+apps/api/prisma/migrations
+next-env.d.ts
