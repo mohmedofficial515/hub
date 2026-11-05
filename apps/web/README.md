@@ -28,6 +28,12 @@ apps/web/
   src/lib/api/                        client.ts (ky), errors.ts (HubError), generated/ (hey-api)
 ```
 
+## How the app runs
+
+- **The signed-in app renders in the browser only** (`components/shell/workspace-gate-loader.tsx`, `ssr: false`), as the design did. `window` and `document` are safe in anything under `[ws]` and `/workspaces`. Auth pages are server-rendered, so they must not read data during render.
+- **The API is behind the web origin.** `next.config.ts` rewrites `/api/v1` to `HUB_API_ORIGIN`, so cookies are first-party and SSE is same-origin. Rewrites are fixed at `next build`, so an image must have `HUB_API_ORIGIN` set when it builds. `compress: false` is required: gzip through the proxy holds SSE frames back and the stream looks dead.
+- **Session.** `lib/api/client.ts` sends `X-Requested-With: hub`. On a 401 it refreshes and retries once, except on wrong credentials. Refresh is one flight across tabs (Web Locks), because the API treats a parallel refresh as token reuse and revokes the family. A failed refresh ends the session and goes to sign-in. `totp_setup_required` goes to `/totp?setup=1` and comes back afterwards. A seeded owner must enrol before any project route answers.
+
 ## Add a page
 
 The view is already in the sidebar, the palette, the breadcrumb and the `g` keys (`components/shell/views.tsx`). The placeholder route
@@ -95,6 +101,7 @@ Differences from the design's page code when you port:
 | `useSession().loading`, `scenario` | the query's `isPending`, `isError`. There are no scenarios |
 | `useCards()` with everything loaded | `useCardsQuery(filters)`: the server filters. A row has no detail: see below |
 | `actOn`, `patchCard`, `addCard` | `usePerformAction`, `writeCard`, `createCard` |
+| Decisions' coloured band rules | neutral: `bg-border`, with the icon and words carrying the urgency (D31). Change this at port |
 | Sparklines and trend words | removed unless a real history exists (docs/15 §8). Never fake data |
 | `?scenario=`, fake clock, `@lab/mocks` | gone. `nowMs()` is the real time |
 
@@ -104,7 +111,7 @@ Read through hooks. All keys are in `qk` (`features/cards/keys.ts`), and that is
 
 | Hook | Returns |
 |---|---|
-| `useCardsQuery(filters)` | the list query. `data.items: CardListItem[]`. `filters`: `type status role assignee q archived flags awaiting sort limit` |
+| `useCardsQuery(filters)` | the list query. `data.items: CardListItem[]`. `filters`: `type status role assignee q archived flags awaiting sort limit`. `archived: true` is the Deleted view («المحذوفات»), which owner, pm and a card's creator may read |
 | `useCards()` | only the rows, for a picker or a count |
 | `useCardQuery(key)`, `useCard(key)` | one `HubCard`, full: `card.decision`, `card.need`, `card.task`, `card.handoff`, `card.redesign`, `card.doc`, `card.release`, `card.change`, `card.idea`, `card.plan` |
 | `useCardEvents(key)`, `useCardComments(key)` | History and Comments |
@@ -153,6 +160,11 @@ So a page is live if its queries use those keys. A new domain needs one line in 
 - Messages it reads: the contract's `RealtimeCardEvent` (any event name, as long as `data.cardKey` is there), docs/04 §4's `card.*` shape, `counters`, `inbox.new`, `inbox.read`, `workspace.updated`.
 - The indicator (`useLiveStatus`) is `connecting`, `live`, `reconnecting` (down 5 s or more) or `unavailable` (the server answered 403 or 404). It is `live` only with an open stream that has been heard from within 60 s.
 - A timeline that should show a "3 new" pill instead of jumping: keep your own count from `useCardEvents`-style data rather than turning this off.
+
+Known limits, stated so nobody hunts for them:
+
+- `GET /counters` does not exist in the API yet. It answers 404 and the app treats that as "no number": Inbox, Timeline, Planning, Onboarding, Members and Settings show no badge. Decisions, Needs, Handoffs, Redesign and Tasks come from `cards?awaiting=me` and `tasks/ready`, and are live now. `toMyCounts` reads the fields of docs/04 §3.23 as soon as they land. Inbox's own hooks are for the Inbox page's author (`qk.inbox` is already invalidated).
+- Each tab holds one stream. Over plain HTTP/1.1 a browser allows 6 connections per origin, so a seventh Hub tab on `http://localhost` would wait. HTTP/2 behind Caddy removes the limit (D33 defers Caddy).
 
 ## i18n
 
@@ -203,6 +215,7 @@ Changed from the design:
 - `showToast({ tone: 'error' })` for a refusal. Without `onUndo` a toast has no Undo.
 - Sheet sections: `components/cards/sheet-sections/<type>.tsx`, registered in `index.ts`. `idea.tsx` and `plan.tsx` are new and read-only: the Planning page's author adds "Turn into a plan", "Create tasks from steps" and editing of the Markdown (docs/15 §4). A section's file-local strings are in `kit.json` under `sections.<file>`.
 - `RedesignSection` lost the curtain compare: the Redesign page's author moves `pages/redesign/parts/compare.tsx` here. Screenshots are the card's attachments.
+- `to_plan`, `to_tasks` and the other Idea and Plan verbs come from the contract, so the sheet offers them already. `to_plan` has `mode: form`, and its form belongs in `idea.tsx`.
 - `DocSection` shows the API's headings and links out only when `detail.webUrl` exists.
 - New: `LiveIndicator`, `AuthFrame` (`components/auth`), `NewProjectWizard`, `ProjectsPage` (`components/workspaces`), `ViewPlaceholder`.
 

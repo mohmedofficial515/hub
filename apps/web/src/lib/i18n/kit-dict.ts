@@ -83,6 +83,7 @@ export interface KitDict {
   confirm: { reason: string; reasonRequired: string };
   sheet: {
     notLoaded: string;
+    deleted: string;
     label: string;
     actionsLabel: string;
     more: string;

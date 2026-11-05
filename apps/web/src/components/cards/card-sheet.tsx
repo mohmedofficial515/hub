@@ -610,6 +610,10 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
         confirmLabel={t.sheet.archive}
         onConfirm={() => {
           void setArchived(card.key, true);
+          showToast({
+            message: fmt(t.sheet.deleted, { key: card.key }),
+            onUndo: () => void setArchived(card.key, false),
+          });
           closeCard();
         }}
       />

@@ -527,7 +527,8 @@
         "accountant": "Accountant"
       }
     },
-    "notLoaded": "This card did not load."
+    "notLoaded": "This card did not load.",
+    "deleted": "Deleted {key}"
   },
   "blocksCount": {
     "one": "Blocks 1 card",
