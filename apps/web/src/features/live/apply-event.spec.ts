@@ -7,7 +7,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { qk } from '@/features/cards/keys';
 import type { CardListItem, HubCard } from '@/features/cards/types';
 
-import { applyCardEvent, applyLiveMessage, asCardEvent } from './apply-event';
+import {
+  applyCardEvent,
+  applyLiveMessage,
+  asCardEvent,
+  createRefetchBatcher,
+  listMayHold,
+} from './apply-event';
 
 const WS = 'goteav';
 const row = (key: string, status: string) =>
@@ -119,5 +125,87 @@ describe('applyLiveMessage', () => {
     expect(applyLiveMessage(new QueryClient(), WS, { event: 'brief.ready', data: { kind: 'morning' } })).toBe(
       false,
     );
+  });
+});
+
+describe('createRefetchBatcher', () => {
+  const key = (name: string) => ['x', name] as const;
+  const flushed = () => new Promise((done) => setTimeout(done, 0));
+
+  it('starts at once when calm, holds what arrives during a round, and loses nothing', async () => {
+    const client = new QueryClient();
+    const finish: (() => void)[] = [];
+    const spy = vi
+      .spyOn(client, 'invalidateQueries')
+      .mockImplementation(() => new Promise<void>((done) => finish.push(done)));
+    const batch = createRefetchBatcher(client, WS);
+    batch.add({ keys: [key('a')], cardTypes: [] });
+    await flushed();
+    expect(spy).toHaveBeenCalledTimes(1);
+    batch.add({ keys: [key('b')], cardTypes: [] });
+    batch.add({ keys: [key('c')], cardTypes: [] });
+    await flushed();
+    expect(spy).toHaveBeenCalledTimes(1);
+    finish.forEach((done) => done());
+    await vi.waitFor(() => expect(spy.mock.calls.length).toBe(3));
+    expect(spy.mock.calls.map(([f]) => f?.queryKey)).toEqual([key('a'), key('b'), key('c')]);
+    batch.stop();
+  });
+
+  it('reads again only the lists that may hold the types of the batch', async () => {
+    const client = new QueryClient();
+    const seen: string[] = [];
+    client.setQueryData(qk.cardList(WS, { view: 'tasks' }), { items: [] });
+    client.setQueryData(qk.cardList(WS, { view: 'needs' }), { items: [] });
+    client.setQueryData(qk.cardList(WS, { awaiting: 'me' }), { items: [] });
+    vi.spyOn(client, 'invalidateQueries').mockImplementation(async (filters) => {
+      for (const query of client.getQueryCache().findAll(filters)) {
+        seen.push(JSON.stringify(query.queryKey[2]));
+      }
+    });
+    const batch = createRefetchBatcher(client, WS);
+    batch.add({ keys: [], cardTypes: ['task'] });
+    await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(seen).toContain('{"view":"tasks"}');
+    expect(seen).toContain('{"awaiting":"me"}');
+    expect(seen).not.toContain('{"view":"needs"}');
+    batch.stop();
+  });
+
+  it('slows down in a burst, and never loses the last change', async () => {
+    vi.useFakeTimers();
+    try {
+      const client = new QueryClient();
+      const moments = new Set<number>();
+      const spy = vi.spyOn(client, 'invalidateQueries').mockImplementation(async () => {
+        moments.add(Date.now());
+      });
+      const batch = createRefetchBatcher(client, WS);
+      for (let i = 0; i < 100; i += 1) {
+        batch.add({ keys: [['x', i]], cardTypes: [] });
+        await vi.advanceTimersByTimeAsync(100);
+      }
+      // Ten seconds with a change every 100 ms: 100 rounds without a batch, and here 8 calm ones, then one each 2 s.
+      expect(moments.size).toBeLessThanOrEqual(12);
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(spy.mock.calls.map(([f]) => JSON.stringify(f?.queryKey))).toContain('["x",99]');
+      batch.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('listMayHold', () => {
+  const task = new Set(['task' as const]);
+  it('narrows only what names its type', () => {
+    expect(listMayHold({ view: 'tasks' }, task)).toBe(true);
+    expect(listMayHold({ view: 'decisions' }, task)).toBe(false);
+    expect(listMayHold({ type: ['need'] }, task)).toBe(false);
+    expect(listMayHold({ type: ['need', 'task'] }, task)).toBe(true);
+    expect(listMayHold({ ready: true }, new Set(['need' as const]))).toBe(false);
+    expect(listMayHold({ awaiting: 'me' }, task)).toBe(true);
+    expect(listMayHold({ view: 'ask', q: 'x' }, task)).toBe(true);
+    expect(listMayHold(undefined, task)).toBe(true);
   });
 });

@@ -11,7 +11,7 @@ import { createContext, type ReactNode, useContext, useEffect, useState } from '
 import { API_PREFIX, refreshSession } from '@/lib/api/client';
 import { backoffDelay, readStream, SseHttpError } from '@/lib/sse';
 
-import { applyLiveMessage, refetchEverything } from './apply-event';
+import { applyLiveMessage, createRefetchBatcher, refetchEverything } from './apply-event';
 
 /**
  * - `connecting`: the first attempt, or a retry that has been failing for under 5 s (docs/09 §3).
@@ -42,6 +42,7 @@ export function LiveProvider({ ws, children }: { ws: string; children: ReactNode
     let current: AbortController | null = null;
     let lastHeard = Date.now();
     let downSince = Date.now();
+    const batch = createRefetchBatcher(client, ws);
 
     const watchdog = window.setInterval(() => {
       const now = Date.now();
@@ -75,10 +76,12 @@ export function LiveProvider({ ws, children }: { ws: string; children: ReactNode
             onMessage: (message) => {
               if (message.id) lastEventId = message.id;
               try {
-                applyLiveMessage(client, ws, {
-                  event: message.event,
-                  data: JSON.parse(message.data) as unknown,
-                });
+                applyLiveMessage(
+                  client,
+                  ws,
+                  { event: message.event, data: JSON.parse(message.data) as unknown },
+                  batch.add,
+                );
               } catch {
                 /* One unreadable message must not cost the connection. */
               }
@@ -107,6 +110,7 @@ export function LiveProvider({ ws, children }: { ws: string; children: ReactNode
 
     return () => {
       stopped = true;
+      batch.stop();
       window.clearInterval(watchdog);
       current?.abort();
     };

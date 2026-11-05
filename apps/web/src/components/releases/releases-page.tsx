@@ -251,7 +251,6 @@ function Manifest({
             <p className="flex flex-wrap items-center gap-1.5 text-body-sm text-muted-foreground">
               <span>{t.wroteBy}</span>
               <ActorChip
-                key={author.kind}
                 kind={author.kind}
                 memberId={author.memberId}
                 adapter={author.kind === 'system' ? 'digests' : undefined}

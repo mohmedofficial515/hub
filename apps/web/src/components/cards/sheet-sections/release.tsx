@@ -57,7 +57,6 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
         <p className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
           <span>{own.wroteBy}</span>
           <ActorChip
-            key={author.kind}
             kind={author.kind}
             memberId={author.memberId}
             adapter={author.kind === 'system' ? 'digests' : undefined}
