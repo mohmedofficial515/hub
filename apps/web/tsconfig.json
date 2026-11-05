@@ -8,12 +8,25 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"],
       "@hub/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
-  "include": ["next-env.d.ts", "src/**/*.ts", "src/**/*.tsx", ".next/types/**/*.ts", "*.ts"],
+  "include": [
+    "*.ts",
+    ".next/types/**/*.ts",
+    "e2e/**/*.ts",
+    "next-env.d.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next-e2e/types/**/*.ts",
+    ".next-local/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

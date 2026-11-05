@@ -198,8 +198,10 @@ It predicts in every cache, sends, restores on failure, then invalidates what it
 
 ## Live updates
 
-The shell mounts one `LiveProvider` per project (`features/live/`). **You write nothing for this.** Each message patches the row and the open sheet to the new status, then invalidates `qk.card`, `qk.events`, `qk.cards` (every list), `qk.counters`, `qk.today`, `qk.timeline` and `qk.inbox`.
-So a page is live if its queries use those keys. A new domain needs one line in `applyCardEvent`.
+The shell mounts one `LiveProvider` per project (`features/live/`). **You write nothing for this.** Each message patches the row and the open sheet to the new status at once, then asks a batch to read `qk.card`, `qk.events`, `qk.counters`, `qk.today`, `qk.timeline`, `qk.inbox` and the lists that may hold that card's type.
+So a page is live if its queries use those keys. A new domain needs one line in `applyCardEvent`, and a list under one name that shows one type needs a line in `LIST_TYPES`.
+
+The batch (`createRefetchBatcher`): one round of refetches at a time, starting at once when things are calm, 200 ms apart, and 2 s apart once 8 rounds fall inside 10 s. What arrives during a round joins the next. Before it, 30 tool calls in a minute cost 600 requests from two tabs, which is the per-user limit, and each refetch cancelled the one before it.
 
 - Connection: fetch-based SSE at `GET /workspaces/{ws}/events/stream`. It resumes with `Last-Event-ID`, refreshes the session on a 401, backs off 1 s to 30 s, and refetches everything on reconnect.
 - Messages it reads: the contract's `RealtimeCardEvent` (any event name, as long as `data.cardKey` is there), docs/04 §4's `card.*` shape, `counters`, `inbox.new`, `inbox.read`, `workspace.updated`.
@@ -208,7 +210,7 @@ So a page is live if its queries use those keys. A new domain needs one line in 
 
 Known limits, stated so nobody hunts for them:
 
-- `GET /counters` does not exist in the API yet. It answers 404 and the app treats that as "no number": Timeline, Planning, Onboarding, Members and Settings show no badge. Decisions, Needs, Handoffs, Redesign and Tasks come from `cards?awaiting=me` and `tasks/ready`, and Inbox from `inbox/count`. All are live now. `toMyCounts` reads the fields of docs/04 §3.23 as soon as they land. Inbox's own hooks are for the Inbox page's author (`qk.inbox` is already invalidated).
+- Decisions, Needs, Handoffs, Redesign and Tasks on the sidebar come from `cards?awaiting=me` and `tasks/ready`, Inbox from `inbox/count`, and the rest from `GET /counters`.
 - Each tab holds one stream. Over plain HTTP/1.1 a browser allows 6 connections per origin, so a seventh Hub tab on `http://localhost` would wait. HTTP/2 behind Caddy removes the limit (D33 defers Caddy).
 
 ## i18n
@@ -267,6 +269,8 @@ Changed from the design:
 - New: `LiveIndicator`, `AuthFrame` (`components/auth`), `NewProjectWizard`, `ProjectsPage` (`components/workspaces`), `ViewPlaceholder`.
 
 ## Tests
+
+`pnpm test:e2e:web` (root) is Playwright, `e2e/`: flows F1 to F5 of docs/11 and the live-update test of docs/15 §7 in `ar` and `en`, on throwaway containers with a built API and web on 7319 and 7359. It never touches the local database, and approves only in a temp lab. `E2E_SKIP_BUILD=1` reuses the builds. Timings land in `test-results/live-timings.jsonl`. `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix` runs the page matrix below, measured, and `E2E_MATRIX_PAGES` narrows it. The first run needs `pnpm --filter @hub/web exec playwright install chromium`.
 
 `src/test/render.tsx`: `renderWithApp(ui, { locale })` uses the real catalogs and a fresh query client. `stubFetch((url) => ({ body: { data } }))` answers from a table, and an unmatched call is the API's 404. Logic first: `*.spec.ts` beside the file. A page: one render test per state. Before handing back:
 

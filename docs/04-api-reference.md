@@ -114,6 +114,7 @@ type CardSummary = {
   dueAt: string | null; closedAt: string | null; archivedAt: string | null;
   commentCount: number; lastEventAt: string; createdAt: string; createdBy: ActorRef; source: string;
   flags: { blocked: boolean; overdue: boolean; escalated: boolean; stale: boolean; noSummary: boolean };
+  blocksCount: number;                              // open cards waiting on this one
   awaiting: string | null;                          // the verb waiting on the current member (`awaitedAction` in @hub/contracts)
 };
 type CardFull = CardSummary & {
@@ -894,7 +895,7 @@ GET /workspaces/{ws}/capture/runs?source=&kind=&cursor&limit   auth: session   r
 ### 3.17 Inbox and notifications
 
 ```
-type InboxItem = { id; kind; title; body: string | null; card: CardSummary | null; data: { cardKey?; action?: 'decide' | 'acknowledge' | 'deliver' | 'claim' | 'verify' | 'review' }; groupKey; createdAt; readAt; archivedAt }
+type InboxItem = { id; kind; title; body: string | null; card: CardSummary | null; data: { cardKey?; action?: 'decide' | 'acknowledge' | 'deliver' | 'claim' | 'verify' | 'review'; count?: number; link?: { view: string; query?: Record<string, string> } /* where an item with no card leads */; i18nKey?: string; params?: Record<string, string | number> /* what `title` was rendered from, so a page says it in its own language with the card's title as it is now */ }; groupKey; createdAt; readAt; archivedAt }
 
 GET /workspaces/{ws}/inbox                       auth: session | token
 query: { unread?: boolean; archived?: boolean /* true is the archive */; kinds?: string[]; cursor?; limit? }   sort: createdAt desc; grouped client-side by groupKey within 30 min
@@ -937,7 +938,7 @@ GET /workspaces/{ws}/briefs/weekly/{isoWeek}     auth: session | token   200: { 
 ### 3.20 Releases
 
 ```
-type ReleaseDetail = { version; repo; tag; releasedAt; included: CardSummary[]; notes: { team: Markdown | null; owner: Markdown | null; accountant: Markdown | null } }
+type ReleaseDetail = { version; repo; tag; releasedAt; includedIds: Uuid[]; included: CardSummary[]; notes: { team: Markdown | null; owner: Markdown | null; accountant: Markdown | null } }
 
 GET /workspaces/{ws}/releases?status=&cursor&limit        auth: session | token   200: { data: (CardSummary & { detail: ReleaseDetail })[] }
 PATCH /workspaces/{ws}/releases/{key}            auth: session | token   role: owner|pm   body: { version?; repo?; tag?; includedKeys?: CardKey[]; notes?: Partial<ReleaseDetail['notes']> }   200: CardFull
