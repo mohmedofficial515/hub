@@ -13,6 +13,7 @@ import { Fact, Facts, type SectionProps, SubHeading } from '@/components/cards/s
 import { CopyButton } from '@/components/common/copy-button';
 import { fmt, Ltr } from '@/components/common/text';
 import { AppLink } from '@/components/shell/router';
+import { useDoc } from '@/features/docs/queries';
 import { num, when } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
@@ -27,7 +28,11 @@ export function DocSection({ card }: SectionProps<'doc'>) {
   const t = useT(kitMessages);
   const own = useT(kitMessages).sections.doc;
   const locale = useLocale();
+  // The source's name and who mentions it come with the doc's own read, not with the card.
+  const full = useDoc(card.key).data;
   const d = card.doc;
+  const sourceName = full?.doc.sourceName ?? d.sourceName;
+  const mentions = full?.mentionedBy ?? [];
   const s = t.sheet.doc;
   // The doc's own headings, from the same text the viewer shows.
   const outline = d.headings;
@@ -44,19 +49,25 @@ export function DocSection({ card }: SectionProps<'doc'>) {
       )}
       <Facts>
         <Fact label={t.sheet.fields.kind}>{s.kinds[d.kind]}</Fact>
-        <Fact label={s.source}>
-          <span translate="no">{d.sourceName}</span>
-        </Fact>
-        <Fact label={s.commit}>
-          <Ltr mono>{d.lastCommitSha}</Ltr>
-        </Fact>
+        {sourceName && (
+          <Fact label={s.source}>
+            <span translate="no">{sourceName}</span>
+          </Fact>
+        )}
+        {d.lastCommitSha && (
+          <Fact label={s.commit}>
+            <Ltr mono>{d.lastCommitSha}</Ltr>
+          </Fact>
+        )}
         <Fact label={s.words}>
           <Ltr className="tabular-nums">{num(d.wordCount, locale)}</Ltr>
         </Fact>
         <Fact label={own.lang}>{own.langs[d.lang]}</Fact>
-        <Fact label={t.status.current} wide>
-          {fmt(s.indexed, { when: when(d.lastIndexedAt, locale) })}
-        </Fact>
+        {d.lastIndexedAt && (
+          <Fact label={t.status.current} wide>
+            {fmt(s.indexed, { when: when(d.lastIndexedAt, locale) })}
+          </Fact>
+        )}
       </Facts>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {/* The viewer is a place, so this is a link. Going there closes the sheet. */}
@@ -92,12 +103,12 @@ export function DocSection({ card }: SectionProps<'doc'>) {
           </ol>
         </div>
       )}
-      {d.referencedBy.length > 0 && (
+      {mentions.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <SubHeading>{s.referencedBy}</SubHeading>
           <div className="flex flex-wrap gap-2">
-            {d.referencedBy.map((key) => (
-              <CardChip key={key} k={key} showTitle />
+            {mentions.map((c) => (
+              <CardChip key={c.key} k={c.key} type={c.type} title={c.title} showTitle />
             ))}
           </div>
         </div>

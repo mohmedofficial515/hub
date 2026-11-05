@@ -39,7 +39,8 @@
     "recent": "Recent searches",
     "clearRecent": "Clear history",
     "try": "Try",
-    "tryBody": "It searches the full text in Arabic and English. A card key takes you straight to the card."
+    "tryBody": "It searches the full text in Arabic and English. A card key takes you straight to the card.",
+    "suggestions": ["refund", "TOTP", "Duffel balance"]
   },
   "noResults": {
     "title": "Nothing matched",

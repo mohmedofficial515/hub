@@ -4,10 +4,6 @@
   "search": "Search docs…",
   "searchLabel": "Search the docs through the Ask page",
   "treeLabel": "Docs tree",
-  "sourceCount": {
-    "one": "1 doc",
-    "other": "# docs"
-  },
   "expand": "Open {name}",
   "collapse": "Close {name}",
   "recentTitle": "Recently updated",
@@ -34,12 +30,16 @@
   "sectionLink": "Link to the section {name}",
   "copyCode": "Copy code",
   "card": "Doc card",
-  "excerptNote": "Lab mock: shortened sample text. The real file is in Git.",
   "emptyTitle": "No docs indexed",
   "emptyBody": "Add a docs folder source in Settings.",
   "emptyAction": "Open sources",
   "errorThing": "the docs",
   "loading": "Loading the docs",
   "notFound": "This doc does not exist",
-  "notFoundBody": "Its file may have moved or been removed. Pick a doc from the tree."
+  "notFoundBody": "Its file may have moved or been removed. Pick a doc from the tree.",
+  "unavailable": {
+    "missing": "This file is no longer in its folder",
+    "secret": "This file now holds something like a secret, so Hub does not show it"
+  },
+  "unavailableBody": "The index is out of date. It updates on the next run."
 }

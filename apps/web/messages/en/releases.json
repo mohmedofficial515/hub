@@ -21,8 +21,7 @@
   "next": {
     "title": "Next up",
     "none": "Nothing is being prepared",
-    "noneBody": "Create a release when a batch is ready for production.",
-    "lastOf": "Built on {key}"
+    "noneBody": "Create a release when a batch is ready for production."
   },
   "shipped": "Shipped",
   "included": {
@@ -72,8 +71,8 @@
     "created": "Created {key}",
     "needVersion": "Write the version.",
     "needName": "Write a name for the batch.",
-    "needInclude": "Pick at least one card.",
-    "secret": "This text looks like it contains a secret. Remove it."
+    "secret": "This text looks like it contains a secret. Remove it.",
+    "titleFormat": "Release {version} · {name}"
   },
   "empty": {
     "title": "No releases yet",
@@ -87,5 +86,6 @@
   "errorThing": "the releases",
   "loading": "Loading the releases",
   "tagged": "Tag {tag}",
-  "untagged": "No tag yet"
+  "untagged": "No tag yet",
+  "noNotes": "No notes for this audience yet."
 }

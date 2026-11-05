@@ -4,7 +4,8 @@
  * @file redesign.tsx
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/redesign.tsx. Contract: apps/web/README.md.
  */
-import { ExternalLink, FileText, Image as ImageIcon } from 'lucide-react';
+import { ExternalLink, FileText, GitCompareArrows, Image as ImageIcon } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
 import { ActorChip } from '@/components/cards/avatar';
@@ -21,11 +22,16 @@ import { Lightbox } from '@/components/common/lightbox';
 import { MarkdownView } from '@/components/common/markdown';
 import { RelativeTime } from '@/components/common/relative-time';
 import { Bidi, fmt, Ltr } from '@/components/common/text';
+import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
-import { type ShotMeta, shotsOf } from '@/features/redesign/sheet-support';
+import { compareDefaults, labHref, type ShotMeta, shotsFrom } from '@/features/redesign/lab';
+import { useVersionFiles } from '@/features/redesign/queries';
+import { usePageVersions } from '@/features/redesign/sheet-support';
 import { useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import type { RedesignMessages } from '@/lib/i18n/page-dicts';
+
+const RedesignCompare = dynamic(() => import('@/components/redesign/compare'), { ssr: false });
 
 const linkClass = `inline-flex items-center gap-1 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline hit-44 ${focusRing}`;
 
@@ -97,13 +103,12 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
   const page = useT<RedesignMessages>('redesign');
   const r = card.redesign;
   const s = t.sheet.redesign;
+  const [compare, setCompare] = useState(false);
   const [review, setReview] = useState(false);
-  // The real API returns `portTaskId`. In the lab, the catalogue's port task is the one this card blocks.
-  const portKey =
-    r.portTaskKey ??
-    (card.status === 'approved' || card.status === 'ported'
-      ? card.links.find((l) => l.kind === 'blocks')?.key
-      : undefined);
+  const files = useVersionFiles(card.key, review);
+  const versions = usePageVersions(card);
+  const [a, b] = compareDefaults(card, versions);
+  const portKey = r.portTaskKey;
   return (
     <div className="flex flex-col gap-5">
       {action === 'approve' && (
@@ -155,10 +160,16 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
           <Bidi>{r.concept}</Bidi>
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <a href={r.labUrl.replace(/^\/lab\//, '/')} target="_blank" rel="noreferrer" className={linkClass}>
+          <a href={labHref(r)} target="_blank" rel="noreferrer" className={linkClass}>
             {s.openLab}
             <ExternalLink aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
           </a>
+          {versions.length > 1 && (
+            <Button onClick={() => setCompare(true)}>
+              <GitCompareArrows aria-hidden className="size-4" strokeWidth={1.75} />
+              {s.compare}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -232,7 +243,7 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
         </div>
       )}
 
-      <Screenshots shots={shotsOf(card)} version={r.version} />
+      <Screenshots shots={shotsFrom(card.attachments)} version={r.version} />
 
       {card.attachments.some((x) => x.kind === 'review') && (
         <button type="button" onClick={() => setReview(true)} className={`self-start ${linkClass}`}>
@@ -249,13 +260,24 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
       >
         {review && (
           <MarkdownView
-            source={r.reviewSummary ?? ''}
+            source={files.data?.review ?? r.reviewSummary ?? ''}
             dir="ltr"
             headingOffset={2}
             copyCodeLabel={page.sheet.copyCode}
           />
         )}
       </Modal>
+
+      {compare && (
+        <RedesignCompare
+          open={compare}
+          a={a}
+          b={b}
+          versions={versions}
+          pageLabel={`${r.app}/${r.page}`}
+          onOpenChange={setCompare}
+        />
+      )}
     </div>
   );
 }

@@ -8,17 +8,39 @@ import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
 import arAuth from '../../messages/ar/auth.json';
+import arDecisions from '../../messages/ar/decisions.json';
 import arKit from '../../messages/ar/kit.json';
+import arPlanning from '../../messages/ar/planning.json';
 import arShell from '../../messages/ar/shell.json';
+import arTasks from '../../messages/ar/tasks.json';
 import arWorkspaces from '../../messages/ar/workspaces.json';
 import enAuth from '../../messages/en/auth.json';
+import enDecisions from '../../messages/en/decisions.json';
 import enKit from '../../messages/en/kit.json';
+import enPlanning from '../../messages/en/planning.json';
 import enShell from '../../messages/en/shell.json';
+import enTasks from '../../messages/en/tasks.json';
 import enWorkspaces from '../../messages/en/workspaces.json';
 
 const catalogs = {
-  ar: { kit: arKit, shell: arShell, auth: arAuth, workspaces: arWorkspaces },
-  en: { kit: enKit, shell: enShell, auth: enAuth, workspaces: enWorkspaces },
+  ar: {
+    kit: arKit,
+    shell: arShell,
+    auth: arAuth,
+    workspaces: arWorkspaces,
+    tasks: arTasks,
+    decisions: arDecisions,
+    planning: arPlanning,
+  },
+  en: {
+    kit: enKit,
+    shell: enShell,
+    auth: enAuth,
+    workspaces: enWorkspaces,
+    tasks: enTasks,
+    decisions: enDecisions,
+    planning: enPlanning,
+  },
 };
 
 export function renderWithApp(

@@ -2,17 +2,17 @@
 
 /**
  * @file sheet-support.tsx
- * @description What the Redesign sheet section needs from the page: its screenshots as the API serves them from the lab root
- * (docs/15 §3). The curtain compare belongs to the Redesign page; the page's author moves it here from
- * `pages/redesign/parts/compare.tsx`.
+ * @description What the Redesign sheet section needs from the page: the versions of its lab page, for compare.
  */
 import type { RedesignCard } from '@/features/cards/types';
 
-export interface ShotMeta {
-  name: string;
-  url: string;
-}
+import { useLabPages } from './queries';
 
-/** The card's screenshot attachments. An empty list shows the section's honest "no screenshots". */
-export const shotsOf = (card: Pick<RedesignCard, 'attachments'>): ShotMeta[] =>
-  card.attachments.filter((a) => a.kind === 'screenshot').map((a) => ({ name: a.name, url: a.url }));
+/** The versions of this card's page, oldest first. Empty until the pages arrive. */
+export function usePageVersions(card: RedesignCard | undefined): RedesignCard[] {
+  const { data } = useLabPages();
+  if (!card || !data) return [];
+  const page = data.pages.find((p) => p.versionKeys.includes(card.key));
+  const byKey = new Map(data.items.map((v) => [v.key, v]));
+  return (page?.versionKeys ?? []).map((k) => byKey.get(k)).filter((v): v is RedesignCard => !!v);
+}

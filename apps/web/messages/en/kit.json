@@ -101,6 +101,9 @@
     },
     "task": {
       "cancel": "Cancel task"
+    },
+    "plan": {
+      "to_tasks": "Create tasks from steps"
     }
   },
   "done": {
@@ -265,7 +268,11 @@
         "restored": "restored",
         "redacted": "redacted a comment",
         "watch": "started watching",
-        "unwatch": "stopped watching"
+        "unwatch": "stopped watching",
+        "plan_revised": "saved a new revision",
+        "plan_steps_changed": "changed the steps",
+        "plan_to_tasks": "created tasks from the steps",
+        "idea_to_plan": "turned the idea into a plan"
       },
       "fieldNames": {
         "status": "Status",
@@ -363,7 +370,8 @@
         "session_followup": "Session follow-up",
         "redesign_port": "Redesign port",
         "decision": "From a decision",
-        "handoff": "From a handoff"
+        "handoff": "From a handoff",
+        "plan": "From a plan"
       },
       "pr": "PR",
       "blockedBy": "Blocked by {key}"
@@ -648,7 +656,8 @@
     "release": {
       "wroteBy": "Written by",
       "template": "A skeleton from Hub’s template. It can be polished from Claude Code.",
-      "copy": "Copy the {name} notes"
+      "copy": "Copy the {name} notes",
+      "noNotes": "No notes for this audience yet."
     },
     "task": {
       "pasteHint": "In Claude Code paste {cmd}",

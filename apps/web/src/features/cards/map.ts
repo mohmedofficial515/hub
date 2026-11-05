@@ -131,6 +131,51 @@ const DETAIL_DEFAULTS: Partial<Record<CardType, Record<string, unknown>>> = {
   plan: { body: '', steps: [] },
 };
 
+/** The words of a version's concept: the lab's title, which also ends the version card's title (docs/10 §4). */
+function conceptOf(title: string, detail: Record<string, unknown>) {
+  const front = detail['frontMatter'] as { title?: unknown } | undefined;
+  if (typeof detail['concept'] === 'string') return detail['concept'];
+  if (typeof front?.title === 'string') return front.title;
+  return title.split(' — ').pop() ?? title;
+}
+
+/** Where docs/04's detail differs from what the kit reads. Both names are accepted, so a detail can settle without breaking a page. */
+function shapeDetail(dto: CardFullDto, detail: Record<string, unknown>): Record<string, unknown> {
+  if (dto.type === 'redesign') {
+    const port = detail['portTask'] as { key?: string } | undefined;
+    return {
+      ...detail,
+      concept: conceptOf(dto.title, detail),
+      ...(port?.key ? { portTaskKey: port.key } : {}),
+    };
+  }
+  if (dto.type === 'doc') {
+    const source = detail['source'] as { name?: string } | undefined;
+    const referenced = (detail['referencedBy'] ?? []) as (string | { key: string })[];
+    return {
+      ...detail,
+      sourceName: detail['sourceName'] ?? source?.name ?? '',
+      lang: detail['lang'] ?? (String(detail['path']).endsWith('.ar.md') ? 'ar' : 'en'),
+      webUrl: detail['webUrl'] ?? detail['url'],
+      referencedBy: referenced.map((r) => (typeof r === 'string' ? r : r.key)),
+    };
+  }
+  if (dto.type === 'release') {
+    const notes = (detail['notes'] ?? {}) as Record<string, string | null | undefined>;
+    const included = detail['included'] as { key: string }[] | undefined;
+    return {
+      ...detail,
+      ...(included ? { includedKeys: included.map((c) => c.key) } : {}),
+      notes: {
+        team: notes['team'] ?? '',
+        owner: notes['owner'] ?? '',
+        accountant: notes['accountant'] ?? '',
+      },
+    };
+  }
+  return detail;
+}
+
 export function toHubCard(
   dto: CardFullDto,
   seed?: { events?: CardEvent[]; comments?: CardComment[] },
@@ -145,7 +190,7 @@ export function toHubCard(
     name: a.name,
     url: a.url,
   }));
-  const detail = { ...DETAIL_DEFAULTS[dto.type], ...flattenDetail(dto.detail) };
+  const detail = shapeDetail(dto, { ...DETAIL_DEFAULTS[dto.type], ...flattenDetail(dto.detail) });
   return {
     ...toListItem(dto),
     body: orUndefined(dto.body),

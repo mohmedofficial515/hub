@@ -101,6 +101,9 @@
     },
     "task": {
       "cancel": "ألغِ المهمة"
+    },
+    "plan": {
+      "to_tasks": "أنشئ مهامًا من الخطوات"
     }
   },
   "done": {
@@ -265,7 +268,11 @@
         "restored": "الاستعادة",
         "redacted": "حجب تعليق",
         "watch": "بدء المتابعة",
-        "unwatch": "إيقاف المتابعة"
+        "unwatch": "إيقاف المتابعة",
+        "plan_revised": "حفظ مراجعة جديدة",
+        "plan_steps_changed": "عدّل الخطوات",
+        "plan_to_tasks": "أنشأ مهامًا من الخطوات",
+        "idea_to_plan": "حوّل الفكرة إلى خطة"
       },
       "fieldNames": {
         "status": "الحالة",
@@ -363,7 +370,8 @@
         "session_followup": "متابعة جلسة",
         "redesign_port": "نقل تصميم",
         "decision": "من قرار",
-        "handoff": "من إحالة"
+        "handoff": "من إحالة",
+        "plan": "من خطة"
       },
       "pr": "PR",
       "blockedBy": "متوقفة على {key}"
@@ -660,7 +668,8 @@
     "release": {
       "wroteBy": "كتبها",
       "template": "هيكل من قالب Hub. يمكن صقله من Claude Code.",
-      "copy": "انسخ ملاحظات {name}"
+      "copy": "انسخ ملاحظات {name}",
+      "noNotes": "لا ملاحظات لهذه الفئة بعد."
     },
     "task": {
       "pasteHint": "في Claude Code الصق {cmd}",

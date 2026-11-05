@@ -12,6 +12,8 @@ import { Fact, Facts, type SectionProps, SubHeading } from '@/components/cards/s
 import { CopyButton } from '@/components/common/copy-button';
 import { Bidi, Ltr } from '@/components/common/text';
 import { tabTriggerClass } from '@/components/ui/tabs-class';
+import { useCardEvents } from '@/features/cards/store';
+import { notesAuthor } from '@/features/releases/rules';
 import { absolute } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
@@ -23,7 +25,8 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
   const r = card.release;
   const s = t.sheet.release;
   const notes = ['team', 'owner', 'accountant'] as const;
-  const author = { kind: 'system' as const, memberId: undefined };
+  const events = useCardEvents(card.key);
+  const author = notesAuthor(events.data ?? []);
   return (
     <div className="flex flex-col gap-5">
       <Facts>
@@ -69,14 +72,20 @@ export function ReleaseSection({ card }: SectionProps<'release'>) {
               value={note}
               className="flex flex-col items-start gap-2 pt-3 outline-none"
             >
-              <p className="text-body whitespace-pre-line text-foreground">
-                <Bidi>{r.notes[note]}</Bidi>
-              </p>
-              <CopyButton
-                text={r.notes[note]}
-                showText={false}
-                label={own.copy.replace('{name}', s.noteTabs[note])}
-              />
+              {r.notes[note] ? (
+                <>
+                  <p className="text-body whitespace-pre-line text-foreground">
+                    <Bidi>{r.notes[note]}</Bidi>
+                  </p>
+                  <CopyButton
+                    text={r.notes[note]}
+                    showText={false}
+                    label={own.copy.replace('{name}', s.noteTabs[note])}
+                  />
+                </>
+              ) : (
+                <p className="text-body-sm text-muted-foreground">{own.noNotes}</p>
+              )}
             </Tabs.Content>
           ))}
         </Tabs.Root>

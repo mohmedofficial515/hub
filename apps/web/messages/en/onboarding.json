@@ -1,5 +1,5 @@
 {
-  "title": "Welcome to Goteav, {name}",
+  "title": "Welcome to {project}, {name}",
   "progress": "{done} of {total} steps",
   "progressLabel": "Your progress on the path",
   "roles": "Your roles",
@@ -24,7 +24,6 @@
   "markDone": "Mark done",
   "undoDone": "Mark not done",
   "markedDone": "Done: {title}",
-  "autoNote": "Hub ticks this itself.",
   "auto": "Automatic",
   "doneAuto": "Ticked by Hub",
   "step": "Step {n}",
@@ -33,12 +32,10 @@
   "doneTitle": "Nothing is left on your path",
   "doneBody": "You can come back to this page at any time from your account menu.",
   "goToday": "Go to Today",
-  "sidebarNote": "The sidebar count is gone, and this page stays available.",
   "preview": {
     "label": "Preview a role’s path",
     "banner": "This is what a new member with the {role} role sees. Nothing here is saved.",
     "mine": "My path",
-    "none": "",
     "settings": "Edit the paths in Settings"
   },
   "emptyTitle": "The owner has not set a reading path for {role} yet",
@@ -48,5 +45,6 @@
   "emptyBodyManager": "Choose what a new member reads for each role in Settings.",
   "emptyActionManager": "Open Settings",
   "errorThing": "your path",
-  "loading": "Loading your path"
+  "loading": "Loading your path",
+  "autoHint": "Hub ticks this itself when it happens."
 }
