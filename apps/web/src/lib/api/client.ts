@@ -60,11 +60,15 @@ let refreshing: Promise<boolean> | null = null;
  * which localhost and the HTTPS host both are.
  */
 export function refreshSession(): Promise<boolean> {
-  const run = () => (navigator.locks ? navigator.locks.request('hub-refresh', refreshOnce) : refreshOnce());
-  refreshing ??= run().finally(() => {
+  if (refreshing) return refreshing;
+  const run: Promise<boolean> = navigator.locks
+    ? (navigator.locks.request('hub-refresh', refreshOnce) as Promise<boolean>)
+    : refreshOnce();
+  const current = run.finally(() => {
     refreshing = null;
   });
-  return refreshing;
+  refreshing = current;
+  return current;
 }
 
 /** A role here requires TOTP and the member has not enrolled: every project route answers 403 until they do (docs/04 §1.6). */

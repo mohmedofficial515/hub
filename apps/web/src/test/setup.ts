@@ -31,7 +31,7 @@ Object.assign(Element.prototype, { scrollIntoView: () => undefined, hasPointerCa
 const NativeRequest = globalThis.Request;
 globalThis.Request = class extends NativeRequest {
   // `clone()` returns a native Request, which is still a Request.
-  static [Symbol.hasInstance](value: unknown) {
+  static override [Symbol.hasInstance](value: unknown) {
     return Function.prototype[Symbol.hasInstance].call(NativeRequest, value);
   }
 
