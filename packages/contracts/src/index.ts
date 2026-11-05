@@ -7,6 +7,7 @@ export * from './errors';
 export * from './events';
 export * from './identity';
 export * from './mcp/tools';
+export * from './notifications';
 export * from './permissions';
 export * from './projects';
 export * from './roles';

@@ -178,8 +178,10 @@ The module does not exist yet (H1-01). The contract it must follow:
 Extend `BaseProcessor` (`infra/queue/queue.service.ts`), name a queue from `QUEUES`, implement `process`, add it to a module.
 Workers start where `PROCESS_ROLE` is `worker` or `all`. In tests `QUEUE_MODE=inline` runs jobs in the caller's process.
 
-Notifications: return `notify` from a plan. `OutboxProcessor.registerSender(channel, sender)` connects a channel; with no
-sender a job ends `skipped`.
+Notifications: the routing table (`modules/notifications/domain/routing.ts`, docs/07 §1) reacts to every event, so a new action
+usually needs nothing. Return `notify` from a plan for what the table cannot say; one member gets one item per event, the highest
+kind wins. A new verb that does the work on a card is an act (`domain/acts.ts`), and clears that card for whoever did it; add its
+inverse there if it has one. `OutboxProcessor.registerSender(channel, sender)` connects a channel; with no sender a job ends `skipped`.
 
 Realtime: `CardService` publishes each card event after commit, so a card change reaches every open page with no work from
 you. For anything else, `RealtimePublisher.publishEnvelope(workspaceId, { event, data, audience })`: `inbox.new` with

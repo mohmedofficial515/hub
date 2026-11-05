@@ -7,5 +7,22 @@
   "review_requested": "جاهزة للمراجعة: {cardKey} {title}",
   "mention": "ذُكرتَ في {cardKey}: {title}",
   "unblocked": "{cardKey} لم تعد محجوبة بعد {byCardKey}: {title}",
-  "release_released": "صدر: {cardKey} {title}"
+  "release_released": "صدر: {cardKey} {title}",
+  "routed_review": "بانتظار مراجعتك: {cardKey} {title}",
+  "routed_idea": "فكرة تخص دورك: {cardKey} {title}",
+  "watch_update": "تغيّرت {cardKey}: {title}",
+  "watch_comment": "تعليق جديد على {cardKey}: {title}",
+  "watch_decided": "حُسم {cardKey}: {title}",
+  "need_delivered": "سُلّم {cardKey} وينتظر التحقق: {title}",
+  "release_created": "إصدار جديد مخطط له: {cardKey} {title}",
+  "session_no_summary": "جلستك {cardKey} بلا ملخص بعد",
+  "deadline_reminder": "موعد {cardKey} خلال {hours} ساعة: {title}",
+  "deadline_overdue": "تجاوز {cardKey} موعده: {title}",
+  "handoff_stale": "انتظرتك {cardKey} طويلًا: {title}",
+  "need_stale": "بقي {cardKey} مفتوحًا طويلًا: {title}",
+  "task_still_working": "هل ما زلت تعمل على {cardKey}؟ {title}",
+  "escalation": "تجاوز {cardKey} موعده وصُعّد: {title}",
+  "source_failing": "فشل المصدر {name} ثلاث مرات متتالية",
+  "brief_ready": "موجزك ليوم {date} جاهز",
+  "weekly_ready": "ملخص الأسبوع {date} جاهز"
 }

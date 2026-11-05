@@ -1134,6 +1134,75 @@ export type TimelineRowDto = {
     collapsedKinds: Array<string>;
 };
 
+export type InboxItemDto = {
+    id: string;
+    kind: 'routed_decision' | 'routed_need' | 'routed_handoff' | 'routed_review' | 'routed_idea' | 'mention' | 'watch_update' | 'deadline_reminder' | 'escalation' | 'unblocked' | 'task_ready' | 'review_requested' | 'brief' | 'system';
+    title: string;
+    body: string | null;
+    card: {
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    } | null;
+    data: {
+        cardKey?: string;
+        action?: string;
+        count?: number;
+    };
+    groupKey: string | null;
+    createdAt: string;
+    readAt: string | null;
+    archivedAt: string | null;
+};
+
+export type InboxCountDto = {
+    unread: number;
+    awaitingMe: {
+        decisions: number;
+        needs: number;
+        handoffs: number;
+        reviews: number;
+    };
+};
+
+export type ReadAllDto = {
+    before?: string;
+};
+
 export type TaskPromptDto = {
     markdown: string;
 };
@@ -1481,6 +1550,44 @@ export type OnboardingGroupDto = {
         done: boolean;
         doneAt: string | null;
     }>;
+};
+
+export type HookSessionDto = {
+    sessionId: string;
+    reason?: 'clear' | 'resume' | 'logout' | 'prompt_input_exit' | 'other' | 'sigterm';
+    cwd: string;
+    remote?: string | null;
+    branch?: string | null;
+    startSha?: string | null;
+    headSha?: string | null;
+    commits?: Array<{
+        sha: string;
+        message: string;
+        at?: string;
+    }>;
+    filesChanged?: number;
+    additions?: number;
+    deletions?: number;
+    dirtyFiles?: number;
+    startedAt?: string | null;
+    endedAt: string;
+    durationSec?: number | null;
+    hasSummary?: boolean;
+    client?: {
+        os: string;
+        packVersion: string;
+    };
+};
+
+export type HookSessionResultDto = {
+    sessionLogId: string;
+    cardKey: string | null;
+    project: string;
+};
+
+export type ContextDto = {
+    project: string | null;
+    text: string;
 };
 
 export type AuthControllerSignInData = {
@@ -2166,6 +2273,111 @@ export type TimelineControllerListResponses = {
 };
 
 export type TimelineControllerListResponse = TimelineControllerListResponses[keyof TimelineControllerListResponses];
+
+export type InboxControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        unread?: boolean;
+        archived?: boolean;
+        kinds?: Array<'routed_decision' | 'routed_need' | 'routed_handoff' | 'routed_review' | 'routed_idea' | 'mention' | 'watch_update' | 'deadline_reminder' | 'escalation' | 'unblocked' | 'task_ready' | 'review_requested' | 'brief' | 'system'>;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/inbox';
+};
+
+export type InboxControllerListResponses = {
+    200: Array<InboxItemDto>;
+};
+
+export type InboxControllerListResponse = InboxControllerListResponses[keyof InboxControllerListResponses];
+
+export type InboxControllerCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/count';
+};
+
+export type InboxControllerCountResponses = {
+    200: InboxCountDto;
+};
+
+export type InboxControllerCountResponse = InboxControllerCountResponses[keyof InboxControllerCountResponses];
+
+export type InboxControllerReadAllData = {
+    body: ReadAllDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/read-all';
+};
+
+export type InboxControllerReadAllResponses = {
+    204: void;
+};
+
+export type InboxControllerReadAllResponse = InboxControllerReadAllResponses[keyof InboxControllerReadAllResponses];
+
+export type InboxControllerReadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/{id}/read';
+};
+
+export type InboxControllerReadResponses = {
+    204: void;
+};
+
+export type InboxControllerReadResponse = InboxControllerReadResponses[keyof InboxControllerReadResponses];
+
+export type InboxControllerUnreadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/{id}/unread';
+};
+
+export type InboxControllerUnreadResponses = {
+    204: void;
+};
+
+export type InboxControllerUnreadResponse = InboxControllerUnreadResponses[keyof InboxControllerUnreadResponses];
+
+export type InboxControllerArchiveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/{id}/archive';
+};
+
+export type InboxControllerArchiveResponses = {
+    204: void;
+};
+
+export type InboxControllerArchiveResponse = InboxControllerArchiveResponses[keyof InboxControllerArchiveResponses];
+
+export type InboxControllerUnarchiveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/inbox/{id}/unarchive';
+};
+
+export type InboxControllerUnarchiveResponses = {
+    204: void;
+};
+
+export type InboxControllerUnarchiveResponse = InboxControllerUnarchiveResponses[keyof InboxControllerUnarchiveResponses];
 
 export type TasksControllerReadyData = {
     body?: never;
@@ -3480,3 +3692,31 @@ export type OnboardingControllerTickResponses = {
 };
 
 export type OnboardingControllerTickResponse = OnboardingControllerTickResponses[keyof OnboardingControllerTickResponses];
+
+export type CaptureControllerSessionData = {
+    body: HookSessionDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/capture/session';
+};
+
+export type CaptureControllerSessionResponses = {
+    202: HookSessionResultDto;
+};
+
+export type CaptureControllerSessionResponse = CaptureControllerSessionResponses[keyof CaptureControllerSessionResponses];
+
+export type CaptureControllerMeData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cwd?: string;
+    };
+    url: '/api/v1/me/context';
+};
+
+export type CaptureControllerMeResponses = {
+    200: ContextDto;
+};
+
+export type CaptureControllerMeResponse = CaptureControllerMeResponses[keyof CaptureControllerMeResponses];

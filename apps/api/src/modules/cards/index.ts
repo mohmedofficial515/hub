@@ -9,10 +9,12 @@ export {
 } from './application/action-helpers';
 export { CardService } from './application/card.service';
 export { CardActionHandler, CardActionRegistry } from './application/card-action.registry';
+export { type CardEventContext, type CardEventHook, CardEventHooks } from './application/card-event-hooks';
 export { CardQueryService } from './application/card-query.service';
 export { IdempotencyService, type IdempotentResult } from './application/idempotency.service';
 export { CardReader } from './application/ports/card.reader';
 export { CardRepository } from './application/ports/card.repository';
+export { transitionActionFor } from './application/transitions';
 export { CardsModule } from './cards.module';
 export type {
   ApplyResult,

@@ -7,5 +7,22 @@
   "review_requested": "Ready for review: {cardKey} {title}",
   "mention": "You were mentioned on {cardKey}: {title}",
   "unblocked": "{cardKey} is unblocked by {byCardKey}: {title}",
-  "release_released": "Released: {cardKey} {title}"
+  "release_released": "Released: {cardKey} {title}",
+  "routed_review": "Waiting for your review: {cardKey} {title}",
+  "routed_idea": "An idea for your role: {cardKey} {title}",
+  "watch_update": "{cardKey} changed: {title}",
+  "watch_comment": "New comment on {cardKey}: {title}",
+  "watch_decided": "{cardKey} was decided: {title}",
+  "need_delivered": "{cardKey} was delivered, waiting for a check: {title}",
+  "release_created": "New release planned: {cardKey} {title}",
+  "session_no_summary": "Your session {cardKey} has no summary yet",
+  "deadline_reminder": "{cardKey} is due within {hours} h: {title}",
+  "deadline_overdue": "{cardKey} is overdue: {title}",
+  "handoff_stale": "{cardKey} has waited too long for you: {title}",
+  "need_stale": "{cardKey} has been open too long: {title}",
+  "task_still_working": "Still working on {cardKey}? {title}",
+  "escalation": "{cardKey} is overdue and escalated: {title}",
+  "source_failing": "The source {name} failed 3 runs in a row",
+  "brief_ready": "Your brief for {date} is ready",
+  "weekly_ready": "The summary of week {date} is ready"
 }

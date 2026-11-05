@@ -4,7 +4,6 @@
 import { Module } from '@nestjs/common';
 import { DiscoveryModule } from '@nestjs/core';
 
-import { OutboxModule } from '@/infra/outbox/outbox';
 import { AuditModule } from '@/modules/audit';
 
 import {
@@ -22,6 +21,7 @@ import { CardLinkAction } from './application/actions/card-link.action';
 import { CardWatchAction } from './application/actions/card-watch.action';
 import { CardService } from './application/card.service';
 import { CardActionRegistry } from './application/card-action.registry';
+import { CardEventHooks } from './application/card-event-hooks';
 import { CardQueryService } from './application/card-query.service';
 import { IdempotencyService } from './application/idempotency.service';
 import { CardReader } from './application/ports/card.reader';
@@ -33,11 +33,12 @@ import { IdempotencyInterceptor } from './presentation/http/idempotency.intercep
 import { TimelineController } from './presentation/http/timeline.controller';
 
 @Module({
-  imports: [DiscoveryModule, AuditModule, OutboxModule],
+  imports: [DiscoveryModule, AuditModule],
   controllers: [CardsController, TimelineController],
   providers: [
     CardService,
     CardActionRegistry,
+    CardEventHooks,
     CardQueryService,
     IdempotencyService,
     IdempotencyInterceptor,
@@ -56,6 +57,7 @@ import { TimelineController } from './presentation/http/timeline.controller';
   exports: [
     CardService,
     CardActionRegistry,
+    CardEventHooks,
     CardRepository,
     CardReader,
     CardQueryService,

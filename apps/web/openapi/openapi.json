@@ -1819,6 +1819,236 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/inbox": {
+      "get": {
+        "operationId": "InboxController_list",
+        "parameters": [
+          {
+            "name": "unread",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "kinds",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "routed_decision",
+                  "routed_need",
+                  "routed_handoff",
+                  "routed_review",
+                  "routed_idea",
+                  "mention",
+                  "watch_update",
+                  "deadline_reminder",
+                  "escalation",
+                  "unblocked",
+                  "task_ready",
+                  "review_requested",
+                  "brief",
+                  "system"
+                ]
+              }
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InboxItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "What is addressed to me, newest first. `pagination.total` is the unread count.",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/count": {
+      "get": {
+        "operationId": "InboxController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxCountDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Unread items, and the cards waiting on me by type",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/read-all": {
+      "post": {
+        "operationId": "InboxController_readAll",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadAllDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Mark everything read, up to a moment if given",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/{id}/read": {
+      "post": {
+        "operationId": "InboxController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Mark one item read",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/{id}/unread": {
+      "post": {
+        "operationId": "InboxController_unread",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Mark one item unread, the Undo of read",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/{id}/archive": {
+      "post": {
+        "operationId": "InboxController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Archive one item",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/inbox/{id}/unarchive": {
+      "post": {
+        "operationId": "InboxController_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Bring an archived item back, the Undo of archive",
+        "tags": [
+          "inbox"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/tasks/ready": {
       "get": {
         "operationId": "TasksController_ready",
@@ -5166,6 +5396,70 @@
         "summary": "Untick an item",
         "tags": [
           "onboarding"
+        ]
+      }
+    },
+    "/api/v1/capture/session": {
+      "post": {
+        "operationId": "CaptureController_session",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HookSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HookSessionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Git facts of a finished Claude Code session, from the SessionEnd hook",
+        "tags": [
+          "capture"
+        ]
+      }
+    },
+    "/api/v1/me/context": {
+      "get": {
+        "operationId": "CaptureController_me",
+        "parameters": [
+          {
+            "name": "cwd",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 500,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "What a new chat should know, naming the active project",
+        "tags": [
+          "capture"
         ]
       }
     }
@@ -10582,6 +10876,333 @@
           "collapsedKinds"
         ]
       },
+      "InboxItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "routed_decision",
+              "routed_need",
+              "routed_handoff",
+              "routed_review",
+              "routed_idea",
+              "mention",
+              "watch_update",
+              "deadline_reminder",
+              "escalation",
+              "unblocked",
+              "task_ready",
+              "review_requested",
+              "brief",
+              "system"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "card": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "key": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "task",
+                  "decision",
+                  "need",
+                  "change",
+                  "handoff",
+                  "redesign",
+                  "doc",
+                  "release",
+                  "idea",
+                  "plan"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "P0",
+                  "P1",
+                  "P2",
+                  "P3"
+                ]
+              },
+              "ownerRole": {
+                "type": "string",
+                "nullable": true
+              },
+              "assignee": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "avatarColor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName",
+                  "avatarColor"
+                ],
+                "nullable": true
+              },
+              "module": {
+                "type": "string",
+                "nullable": true
+              },
+              "repo": {
+                "type": "string",
+                "nullable": true
+              },
+              "branch": {
+                "type": "string",
+                "nullable": true
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "dueAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "closedAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "archivedAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "commentCount": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "lastEventAt": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "createdBy": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "agent",
+                      "system"
+                    ]
+                  },
+                  "userId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "via": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "userId",
+                  "displayName",
+                  "via"
+                ]
+              },
+              "source": {
+                "type": "string"
+              },
+              "flags": {
+                "type": "object",
+                "properties": {
+                  "blocked": {
+                    "type": "boolean"
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  },
+                  "escalated": {
+                    "type": "boolean"
+                  },
+                  "stale": {
+                    "type": "boolean"
+                  },
+                  "noSummary": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "blocked",
+                  "overdue",
+                  "escalated",
+                  "stale",
+                  "noSummary"
+                ]
+              },
+              "awaiting": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "key",
+              "type",
+              "title",
+              "status",
+              "priority",
+              "ownerRole",
+              "assignee",
+              "module",
+              "repo",
+              "branch",
+              "tags",
+              "dueAt",
+              "closedAt",
+              "archivedAt",
+              "commentCount",
+              "lastEventAt",
+              "createdAt",
+              "createdBy",
+              "source",
+              "flags",
+              "awaiting"
+            ],
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "cardKey": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "groupKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "archivedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "body",
+          "card",
+          "data",
+          "groupKey",
+          "createdAt",
+          "readAt",
+          "archivedAt"
+        ]
+      },
+      "InboxCountDto": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "awaitingMe": {
+            "type": "object",
+            "properties": {
+              "decisions": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "needs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "handoffs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "reviews": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "decisions",
+              "needs",
+              "handoffs",
+              "reviews"
+            ]
+          }
+        },
+        "required": [
+          "unread",
+          "awaitingMe"
+        ]
+      },
+      "ReadAllDto": {
+        "type": "object",
+        "properties": {
+          "before": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        }
+      },
       "TaskPromptDto": {
         "type": "object",
         "properties": {
@@ -11922,6 +12543,181 @@
         "required": [
           "role",
           "items"
+        ]
+      },
+      "HookSessionDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "clear",
+              "resume",
+              "logout",
+              "prompt_input_exit",
+              "other",
+              "sigterm"
+            ]
+          },
+          "cwd": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "remote": {
+            "type": "string",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "branch": {
+            "type": "string",
+            "maxLength": 200,
+            "nullable": true
+          },
+          "startSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "nullable": true
+          },
+          "headSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$",
+            "nullable": true
+          },
+          "commits": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sha": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{7,40}$"
+                },
+                "message": {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                "at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "sha",
+                "message"
+              ]
+            }
+          },
+          "filesChanged": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "additions": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "deletions": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "dirtyFiles": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "durationSec": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "hasSummary": {
+            "default": false,
+            "type": "boolean"
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "os": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "packVersion": {
+                "type": "string",
+                "maxLength": 20
+              }
+            },
+            "required": [
+              "os",
+              "packVersion"
+            ]
+          }
+        },
+        "required": [
+          "sessionId",
+          "cwd",
+          "endedAt"
+        ]
+      },
+      "HookSessionResultDto": {
+        "type": "object",
+        "properties": {
+          "sessionLogId": {
+            "type": "string"
+          },
+          "cardKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionLogId",
+          "cardKey",
+          "project"
+        ]
+      },
+      "ContextDto": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "nullable": true
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "text"
         ]
       }
     }

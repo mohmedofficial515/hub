@@ -20,6 +20,7 @@ import {
   type PermissionAction,
   permissionFactsFor,
   type RealtimeCardEvent,
+  type RealtimeEnvelope,
   storedActorKind,
   type Transition,
 } from '@hub/contracts';
@@ -27,7 +28,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 
 import { CLOCK, type Clock } from '@/infra/clock/clock';
-import { NotificationOutbox } from '@/infra/outbox/outbox';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
@@ -44,7 +44,14 @@ import type {
   JsonObject,
 } from '../domain/card-action';
 import { CardActionRegistry } from './card-action.registry';
+import { CardEventHooks } from './card-event-hooks';
 import { CardRepository } from './ports/card.repository';
+
+/** What to tell the open pages once the transaction has committed. */
+interface Published {
+  readonly events: RealtimeCardEvent[];
+  readonly envelopes: RealtimeEnvelope[];
+}
 
 function typeOfAction(action: PermissionAction): { type: CardType | null; verb: string } {
   const [prefix = '', verb = ''] = action.split('.');
@@ -58,7 +65,7 @@ export class CardService {
     private readonly registry: CardActionRegistry,
     private readonly cards: CardRepository,
     private readonly audit: AuditService,
-    private readonly outbox: NotificationOutbox,
+    private readonly hooks: CardEventHooks,
     private readonly realtime: RealtimePublisher,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -77,11 +84,14 @@ export class CardService {
     if (this.txHost.isTransactionActive()) {
       throw new Error('CardService.apply must not run inside a transaction; use followUps in the plan');
     }
-    const published: RealtimeCardEvent[] = [];
+    const published: Published = { events: [], envelopes: [] };
     const result = await this.txHost.withTransaction(() =>
       this.run(actor, target, action, payload, published),
     );
-    for (const event of published) await this.realtime.publishCardEvent(event);
+    for (const event of published.events) await this.realtime.publishCardEvent(event);
+    for (const envelope of published.envelopes) {
+      await this.realtime.publishEnvelope(actor.workspaceId, envelope);
+    }
     return result;
   }
 
@@ -90,7 +100,7 @@ export class CardService {
     target: CardTarget | null,
     action: PermissionAction,
     rawPayload: unknown,
-    published: RealtimeCardEvent[],
+    published: Published,
     trusted = false,
   ): Promise<ApplyResult> {
     const definition = this.registry.get(action);
@@ -173,7 +183,7 @@ export class CardService {
     actionType: CardType | null,
     plan: CardActionPlan,
     now: Date,
-    published: RealtimeCardEvent[],
+    published: Published,
   ): Promise<ApplyResult> {
     if (!actionType || !plan.create) throw new Error(`Action ${action} did not return create fields`);
     const machine = CARD_MACHINES[actionType];
@@ -201,7 +211,7 @@ export class CardService {
         },
       },
     };
-    return this.finish(actor, card, action, plan, plan.event ?? defaultEvent, now, published, false);
+    return this.finish(actor, card, null, action, plan, plan.event ?? defaultEvent, now, published, false);
   }
 
   private async update(
@@ -211,7 +221,7 @@ export class CardService {
     verb: string,
     plan: CardActionPlan,
     now: Date,
-    published: RealtimeCardEvent[],
+    published: Published,
   ): Promise<ApplyResult> {
     const machine = CARD_MACHINES[card.type];
     const transition: Transition<string> | undefined = machine.transitions[verb];
@@ -240,6 +250,7 @@ export class CardService {
     return this.finish(
       actor,
       written,
+      card,
       action,
       plan,
       event,
@@ -253,11 +264,12 @@ export class CardService {
   private async finish(
     actor: Actor,
     card: CardView,
+    previous: CardView | null,
     action: PermissionAction,
     plan: CardActionPlan,
     event: { readonly kind: EventKind; readonly data?: JsonObject },
     now: Date,
-    published: RealtimeCardEvent[],
+    published: Published,
     releasesDependants: boolean,
   ): Promise<ApplyResult> {
     const prepared: ApplyResult[] = [];
@@ -285,9 +297,18 @@ export class CardService {
     ];
     if (watchers.length > 0) await this.cards.addWatchers(card.id, watchers, now);
 
-    await this.notify(actor, card, plan);
+    published.envelopes.push(
+      ...(await this.hooks.run({
+        actor,
+        action,
+        card,
+        previous,
+        event: written,
+        intents: plan.notify ?? [],
+      })),
+    );
 
-    published.push({
+    published.events.push({
       eventId: written.id,
       workspaceId: card.workspaceId,
       cardId: card.id,
@@ -334,26 +355,5 @@ export class CardService {
       event: written,
       followUps: [...prepared, ...followUps],
     };
-  }
-
-  private async notify(actor: Actor, card: CardView, plan: CardActionPlan): Promise<void> {
-    for (const intent of plan.notify ?? []) {
-      const found = await this.cards.findRecipients(
-        card.workspaceId,
-        intent.roles ?? [],
-        intent.userIds ?? [],
-      );
-      const recipients = found.filter((recipient) => recipient.userId !== actor.userId);
-      if (recipients.length === 0) continue;
-      await this.outbox.write({
-        workspaceId: card.workspaceId,
-        cardId: card.id,
-        kind: intent.kind,
-        recipients,
-        i18nKey: intent.i18nKey,
-        params: { cardKey: card.key, title: card.title, ...intent.params },
-        data: { cardKey: card.key, ...intent.data },
-      });
-    }
   }
 }

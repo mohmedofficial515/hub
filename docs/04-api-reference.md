@@ -886,13 +886,18 @@ errors: capture.import_running 409
 type InboxItem = { id; kind; title; body: string | null; card: CardSummary | null; data: { cardKey?; action?: 'decide' | 'acknowledge' | 'deliver' | 'claim' | 'verify' | 'review' }; groupKey; createdAt; readAt; archivedAt }
 
 GET /workspaces/{ws}/inbox                       auth: session | token
-query: { unread?: boolean; kinds?: string[]; cursor?; limit? }   sort: createdAt desc; grouped client-side by groupKey within 30 min
+query: { unread?: boolean; archived?: boolean /* true is the archive */; kinds?: string[]; cursor?; limit? }   sort: createdAt desc; grouped client-side by groupKey within 30 min
 200: { data: InboxItem[], meta: { pagination: { …; total: number /* unread count */ } } }
 
 GET /workspaces/{ws}/inbox/count                 auth: session | token   200: { data: { unread: number; awaitingMe: { decisions: number; needs: number; handoffs: number; reviews: number } } }
 POST /workspaces/{ws}/inbox/{id}/read            auth: session | token   204
 POST /workspaces/{ws}/inbox/read-all             auth: session | token   body: { before?: string }   204
 POST /workspaces/{ws}/inbox/{id}/archive         auth: session | token   204
+POST /workspaces/{ws}/inbox/{id}/unread          auth: session | token   204   (Undo of read)
+POST /workspaces/{ws}/inbox/{id}/unarchive       auth: session | token   204   (Undo of archive)
+// An item on a deleted card hides with the card, from the list and the count (D28), and comes back with it.
+// Acting on a card marks that card's items read for the one who acted, from any surface. The inverse of the act (unclaim after
+// claim, restore after delete, and so on: `notifications/domain/acts.ts`) restores exactly those, so Undo needs no inbox call (review M1).
 ```
 
 ### 3.18 Push and Telegram
@@ -1021,8 +1026,8 @@ Every message: `id: <redis stream id>`, `event: <name>`, `data: <json>`.
 | `card.event` | `{ key, event: { id, seq, kind, actor, via, createdAt } }` | each `card_event` row (the timeline consumes this) |
 | `comment.created` | `{ key, eventId }` | a comment. These messages carry no text: a page refetches through the API, where the member's permissions apply |
 | `resync` | `{ reason }` | `Last-Event-ID` too old to resume |
-| `inbox.new` | `{ item: InboxItem, unread: number }` | notification for **this** member |
-| `inbox.read` | `{ ids: string[], unread: number }` | read elsewhere (another tab/device) |
+| `inbox.new` | `{ id, kind, cardKey, action, unread }`, no text: the page reads the item through the API | notification for **this** member |
+| `inbox.read` | `{ ids: string[], unread: number }` | read, restored, archived or read-all elsewhere (another tab or device, or acting on the card) |
 | `brief.ready` | `{ kind, date }` | morning/weekly brief stored for this member |
 | `source.run` | `{ sourceId, status: 'running' | 'ok' | 'failed', created, updated, lagSec }` | owner/pm only |
 | `workspace.updated` | `{ counts: Workspace['counts'] }` | throttled to 1/5 s |

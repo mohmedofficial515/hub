@@ -9,6 +9,7 @@ import type {
   CardType,
   ErrorCode,
   EventKind,
+  NotificationKind,
   PermissionAction,
   Priority,
 } from '@hub/contracts';
@@ -88,18 +89,7 @@ export type CardPatch = Partial<Omit<CardCreateFields, 'status' | 'source' | 'ex
 };
 
 export interface NotificationIntent {
-  readonly kind:
-    | 'routed_decision'
-    | 'routed_need'
-    | 'routed_handoff'
-    | 'mention'
-    | 'watch_update'
-    | 'deadline_reminder'
-    | 'escalation'
-    | 'unblocked'
-    | 'task_ready'
-    | 'review_requested'
-    | 'system';
+  readonly kind: Exclude<NotificationKind, 'brief'>;
   /** A key in src/i18n/{en,ar}/notifications.json. `cardKey` and `title` are always available to it. */
   readonly i18nKey: string;
   readonly params?: Readonly<Record<string, string | number>>;

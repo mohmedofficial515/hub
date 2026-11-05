@@ -18,6 +18,7 @@ import { PrismaModule, prismaTransactionalPlugin } from './infra/prisma/prisma.m
 import { QueueModule } from './infra/queue/queue.service';
 import { RedisModule } from './infra/redis/redis.module';
 import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
+import { CaptureModule } from './modules/capture';
 import { CardsModule } from './modules/cards';
 import { DecisionsModule } from './modules/decisions';
 import { DocsModule } from './modules/docs';
@@ -25,7 +26,9 @@ import { HandoffsModule } from './modules/handoffs';
 import { HealthModule } from './modules/health';
 import { IdeasModule } from './modules/ideas';
 import { IdentityModule } from './modules/identity';
+import { McpModule } from './modules/mcp';
 import { NeedsModule } from './modules/needs';
+import { NotificationsModule } from './modules/notifications';
 import { PlansModule } from './modules/plans';
 import { RealtimeModule } from './modules/realtime';
 import { RedesignModule } from './modules/redesign';
@@ -62,6 +65,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     IdentityModule,
     AuditModule,
     CardsModule,
+    NotificationsModule,
     TasksModule,
     DecisionsModule,
     NeedsModule,
@@ -74,6 +78,8 @@ const REQUEST_ID_HEADER = 'x-request-id';
     RealtimeModule,
     HealthModule,
     WorkspacesModule,
+    CaptureModule,
+    McpModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

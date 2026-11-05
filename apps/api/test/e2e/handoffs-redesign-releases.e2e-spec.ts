@@ -210,9 +210,9 @@ describe('redesign', () => {
     const { body } = await designer.post(`/redesign/${card.key}/submit-review`).expect(200);
     expect(body.data.status).toBe('review');
     const rows = await db().notification.findMany({
-      where: { workspaceId: project.id, kind: 'review_requested' },
+      where: { workspaceId: project.id, kind: 'routed_review' },
     });
-    expect(rows).toMatchObject([{ userId: owner.id }]);
+    expect(rows.map((row) => row.userId).sort()).toEqual([owner.id, qa.id].sort());
     await designer.post(`/redesign/${card.key}/submit-review`).expect(409);
   });
 
@@ -441,7 +441,9 @@ describe('releases', () => {
     const { body } = await pm.post(`/releases/${release.key}/release`).expect(200);
     expect(body.data.status).toBe('released');
     expect(body.data.detail.releasedAt).not.toBeNull();
-    const rows = await db().notification.findMany({ where: { workspaceId: project.id, kind: 'system' } });
+    const rows = (
+      await db().notification.findMany({ where: { workspaceId: project.id, kind: 'system' } })
+    ).filter((row) => (row.data as { i18n: { key: string } }).i18n.key === 'release_released');
     expect(rows).toMatchObject([{ userId: qa.id }]);
     await pm.post(`/releases/${release.key}/release`).expect(409);
   });

@@ -47,7 +47,8 @@ Rules:
 
 ## 2. Creation pipeline, grouping, dedupe
 
-1. `CardService.apply` runs the router inside the **same transaction** as the card event and
+1. `CardService.apply` runs its registered hooks inside the **same transaction** as the card event
+   (`modules/notifications` registers through `CardEventHooks`, so the dependency points one way). The hook routes the event and
    inserts `Notification` rows (title/body rendered in the recipient's locale — immutable) plus one
    `NotificationJob` per enabled channel of that recipient (§4 preferences decide `channel` set and
    `nextAttemptAt`). In-app needs no job: the row itself is the inbox item.

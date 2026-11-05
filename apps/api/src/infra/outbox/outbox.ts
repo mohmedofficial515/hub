@@ -5,6 +5,7 @@
  * Telegram and email are deferred (docs/15 §3), so with no sender a job ends `skipped`, honestly. H3-01 owns
  * routing rules and templates on top of this; H3-02 to H3-04 only call `registerSender`.
  */
+import type { NotificationKind } from '@hub/contracts';
 import { Inject, Injectable, Logger, Module, type OnModuleInit } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { I18nService } from 'nestjs-i18n';
@@ -12,22 +13,6 @@ import { I18nService } from 'nestjs-i18n';
 import { CLOCK, type Clock } from '../clock/clock';
 import { type PrismaTransactionalAdapter } from '../prisma/prisma.module';
 import { BaseProcessor, QUEUES, QueueService, type SimpleJob } from '../queue/queue.service';
-
-export const NOTIFICATION_KINDS = [
-  'routed_decision',
-  'routed_need',
-  'routed_handoff',
-  'mention',
-  'watch_update',
-  'deadline_reminder',
-  'escalation',
-  'unblocked',
-  'task_ready',
-  'review_requested',
-  'brief',
-  'system',
-] as const;
-export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export interface OutboxEntry {
   readonly workspaceId: string;
@@ -50,6 +35,12 @@ export class NotificationOutbox {
 
   /** Call inside the mutation's transaction. Returns the number of notifications written. */
   async write(entry: OutboxEntry): Promise<number> {
+    return (await this.writeEach(entry)).length;
+  }
+
+  /** As `write`, answering each row, so the caller can tell its recipient after commit. */
+  async writeEach(entry: OutboxEntry): Promise<{ id: string; userId: string }[]> {
+    const written: { id: string; userId: string }[] = [];
     const tx = this.txHost.tx;
     const now = this.clock.now();
     const data = JSON.parse(
@@ -60,7 +51,7 @@ export class NotificationOutbox {
         where: { userId: recipient.userId, workspaceId: entry.workspaceId, mode: { not: 'off' } },
         select: { channel: true, kinds: true },
       });
-      await tx.notification.create({
+      const row = await tx.notification.create({
         data: {
           workspaceId: entry.workspaceId,
           userId: recipient.userId,
@@ -79,9 +70,11 @@ export class NotificationOutbox {
               .map((channel) => ({ channel: channel.channel, nextAttemptAt: now })),
           },
         },
+        select: { id: true },
       });
+      written.push({ id: row.id, userId: recipient.userId });
     }
-    return entry.recipients.length;
+    return written;
   }
 }
 
