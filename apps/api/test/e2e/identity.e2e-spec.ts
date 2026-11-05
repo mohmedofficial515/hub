@@ -229,6 +229,7 @@ describe('identity', () => {
       await victim.signIn(account.email);
       const stolen = victim.cookie('hub_refresh') as string;
       await victim.post('/auth/refresh').expect(200);
+      clock.advance(31 * 1000);
 
       const thief = browser();
       thief.setCookie('hub_refresh', stolen, '/api/v1/auth/refresh');
@@ -239,6 +240,90 @@ describe('identity', () => {
       expect(after.body.error.code).toBe('hub.identity.refresh_invalid');
       await victim.get('/auth/me').expect(401);
       expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(0);
+    });
+
+    it('a reload during a refresh keeps the session: the replaced token still works for 30 seconds', async () => {
+      const account = await anAccount(db());
+      const user = browser();
+      await user.signIn(account.email);
+      const dropped = user.cookie('hub_refresh') as string;
+      await user.post('/auth/refresh').expect(200);
+
+      // The browser dropped that answer in the reload, so it sends the old token again.
+      clock.advance(29 * 1000);
+      user.setCookie('hub_refresh', dropped, '/api/v1/auth/refresh');
+      await user.post('/auth/refresh').expect(200);
+      expect(user.cookie('hub_refresh')).not.toBe(dropped);
+      await user.get('/auth/me').expect(200);
+
+      // One live token per family, so the family is listed once and its next rotation is ordinary.
+      expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(1);
+      const sessions = await user.get('/auth/sessions').expect(200);
+      expect(sessions.body.data).toHaveLength(1);
+      await user.post('/auth/refresh').expect(200);
+    });
+
+    it('the 30 seconds run from the first rotation, and a later replay still revokes the family', async () => {
+      const account = await anAccount(db());
+      const user = browser();
+      await user.signIn(account.email);
+      const dropped = user.cookie('hub_refresh') as string;
+      await user.post('/auth/refresh').expect(200);
+
+      clock.advance(20 * 1000);
+      const replay = browser();
+      replay.setCookie('hub_refresh', dropped, '/api/v1/auth/refresh');
+      await replay.post('/auth/refresh').expect(200);
+
+      // A replay inside the window does not restart it.
+      clock.advance(11 * 1000);
+      const late = browser();
+      late.setCookie('hub_refresh', dropped, '/api/v1/auth/refresh');
+      await late.post('/auth/refresh').expect(401);
+      expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(0);
+    });
+
+    it('a replaced token cannot bring back a session that was signed out', async () => {
+      const account = await anAccount(db());
+      const user = browser();
+      await user.signIn(account.email);
+      const old = user.cookie('hub_refresh') as string;
+      await user.post('/auth/refresh').expect(200);
+      await user.post('/auth/sign-out').expect(204);
+
+      const replay = browser();
+      replay.setCookie('hub_refresh', old, '/api/v1/auth/refresh');
+      const refused = await replay.post('/auth/refresh').expect(401);
+      expect(refused.body.error.code).toBe('hub.identity.refresh_invalid');
+      expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(0);
+    });
+
+    it('a replaced token gives nothing to a member disabled inside the window', async () => {
+      const account = await anAccount(db());
+      const user = browser();
+      await user.signIn(account.email);
+      const old = user.cookie('hub_refresh') as string;
+      await user.post('/auth/refresh').expect(200);
+      await db().user.update({ where: { id: account.id }, data: { status: 'disabled' } });
+
+      const replay = browser();
+      replay.setCookie('hub_refresh', old, '/api/v1/auth/refresh');
+      const refused = await replay.post('/auth/refresh').expect(403);
+      expect(refused.body.error.code).toBe('hub.identity.account_disabled');
+      expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(0);
+    });
+
+    it('two refreshes at the same moment both keep the session and leave one live token', async () => {
+      const account = await anAccount(db());
+      const first = browser();
+      await first.signIn(account.email);
+      const token = first.cookie('hub_refresh') as string;
+      const second = browser();
+      second.setCookie('hub_refresh', token, '/api/v1/auth/refresh');
+
+      const answers = await Promise.all([first.post('/auth/refresh'), second.post('/auth/refresh')]);
+      expect(answers.map((answer) => answer.status)).toEqual([200, 200]);
+      expect(await db().session.count({ where: { userId: account.id, revokedAt: null } })).toBe(1);
     });
 
     it('refresh refuses a missing, unknown or expired token and a request without the CSRF header', async () => {

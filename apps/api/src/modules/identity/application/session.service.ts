@@ -2,7 +2,9 @@
  * @file Sessions: one row per refresh token, grouped in a family (docs/03 §2, docs/04 §1.6).
  * @description Using a refresh token replaces it. Presenting one that was already replaced means it leaked
  * or was stolen, so the whole family is revoked. That revocation commits before the error is thrown, because
- * rolling it back would leave the thief signed in.
+ * rolling it back would leave the thief signed in. The one exception is D35: for 30 seconds after its first
+ * replacement a token still works while its family is alive, because a reload during a refresh drops the answer
+ * and leaves the browser holding the old token. Replaying it does not restart those seconds.
  */
 import { randomUUID } from 'node:crypto';
 
@@ -20,6 +22,7 @@ import { newOpaqueToken, sha256 } from '../domain/credentials';
 import { ACCESS_TTL_SEC, CredentialTokens } from './credential-tokens.service';
 
 const DAY_MS = 86_400_000;
+const REPLACED_TOKEN_GRACE_MS = 30_000;
 
 export interface IssuedSession {
   readonly sessionId: string;
@@ -62,8 +65,12 @@ export class SessionService {
     });
     if (!row) throw new AppException('hub.identity.refresh_invalid');
     if (row.revokedAt) {
-      if (row.replacedById) await this.revokeFamily(row.familyId);
-      throw new AppException('hub.identity.refresh_invalid');
+      if (!row.replacedById) throw new AppException('hub.identity.refresh_invalid');
+      const inGrace = now.getTime() - row.revokedAt.getTime() <= REPLACED_TOKEN_GRACE_MS;
+      if (!inGrace || !(await this.isFamilyAlive(row.familyId, now))) {
+        await this.revokeFamily(row.familyId);
+        throw new AppException('hub.identity.refresh_invalid');
+      }
     }
     if (row.expiresAt <= now) throw new AppException('hub.identity.refresh_invalid');
     if (row.user.status !== 'active') {
@@ -71,18 +78,29 @@ export class SessionService {
       throw new AppException('hub.identity.account_disabled');
     }
 
-    const issued = await this.txHost.withTransaction(async () => {
+    return this.txHost.withTransaction(async () => {
       const next = await this.issue(row.userId, row.familyId, row.expiresAt);
       const claimed = await this.txHost.tx.session.updateMany({
         where: { id: row.id, revokedAt: null },
         data: { revokedAt: now, replacedById: next.sessionId },
       });
-      return claimed.count === 1 ? next : null;
+      // Already replaced, by a replay or a refresh in the same moment. A family keeps one live token, and this
+      // statement runs after the claim so that it sees a token the other request has just committed.
+      if (claimed.count === 0) {
+        await this.txHost.tx.session.updateMany({
+          where: { familyId: row.familyId, revokedAt: null, id: { not: next.sessionId } },
+          data: { revokedAt: now, replacedById: next.sessionId },
+        });
+      }
+      return next;
     });
-    if (issued) return issued;
-    // Another request rotated this token in the same moment: that is reuse.
-    await this.revokeFamily(row.familyId);
-    throw new AppException('hub.identity.refresh_invalid');
+  }
+
+  private async isFamilyAlive(familyId: string, now: Date): Promise<boolean> {
+    const live = await this.txHost.tx.session.count({
+      where: { familyId, revokedAt: null, expiresAt: { gt: now } },
+    });
+    return live > 0;
   }
 
   async revokeFamily(familyId: string): Promise<void> {

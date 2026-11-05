@@ -360,7 +360,7 @@ errors: identity.totp_invalid 401
 POST /auth/refresh                              auth: hub_refresh cookie
 200: { data: { expiresAt: string } }                                  // rotates both cookies
 errors: identity.refresh_invalid 401
-effects: Session row replaced (replacedById); reuse detection revokes the family
+effects: Session row replaced (replacedById); reuse detection revokes the family. A replaced token still rotates for 30 s after its first replacement while its family is alive (D35)
 
 POST /auth/sign-out                             auth: session
 204

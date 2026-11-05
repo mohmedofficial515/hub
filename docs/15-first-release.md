@@ -32,6 +32,7 @@ Done means the owner can do this on their own machine:
 | D32 | **Repository:** private `mohmedofficial515/hub`. This release works on one branch, `feat/first-release`, off `main`, with a commit per logical change, and the owner merges at the end. This overrides D21 for this release only. |
 | D34 | **TOTP is optional.** Hub runs locally on the owner's machine, so `security.totp_required_roles` defaults to none, and neither sign-in nor MCP is blocked by enrolment. The setting and the enrolment flow stay, so a project can turn it on. |
 | D33 | **Hosting for this release:** the owner's Windows machine, over plain `http://localhost`. Caddy, the internal CA and LAN hosting (D05) stay in the plan but are not required yet. |
+| D35 | **A short grace on refresh.** A reload during a refresh drops the answer and leaves the browser with the old token. For 30 seconds after its first replacement, a replaced refresh token still rotates if its family is alive. After that, reuse revokes the family as before. The trade-off, accepted by the owner: a token stolen and used inside those seconds is not detected at once. |
 
 D06 is unchanged: **Hub itself makes no model calls.** "Thinking and planning" is done by the member's
 own Claude Code, which reads and writes through MCP.
