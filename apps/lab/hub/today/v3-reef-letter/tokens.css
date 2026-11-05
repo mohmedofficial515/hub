@@ -1,0 +1,363 @@
+/*
+ * v3-reef-letter: "Reef & Sand" token set (research/references.md §3 A), scoped to `.reef`.
+ * Light-first. The hues are sampled from coral-reef photos (Palmyra Atoll + Red Sea).
+ *
+ * Rule of use on this page:
+ *   - Cards and rows are neutral: sand and ink.
+ *   - Colour concentrates in (a) the atoll ring, (b) the small round type badges at the start of a row,
+ *     (c) large numerals where a number is the point.
+ *   - Overdue is danger everywhere. Warning only ever means "due within 24 h".
+ *   - Primary (Red Sea blue) is the one primary action per view, links and the focus ring.
+ *
+ * Dot and soft values are the research table's. Text values (`*-fg`, `*-soft-foreground`) start from the
+ * table and move OKLCH lightness only, until they reach 5:1 on their own soft tint (the table sits at
+ * 4.5 to 4.6). The critic's M12 asked for that headroom. Values that already pass stay untouched.
+ */
+
+.reef {
+  /* ── Sand and ink ──────────────────────────────────────────────────────────────────── */
+  --background: #f9f6ed; /* dry sand: 16.0:1 with ink */
+  --foreground: #1e1a15; /* wet ink */
+  --card: #fffefb; /* surface: shell white */
+  --card-foreground: #1e1a15;
+  --popover: #fffefb;
+  --popover-foreground: #1e1a15;
+  --secondary: #f2eee2;
+  --secondary-foreground: #1e1a15;
+  --muted: #f2eee2; /* wet sand: skeletons, inline code */
+  --muted-foreground: #6b6157; /* driftwood: 5.6:1 on sand, 6.0:1 on shell */
+  --accent: #f5f1e6; /* row hover */
+  --accent-foreground: #1e1a15;
+  --border: #e2ded2;
+  --input: #e2ded2;
+  --reef-control: #c9c2b1; /* outline-button edge: stronger than a hairline */
+
+  /* ── Primary: Red Sea open water ───────────────────────────────────────────────────── */
+  --primary: #0951de; /* + white = 6.5:1 */
+  --primary-foreground: #ffffff;
+  --primary-text: #0951de;
+  --primary-hover: #0743b9;
+  --ring: #0951de;
+
+  /* ── Status: seagrass, sponge orange, red coral ────────────────────────────────────── */
+  --success: #428462;
+  --success-foreground: #ffffff;
+  --success-soft: #d8fae6;
+  --success-soft-foreground: #317353;
+  --warning: #be6438; /* sponge orange: dots and notches */
+  --warning-foreground: #1e1a15;
+  --warning-strong: #a54c1e; /* sponge orange as text */
+  --warning-soft: #ffece3;
+  --warning-soft-foreground: #a54c1e;
+  --destructive: #a44140; /* red coral: 5.7:1 on sand */
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #ffebe9;
+  --destructive-soft-foreground: #a44140;
+  --info: #0951de;
+  --info-foreground: #ffffff;
+  --info-soft: #e9f1ff;
+  --info-soft-foreground: #1056e3;
+
+  /* ── Card types: dot · soft tint · badge icon and numeral ──────────────────────────── */
+  --type-task: #1056e3; /* Red Sea open water */
+  --type-task-soft: #e9f1ff;
+  --type-task-fg: #1056e3;
+  --type-decision: #9d7c35; /* Palmyra ochre coral */
+  --type-decision-soft: #ffeecf;
+  --type-decision-fg: #826115;
+  --type-need: #ad366f; /* Palmyra coral pink */
+  --type-need-soft: #ffeaf1;
+  --type-need-fg: #ad366f;
+  --type-change: #69625d; /* wet rock: machine-made, stays quiet */
+  --type-change-soft: #f7eee8;
+  --type-change-fg: #69625d;
+  --type-handoff: #1494ae; /* lagoon */
+  --type-handoff-soft: #d8f6ff;
+  --type-handoff-fg: #027185;
+  --type-redesign: #7764b9; /* deep-water violet, lightened */
+  --type-redesign-soft: #f0eeff;
+  --type-redesign-fg: #6c59ac;
+  --type-doc: #369d86; /* seagrass teal */
+  --type-doc-soft: #d2fbee;
+  --type-doc-fg: #087561;
+  --type-release: #6a8a33; /* algae green */
+  --type-release-soft: #e8f6d6;
+  --type-release-fg: #527014;
+
+  /* ── The atoll ring: dot values on sand (all >= 3:1) ───────────────────────────────── */
+  --seg-task: #1056e3;
+  --seg-decision: #9d7c35;
+  --seg-need: #ad366f;
+  --seg-change: #69625d;
+  --seg-handoff: #1494ae;
+  --seg-redesign: #7764b9;
+  --seg-doc: #369d86;
+  --seg-release: #6a8a33;
+  --reef-lagoon: #eaf5f1; /* the still water inside the ring: flat, no gradient */
+
+  /* ── Priority (text) ───────────────────────────────────────────────────────────────── */
+  --prio-p0: var(--destructive);
+  --prio-p1: #a54c1e;
+  --prio-p2: var(--muted-foreground);
+  --prio-p3: #776d63;
+
+  /* ── Avatars: 12 hues, step 30°, white initials ────────────────────────────────────── */
+  --avatar-fg: #ffffff;
+  --avatar-1: oklch(0.5 0.11 20);
+  --avatar-2: oklch(0.5 0.11 50);
+  --avatar-3: oklch(0.5 0.1 80);
+  --avatar-4: oklch(0.5 0.11 110);
+  --avatar-5: oklch(0.5 0.11 140);
+  --avatar-6: oklch(0.5 0.1 170);
+  --avatar-7: oklch(0.5 0.1 200);
+  --avatar-8: oklch(0.5 0.12 230);
+  --avatar-9: oklch(0.5 0.13 260);
+  --avatar-10: oklch(0.5 0.13 290);
+  --avatar-11: oklch(0.5 0.13 320);
+  --avatar-12: oklch(0.5 0.12 350);
+
+  /* ── Team activity: one ramp, "lagoon depth". Not the primary blue (critic M11). ───── */
+  --heat-0: #eee9dc; /* dry sand: no activity */
+  --heat-1: oklch(0.9 0.045 195);
+  --heat-2: oklch(0.78 0.075 195);
+  --heat-3: oklch(0.62 0.09 197);
+  --heat-4: oklch(0.46 0.08 200);
+
+  /* ── Type families. Cairo carries Arabic and all display type in both locales. ─────── */
+  --reef-font-display: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  --reef-font-body: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--reef-font-body);
+}
+
+/* Latin running text: Inter. Its tall x-height holds up better at 13–14 px than Cairo's narrower Latin. */
+html[lang='en'] .reef {
+  --reef-font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Night water (dark) ─────────────────────────────────────────────────────────────────── */
+.dark .reef {
+  --background: #0f0f15;
+  --foreground: #eeebe4; /* 16.0:1 */
+  --card: #181821;
+  --card-foreground: #eeebe4;
+  --popover: #1d1d27;
+  --popover-foreground: #eeebe4;
+  --secondary: #21212b;
+  --secondary-foreground: #eeebe4;
+  --muted: #21212b;
+  --muted-foreground: #a6a7b1; /* 8.0:1 */
+  --accent: #20202a;
+  --accent-foreground: #eeebe4;
+  --border: #2f2f38;
+  --input: #2f2f38;
+  --reef-control: #474752;
+
+  --primary: #5c9eff; /* + #080f1c = 7.1:1 */
+  --primary-foreground: #080f1c;
+  --primary-text: #5c9eff;
+  --primary-hover: #7fb3ff;
+  --ring: #5c9eff;
+
+  --success: #5c9e7b;
+  --success-foreground: #06140d;
+  --success-soft: #0d2f1f;
+  --success-soft-foreground: #63a582;
+  --warning: #be6438;
+  --warning-foreground: #150a05;
+  --warning-strong: #da7d51;
+  --warning-soft: #3c1f12;
+  --warning-soft-foreground: #da7d51;
+  --destructive: #e07673;
+  --destructive-foreground: #1a0807;
+  --destructive-soft: #3d1d1c;
+  --destructive-soft-foreground: #e07673;
+  --info: #5c9eff;
+  --info-foreground: #080f1c;
+  --info-soft: #1a2740;
+  --info-soft-foreground: #5b93ff;
+
+  --type-task-soft: #1a2740;
+  --type-task-fg: #5b93ff;
+  --type-decision-soft: #332506;
+  --type-decision-fg: #b2914a;
+  --type-need-soft: #3b1d29;
+  --type-need-fg: #e76ba2;
+  --type-change-soft: #2c2622;
+  --type-change-fg: #9c948f;
+  --type-handoff-soft: #002d37;
+  --type-handoff-fg: #2fa4be;
+  --type-redesign-soft: #28233e;
+  --type-redesign-fg: #9b89e1;
+  --type-doc-soft: #022f26;
+  --type-doc-fg: #42a88f;
+  --type-release-soft: #212c0f;
+  --type-release-fg: #81a24c;
+
+  /* The ring on night water: lightness lifted just enough to clear 3.6:1. The hue order still separates. */
+  --seg-task: #1c61ee;
+  --seg-decision: #9d7c35;
+  --seg-need: #b73f77;
+  --seg-change: #726b65;
+  --seg-handoff: #1494ae;
+  --seg-redesign: #7966bb;
+  --seg-doc: #369d86;
+  --seg-release: #6a8a33;
+  --reef-lagoon: #142127;
+
+  --prio-p1: #da7d51;
+  --prio-p3: #8f8f99;
+
+  --avatar-fg: #0f0f15;
+  --avatar-1: oklch(0.74 0.1 20);
+  --avatar-2: oklch(0.74 0.1 50);
+  --avatar-3: oklch(0.74 0.1 80);
+  --avatar-4: oklch(0.74 0.1 110);
+  --avatar-5: oklch(0.74 0.1 140);
+  --avatar-6: oklch(0.74 0.09 170);
+  --avatar-7: oklch(0.74 0.09 200);
+  --avatar-8: oklch(0.74 0.1 230);
+  --avatar-9: oklch(0.74 0.11 260);
+  --avatar-10: oklch(0.74 0.11 290);
+  --avatar-11: oklch(0.74 0.11 320);
+  --avatar-12: oklch(0.74 0.1 350);
+
+  --heat-0: #22222c;
+  --heat-1: oklch(0.34 0.045 198);
+  --heat-2: oklch(0.47 0.065 197);
+  --heat-3: oklch(0.62 0.085 195);
+  --heat-4: oklch(0.79 0.09 193);
+}
+
+/* ── Display type (doc 08 forbids literal sizes in classes, so the scale lives here) ───────
+ * Order by design: page title > lagoon number > hero numbers > section titles > row titles.
+ * Cairo weights: 800 title and hero numbers, 900 lagoon number, 700 headings, 600 row titles,
+ * 500 labels and buttons, 400 body. No tracking on Arabic.
+ */
+.reef .reef-title {
+  font-family: var(--reef-font-display);
+  font-size: clamp(2.25rem, 1.6rem + 2.8vw, 3.75rem);
+  font-weight: 800;
+  line-height: 1.25;
+}
+.reef .reef-lede {
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  font-weight: 500;
+  line-height: 1.6;
+}
+.reef .reef-lagoon-num {
+  font-family: var(--reef-font-display);
+  font-size: clamp(2.125rem, 1.5rem + 2.4vw, 3.25rem);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.reef .reef-num {
+  font-family: var(--reef-font-display);
+  font-size: clamp(1.625rem, 1.25rem + 1.2vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.reef .reef-h2 {
+  font-family: var(--reef-font-display);
+  font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.reef .reef-h3 {
+  font-family: var(--reef-font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.reef .reef-stat {
+  font-family: var(--reef-font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The letter's voice: Cairo, larger and with far more air than the rest of the page. */
+.reef .reef-letter {
+  font-size: 1.0625rem;
+  font-weight: 400;
+  line-height: 2;
+}
+html[lang='en'] .reef .reef-letter {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/*
+ * Arabic gets one step more than the named size (docs/08 §3.2 `--leading-boost`, critic M12): Cairo's
+ * forms need the room, and 12 px Arabic is too small to read all day. Unlayered, so this beats the utility.
+ */
+html[lang='ar'] .reef .text-caption {
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+}
+html[lang='ar'] .reef .text-body-sm {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+html[lang='ar'] .reef .text-body {
+  font-size: 0.9375rem;
+  line-height: 1.5rem;
+}
+html[lang='ar'] .reef .text-body-lg {
+  font-size: 1rem;
+  line-height: 1.625rem;
+}
+html[lang='ar'] .reef .text-title-sm {
+  line-height: 1.625rem;
+}
+html[lang='ar'] .reef .text-title {
+  line-height: 1.75rem;
+}
+
+/* The tide line: a soft wave, not a rule. The mask's colour is irrelevant; background draws it. */
+.reef .reef-tide {
+  height: 0.5rem;
+  background-color: var(--muted-foreground);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='8' viewBox='0 0 28 8'%3E%3Cpath d='M0 4c3.5-4 10.5-4 14 0s10.5 4 14 0' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E")
+    repeat-x center / 28px 8px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='8' viewBox='0 0 28 8'%3E%3Cpath d='M0 4c3.5-4 10.5-4 14 0s10.5 4 14 0' fill='none' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E")
+    repeat-x center / 28px 8px;
+}
+
+/* The failing source calls three times, then holds still: enough to be seen, not a siren all day. */
+@keyframes reef-call {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reef .reef-call {
+    animation: reef-call 1.8s ease-out 3;
+  }
+}
+
+/* Refresh keeps the page in place; only this 2 px line moves. */
+@keyframes reef-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .reef .reef-sweep {
+    animation: reef-sweep 0.9s ease-in-out infinite;
+  }
+}

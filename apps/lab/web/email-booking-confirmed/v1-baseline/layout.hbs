@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Language" content="{{lang}}">
+<title>{{subject}}</title>
+</head>
+<body dir="{{dir}}" style="margin:0;padding:0;background-color:#f4f6f8;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,'Noto Sans Arabic','Noto Sans',sans-serif;color:#1f2933;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8;">
+<tr>
+<td align="center" style="padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;">
+<tr>
+<td dir="{{dir}}" style="padding:24px 32px;background-color:#0b3d5c;color:#ffffff;font-size:20px;font-weight:700;letter-spacing:0.3px;">
+<a href="{{url webUrl}}" style="color:#ffffff;text-decoration:none;">
+<img src="{{{logo}}}" width="32" height="32" alt="" style="display:inline-block;vertical-align:middle;border-radius:8px;margin-inline-end:10px;">
+<span style="vertical-align:middle;">{{siteName}}</span>
+</a>
+</td>
+</tr>
+<tr>
+<td dir="{{dir}}" style="padding:32px;font-size:16px;line-height:1.6;">
+{{{body}}}
+</td>
+</tr>
+<tr>
+<td dir="{{dir}}" style="padding:20px 32px;background-color:#f9fafb;color:#6b7280;font-size:13px;line-height:1.5;border-top:1px solid #e5e7eb;">
+<p style="margin:0 0 8px;">{{t 'emails.layout.support' supportEmail=supportEmail}}</p>
+<p style="margin:0 0 8px;">{{t 'emails.layout.footer' siteName=siteName}}</p>
+<p style="margin:0;">{{t 'emails.layout.rights' year=year siteName=siteName}}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>

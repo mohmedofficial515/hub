@@ -1,0 +1,29 @@
+<tr>
+  <td class="tl-time" dir="ltr" width="58" style="width:58px;padding:0;vertical-align:top;font-size:17px;line-height:22px;font-weight:800;text-align:{{@root.textStart}};">{{clock departingAt}}</td>
+  <td colspan="2" width="14" style="width:14px;padding:5px 0 0;vertical-align:top;"><div style="width:12px;height:12px;border-radius:6px;background-color:#067a7a;font-size:0;line-height:0;margin:0 auto;">&nbsp;</div></td>
+  <td style="padding:0 10px;vertical-align:top;font-size:15px;line-height:22px;font-weight:800;text-align:{{@root.textStart}};"><span dir="ltr">{{origin}}</span> {{originCity}}</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="tl-line" width="7" style="width:7px;border-{{@root.textEnd}}:2px solid #c6d3da;font-size:0;">&nbsp;</td>
+  <td width="7" style="width:7px;font-size:0;">&nbsp;</td>
+  <td class="stub-muted" style="padding:2px 10px 14px;vertical-align:top;font-size:13px;line-height:1.6;color:#566378;text-align:{{@root.textStart}};">
+    {{#if originTerminal}}<div>{{t 'emails.design.terminal' terminal=originTerminal}}</div>{{/if}}
+    <div><span dir="ltr">{{flight}}</span>{{#if airline}} {{airline}}{{/if}}{{#if multi}}{{#if durationMinutes}}{{t 'emails.design.sep'}} {{duration durationMinutes}}{{/if}}{{/if}}</div>
+    {{#if operatedBy}}<div>{{t 'emails.design.operated_by' carrier=operatedBy}}</div>{{/if}}
+    {{#if aircraft}}<div dir="ltr" style="text-align:{{@root.textStart}};">{{aircraft}}</div>{{/if}}
+  </td>
+</tr>
+<tr>
+  <td class="tl-time" dir="ltr" style="padding:0;vertical-align:top;font-size:17px;line-height:22px;font-weight:800;text-align:{{@root.textStart}};">{{clock arrivingAt}}</td>
+  <td colspan="2" style="padding:5px 0 0;vertical-align:top;"><div style="width:12px;height:12px;border-radius:6px;background-color:#1f325c;font-size:0;line-height:0;margin:0 auto;" class="dot-end">&nbsp;</div></td>
+  <td style="padding:0 10px;vertical-align:top;font-size:15px;line-height:22px;font-weight:800;text-align:{{@root.textStart}};"><span dir="ltr">{{destination}}</span> {{destinationCity}}</td>
+</tr>
+<tr>
+  <td class="stub-muted" style="padding:0;vertical-align:top;font-size:12px;line-height:1.5;color:#566378;text-align:{{@root.textStart}};">{{#if nextDay}}{{day arrivingAt}}{{/if}}</td>
+  {{#if layoverAfter}}<td class="tl-line" style="border-{{@root.textEnd}}:2px dashed #c6d3da;font-size:0;">&nbsp;</td><td style="font-size:0;">&nbsp;</td>{{else}}<td colspan="2" style="font-size:0;">&nbsp;</td>{{/if}}
+  <td style="padding:2px 10px {{#if layoverAfter}}12px{{else}}0{{/if}};vertical-align:top;font-size:13px;line-height:1.6;text-align:{{@root.textStart}};">
+    {{#if destinationTerminal}}<div class="stub-muted" style="color:#566378;">{{t 'emails.design.terminal' terminal=destinationTerminal}}</div>{{/if}}
+    {{#if layoverAfter}}<div class="note" style="display:inline-block;margin-top:6px;padding:5px 10px;border-radius:8px;background-color:#eef5f6;color:#2b3a55;font-size:13px;font-weight:700;">{{t 'emails.design.layover' city=layoverAfter.city}} <span>{{duration layoverAfter.minutes}}</span></div>{{/if}}
+  </td>
+</tr>

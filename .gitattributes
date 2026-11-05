@@ -2,3 +2,12 @@
 *.png binary
 *.jpg binary
 *.woff2 binary
+
+# The lab keeps its bytes: a version README is hashed by the scanner, and its text is not ours to normalise.
+apps/lab/web/** -text
+apps/lab/dashboard/** -text
+apps/lab/hub/** -text
+apps/lab/_templates/** -text
+apps/lab/shared/** -text
+*.webp binary
+*.jpeg binary

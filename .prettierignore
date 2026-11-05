@@ -18,3 +18,6 @@ apps/api/test/golden/
 **/.next-*
 playwright-report
 test-results
+
+# The lab: design versions as they were made, and their bytes matter to the scanner.
+apps/lab

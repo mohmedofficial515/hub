@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{subject}}</title>
+<style>
+@media (max-width:600px) {
+  .pad { padding-left:22px !important; padding-right:22px !important; }
+  .city { font-size:60px !important; }
+  .hero-pad { padding-top:26px !important; padding-bottom:34px !important; }
+  .col { display:block !important; width:100% !important; }
+}
+@media (prefers-color-scheme: dark) {
+  .sheet { background-color:#101a33 !important; }
+  .ink { color:#f1f5f9 !important; }
+  .muted { color:#a9b6cb !important; }
+  .rule { border-color:#2b3a59 !important; }
+  .link { color:#ffc58a !important; }
+}
+</style>
+</head>
+<body dir="{{dir}}" style="margin:0;padding:0;background-color:#0d1f44;">
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#0d1f44;">{{t 'emails.design.preheader' city=outboundCity}}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0d1f44" style="background-color:#0d1f44;">
+<tr>
+<td align="center" style="font-family:-apple-system,'Segoe UI',Tahoma,Roboto,Helvetica,Arial,'Noto Sans Arabic',sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+<tr><td dir="{{dir}}">{{{body}}}</td></tr>
+<tr>
+<td class="pad" dir="{{dir}}" style="padding:24px 32px 30px;font-size:13px;line-height:1.7;color:#c0cde3;text-align:{{textStart}};">
+<p style="margin:0 0 6px;">{{t 'emails.layout.support' supportEmail=supportEmail}}</p>
+<p style="margin:0 0 6px;">{{t 'emails.layout.footer' siteName=siteName}}</p>
+<p style="margin:0;">{{t 'emails.layout.rights' year=year siteName=siteName}}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>

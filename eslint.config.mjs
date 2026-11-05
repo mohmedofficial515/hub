@@ -33,6 +33,8 @@ export default tseslint.config(
       '**/next-env.d.ts',
       'docs/**',
       'patches/**',
+      // Design versions, copied as they were made. docs/16 §6.
+      'apps/lab/**',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,

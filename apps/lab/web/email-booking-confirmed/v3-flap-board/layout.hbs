@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="{{lang}}" dir="{{dir}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>{{subject}}</title>
+<style>
+:root { color-scheme: dark; }
+@media (max-width:600px) {
+  .pad { padding-left:16px !important; padding-right:16px !important; }
+  .hide-m { display:none !important; }
+  .dest { font-size:24px !important; }
+  .h1 { font-size:26px !important; }
+}
+</style>
+</head>
+<body dir="{{dir}}" style="margin:0;padding:0;background-color:#0a0e21;">
+<div style="display:none;max-height:0;overflow:hidden;font-size:1px;line-height:1px;color:#0a0e21;">{{t 'emails.design.preheader'}}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a0e21" style="background-color:#0a0e21;">
+<tr>
+<td align="center" style="padding:0;font-family:-apple-system,'Segoe UI',Tahoma,Roboto,Helvetica,Arial,'Noto Sans Arabic',sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+<tr>
+<td class="pad" dir="{{dir}}" style="padding:28px 32px 0;text-align:{{textStart}};">
+<a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="28" alt="{{siteName}}" style="display:inline-block;height:28px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a>
+</td>
+</tr>
+<tr><td dir="{{dir}}">{{{body}}}</td></tr>
+<tr>
+<td class="pad" dir="{{dir}}" style="padding:26px 32px 32px;font-size:13px;line-height:1.7;color:#9aa8c7;border-top:1px solid #232c4d;text-align:{{textStart}};">
+<p style="margin:0 0 6px;">{{t 'emails.layout.support' supportEmail=supportEmail}}</p>
+<p style="margin:0 0 6px;">{{t 'emails.layout.footer' siteName=siteName}}</p>
+<p style="margin:0;">{{t 'emails.layout.rights' year=year siteName=siteName}}</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<!-- Head: the code is what the person came for, so it takes the place of the route. -->
+<tr>
+<td class="pad" dir="{{dir}}" bgcolor="#1f325c" style="background-color:#1f325c;border-radius:20px 20px 0 0;padding:24px 30px 28px;color:#ffffff;">
+  <a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="28" alt="{{siteName}}" style="display:inline-block;height:28px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a>
+  <h1 class="h1" style="margin:22px 0 18px;font-size:24px;line-height:1.35;font-weight:700;color:#ffffff;text-align:{{textStart}};">{{t 'emails.identity.otp.title'}}</h1>
+  <!-- One text run with letter spacing, so copying gives the code without spaces. -->
+  <div dir="ltr" style="font-size:46px;line-height:1.1;font-weight:800;letter-spacing:8px;color:#ffffff;text-align:center;">{{code}}</div>
+  <div style="margin-top:14px;font-size:14px;line-height:1.5;color:#7fe3e3;text-align:center;">{{t 'emails.identity.otp.expires' minutes=expiresInMinutes}}</div>
+</td>
+</tr>
+
+<!-- The tear line. -->
+<tr>
+<td class="stub" bgcolor="#ffffff" style="background-color:#ffffff;font-size:0;line-height:0;">
+  <table role="presentation" dir="ltr" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:0 14px 14px 0;"></td>
+    <td style="padding:0 10px;"><div class="perf" style="border-top:2px dashed #b4c4cc;height:0;"></div></td>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:14px 0 0 14px;"></td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<tr>
+<td class="stub stub-text pad" dir="{{dir}}" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:0 0 20px 20px;padding:8px 30px 28px;color:#1f2a44;font-size:15px;line-height:1.7;">
+  {{> greeting}}
+  <p style="margin:0 0 16px;text-align:{{textStart}};">{{t 'emails.design.otp_body' siteName=siteName}}</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="note" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.65;color:#2b3a55;text-align:{{textStart}};">{{t 'emails.identity.otp.ignore'}}</td></tr>
+  </table>
+  {{> signature}}
+</td>
+</tr>
+</table>

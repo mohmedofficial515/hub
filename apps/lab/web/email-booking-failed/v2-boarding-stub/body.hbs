@@ -1,0 +1,73 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<!-- Head: same ticket, but the status says it plainly and in a warm colour, not the confirmed teal. -->
+<tr>
+<td class="pad" dir="{{dir}}" bgcolor="#1f325c" style="background-color:#1f325c;border-radius:20px 20px 0 0;padding:24px 30px 26px;color:#ffffff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="{{textStart}}" style="text-align:{{textStart}};"><a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="28" alt="{{siteName}}" style="display:block;height:28px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a></td>
+    <td align="{{textEnd}}" style="text-align:{{textEnd}};font-size:14px;font-weight:700;color:#ffc98a;">{{t 'emails.design.status'}}</td>
+  </tr>
+  </table>
+  <h1 class="h1" style="margin:24px 0 20px;font-size:24px;line-height:1.35;font-weight:700;color:#ffffff;text-align:{{textStart}};">{{t 'emails.bookings.failed.title'}}</h1>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td width="40%" style="vertical-align:top;text-align:{{textStart}};">
+      <div class="iata" dir="ltr" style="font-size:40px;line-height:1;font-weight:800;color:#d5dfee;text-align:{{textStart}};">{{slices.0.origin}}</div>
+      <div style="margin-top:6px;font-size:14px;line-height:1.4;color:#d5dfee;">{{originCity}}</div>
+    </td>
+    <td width="20%" align="center" style="vertical-align:top;padding-top:6px;text-align:center;font-size:24px;line-height:1;color:#d5dfee;">{{t 'emails.design.arrow'}}</td>
+    <td width="40%" style="vertical-align:top;text-align:{{textEnd}};">
+      <div class="iata" dir="ltr" style="font-size:40px;line-height:1;font-weight:800;color:#d5dfee;text-align:{{textEnd}};">{{slices.0.destination}}</div>
+      <div style="margin-top:6px;font-size:14px;line-height:1.4;color:#d5dfee;">{{outboundCity}}</div>
+    </td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- The tear line. -->
+<tr>
+<td class="stub" bgcolor="#ffffff" style="background-color:#ffffff;font-size:0;line-height:0;">
+  <table role="presentation" dir="ltr" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:0 14px 14px 0;"></td>
+    <td style="padding:0 10px;"><div class="perf" style="border-top:2px dashed #b4c4cc;height:0;"></div></td>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:14px 0 0 14px;"></td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<tr>
+<td class="stub stub-text pad" dir="{{dir}}" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:0 0 20px 20px;padding:8px 30px 28px;color:#1f2a44;font-size:15px;line-height:1.7;">
+  {{> greeting}}
+  <p style="margin:0 0 6px;text-align:{{textStart}};">{{t 'emails.bookings.failed.body' siteName=siteName reference=reference}}</p>
+  {{#if reasonKey}}<p class="stub-muted" style="margin:0;font-size:14px;color:#566378;text-align:{{textStart}};">{{t reasonKey}}</p>{{/if}}
+
+  <!-- Money first: what happens to what they paid. -->
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;border-top:1px solid #dfe7ec;">
+  <tr><td style="padding-top:18px;">
+    {{#if refundChoice}}
+    <h2 class="heading" style="margin:0 0 8px;font-size:17px;line-height:1.5;font-weight:800;color:#1f325c;text-align:{{textStart}};">{{t 'emails.bookings.failed.choice.intro' amount=refundChoice.amount currency=refundChoice.currency}}</h2>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr><td class="note" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.6;color:#2b3a55;text-align:{{textStart}};">{{#if refundChoice.walletBonusPercent}}{{t 'emails.bookings.failed.choice.wallet_bonus' percent=refundChoice.walletBonusPercent bonus=refundChoice.walletBonusAmount currency=refundChoice.currency}}{{else}}{{t 'emails.bookings.failed.choice.wallet'}}{{/if}}</td></tr>
+    <tr><td style="height:8px;font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td class="note" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.6;color:#2b3a55;text-align:{{textStart}};">{{t 'emails.bookings.failed.choice.card' days=refundChoice.cardDays}}</td></tr>
+    </table>
+    <p class="stub-muted" style="margin:12px 0 0;font-size:14px;color:#566378;text-align:{{textStart}};">{{#if refundChoice.defaultWallet}}{{t 'emails.bookings.failed.choice.default_wallet' deadline=refundChoice.deadline}}{{else}}{{t 'emails.bookings.failed.choice.default_card' deadline=refundChoice.deadline}}{{/if}}</p>
+    {{> button url=link label=(t 'emails.bookings.failed.choice.cta')}}
+    {{else}}
+    <p style="margin:0;text-align:{{textStart}};">{{t 'emails.bookings.failed.refund' amount=(default amountPaid "0") currency=(default currency "")}}</p>
+    {{> button url=link label=(t 'emails.bookings.failed.cta')}}
+    {{/if}}
+    {{> link_fallback url=link}}
+  </td></tr>
+  </table>
+
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;border-top:1px solid #dfe7ec;">
+  <tr><td style="padding-top:16px;font-size:14px;line-height:1.7;text-align:{{textStart}};">{{t 'emails.bookings.failed.next' siteName=siteName}}</td></tr>
+  </table>
+  {{> signature}}
+</td>
+</tr>
+</table>

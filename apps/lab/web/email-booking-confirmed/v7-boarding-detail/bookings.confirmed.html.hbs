@@ -1,0 +1,147 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<!-- Ticket head: a summary of the whole trip. The legs are in the timeline below. -->
+<tr>
+<td class="pad" dir="{{dir}}" bgcolor="#1f325c" style="background-color:#1f325c;border-radius:20px 20px 0 0;padding:24px 30px 26px;color:#ffffff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="{{textStart}}" style="text-align:{{textStart}};"><a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="28" alt="{{siteName}}" style="display:block;height:28px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a></td>
+    <td align="{{textEnd}}" style="text-align:{{textEnd}};font-size:14px;font-weight:700;color:#7fe3e3;">{{t 'emails.design.status'}}</td>
+  </tr>
+  </table>
+  <h1 class="h1" style="margin:24px 0 20px;font-size:24px;line-height:1.35;font-weight:700;color:#ffffff;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.title'}}</h1>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td width="40%" style="vertical-align:top;text-align:{{textStart}};">
+      <div class="iata" dir="ltr" style="font-size:50px;line-height:1;font-weight:800;color:#ffffff;text-align:{{textStart}};">{{slices.0.origin}}</div>
+      <div style="margin-top:6px;font-size:14px;line-height:1.4;color:#d5dfee;">{{originCity}}</div>
+    </td>
+    <td width="20%" align="center" style="vertical-align:top;padding-top:10px;text-align:center;">
+      <div style="font-size:24px;line-height:1;color:#7fe3e3;">{{t 'emails.design.arrow'}}</div>
+      {{#if tripType}}<div style="margin-top:8px;font-size:12px;line-height:1.3;color:#d5dfee;">{{t (concat 'emails.design.trip_' tripType)}}</div>{{/if}}
+    </td>
+    <td width="40%" style="vertical-align:top;text-align:{{textEnd}};">
+      <div class="iata" dir="ltr" style="font-size:50px;line-height:1;font-weight:800;color:#ffffff;text-align:{{textEnd}};">{{slices.0.destination}}</div>
+      <div style="margin-top:6px;font-size:14px;line-height:1.4;color:#d5dfee;">{{outboundCity}}</div>
+    </td>
+  </tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
+  <tr>
+    <td style="font-size:14px;line-height:1.5;color:#d5dfee;text-align:{{textStart}};">{{t 'emails.design.departs'}}<div style="font-size:15px;font-weight:700;color:#ffffff;">{{day slices.0.departingAt year=true}}</div></td>
+    {{#if (eq tripType 'ROUND_TRIP')}}<td style="font-size:14px;line-height:1.5;color:#d5dfee;text-align:{{textEnd}};">{{t 'emails.design.returns'}}<div style="font-size:15px;font-weight:700;color:#ffffff;">{{day slices.1.departingAt year=true}}</div></td>{{/if}}
+  </tr>
+  </table>
+</td>
+</tr>
+
+<!-- The tear line. -->
+<tr>
+<td class="stub" bgcolor="#ffffff" style="background-color:#ffffff;font-size:0;line-height:0;">
+  <table role="presentation" dir="ltr" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:0 14px 14px 0;"></td>
+    <td style="padding:0 10px;"><div class="perf" style="border-top:2px dashed #b4c4cc;height:0;"></div></td>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:14px 0 0 14px;"></td>
+  </tr>
+  </table>
+</td>
+</tr>
+
+<tr>
+<td class="stub stub-text pad" dir="{{dir}}" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:0 0 20px 20px;padding:8px 30px 28px;color:#1f2a44;font-size:15px;line-height:1.7;">
+
+  <!-- The two codes people look for: side by side at every width. -->
+  <table role="presentation" class="code-strip" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;">
+  <tr>
+    {{#if pnr}}
+    <td style="padding:12px 14px;vertical-align:top;text-align:{{textStart}};">
+      <div class="stub-muted" style="font-size:12px;line-height:1.4;color:#566378;">{{t 'emails.design.pnr_short'}}</div>
+      <div class="pnr" dir="ltr" style="font-size:28px;line-height:1.25;font-weight:800;letter-spacing:4px;color:#067a7a;text-align:{{textStart}};">{{pnr}}</div>
+    </td>
+    {{/if}}
+    <td style="padding:12px 14px;vertical-align:top;text-align:{{#if pnr}}{{textEnd}}{{else}}{{textStart}}{{/if}};">
+      <div class="stub-muted" style="font-size:12px;line-height:1.4;color:#566378;">{{t 'emails.bookings.confirmed.reference'}}</div>
+      <div dir="ltr" style="font-size:15px;line-height:1.9;font-weight:700;text-align:{{#if pnr}}{{textEnd}}{{else}}{{textStart}}{{/if}};">{{reference}}</div>
+    </td>
+  </tr>
+  </table>
+
+  <div style="height:18px;font-size:0;line-height:0;">&nbsp;</div>
+  {{> greeting}}
+  <p style="margin:0 0 6px;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.body' siteName=siteName reference=reference}}</p>
+  <p style="margin:0;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.ticket_soon'}}</p>
+
+  {{> button url=link label=(t 'emails.bookings.confirmed.cta')}}
+  {{> link_fallback url=link}}
+
+  <!-- Itinerary: one vertical timeline per leg. -->
+  {{#each slices}}
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border-top:1px solid #dfe7ec;">
+  <tr><td style="padding-top:18px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:10px;">
+    <tr>
+      <td class="heading" style="font-size:17px;line-height:1.4;font-weight:800;color:#1f325c;text-align:{{@root.textStart}};">{{#if (eq @root.tripType 'ROUND_TRIP')}}{{#if @first}}{{t 'emails.design.leg_out'}}{{else}}{{t 'emails.design.leg_back'}}{{/if}}{{else}}{{t 'emails.design.leg'}}{{/if}}</td>
+      <td class="stub-muted" style="font-size:13px;line-height:1.4;color:#566378;text-align:{{@root.textEnd}};">{{day departingAt}}</td>
+    </tr>
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    {{#each segments}}{{> segment multi=../stopsCount}}{{/each}}
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+    {{#if durationMinutes}}{{> row label=(t 'emails.design.total_time') value=(duration durationMinutes)}}{{/if}}
+    {{> row label=(t 'emails.design.stops') value=(stopsLabel stopsCount)}}
+    {{#if cabin}}{{> row label=(t 'emails.design.cabin') value=(cabinLabel cabin fareBrand)}}{{/if}}
+    {{#if baggage}}
+    <tr>
+      <td class="stub-muted" style="padding:6px 0;vertical-align:top;font-size:14px;line-height:1.5;color:#566378;text-align:{{@root.textStart}};">{{t 'emails.design.bags'}}</td>
+      <td style="padding:6px 0;vertical-align:top;font-size:14px;line-height:1.5;font-weight:700;text-align:{{@root.textEnd}};">{{t 'emails.design.bag_cabin' count=baggage.carryOn}}<br>{{t 'emails.design.bag_checked' count=baggage.checked}}</td>
+    </tr>
+    {{/if}}
+    </table>
+  </td></tr>
+  </table>
+  {{/each}}
+
+  <!-- Passengers: name on its own line, so long names never squeeze a column. -->
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border-top:1px solid #dfe7ec;">
+  <tr><td style="padding-top:18px;">
+    {{> heading text=(t 'emails.bookings.confirmed.passengers')}}
+    {{#each passengerList}}
+    <div style="padding:7px 0;">
+      <div dir="ltr" style="font-size:14px;line-height:1.5;font-weight:700;text-align:{{@root.textStart}};">{{name}}</div>
+      <div class="stub-muted" style="font-size:13px;line-height:1.5;color:#566378;text-align:{{@root.textStart}};">{{#if type}}{{t (concat 'emails.design.pax_' type)}}{{/if}}{{#if seats}}{{#if type}}{{t 'emails.design.sep'}} {{/if}}{{t 'emails.design.seat'}} <span dir="ltr">{{seats}}</span>{{/if}}</div>
+    </div>
+    {{/each}}
+  </td></tr>
+  </table>
+
+  <!-- Change and refund rules, then what was paid. -->
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;border-top:1px solid #dfe7ec;">
+  <tr><td style="padding-top:18px;">
+    {{> heading text=(t 'emails.design.rules_title')}}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    {{> rule_row label=(t 'emails.design.rule_change') rule=fareRules.change}}
+    {{> rule_row label=(t 'emails.design.rule_refund') rule=fareRules.refund}}
+    {{#if amount}}
+    <tr>
+      <td class="stub-text" style="padding:12px 0 0;vertical-align:baseline;font-size:15px;font-weight:800;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.total'}}</td>
+      <td dir="ltr" style="padding:12px 0 0;vertical-align:baseline;font-size:20px;font-weight:800;text-align:{{textEnd}};">{{amount}} {{currency}}</td>
+    </tr>
+    {{/if}}
+    </table>
+  </td></tr>
+  </table>
+
+  <!-- Before you travel. -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;">
+  <tr><td class="note" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;padding:14px 16px;color:#2b3a55;text-align:{{textStart}};">
+    <div style="margin-bottom:4px;font-size:15px;font-weight:800;">{{t 'emails.design.before_title'}}</div>
+    <div style="font-size:14px;line-height:1.65;">{{t 'emails.design.before_doc'}}</div>
+    <div style="font-size:14px;line-height:1.65;">{{#if pnr}}{{t 'emails.design.before_checkin'}}{{else}}{{t 'emails.design.before_checkin_later'}}{{/if}}</div>
+  </td></tr>
+  </table>
+
+  {{> signature}}
+</td>
+</tr>
+</table>

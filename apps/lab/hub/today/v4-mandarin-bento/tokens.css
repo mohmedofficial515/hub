@@ -1,0 +1,406 @@
+/*
+ * v4-mandarin-bento — "Mandarin Ink" (research/references.md §3 C), scoped to `.mandarin`.
+ *
+ * Rule of use on this page: COLOUR BELONGS TO SECTIONS, NOT TO ITEMS. The mandarinfish gives one hue
+ * per voice, and a section wears its hue either as a solid tile or as a 4 px rule on cream:
+ *   electric blue  = what you must act on      (Needs you: solid)
+ *   orange body    = what you can pick up      (Ready: solid; your sessions: rule)
+ *   yellow line    = the agent's voice         (Morning letter: rule)
+ *   cyan line      = what flowed in            (Since your last visit, Capture sources: rule + lines)
+ *   green line     = the team                  (Team this week: solid; Card flow: rule)
+ *   fin red        = overdue / failing ONLY, always as red ink on paper (see --alarm-*)
+ * Items inside a tile stay neutral: type is an icon + a word, never a tint.
+ *
+ * Every text pair below was computed with WCAG 2 contrast; the ratios are in the comments and are
+ * re-audited against rendered pixels in the browser (see README).
+ */
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&display=swap');
+
+.mandarin {
+  /* ── Type: Cairo (ar, owner decision) · Schibsted Grotesk (en, a newspaper grotesk) ─────────── */
+  --font-ui: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  font-family: var(--font-ui);
+
+  /* Two sizes the named scale (docs/08 §3.2) does not have. Used once each, on purpose. */
+  --mandarin-hero: clamp(4.75rem, 2.5rem + 6.5vw, 8rem); /* the Needs-you numeral */
+  --mandarin-hero-lh: 0.82; /* the box hugs the digit, so the numeral sits on the tile's padding */
+  --mandarin-title: clamp(1.75rem, 1.25rem + 1.9vw, 2.75rem); /* the page title */
+  --mandarin-title-lh: 1.2;
+
+  /* ── Neutrals: cream paper and ink ──────────────────────────────────────────────────────────── */
+  --background: #f9f4e9; /* cream paper */
+  --foreground: #14110d; /* 17.2:1 on background */
+  --card: #fffdf9; /* surface */
+  --card-foreground: #14110d;
+  --popover: #fffdf9;
+  --popover-foreground: #14110d;
+  --secondary: #f1ebdc;
+  --secondary-foreground: #14110d;
+  --muted: #f1ebdc;
+  --muted-foreground: #605a4e; /* 6.2:1 on background, 6.7:1 on surface */
+  --accent: #f4eee0; /* hover on cream */
+  --accent-foreground: #14110d;
+  --border: #d6d1c3;
+  --input: #d6d1c3;
+
+  /* ── Primary: electric blue. The page's only solid-blue button + links ──────────────────────── */
+  --primary: #0037bf; /* electric blue, sampled; white text 9.1:1 */
+  --primary-foreground: #ffffff;
+  --primary-text: #0037bf; /* 8.3:1 on background */
+  --primary-hover: #002c99;
+  --ring: #0037bf;
+
+  /* ── Status ─────────────────────────────────────────────────────────────────────────────────── */
+  --success: #1b7c3d; /* olive-green line, raised; 5.2:1 on surface */
+  --success-foreground: #ffffff;
+  --success-soft: #dcf9e1;
+  --success-soft-foreground: #1b7c3d;
+  --warning: #ae5f28; /* orange body */
+  --warning-foreground: #14110d;
+  --warning-strong: #a24e10; /* deepened from research #a6581f for margin: 5.3:1 on bg, 5.7:1 on surface */
+  --warning-soft: #ffece1;
+  --warning-soft-foreground: #a24e10;
+  --destructive: #b03441; /* fin red; 5.6:1 on bg, 6.1:1 on surface */
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #ffebea;
+  --destructive-soft-foreground: #b03441;
+  --info: #0037bf;
+  --info-foreground: #ffffff;
+  --info-soft: #e9f0ff;
+  --info-soft-foreground: #1c56de;
+
+  /* Red ink on paper: the one treatment for overdue / escalated / failing / breaking, on any tile. */
+  --alarm-bg: #fffdf9;
+  --alarm-fg: #b03441; /* 6.1:1 */
+
+  /* ── The fish, one hue per section (4 px rules, bars, lines: non-text, ≥ 3:1 on surface) ─────── */
+  --fish-blue: #0037bf; /* electric blue */
+  --fish-orange: #d06a22; /* orange body, raised; 3.6:1 */
+  --fish-yellow: #b1852b; /* yellow line; 3.3:1 */
+  --fish-green: #2e8a16; /* green line, deepened; 4.3:1 */
+  --fish-cyan: #0099bb; /* cyan line; 3.3:1 */
+  --fish-cyan-text: #00657f; /* cyan as text: 6.0:1 on bg, 6.5:1 on surface */
+
+  /* ── Card types (research §3 C). Kept for the shared contract; TODAY DOES NOT USE THEM: on this
+       page a type is an icon + a word, by owner decision. Listed so a port keeps one token set. ── */
+  --type-task: #1c56de;
+  --type-task-soft: #e9f0ff;
+  --type-task-fg: #1c56de;
+  --type-decision: #b1852b;
+  --type-decision-soft: #ffeed1;
+  --type-decision-fg: #8f6600;
+  --type-need: #ab5379;
+  --type-need-soft: #ffeaf1;
+  --type-need-fg: #a64f75;
+  --type-change: #676355;
+  --type-change-soft: #f5f0e0;
+  --type-change-fg: #676355;
+  --type-handoff: #0099bb;
+  --type-handoff-soft: #dbf6ff;
+  --type-handoff-fg: #007792;
+  --type-redesign: #7658cb;
+  --type-redesign-soft: #f0eeff;
+  --type-redesign-fg: #7658cb;
+  --type-doc: #249b7e;
+  --type-doc-soft: #d3fbed;
+  --type-doc-fg: #007e64;
+  --type-release: #41990e;
+  --type-release-soft: #e2f8db;
+  --type-release-fg: #327e00;
+
+  --prio-p0: var(--foreground);
+  --prio-p1: var(--foreground);
+  --prio-p2: var(--muted-foreground);
+  --prio-p3: var(--muted-foreground);
+
+  /* ── Team heatmap: one ramp of the yellow line, read against the green tile ─────────────────── */
+  --heat-0: #1d4128; /* zero: darker than the tile, an empty slot */
+  --heat-1: #676e36;
+  --heat-2: #9c963e;
+  --heat-3: #d0bf59;
+  --heat-4: #f9ea92;
+
+  --animate-alert: mandarin-alert 1.8s ease-out 3; /* three pulses, then it holds still */
+  --animate-progress: mandarin-progress 1.1s ease-in-out infinite;
+
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+[lang='en'] .mandarin {
+  --font-ui: 'Schibsted Grotesk', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Arabic runs one line-height step above Latin at the same token (docs/08 §3.2). Cairo needs it. */
+[lang='ar'] .mandarin .text-caption {
+  line-height: 1.25rem;
+}
+[lang='ar'] .mandarin .text-body-sm {
+  line-height: 1.375rem;
+}
+[lang='ar'] .mandarin .text-body {
+  line-height: 1.5rem;
+}
+[lang='ar'] .mandarin .text-body-lg {
+  line-height: 1.625rem;
+}
+[lang='ar'] .mandarin .text-title-sm {
+  line-height: 1.625rem;
+}
+[lang='ar'] .mandarin .text-title {
+  line-height: 1.875rem;
+}
+[lang='ar'] .mandarin .text-headline {
+  line-height: 2.125rem;
+}
+
+/* A key or endpoint inside a title: JetBrains is loaded at 400/500, so a bold title must not fake it. */
+.mandarin .key-inline {
+  font-size: 0.92em;
+  font-weight: 500;
+}
+
+/* ── Dark: ink-black page, the tiles go deep and low-luminance, never neon ──────────────────────── */
+.dark .mandarin {
+  --background: #0f0c07;
+  --foreground: #f1eee6; /* 16.8:1 */
+  --card: #19160f;
+  --card-foreground: #f1eee6;
+  --popover: #19160f;
+  --popover-foreground: #f1eee6;
+  --secondary: #26221a;
+  --secondary-foreground: #f1eee6;
+  --muted: #26221a;
+  --muted-foreground: #aca79a; /* 8.1:1 on bg, 7.5:1 on surface */
+  --accent: #221e16;
+  --accent-foreground: #f1eee6;
+  --border: #312d25;
+  --input: #312d25;
+
+  --primary: #679cff; /* with #060d1a text 7.2:1; 6.7:1 on surface as a link */
+  --primary-foreground: #060d1a;
+  --primary-text: #8fb6ff;
+  --primary-hover: #86b0ff;
+  --ring: #8fb6ff;
+
+  --success: #47a160;
+  --success-foreground: #06140b;
+  --success-soft: #132e1a;
+  --success-soft-foreground: #6ec688;
+  --warning: #ca7943;
+  --warning-foreground: #14110d;
+  --warning-strong: #d48650; /* 6.3:1 on surface */
+  --warning-soft: #3b200f;
+  --warning-soft-foreground: #e39c6c;
+  --destructive: #e4646c;
+  --destructive-foreground: #1a0707;
+  --destructive-soft: #3d1d1e;
+  --destructive-soft-foreground: #f28c92;
+  --info: #679cff;
+  --info-foreground: #060d1a;
+  --info-soft: #1b2740;
+  --info-soft-foreground: #8fb6ff;
+
+  --alarm-bg: #19160f;
+  --alarm-fg: #f0767e; /* ≥ 6:1 on surface */
+
+  --fish-blue: #679cff;
+  --fish-orange: #d97f3f;
+  --fish-yellow: #d0a040;
+  --fish-green: #4ba21f;
+  --fish-cyan: #1fa8c9;
+  --fish-cyan-text: #40b5d2; /* 7.5:1 on surface */
+
+  --type-task: #1c56de;
+  --type-task-soft: #1b2740;
+  --type-task-fg: #5289ff;
+  --type-decision: #b1852b;
+  --type-decision-soft: #342506;
+  --type-decision-fg: #b3872d;
+  --type-need: #ab5379;
+  --type-need-soft: #3b1d29;
+  --type-need-fg: #cc7197;
+  --type-change: #676355;
+  --type-change-soft: #2b281b;
+  --type-change-fg: #938f80;
+  --type-handoff: #0099bb;
+  --type-handoff-soft: #012d39;
+  --type-handoff-fg: #0c9cbe;
+  --type-redesign: #7658cb;
+  --type-redesign-soft: #28233e;
+  --type-redesign-fg: #967af0;
+  --type-doc: #249b7e;
+  --type-doc-soft: #042f25;
+  --type-doc-fg: #2da184;
+  --type-release: #41990e;
+  --type-release-soft: #1b2d14;
+  --type-release-fg: #4ba21f;
+
+  --heat-0: #0f2516;
+  --heat-1: #575d2d;
+  --heat-2: #898335;
+  --heat-3: #c0af4d;
+  --heat-4: #ebdd85;
+}
+
+/*
+ * ── Tiles ─────────────────────────────────────────────────────────────────────────────────────────
+ * A tile publishes its own small palette through --t-*, and every atom reads only those. An atom
+ * therefore never needs to know which tile it sits on, and text contrast is decided once, here.
+ * --t-btn is a control's boundary (≥ 3:1 on --t-bg). --t-line is a decorative divider.
+ * --t-ring is always the tile's own text colour, so focus is visible on every colour.
+ */
+.mandarin .tile-paper {
+  --t-bg: var(--card);
+  --t-fg: var(--foreground);
+  --t-muted: var(--muted-foreground);
+  --t-line: var(--border);
+  --t-btn: #8a8476; /* 3.7:1 */
+  --t-ring: var(--ring);
+  --t-hover: var(--accent);
+  --t-chip: var(--muted);
+  --t-accent: var(--primary-text);
+}
+
+/* Electric blue: cream 8.7:1, muted 5.9:1 */
+.mandarin .tile-ink {
+  --t-bg: #0037bf;
+  --t-fg: #fff8ec;
+  --t-muted: #c0d0f9;
+  --t-line: #456ed1;
+  --t-btn: #c0d0f9;
+  --t-ring: #fff8ec;
+  --t-hover: #0e47ca;
+  --t-chip: #1a4bc9;
+  --t-accent: #fff8ec;
+}
+
+/* Orange body, raised so that ink reads on it (Penguin-paperback orange): ink 7.8:1, muted 5.8:1 */
+.mandarin .tile-orange {
+  --t-bg: #f68b43;
+  --t-fg: #14110d;
+  --t-muted: #462312;
+  --t-line: #c16229;
+  --t-btn: #14110d;
+  --t-ring: #14110d;
+  --t-hover: #fb9d59;
+  --t-chip: #fbab72;
+  --t-accent: #14110d;
+}
+
+/* Green line, deepened to kelp: cream 7.7:1, muted 5.4:1 */
+.mandarin .tile-green {
+  --t-bg: #1e5b34;
+  --t-fg: #fff8ec;
+  --t-muted: #bddbb6;
+  --t-line: #4b7c56;
+  --t-btn: #bddbb6;
+  --t-ring: #fff8ec;
+  --t-hover: #2b663e;
+  --t-chip: #2b6c41;
+  --t-accent: #fff8ec;
+}
+
+/* The toast: the one inverted surface. */
+.mandarin .tile-invert {
+  --t-bg: #14110d;
+  --t-fg: #f9f4e9; /* 17.2:1 */
+  --t-muted: #c8c2b4; /* 10.6:1 */
+  --t-line: #3a352b;
+  --t-btn: #c8c2b4;
+  --t-ring: #f9f4e9;
+  --t-hover: #2a251c;
+  --t-chip: #2a251c;
+  --t-accent: #f9f4e9;
+}
+
+/* Deep and low-luminance, still clearly the same three hues. */
+.dark .mandarin .tile-ink {
+  --t-bg: #0c246d; /* text 12.2:1 */
+  --t-fg: #f1eee6;
+  --t-muted: #b1c3f3; /* 8.0:1 */
+  --t-line: #2c4590;
+  --t-btn: #b1c3f3;
+  --t-ring: #f1eee6;
+  --t-hover: #142d7c;
+  --t-chip: #1a3487;
+  --t-accent: #f1eee6;
+}
+.dark .mandarin .tile-orange {
+  --t-bg: #702900; /* text 9.0:1 */
+  --t-fg: #f1eee6;
+  --t-muted: #f1c7ac; /* 6.7:1 */
+  --t-line: #974e22;
+  --t-btn: #f1c7ac;
+  --t-ring: #f1eee6;
+  --t-hover: #7e3208;
+  --t-chip: #873a10;
+  --t-accent: #f1eee6;
+}
+.dark .mandarin .tile-green {
+  --t-bg: #0a371b; /* text 11.5:1 */
+  --t-fg: #f1eee6;
+  --t-muted: #b6d5b0; /* 8.3:1 */
+  --t-line: #2c5a3a;
+  --t-btn: #b6d5b0;
+  --t-ring: #f1eee6;
+  --t-hover: #124226;
+  --t-chip: #174a2b;
+  --t-accent: #f1eee6;
+}
+.dark .mandarin .tile-invert {
+  --t-bg: #f1eee6;
+  --t-fg: #14110d;
+  --t-muted: #4a453a; /* 8.2:1 */
+  --t-line: #cfc9ba;
+  --t-btn: #4a453a;
+  --t-ring: #14110d;
+  --t-hover: #e2ddd0;
+  --t-chip: #e2ddd0;
+  --t-accent: #14110d;
+}
+/* A paper card nested in a dark tile lifts one step, so it still reads as paper. */
+.dark .mandarin .tile-ink .tile-paper {
+  --t-bg: #19160f;
+}
+
+.mandarin .rule-blue {
+  --t-rule: var(--fish-blue);
+}
+.mandarin .rule-orange {
+  --t-rule: var(--fish-orange);
+}
+.mandarin .rule-yellow {
+  --t-rule: var(--fish-yellow);
+}
+.mandarin .rule-green {
+  --t-rule: var(--fish-green);
+}
+.mandarin .rule-cyan {
+  --t-rule: var(--fish-cyan);
+}
+
+@keyframes mandarin-alert {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* The refresh line slides from start to end. It is one line in the masthead, never the page. */
+@keyframes mandarin-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+[dir='rtl'] .mandarin .refresh-line {
+  transform: scaleX(-1);
+}

@@ -1,0 +1,21 @@
+<h1 style="margin:0 0 16px;font-size:22px;color:#0b3d5c;">{{t 'emails.bookings.confirmed.title'}}</h1>
+{{> greeting}}
+<p style="margin:0 0 16px;">{{t 'emails.bookings.confirmed.body' siteName=siteName reference=reference}}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;border-collapse:collapse;">
+<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.reference'}}</td><td dir="ltr" style="padding:4px 0;font-weight:600;">{{reference}}</td></tr>
+{{#if pnr}}<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.pnr'}}</td><td dir="ltr" style="padding:4px 0;font-weight:600;">{{pnr}}</td></tr>{{/if}}
+{{#if route}}<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.route'}}</td><td dir="ltr" style="padding:4px 0;">{{route}}</td></tr>{{/if}}
+{{#if airline}}<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.airline'}}</td><td style="padding:4px 0;">{{airline}}</td></tr>{{/if}}
+{{#if departureAt}}<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.departure'}}</td><td dir="ltr" style="padding:4px 0;">{{departureAt}}</td></tr>{{/if}}
+{{#if amount}}<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">{{t 'emails.bookings.confirmed.total'}}</td><td dir="ltr" style="padding:4px 0;">{{amount}} {{currency}}</td></tr>{{/if}}
+</table>
+{{#if passengers.length}}
+<p style="margin:0 0 4px;color:#6b7280;">{{t 'emails.bookings.confirmed.passengers'}}</p>
+<ul style="margin:0 0 16px;padding-inline-start:20px;">
+{{#each passengers}}<li dir="ltr">{{this}}</li>{{/each}}
+</ul>
+{{/if}}
+<p style="margin:0 0 16px;">{{t 'emails.bookings.confirmed.ticket_soon'}}</p>
+{{> button url=link label=(t 'emails.bookings.confirmed.cta')}}
+{{> link_fallback url=link}}
+{{> signature}}

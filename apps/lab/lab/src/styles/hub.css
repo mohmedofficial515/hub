@@ -1,0 +1,277 @@
+/*
+ * Hub base tokens. Hub has no real project yet, so unlike web.css / dashboard.css this file does not
+ * import a live globals.css: it is the token set planned in F:/Goteav/project-hub/docs/08-ux-and-design.md §3.
+ * Versions override any variable in their own tokens.css (front-matter `tokens: override`), scoped to
+ * the version root so two versions never leak into each other.
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@source '../../../hub';
+@source '../../../shared';
+@source '../frame';
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant rtl (&:is([dir=rtl] *));
+@custom-variant ltr (&:is([dir=ltr] *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --text-color-primary: var(--primary-text);
+  --color-primary-hover: var(--primary-hover);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-strong: var(--warning-strong);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+
+  --color-type-task: var(--type-task);
+  --color-type-task-soft: var(--type-task-soft);
+  --color-type-task-fg: var(--type-task-fg);
+  --color-type-decision: var(--type-decision);
+  --color-type-decision-soft: var(--type-decision-soft);
+  --color-type-decision-fg: var(--type-decision-fg);
+  --color-type-need: var(--type-need);
+  --color-type-need-soft: var(--type-need-soft);
+  --color-type-need-fg: var(--type-need-fg);
+  --color-type-change: var(--type-change);
+  --color-type-change-soft: var(--type-change-soft);
+  --color-type-change-fg: var(--type-change-fg);
+  --color-type-handoff: var(--type-handoff);
+  --color-type-handoff-soft: var(--type-handoff-soft);
+  --color-type-handoff-fg: var(--type-handoff-fg);
+  --color-type-redesign: var(--type-redesign);
+  --color-type-redesign-soft: var(--type-redesign-soft);
+  --color-type-redesign-fg: var(--type-redesign-fg);
+  --color-type-doc: var(--type-doc);
+  --color-type-doc-soft: var(--type-doc-soft);
+  --color-type-doc-fg: var(--type-doc-fg);
+  --color-type-release: var(--type-release);
+  --color-type-release-soft: var(--type-release-soft);
+  --color-type-release-fg: var(--type-release-fg);
+
+  --color-prio-p0: var(--prio-p0);
+  --color-prio-p1: var(--prio-p1);
+  --color-prio-p2: var(--prio-p2);
+  --color-prio-p3: var(--prio-p3);
+
+  --font-sans: var(--font-ui);
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* Named sizes (docs/08 §3.2) */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.125rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.3125rem;
+  --text-body-lg: 0.9375rem;
+  --text-body-lg--line-height: 1.4375rem;
+  --text-title-sm: 1rem;
+  --text-title-sm--line-height: 1.375rem;
+  --text-title: 1.125rem;
+  --text-title--line-height: 1.625rem;
+  --text-headline: 1.375rem;
+  --text-headline--line-height: 1.875rem;
+  --text-display: 1.75rem;
+  --text-display--line-height: 2.125rem;
+}
+
+:root {
+  --radius: 10px;
+  --font-ui: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+
+  --background: oklch(0.985 0.004 95);
+  --foreground: oklch(0.21 0.01 80);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.48 0.085 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-text: oklch(0.4 0.085 175);
+  --primary-hover: oklch(0.43 0.085 175);
+  --secondary: oklch(0.955 0.006 95);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.955 0.006 95);
+  --muted-foreground: oklch(0.47 0.012 80);
+  --accent: oklch(0.93 0.03 175);
+  --accent-foreground: oklch(0.3 0.07 175);
+  --destructive: oklch(0.55 0.19 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --success: oklch(0.55 0.14 150);
+  --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.72 0.15 75);
+  --warning-foreground: oklch(0.21 0.02 75);
+  --warning-strong: oklch(0.52 0.13 70);
+  --info: oklch(0.55 0.13 245);
+  --info-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0.008 90);
+  --input: var(--border);
+  --ring: oklch(0.6 0.1 175);
+
+  --success-soft: oklch(0.95 0.04 150);
+  --success-soft-foreground: oklch(0.36 0.11 150);
+  --warning-soft: oklch(0.96 0.05 80);
+  --warning-soft-foreground: oklch(0.42 0.11 70);
+  --info-soft: oklch(0.95 0.03 245);
+  --info-soft-foreground: oklch(0.38 0.11 245);
+  --destructive-soft: oklch(0.95 0.04 27);
+  --destructive-soft-foreground: oklch(0.42 0.16 27);
+
+  --type-task: oklch(0.52 0.16 255);
+  --type-task-soft: oklch(0.94 0.03 255);
+  --type-task-fg: oklch(0.36 0.14 255);
+  --type-decision: oklch(0.58 0.15 60);
+  --type-decision-soft: oklch(0.95 0.05 70);
+  --type-decision-fg: oklch(0.4 0.13 55);
+  --type-need: oklch(0.55 0.18 345);
+  --type-need-soft: oklch(0.95 0.04 345);
+  --type-need-fg: oklch(0.4 0.16 345);
+  --type-change: oklch(0.5 0.02 260);
+  --type-change-soft: oklch(0.94 0.01 260);
+  --type-change-fg: oklch(0.36 0.02 260);
+  --type-handoff: oklch(0.58 0.12 205);
+  --type-handoff-soft: oklch(0.94 0.03 205);
+  --type-handoff-fg: oklch(0.38 0.1 205);
+  --type-redesign: oklch(0.55 0.18 300);
+  --type-redesign-soft: oklch(0.95 0.04 300);
+  --type-redesign-fg: oklch(0.4 0.16 300);
+  --type-doc: oklch(0.52 0.09 170);
+  --type-doc-soft: oklch(0.94 0.03 170);
+  --type-doc-fg: oklch(0.36 0.08 170);
+  --type-release: oklch(0.55 0.14 145);
+  --type-release-soft: oklch(0.94 0.04 145);
+  --type-release-fg: oklch(0.36 0.12 145);
+
+  --prio-p0: var(--destructive);
+  --prio-p1: oklch(0.58 0.15 45);
+  --prio-p2: var(--muted-foreground);
+  --prio-p3: oklch(0.7 0.01 80);
+}
+
+.dark {
+  --background: oklch(0.17 0.006 260);
+  --foreground: oklch(0.93 0.006 90);
+  --card: oklch(0.21 0.006 260);
+  --popover: oklch(0.23 0.006 260);
+  --primary: oklch(0.78 0.11 175);
+  --primary-foreground: oklch(0.17 0.03 175);
+  --primary-text: oklch(0.82 0.1 175);
+  --primary-hover: oklch(0.83 0.11 175);
+  --secondary: oklch(0.26 0.006 260);
+  --muted: oklch(0.26 0.006 260);
+  --muted-foreground: oklch(0.7 0.01 90);
+  --accent: oklch(0.28 0.03 175);
+  --accent-foreground: oklch(0.9 0.06 175);
+  --destructive: oklch(0.68 0.17 25);
+  --destructive-foreground: oklch(0.15 0.03 25);
+  --success: oklch(0.75 0.15 150);
+  --success-foreground: oklch(0.17 0.04 150);
+  --warning: oklch(0.8 0.14 80);
+  --warning-foreground: oklch(0.18 0.03 80);
+  --warning-strong: oklch(0.84 0.13 80);
+  --info: oklch(0.74 0.12 245);
+  --info-foreground: oklch(0.17 0.03 245);
+  --border: oklch(0.3 0.006 260);
+  --ring: oklch(0.7 0.1 175);
+
+  --success-soft: oklch(0.25 0.05 150);
+  --success-soft-foreground: oklch(0.84 0.13 150);
+  --warning-soft: oklch(0.26 0.05 80);
+  --warning-soft-foreground: oklch(0.86 0.12 80);
+  --info-soft: oklch(0.25 0.04 245);
+  --info-soft-foreground: oklch(0.84 0.1 245);
+  --destructive-soft: oklch(0.25 0.06 25);
+  --destructive-soft-foreground: oklch(0.85 0.12 25);
+
+  --type-task: oklch(0.74 0.13 255);
+  --type-task-soft: oklch(0.26 0.05 255);
+  --type-task-fg: oklch(0.85 0.1 255);
+  --type-decision: oklch(0.78 0.14 65);
+  --type-decision-soft: oklch(0.27 0.05 65);
+  --type-decision-fg: oklch(0.88 0.11 70);
+  --type-need: oklch(0.76 0.15 345);
+  --type-need-soft: oklch(0.27 0.05 345);
+  --type-need-fg: oklch(0.87 0.11 345);
+  --type-change: oklch(0.72 0.02 260);
+  --type-change-soft: oklch(0.27 0.01 260);
+  --type-change-fg: oklch(0.84 0.02 260);
+  --type-handoff: oklch(0.78 0.11 205);
+  --type-handoff-soft: oklch(0.26 0.04 205);
+  --type-handoff-fg: oklch(0.87 0.09 205);
+  --type-redesign: oklch(0.76 0.15 300);
+  --type-redesign-soft: oklch(0.27 0.05 300);
+  --type-redesign-fg: oklch(0.87 0.11 300);
+  --type-doc: oklch(0.76 0.1 170);
+  --type-doc-soft: oklch(0.26 0.04 170);
+  --type-doc-fg: oklch(0.86 0.09 170);
+  --type-release: oklch(0.76 0.14 145);
+  --type-release-soft: oklch(0.26 0.05 145);
+  --type-release-fg: oklch(0.87 0.11 145);
+
+  --prio-p1: oklch(0.78 0.14 50);
+  --prio-p3: oklch(0.55 0.01 90);
+}
+
+html[lang='en'] {
+  --font-ui: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+  .tabular-nums,
+  [data-num] {
+    font-variant-numeric: tabular-nums;
+  }
+  .key {
+    font-family: var(--font-mono);
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+}

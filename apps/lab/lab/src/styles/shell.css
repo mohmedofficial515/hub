@@ -1,0 +1,11 @@
+@import 'tailwindcss' source(none);
+
+@source '../shell';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}

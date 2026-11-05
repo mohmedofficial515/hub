@@ -1,0 +1,91 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td class="pad" dir="{{dir}}" bgcolor="#1f325c" style="background-color:#1f325c;border-radius:20px 20px 0 0;padding:26px 32px 30px;color:#ffffff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="{{textStart}}" style="text-align:{{textStart}};"><a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="30" alt="{{siteName}}" style="display:block;height:30px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a></td>
+    <td align="{{textEnd}}" style="text-align:{{textEnd}};font-size:14px;font-weight:700;color:#7fe3e3;">{{t 'emails.design.status'}}</td>
+  </tr>
+  </table>
+  <h1 style="margin:26px 0 22px;font-size:24px;line-height:1.35;font-weight:700;color:#ffffff;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.title'}}</h1>
+  {{#each slices}}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="{{#unless @first}}margin-top:22px;{{/unless}}">
+  <tr>
+    <td width="38%" align="{{@root.textStart}}" style="text-align:{{@root.textStart}};vertical-align:top;">
+      <div class="iata" dir="ltr" style="font-size:50px;line-height:1;font-weight:800;color:#ffffff;">{{origin}}</div>
+      <div dir="ltr" style="margin-top:8px;font-size:20px;font-weight:700;color:#ffffff;">{{clock departingAt}}</div>
+      <div style="margin-top:2px;font-size:13px;color:#c5d2e6;">{{day departingAt}}</div>
+    </td>
+    <td width="24%" align="center" style="text-align:center;vertical-align:top;padding-top:10px;">
+      <div style="font-size:24px;line-height:1;color:#7fe3e3;">{{t 'emails.design.arrow'}}</div>
+      <div dir="ltr" style="margin-top:8px;font-size:12px;color:#c5d2e6;">{{#each flights}}{{this}}{{#unless @last}} / {{/unless}}{{/each}}</div>
+    </td>
+    <td width="38%" align="{{@root.textEnd}}" style="text-align:{{@root.textEnd}};vertical-align:top;">
+      <div class="iata" dir="ltr" style="font-size:50px;line-height:1;font-weight:800;color:#ffffff;">{{destination}}</div>
+      <div dir="ltr" style="margin-top:8px;font-size:20px;font-weight:700;color:#ffffff;">{{clock arrivingAt}}</div>
+      <div style="margin-top:2px;font-size:13px;color:#c5d2e6;">{{day arrivingAt}}</div>
+    </td>
+  </tr>
+  </table>
+  {{/each}}
+</td>
+</tr>
+<!-- The perforation: the ticket visibly tears here. Outlook squares the notches, nothing breaks. -->
+<tr>
+<td class="stub" bgcolor="#ffffff" style="background-color:#ffffff;font-size:0;line-height:0;">
+  <table role="presentation" dir="ltr" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:0 14px 14px 0;"></td>
+    <td style="padding:0 10px;"><div class="perf" style="border-top:2px dashed #b4c4cc;height:0;"></div></td>
+    <td class="notch" width="14" height="28" bgcolor="#dcebec" style="width:14px;height:28px;background-color:#dcebec;border-radius:14px 0 0 14px;"></td>
+  </tr>
+  </table>
+</td>
+</tr>
+<tr>
+<td class="stub stub-text pad" dir="{{dir}}" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:0 0 20px 20px;padding:12px 32px 30px;color:#1f2a44;font-size:15px;line-height:1.7;">
+  {{> greeting}}
+  <p style="margin:0 0 22px;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.body' siteName=siteName reference=reference}}</p>
+
+  {{#if pnr}}
+  <div class="stub-muted" style="font-size:13px;color:#566378;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.pnr'}}</div>
+  <div class="pnr" dir="ltr" style="margin:2px 0 22px;font-size:36px;line-height:1.2;font-weight:800;letter-spacing:6px;color:#067a7a;text-align:{{textStart}};">{{pnr}}</div>
+  {{/if}}
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:6px;">
+  <tr>
+    <td class="col" width="50%" style="vertical-align:top;padding-bottom:18px;text-align:{{textStart}};">
+      <div class="stub-muted" style="font-size:13px;color:#566378;">{{t 'emails.bookings.confirmed.reference'}}</div>
+      <div dir="ltr" style="font-size:16px;font-weight:700;text-align:{{textStart}};">{{reference}}</div>
+    </td>
+    {{#if airline}}
+    <td class="col" width="50%" style="vertical-align:top;padding-bottom:18px;text-align:{{textStart}};">
+      <div class="stub-muted" style="font-size:13px;color:#566378;">{{t 'emails.bookings.confirmed.airline'}}</div>
+      <div style="font-size:16px;font-weight:700;">{{airline}}</div>
+    </td>
+    {{/if}}
+  </tr>
+  <tr>
+    <td class="col" width="50%" style="vertical-align:top;padding-bottom:18px;text-align:{{textStart}};">
+      <div class="stub-muted" style="font-size:13px;color:#566378;">{{t 'emails.bookings.confirmed.passengers'}}</div>
+      {{#each passengers}}<div dir="ltr" style="font-size:14px;font-weight:600;text-align:{{@root.textStart}};">{{this}}</div>{{/each}}
+    </td>
+    {{#if amount}}
+    <td class="col" width="50%" style="vertical-align:top;padding-bottom:18px;text-align:{{textStart}};">
+      <div class="stub-muted" style="font-size:13px;color:#566378;">{{t 'emails.bookings.confirmed.total'}}</div>
+      <div dir="ltr" style="font-size:16px;font-weight:700;text-align:{{textStart}};">{{amount}} {{currency}}</div>
+    </td>
+    {{/if}}
+  </tr>
+  </table>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td class="note" bgcolor="#eef5f6" style="background-color:#eef5f6;border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.6;color:#2b3a55;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.ticket_soon'}}</td></tr>
+  </table>
+
+  {{> button url=link label=(t 'emails.bookings.confirmed.cta')}}
+  {{> link_fallback url=link}}
+  {{> signature}}
+</td>
+</tr>
+</table>

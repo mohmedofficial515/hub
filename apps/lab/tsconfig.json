@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@lab/*": ["./shared/*"],
+      "@web/*": ["../../../web/src/*"],
+      "@dash/*": ["../../../Goteav-Dashboard/src/*"],
+      "@/*": ["../../../web/src/*", "../../../Goteav-Dashboard/src/*"]
+    }
+  },
+  "include": ["lab/src", "shared", "web", "dashboard", "hub", "_templates", "vite.config.ts"]
+}
