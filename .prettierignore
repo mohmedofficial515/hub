@@ -14,3 +14,5 @@ apps/web/src/lib/api/generated
 
 # Golden files are compared byte for byte.
 apps/api/test/golden/
+.next-*
+**/.next-*
