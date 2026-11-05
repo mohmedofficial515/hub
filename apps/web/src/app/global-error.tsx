@@ -34,7 +34,8 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
       <head>
         <title>{`${t.crashTitle} · Hub`}</title>
       </head>
-      <body>
+      {/* The font variables come from the layout that just failed. */}
+      <body style={{ fontFamily: "'Segoe UI', Tahoma, system-ui, sans-serif" }}>
         <main
           role="alert"
           className="flex min-h-dvh flex-col items-center justify-center bg-background p-4 text-center text-foreground"
