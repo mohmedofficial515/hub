@@ -45,8 +45,8 @@ test('Run now reaches the worker, and the page shows the run', async ({ page, ow
       .toBe('ok');
     // The result reaches the open page with no reload: its strip of the last 24 hours appears once a real run exists.
     await expect(page.getByLabel(new RegExp(word(settings, 'strip.label'))).first()).toBeVisible();
-    const docs = await owner.get<{ items: { title: string }[] }>(`workspaces/${ws}/cards?type=doc&limit=100`);
-    expect(docs.items.some((card) => /hello/i.test(card.title))).toBe(true);
+    const docs = await owner.get<{ title: string }[]>(`workspaces/${ws}/cards?type=doc&limit=100`);
+    expect(docs.some((card) => /hello/i.test(card.title))).toBe(true);
   } finally {
     rmSync(folder, { recursive: true, force: true });
   }

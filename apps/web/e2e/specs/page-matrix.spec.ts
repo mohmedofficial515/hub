@@ -8,7 +8,8 @@ import { dirname, resolve } from 'node:path';
 
 import type { Page } from '@playwright/test';
 
-import { expect, test, view } from '../support/hub';
+import { expect, mcp, test, view } from '../support/hub';
+import { shared } from '../support/state';
 
 const OUT = resolve(__dirname, '../../test-results/matrix.jsonl');
 const ALL = ['today', 'inbox', 'planning', 'timeline', 'tasks', 'decisions', 'needs', 'handoffs', 'redesign'];
@@ -21,7 +22,7 @@ const THEMES = ['light', 'dark'] as const;
 async function contentArrived(page: Page) {
   await page.locator('h1').first().waitFor({ timeout: 60_000 });
   await page.waitForFunction(
-    () => !document.querySelector('[aria-busy="true"], .animate-pulse, [data-skeleton]'),
+    () => !document.querySelector('[aria-busy="true"], [class*="animate-pulse"]'),
     undefined,
     { timeout: 30_000 },
   );
@@ -111,6 +112,65 @@ const audit = (page: Page) =>
 
 test.describe('page matrix', () => {
   test.skip(!process.env['E2E_MATRIX'], 'Set E2E_MATRIX=1 to run it.');
+
+  // A matrix over empty pages proves little: real rows first, through the same MCP a member uses.
+  test('matrix needs something on the pages', async ({ owner, ws }) => {
+    test.setTimeout(120_000);
+    const claude = await mcp(ws);
+    try {
+      const stamp = Date.now();
+      const task = await owner.create({
+        type: 'task',
+        title: `A task with a long enough title to wrap on a phone ${stamp}`,
+        detail: { specialty: 'backend', acceptance: 'It works' },
+      });
+      await claude.call('request_decision', {
+        title: `Which refund route should we use? ${stamp}`,
+        kind: 'product',
+        question: 'Which refund route?',
+        deciderRole: 'owner',
+        options: [
+          { id: 'a', title: 'Wallet first' },
+          { id: 'b', title: 'Card first' },
+        ],
+        links: [{ kind: 'blocks', key: task.key }],
+      });
+      await claude.call('create_need', {
+        title: `PayTR live token ${stamp}`,
+        kind: 'token',
+        responsibleRole: 'owner',
+      });
+      await claude.call('create_idea', {
+        title: `An idea ${stamp}`,
+        problem: 'Something worth thinking about',
+      });
+      await claude.call('create_release', {
+        title: `Autumn ${stamp}`,
+        version: `1.${stamp % 1000}`,
+        includedKeys: [task.key],
+      });
+      const sources = await owner.get<{ id: string; name: string }[]>(`workspaces/${ws}/sources`);
+      const lab = sources.find((source) => source.name === 'lab');
+      const id =
+        lab?.id ??
+        (
+          await owner.post<{ id: string }>(`workspaces/${ws}/sources`, {
+            kind: 'local_path',
+            name: 'lab',
+            config: { path: shared().labRoot, purpose: 'lab' },
+          })
+        ).id;
+      await owner.post(`workspaces/${ws}/sources/${id}/run`);
+      const docs = await owner.post<{ id: string }>(`workspaces/${ws}/sources`, {
+        kind: 'local_path',
+        name: `docs-${stamp}`,
+        config: { path: resolve(__dirname, '../../../../docs'), purpose: 'docs', include: ['1*.md'] },
+      });
+      await owner.post(`workspaces/${ws}/sources/${docs.id}/run`);
+    } finally {
+      await claude.close();
+    }
+  });
 
   for (const name of PAGES) {
     test(`matrix ${name}`, async ({ page, locale, ws }) => {

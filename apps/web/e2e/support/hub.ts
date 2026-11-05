@@ -36,8 +36,6 @@ export function word(tree: Tree, path: string): string {
   return node;
 }
 
-export const exact = (text: string) => new RegExp(`^\\s*${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
-
 export interface McpSession {
   /** Calls a tool and answers its Markdown. Throws on an error result. */
   call(name: string, args?: Record<string, unknown>): Promise<string>;

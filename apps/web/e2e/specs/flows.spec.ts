@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { exact, expect, keyIn, type Locale, mcp, test, view, word, words } from '../support/hub';
+import { expect, type Locale, mcp, test, view, word, words } from '../support/hub';
 import { shared } from '../support/state';
 
 const kit = (locale: Locale) => words(locale, 'kit');
@@ -40,17 +40,15 @@ test.describe('critical flows', () => {
     const cookies = await context.cookies();
     expect(cookies.some((cookie) => cookie.httpOnly)).toBe(true);
 
-    const audit = await owner.get<{ items?: { action: string }[] } | { action: string }[]>(
+    const rows = await owner.get<{ action: string }[]>(
       `workspaces/${ws}/audit?action=identity.invite.accept&limit=20`,
     );
-    const rows = Array.isArray(audit) ? audit : (audit.items ?? []);
     expect(rows.some((row) => row.action === 'identity.invite.accept')).toBe(true);
     await context.close();
   });
 
   test('F2 claim a task', async ({ owner, member, locale, ws }) => {
     const backend = await member('backend');
-    const creator = shared().people['frontend']?.id;
     const made = await member('frontend');
     const title = `F2 task ${locale} ${Date.now()}`;
     const { key } = await made.rest.create({
@@ -74,15 +72,12 @@ test.describe('critical flows', () => {
     await page.goto(view(locale, ws, 'tasks', `card=${key}`));
     await expect(page.getByRole('dialog').getByText('backend', { exact: false }).first()).toBeVisible();
 
-    const events = await owner.get<{ items: { kind: string }[] }>(`workspaces/${ws}/cards/${key}/events`);
-    expect(events.items.map((event) => event.kind)).toContain('claimed');
+    const events = await owner.get<{ kind: string }[]>(`workspaces/${ws}/cards/${key}/events`);
+    expect(events.map((event) => event.kind)).toContain('claimed');
 
     // The creator hears about it in their inbox.
-    const inbox = await made.rest.get<{ items: { data: { cardKey?: string } }[] }>(
-      `workspaces/${ws}/inbox?limit=50`,
-    );
-    expect(inbox.items.some((item) => item.data.cardKey === key)).toBe(true);
-    expect(creator).toBeTruthy();
+    const inbox = await made.rest.get<{ data: { cardKey?: string } }[]>(`workspaces/${ws}/inbox?limit=50`);
+    expect(inbox.some((item) => item.data.cardKey === key)).toBe(true);
   });
 
   test('F3 decide a decision and see the ADR status', async ({ page, owner, locale, ws }) => {
@@ -123,14 +118,17 @@ test.describe('critical flows', () => {
 
     const blocked = await owner.card<{ flags?: { blocked?: boolean } }>(task.key);
     expect(blocked.flags?.blocked ?? false).toBe(false);
-    const events = await owner.get<{ items: { kind: string }[] }>(
-      `workspaces/${ws}/cards/${task.key}/events`,
-    );
-    expect(events.items.map((event) => event.kind)).toContain('unblocked');
+    const events = await owner.get<{ kind: string }[]>(`workspaces/${ws}/cards/${task.key}/events`);
+    expect(events.map((event) => event.kind)).toContain('unblocked');
 
-    const before = await owner.card<{ detail: { adrStatus: string } }>(key);
-    expect(before.detail.adrStatus).toBe('none');
-    await owner.post(`workspaces/${ws}/decisions/${key}/draft-adr`, { body: '# ADR\n\nOption B.' });
+    // Deciding drafts a skeleton (docs/07), and a draft can replace it. No pull request in this release (docs/15 §3).
+    const decided = await owner.card<{ detail: { adrStatus: string } }>(key);
+    expect(decided.detail.adrStatus).toBe('drafted');
+    const saved = await owner.context.put(`/api/v1/workspaces/${ws}/decisions/${key}/adr`, {
+      data: { body: '# ADR\n\nOption B.' },
+      headers: { 'X-Requested-With': 'hub' },
+    });
+    expect(saved.ok()).toBe(true);
     const after = await owner.card<{ detail: { adrStatus: string } }>(key);
     expect(after.detail.adrStatus).toBe('drafted');
   });
@@ -146,7 +144,7 @@ test.describe('critical flows', () => {
     const { key } = await owner.create({
       type: 'need',
       title,
-      detail: { kind: 'token', responsibleRole: 'owner' },
+      detail: { kind: 'token', responsibleRole: 'accountant' },
     });
     await owner.post(`workspaces/${ws}/needs/${key}/start`);
 
@@ -172,7 +170,7 @@ test.describe('critical flows', () => {
       data: { note: JWT },
       headers: { 'X-Requested-With': 'hub' },
     });
-    expect(refused.status()).toBe(400);
+    expect(refused.status()).toBe(422);
 
     const accountant = await member('accountant');
     await accountant.page.goto(view(locale, ws, 'needs', `card=${key}&action=verify`));
@@ -201,25 +199,23 @@ test.describe('critical flows', () => {
     if (!lab) throw new Error('No lab source');
     await owner.post(`workspaces/${ws}/sources/${lab.id}/run`);
 
-    const listed = await expect
+    const listCards = () =>
+      owner.get<{ key: string; title: string; status: string }[]>(
+        `workspaces/${ws}/cards?type=redesign&limit=50`,
+      );
+    await expect
       .poll(
-        async () => {
-          const page2 = await owner.get<{ items: { key: string; title: string; status: string }[] }>(
-            `workspaces/${ws}/cards?type=redesign&limit=50`,
-          );
-          return page2.items.filter((card) => card.title.includes(`wallet-${locale}`)).length;
+        async () => (await listCards()).filter((card) => card.title.includes(`wallet-${locale}`)).length,
+        {
+          timeout: 15_000,
         },
-        { timeout: 15_000 },
       )
       .toBeGreaterThanOrEqual(2);
-    expect(listed).toBeUndefined();
 
-    const cards = await owner.get<{ items: { key: string; title: string; status: string }[] }>(
-      `workspaces/${ws}/cards?type=redesign&limit=50`,
-    );
-    const version = cards.items.find((card) => card.title.includes(`wallet-${locale} · v2`));
-    const baseline = cards.items.find((card) => card.title.includes(`wallet-${locale} · v1-baseline`));
-    if (!version || !baseline) throw new Error(`Lab cards: ${JSON.stringify(cards.items)}`);
+    const cards = await listCards();
+    const version = cards.find((card) => card.title.includes(`wallet-${locale} · v2`));
+    const baseline = cards.find((card) => card.title.includes(`wallet-${locale} · v1-baseline`));
+    if (!version || !baseline) throw new Error(`Lab cards: ${JSON.stringify(cards)}`);
     expect(baseline.status).toBe('reference');
     expect(version.status).toBe('review');
 
@@ -238,15 +234,13 @@ test.describe('critical flows', () => {
     );
     expect(readme).toMatch(/^status: approved/m);
 
-    const tasks = await owner.get<{ items: { key: string; title: string; status: string }[] }>(
-      `workspaces/${ws}/cards?type=task&q=${encodeURIComponent('wallet')}&limit=50`,
+    const tasks = await owner.get<{ key: string; title: string; status: string }[]>(
+      `workspaces/${ws}/cards?type=task&limit=100`,
     );
-    const port = tasks.items.find((card) => card.title.includes(`wallet-${locale}`));
-    if (!port) throw new Error(`No port task: ${JSON.stringify(tasks.items)}`);
+    const port = tasks.find((card) => card.title.includes(`wallet-${locale}`));
+    if (!port) throw new Error(`No port task: ${JSON.stringify(tasks)}`);
     expect(port.status).toBe('ready');
     const portCard = await owner.card<{ detail: { specialty: string; origin: string } }>(port.key);
     expect(portCard.detail.specialty).toBe('frontend');
-    expect(keyIn(port.key, ws)).toBe(port.key);
-    expect(exact('x').test('x')).toBe(true);
   });
 });

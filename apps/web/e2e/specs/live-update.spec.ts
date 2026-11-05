@@ -15,23 +15,24 @@ const TIMINGS = resolve(__dirname, '../../test-results/live-timings.jsonl');
 const LIMIT_MS = Number(process.env['E2E_LIVE_LIMIT_MS'] ?? 1000);
 const ROUNDS = 3;
 
-/** The number on a sidebar item. No badge means zero. */
-const countOf = (page: Page, item: string) =>
-  page.evaluate((name) => {
-    const link = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].find((a) =>
-      new URL(a.href).pathname.endsWith(`/${name}`),
-    );
-    const badge = link?.querySelector('span.tabular-nums');
-    return badge ? Number(badge.textContent?.trim()) : 0;
-  }, item);
+/** The number on a sidebar item: the one link to this view that wears a badge (a breadcrumb links there too). No badge means zero. */
+function readCount(name: string): number {
+  const badge = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')]
+    .filter((a) => new URL(a.href).pathname.endsWith(`/${name}`))
+    .map((a) => a.querySelector('span.tabular-nums'))
+    .find(Boolean);
+  return badge ? Number(badge.textContent?.trim()) : 0;
+}
+
+const countOf = (page: Page, item: string) => page.evaluate(readCount, item);
 
 async function untilCount(page: Page, item: string, value: number) {
   await page.waitForFunction(
     ([name, wanted]) => {
-      const link = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')].find((a) =>
-        new URL(a.href).pathname.endsWith(`/${name}`),
-      );
-      const badge = link?.querySelector('span.tabular-nums');
+      const badge = [...document.querySelectorAll<HTMLAnchorElement>('a[href]')]
+        .filter((a) => new URL(a.href).pathname.endsWith(`/${name}`))
+        .map((a) => a.querySelector('span.tabular-nums'))
+        .find(Boolean);
       return (badge ? Number(badge.textContent?.trim()) : 0) === wanted;
     },
     [item, value] as const,
@@ -48,12 +49,17 @@ async function measure(
 ) {
   const started = Date.now();
   const sent = call().then((text) => ({ text, at: Date.now() - started }));
-  const seen = await Promise.all(
-    Object.entries(changes).map(async ([name, change]) => {
-      await change();
-      return [name, Date.now() - started] as const;
-    }),
-  );
+  // A refused call fails at once, with its own words, rather than as a timeout on the page.
+  const refused = sent.then(() => new Promise<never>(() => undefined));
+  const seen = await Promise.race([
+    refused,
+    Promise.all(
+      Object.entries(changes).map(async ([name, change]) => {
+        await change();
+        return [name, Date.now() - started] as const;
+      }),
+    ),
+  ]);
   const { text, at } = await sent;
   const entry = { label, locale: context.locale, mcpMs: at, ...Object.fromEntries(seen) };
   mkdirSync(dirname(TIMINGS), { recursive: true });
@@ -67,8 +73,14 @@ async function measure(
 /** Nothing in flight, so each round measures one change and not the last one's tail. */
 const settle = (page: Page) => page.waitForTimeout(1500);
 
+/** The page and its sidebar numbers have answered, so a number read now is the real one. */
 async function open(page: Page, url: string) {
+  const counted = Promise.all([
+    page.waitForResponse((response) => response.url().includes('awaiting=me') && response.ok()),
+    page.waitForResponse((response) => response.url().includes('/tasks/ready') && response.ok()),
+  ]);
   await page.goto(url);
+  await counted;
   await waitForLive(page);
   await page.evaluate(() => {
     (window as unknown as { __notReloaded: boolean }).__notReloaded = true;
