@@ -33,6 +33,7 @@ import { PlansModule } from './modules/plans';
 import { RealtimeModule } from './modules/realtime';
 import { RedesignModule } from './modules/redesign';
 import { ReleasesModule } from './modules/releases';
+import { SchedulerModule } from './modules/scheduler';
 import { TasksModule } from './modules/tasks';
 import { WorkspacesModule } from './modules/workspaces';
 import { AllExceptionsFilter, EnvelopeInterceptor } from './shared/http';
@@ -66,6 +67,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     AuditModule,
     CardsModule,
     NotificationsModule,
+    SchedulerModule,
     TasksModule,
     DecisionsModule,
     NeedsModule,

@@ -158,9 +158,11 @@ Rules:
 
 ## 5. Scheduler — deadlines, reminders, escalation, stale items
 
-Repeatable job `scheduler.tick` on queue `scheduler`, **every 5 minutes per workspace**
-(`jobId: scheduler.tick:<workspaceId>`), idempotent by construction (every rule records what it
-did on the card).
+One repeatable job (`tick` on `hub-reminders`) every 5 minutes walks the projects that are not closed, idempotent by construction
+(every rule records what it did on the card). A decision due inside two windows gets one reminder, the nearest, and spends the wider
+one; `0` in `reminders_sent` is the one overdue notice. A stale reminder's cadence comes from the card's last `reminder_sent` event,
+for every type, instead of `payload.lastStaleReminderAt`. All of it goes through `CardService.apply` as the system (`card.remind`,
+`decision.escalate`, rows with `surface: system`).
 
 ```sql
 -- 5.1 decision reminders (per offset h in decisions.reminder_offsets_hours)

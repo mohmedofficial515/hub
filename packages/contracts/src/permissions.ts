@@ -47,6 +47,7 @@ const MATRIX = {
   'card.link': EVERYONE,
   'card.watch': EVERYONE,
   'card.unblock': SYSTEM_ONLY,
+  'card.remind': SYSTEM_ONLY,
 
   // Tasks
   'task.create': EVERYONE,
@@ -70,6 +71,7 @@ const MATRIX = {
   'decision.decide': ['Y', 'R', 'R', 'R', 'R', 'R', 'R'],
   'decision.withdraw': OWNER_PM_CREATOR,
   'decision.supersede': OWNER_PM,
+  'decision.escalate': SYSTEM_ONLY,
   'decision.draft_adr': OWNER_PM_ROUTED,
   'decision.open_adr_pr': OWNER_PM_ROUTED,
 
