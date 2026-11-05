@@ -36,6 +36,7 @@ export class CardsController {
 
   @Post()
   @HttpCode(201)
+  // Any member reaches this route; `apply` checks the row of the card type in the body, such as release.create.
   @Permissions('card.read')
   @ApiOperation({ summary: 'Create a card' })
   @ApiCreatedResponse({ type: CardWrittenDto })

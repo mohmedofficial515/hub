@@ -57,6 +57,7 @@ model Card {
   @@index([workspaceId, dueAt])
   @@index([searchVector], type: Gin)
   @@index([tags], type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "cards_title_trgm_idx")
   @@map("cards")
 }
 

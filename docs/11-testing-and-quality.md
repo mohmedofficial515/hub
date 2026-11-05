@@ -43,7 +43,7 @@ are deterministic. A `FakeClock` is injected through the `Clock` token.
 
 | What | How |
 | --- | --- |
-| Contracts | Vitest: every Zod schema accepts its fixture and rejects the listed invalid cases; `secret-patterns` table test (true positives: AWS key, GitHub PAT `ghp_…`, JWT, PEM header, 40-hex, 32+ base64; true negatives: UUIDs, commit shas, URLs, Arabic text, file paths) |
+| Contracts | Vitest: every Zod schema accepts its fixture and rejects the listed invalid cases; `secret-patterns` table test (true positives: AWS key, GitHub PAT `ghp_…`, JWT, PEM header, 32+ hex or base64 after `token=`, `secret=`, `key=`, because a bare 40-hex is a commit sha; true negatives: UUIDs, commit shas, URLs, Arabic text, file paths) |
 | CLI | Vitest with a temp `HOME`, `claude` mocked on `PATH` (shell script that records args); asserts config file mode 600, idempotent env markers, doctor table output |
 | Hooks | spawn the real scripts with fixture stdin and a local `node:http` mock Hub; assert JSON output, payload validity, outbox fallback on 503, parent exit < 300 ms |
 | Plugin | `claude plugin validate ./packages/team-pack/plugin --strict` (skipped locally when `claude` is absent, required in CI) |
@@ -66,13 +66,12 @@ scans source with `ts-morph`:
 | Spec | Rule | Failure message |
 | --- | --- | --- |
 | `events.spec.ts` | every method of `CardService` that writes (name matches `/^(apply|create|…)/`) is covered by a table in `transitions.ts` and every applied action has an `EventKind` | "action X emits no event kind" |
-| `permissions.spec.ts` | every controller route has `@Permissions(...)` or `@Public()`; every `@Permissions` key exists in `<module>.permissions.ts`; human-only actions are listed in `HUMAN_ONLY` | "route X has no permission declaration" |
-| `human-only.spec.ts` | calling each `HUMAN_ONLY` service method with an `agent` actor throws `hub.identity.human_only` (fake repos) | |
+| `permissions.spec.ts` | every controller route has `@Permissions(...)` or `@Public()`; every `@Permissions` key is a row of `@hub/contracts/permissions.ts` | "route X has no permission declaration" |
 | `workspace-scope.spec.ts` | every Prisma call inside `modules/**/infrastructure/**` on a table that has `workspace_id` goes through `WorkspaceScoped` (the dev/test Prisma extension throws on a missing `workspaceId` predicate; the spec runs each repository method with a fake and asserts the predicate) | "query on cards without workspace scope" |
 | `boundaries` (dependency-cruiser) | `modules/<a>/**` may import `modules/<b>/index.ts` only; `infra/**` never imports `modules/**`; `domain/**` imports no `@nestjs/*`, `@prisma/*`, `bullmq`; `presentation/mcp/**` imports application services only (never `infrastructure/**`) | cruiser report |
 | `error-catalogue.spec.ts` | every `AppException` code thrown in `src/**` exists in `shared/errors/error-codes.ts` and has `en` + `ar` messages in `i18n/*/errors.json` | |
 | `settings-catalogue.spec.ts` | every `settings.get('x')` key exists in `@hub/contracts/settings.ts` with a default | |
-| `mcp-tools.spec.ts` | every registered MCP tool name is in `@hub/contracts/mcp/tools.ts` with the same input schema; no tool name > 60 chars; no tool exposes a `HUMAN_ONLY` action | |
+| `mcp-tools.spec.ts` | every registered MCP tool name is in `@hub/contracts/mcp/tools.ts` with the same input schema; no tool name > 60 chars; every mutating action with surface `any` has a tool and none is `web_only` (D27) | |
 | `external-key.spec.ts` | every adapter `upsert` passes `externalKey` matching the formats in `03-data-model §5.1` | |
 
 ## 3. Coverage thresholds
@@ -201,7 +200,7 @@ filter must be backed by an index or a documented decision not to.
 | Secret scanning of the repo: `gitleaks` in CI (`gitleaks detect --no-git` on the tree + on the PR diff) | CI job 1 |
 | `dependency-cruiser` boundaries | CI job 3 |
 | Auth e2e: lockout after 10 failures, refresh rotation and family revocation on reuse, TOTP enforcement for `owner`/`pm`/`accountant`, token revocation effective immediately, hook-kind token rejected outside `/capture/*` | `identity.e2e-spec.ts` |
-| Human-only enforcement with agent actors on every REST route in `HUMAN_ONLY` | `human-only.spec.ts` + e2e |
+| Same result for a user and an agent with the same roles, on every action (D27) | e2e |
 | Workspace isolation: a member of workspace A cannot read/write any card, doc, token or setting of workspace B (every endpoint, 404 not 403) | `isolation.e2e-spec.ts` (generated from the OpenAPI route list) |
 | Headers: Caddy security headers present in the ops smoke test (`infra/scripts/smoke.sh`) | ops |
 | Images: `trivy image` on the three images (high/critical fail) on `main` | CI job 10 |

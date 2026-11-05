@@ -35,6 +35,9 @@ Use /hub:start for the full brief, /hub:next to claim a task, /hub:done before y
 
 ## 2. The MCP server
 
+> **docs/15 wins over this chapter.** Tools are the table in `@hub/contracts/mcp/tools.ts`. Tokens belong to the member,
+> not a workspace, and nothing is refused for being an agent (D27). H1-01 finishes this rewrite.
+
 ### 2.1 Transport and mounting
 
 - Protocol: MCP **Streamable HTTP**, **stateless** (a new `McpServer` + transport per request,
@@ -90,7 +93,8 @@ the MCP layer never touches Prisma.
    not `/api/v1/capture/*` or `/api/v1/me/context`.
 3. Resolve **live** roles from the membership (never frozen in the token).
 4. Update `last_used_at` at most once per minute (Redis debounce).
-5. Return `Actor { kind: 'agent', userId, workspaceId, roles, tokenId, via }`.
+5. Return a `Principal { kind: 'agent', userId, tokenId, via }`. `ActorService.forProject(principal, { argument, header })`
+   then picks the project (the tool's `project`, else `X-Hub-Project`, else the member's default) and reads live roles.
 
 HTTP-level failure → `401` (`hub.identity.token_invalid`) or `403` (`hub.identity.token_scope`)
 before any JSON-RPC parsing, so Claude Code reports a clear connection/auth error. Rate limit
@@ -104,13 +108,14 @@ before any JSON-RPC parsing, so Claude Code reports a clear connection/auth erro
 | Language | English. The agent speaks to the user in the user's language. |
 | Times | ISO 8601 with the workspace offset, plus relative hints (`due in 5h`, `3d ago`). |
 | Errors | `isError: true`, text `ERROR <code>: <message>` + one `Hint:` line. Codes are the API catalogue (`hub.cards.invalid_transition`, `hub.cards.not_found`, `hub.identity.forbidden`, `hub.security.secret_detected`, `hub.validation.invalid` with field list). |
-| Human-only | `decide`, `verify` need, `approve/reject` redesign, `archive`, members/sources/settings are **not exposed as tools**. Tools that touch them do not exist; a related REST call with an agent actor answers `403 hub.identity.human_only`. |
+| Full control | Every web mutation has a tool, including decide, verify, approve, reject and delete (D27). Sensitive and destructive tools carry `destructiveHint` and tell Claude to confirm with the user first. Secret values never pass through MCP. |
+| Project | Every tool accepts an optional `project` (slug); see 15 §5. |
 | Secret filter | Every free-text input passes `assertNoSecrets()` (patterns in `@hub/contracts/secret-patterns.ts`). Rejection names the pattern (`aws_access_key`, `jwt`, `generic_token_32+`), never the value. |
 | Idempotency | Stated per tool. Creates without an idempotency key are not retried by the SDK; the agent must not call them twice. |
 | Pagination | `limit` (default 25, max 100) + opaque `cursor`. |
 | Actor | Every write records `created_by_kind = 'agent'`, `created_by_id = member`, `via = 'mcp'`, and an audit row. |
 
-Permission matrix (agent actor = the member's roles, minus human-only):
+Permission matrix (agent actor = the member's roles, same as the web):
 
 | Tool | Requirement |
 | --- | --- |
@@ -1048,11 +1053,11 @@ vars, config; leaves the CA unless `--ca`).
 ## 4. Tokens
 
 - Created in **Settings › Tokens** (web only): name, kind (`mcp` default; `hook` = restricted to
-  `/capture/*` and `/me/context`), one workspace per token. Shown **once** as
+  `/capture/*` and `/me/context`), belonging to the member and not to a project (15 §5). Shown **once** as
   `hub_<prefix8><32 random chars>`; stored `prefix` + `sha256`. Columns: last used, created,
   revoke button; `pm`/`owner` can revoke any member's tokens from Members.
-- A member who belongs to two workspaces creates two tokens and registers two MCP servers
-  (`hub`, `hub-<slug>`); the team pack handles one by default, `hub init --workspace <slug> --server-name hub-<slug>` adds another.
+- One token serves every project the member is in. `hub link <slug>` writes `X-Hub-Project` into a folder's
+  `.mcp.json`, so a chat opened there is on that project.
 - Roles are resolved live on every call (membership edit takes effect immediately); revocation
   takes effect immediately (no caching of token validity beyond the request).
 - Audit: every MCP call that mutates writes `audit_log` with `via = 'mcp'` and the token id;

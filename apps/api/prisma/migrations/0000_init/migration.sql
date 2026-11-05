@@ -903,5 +903,6 @@ CREATE TRIGGER doc_chunks_search_vector
     BEFORE INSERT OR UPDATE OF heading, content ON doc_chunks
     FOR EACH ROW EXECUTE FUNCTION doc_chunks_search_vector_update();
 
--- Trigram fallback on titles (docs/03 §12).
-CREATE INDEX cards_title_trgm_idx ON cards USING gin (title gin_trgm_ops);
+
+-- Trigram fallback on titles (docs/03 §12). Declared in cards.prisma, so there is no drift.
+CREATE INDEX "cards_title_trgm_idx" ON "cards" USING GIN ("title" gin_trgm_ops);

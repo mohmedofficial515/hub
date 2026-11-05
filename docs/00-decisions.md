@@ -22,7 +22,7 @@ so that a second project is a new workspace, not a new deployment.
 | --- | --- |
 | Workspace | One project (e.g. Goteav). Owns members, roles, sources, cards, docs, settings. Data never crosses workspaces. |
 | Card | The single unit of the timeline. Has a **type** (below), a status machine, an owner role, links, comments and an append-only event history. |
-| Card types | `task`, `decision`, `need`, `change`, `handoff`, `redesign`, `doc`, `release` (eight; the idea page said seven — `handoff` was promoted from a page to a type because it has its own lifecycle). |
+| Card types | `task`, `decision`, `need`, `change`, `handoff`, `redesign`, `doc`, `release`, `idea`, `plan` (ten; `handoff` was promoted from a page to a type because it has its own lifecycle, and D29 added `idea` and `plan`). |
 | Event | One immutable row describing what happened to a card (created, status changed, claimed, commented, decided …). The timeline is the event stream, grouped by card. |
 | Role | A workspace-scoped label a member holds: `owner`, `pm`, `accountant`, `backend`, `frontend`, `designer`, `qa`. A member can hold several. Decisions and needs are routed to **roles**, never to a person. |
 | Source | Something Hub captures from: a GitHub repository, an OpenAPI file in a repository, the lab folder, Claude Code sessions, a docs folder. |

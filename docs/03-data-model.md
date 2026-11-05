@@ -26,7 +26,7 @@ ALTER TEXT SEARCH CONFIGURATION hub_simple ALTER MAPPING FOR asciiword, word, hw
 ```
 Workspace 1─* Membership *─1 User              User 1─* Session, ApiToken, PasswordReset, PushSubscription, TelegramLink
 Workspace 1─* Invite, WorkspaceSetting, Source, Card, Brief, Notification, AuditLog, SessionLog, GithubIdentity
-Card 1─1 (TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail)
+Card 1─1 (TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail | IdeaDetail | PlanDetail)
 Card 1─* CardEvent, CardComment, CardWatcher, CardAttachment, CardLink(from/to), DocChunk (doc cards only)
 DocChunk 1─0..1 DocChunkEmbedding
 Source 1─* CaptureRun
@@ -47,6 +47,7 @@ model User {
   totpEnabledAt DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
   status        String    @default("active")            // active | disabled
   lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(3)
+  defaultWorkspaceId String? @map("default_workspace_id") @db.Uuid // the default project, which switch_project sets (15 §5)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   memberships   Membership[]
@@ -88,8 +89,7 @@ model Session {                                          // refresh-token family
 
 model ApiToken {
   id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  userId      String    @map("user_id") @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid       // belongs to the member, not to a workspace (15 §5)
   name        String                                     // "Claude Code — laptop"
   kind        String    @default("mcp")                  // mcp | hook  (hook tokens may only call /capture/*, /me and /me/context)
   prefix      String    @unique                          // "hub_" + 8 chars, part of the shown token, used for lookup
@@ -98,7 +98,7 @@ model ApiToken {
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(3)
   user        User      @relation(fields: [userId], references: [id])
-  @@index([userId, workspaceId])
+  @@index([userId])
   @@map("api_tokens")
 }
 
@@ -122,7 +122,13 @@ model Workspace {
   timezone      String    @default("Europe/Istanbul")
   defaultLocale String    @default("ar") @map("default_locale")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  archivedAt    DateTime? @map("archived_at") @db.Timestamptz(3)
+  description   String?                                 // markdown (15 §5)
+  goals         String?                                 // markdown
+  links         Json      @default("[]")                // { label, url }[]
+  repoPaths     String[]  @default([]) @map("repo_paths") // local folders
+  status        String    @default("active")            // active | paused | closed; closing is reversible, projects are never deleted
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
   memberships   Membership[]
   @@map("workspaces")
 }
@@ -154,7 +160,7 @@ model WorkspaceSetting {
 model Source {
   id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   workspaceId   String    @map("workspace_id") @db.Uuid
-  kind          String                                  // github_repo | openapi | lab | docs_folder
+  kind          String                                  // github_repo | openapi | lab | docs_folder | local_path
   name          String                                  // "backend", "web", "dashboard", "lab", "backend docs"
   config        Json                                    // per kind, §4.3
   secretEnc     String?   @map("secret_enc")            // AES-256-GCM of JSON { read: string, write?: string } — GitHub tokens, Hub's own operational credential (D19); `write` only on the ADR target repo and the hub repo
@@ -243,6 +249,9 @@ cursor: { versions: { ["web/wallet/v2-flight-path"]: { status: "draft", readmeHa
 // kind: docs_folder
 config: { repoSourceId: string, path: "docs", include: ["**/*.md"], exclude: ["map/**", "handover/**"], kinds: { "adr/*": "adr", "status/*": "status" } }
 cursor: { lastIndexedSha: string }
+// kind: local_path  (15 §3: an absolute folder read directly, with no clone or token)
+config: { path: "F:/Goteav/backend/docs", purpose: "docs" | "lab", include?: string[], exclude?: string[], kinds?: Record<string, string> }
+cursor: { files: { [path: string]: { hash: string } } }
 ```
 
 ## 5. cards.prisma (core)
@@ -253,9 +262,9 @@ model Card {
   workspaceId   String    @map("workspace_id") @db.Uuid
   seq           Int                                     // per-workspace sequence
   key           String                                  // "GTV-123" (denormalised for search and display)
-  type          String                                  // task | decision | need | change | handoff | redesign | doc | release
+  type          String                                  // task | decision | need | change | handoff | redesign | doc | release | idea | plan
   title         String                                  // ≤ 200 chars
-  body          String?                                 // markdown, ≤ 20 000 chars, secret-filtered
+  body          String?                                 // markdown, ≤ 20 000 chars (a plan ≤ 100 000), secret-filtered
   status        String                                  // per-type machine (01-architecture §4.1)
   priority      String    @default("P2")                // P0 | P1 | P2 | P3
   ownerRole     String?   @map("owner_role")            // routed role (decider / responsible / to-role / specialty-role)
@@ -274,6 +283,7 @@ model Card {
   archivedAt    DateTime? @map("archived_at") @db.Timestamptz(3)
   tags          String[]  @default([])
   commentCount  Int       @default(0) @map("comment_count")
+  eventSeq      Int       @default(0) @map("event_seq")  // last card_events.seq, bumped by CardService.apply, so seq is n+1 under the row lock
   lastEventAt   DateTime  @default(now()) @map("last_event_at") @db.Timestamptz(3)
   searchVector  Unsupported("tsvector")? @map("search_vector")  // maintained by trigger: title (A) + key (A) + body (B) + tags (C)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -293,6 +303,8 @@ model Card {
   redesign      RedesignDetail?
   doc           DocDetail?
   release       ReleaseDetail?
+  idea          IdeaDetail?
+  plan          PlanDetail?
 
   @@unique([workspaceId, seq])
   @@unique([workspaceId, key])
@@ -304,6 +316,7 @@ model Card {
   @@index([workspaceId, dueAt])
   @@index([searchVector], type: Gin)
   @@index([tags], type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "cards_title_trgm_idx")
   @@map("cards")
 }
 
@@ -396,11 +409,15 @@ model CardAttachment {                                   // lab screenshots and 
 
 ### 5.2 Event kinds and `data`
 
+**One `CardService.apply` writes exactly one event and one audit row per card touched.** A status move inside
+an action is part of its event: `from` and `to` are added to `data` (so `claimed` carries `{ userId, branch?,
+from, to }`, with no separate `status_changed`). An edit of several fields is one `field_changed` with a list.
+
 | kind | data | emitted by |
 | --- | --- | --- |
 | `created` | `{ snapshot: { title, status, priority, ownerRole } }` | all |
 | `status_changed` | `{ from, to, reason? }` | all |
-| `field_changed` | `{ field, from, to }` (title, body(hash), priority, ownerRole, dueAt, module, tags, assignee) | all |
+| `field_changed` | `{ changes: [{ field, from, to }] }` (title, body(hash), priority, ownerRole, dueAt, module, tags, assignee) | all |
 | `claimed` / `unclaimed` | `{ userId, branch? }` | tasks |
 | `commented` | `{ commentId, excerpt }` | all |
 | `linked` / `unlinked` | `{ kind, otherCardKey }` | all |
@@ -414,7 +431,11 @@ model CardAttachment {                                   // lab screenshots and 
 | `session_logged` | `{ sessionId, hasSummary }` | change (session) |
 | `approved` / `rejected` / `changes_requested` / `ported` | `{ note?, ref? }` | redesign |
 | `unblocked` | `{ byCardKey }` | any blocked card when a blocker closes |
-| `archived` / `restored` | `{}` | owner/pm |
+| `archived` / `restored` | `{}` | owner/pm. This is delete and restore (D28). |
+| `plan_revised` | `{ revision, previousBody }` | plan: every save of the body, keeping the previous text |
+| `plan_steps_changed` | `{ steps }` | plan |
+| `idea_to_plan` | `{ planKey }` | idea, moving it to accepted |
+| `plan_to_tasks` | `{ taskKeys[] }` | plan |
 | `redacted` | `{ commentId }` | owner/pm |
 | `watch` / `unwatch` | `{ userId, reason }` | all (not shown in the timeline, only in card history) |
 
@@ -431,7 +452,7 @@ model TaskDetail {
   effort       String?                                  // S | M | L | XL
   acceptance   String?                                  // markdown checklist
   prompt       String?                                  // markdown, the ready-to-run prompt (rendered by digests when empty and source=import)
-  origin       String    @default("manual")             // manual | import_suggestion | session_followup | redesign_port | decision | handoff
+  origin       String    @default("manual")             // manual | import_suggestion | session_followup | redesign_port | decision | handoff | plan
   claimedById  String?   @map("claimed_by_id") @db.Uuid
   claimedAt    DateTime? @map("claimed_at") @db.Timestamptz(3)
   branch       String?
@@ -550,7 +571,8 @@ model DocDetail {
   lang          String    @default("en")                // en | ar (from suffix ".ar.md" or detection)
   headings      Json      @default("[]")                // [{ level, text, anchor }]
   wordCount     Int       @default(0) @map("word_count")
-  lastCommitSha String    @map("last_commit_sha")
+  lastCommitSha String?   @map("last_commit_sha")      // null for local_path sources
+  contentHash   String?   @map("content_hash")         // sha256 of the file, how local_path detects a change
   lastIndexedAt DateTime  @map("last_indexed_at") @db.Timestamptz(3)
   card          Card      @relation(fields: [cardId], references: [id])
   chunks        DocChunk[]
@@ -568,6 +590,27 @@ model ReleaseDetail {
   notes       Json      @default("{}")                  // { team: md, owner: md, accountant: md }
   card        Card      @relation(fields: [cardId], references: [id])
   @@map("release_details")
+}
+
+model IdeaDetail {                                       // D29, 15 §4
+  cardId     String  @id @map("card_id") @db.Uuid
+  problem    String?                                     // markdown
+  notes      String?                                     // markdown
+  role       String?                                     // optional role the idea concerns
+  planCardId String? @map("plan_card_id") @db.Uuid       // set by "turn into a plan"
+  card       Card    @relation(fields: [cardId], references: [id])
+  @@map("idea_details")
+}
+
+model PlanDetail {                                       // D29, 15 §4. The body is cards.body.
+  cardId       String    @id @map("card_id") @db.Uuid
+  steps        Json      @default("[]")                  // ordered { id, title, role?, taskKey?, done }[]
+  revision     Int       @default(1)                     // bumped by each body save; history is in plan_revised events
+  sourceIdeaId String?   @map("source_idea_id") @db.Uuid
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(3)
+  card         Card      @relation(fields: [cardId], references: [id])
+  @@map("plan_details")
 }
 ```
 
@@ -722,7 +765,8 @@ model AuditLog {
   workspaceId String?  @map("workspace_id") @db.Uuid
   actorKind   String   @map("actor_kind")               // user | agent | system
   actorId     String?  @map("actor_id") @db.Uuid
-  via         String                                    // web | mcp | hook | adapter | scheduler | telegram
+  via         String                                    // web | mcp | hook | adapter | import | scheduler | telegram
+  tokenId     String?  @map("token_id") @db.Uuid        // the API token behind an mcp or hook call
   action      String                                    // "cards.decide", "identity.token.create", "settings.update" …
   targetType  String   @map("target_type")
   targetId    String?  @map("target_id")

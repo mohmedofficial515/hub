@@ -1,0 +1,164 @@
+# @hub/api
+
+NestJS 11: REST, MCP and workers in one image. Plan: `docs/01`, `docs/03`, `docs/04`. Scope: `docs/15`, which
+wins over the others.
+
+## Run it
+
+```bash
+pnpm install
+pnpm setup:env                                    # root .env with a random key and owner password
+docker compose -f infra/compose.dev.yaml up -d    # Postgres 7340, Redis 7341, Mailpit 7342/7343
+pnpm db:deploy                                    # or `pnpm db:migrate` when changing the schema
+pnpm --filter @hub/api dev                        # http://localhost:7310/api/v1/health/ready, /api/docs
+```
+
+| Command                 | What                                                          |
+| ----------------------- | ------------------------------------------------------------- |
+| `pnpm check` (root)     | lint, typecheck, arch, unit, OpenAPI snapshot                 |
+| `pnpm test:e2e`         | real Postgres and Redis through Testcontainers                |
+| `pnpm api:sync`         | re-export OpenAPI into `apps/web/openapi` after an API change |
+| `pnpm migrations:check` | lint of migration SQL (in `apps/api`)                         |
+
+`@hub/contracts` is built to `dist` on install. Tests and typecheck read its source; a running API reads `dist`,
+so `pnpm dev` at the root also runs its watcher. If you start only the API, run `pnpm --filter @hub/contracts build`
+after changing contracts.
+
+## The one rule
+
+**Every card mutation goes through `CardService.apply`.** Web, MCP and adapters call the same thing, so they cannot
+behave differently (`docs/15` §6).
+
+```ts
+apply(actor: Actor, target: CardTarget | null, action: PermissionAction, payload: unknown): Promise<ApplyResult>
+// target: { cardKey: 'GTV-12' } | { cardId } | null when the action creates a card
+```
+
+In one transaction it validates the payload, runs the secret filter over every string, refuses a closed project or a
+deleted card, locks the card, checks the permission table, checks the status machine, runs your action's `plan`, writes
+the card and its detail, writes **exactly one** event and one audit row, adds watchers and writes the outbox. After
+commit it publishes to Redis. The actor's kind is recorded and never used to refuse (D27).
+
+It refuses to run inside an outer transaction, because it publishes after commit. For several things at once, return
+`followUps` from the plan.
+
+## Actor
+
+Types are in `@hub/contracts` (`actor.ts`). Credentials give a `Principal`, which belongs to no project.
+`ActorService` (`@/modules/identity`) picks the project and reads live roles, giving an `Actor`.
+
+| You are writing                 | Use                                                                        |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| A route under `/workspaces/:ws` | `@Actor() actor: MemberActor`. `ActorGuard` has already resolved it.       |
+| A route with no project (`/me`) | `@CurrentPrincipal() principal: Principal`                                 |
+| An MCP tool                     | `actors.forProject(principal, { argument: input.project, header })`        |
+| An adapter or job               | `{ kind: 'system', userId: null, via: 'adapter', workspaceId, roles: [] }` |
+
+Sign-in plugs in at one place: bind the real implementation to `PRINCIPAL_RESOLVER` in `identity.module.ts`
+(`resolve(request): Promise<Principal | null>`). Until then every non-public route answers 401, and e2e tests send
+`x-test-user` (`test/setup/create-test-app.ts`).
+
+## Add an action to a card type
+
+1. The verb must be a transition in `packages/contracts/src/cards/<type>.ts`, if it moves the status, and a row in
+   `packages/contracts/src/permissions.ts`, named `<type>.<verb>`. Generic actions are `card.<verb>`.
+2. Write the action as a provider, one per file. It says what should change and writes nothing itself:
+
+   ```ts
+   @Injectable()
+   @CardActionHandler()
+   export class TaskClaimAction implements CardActionDefinition<ClaimInput> {
+     readonly action = 'task.claim';
+     readonly payload = claimSchema;
+     readonly forbiddenCode = 'hub.tasks.specialty_role_mismatch'; // optional
+
+     plan({ actor, card, payload, now }: CardActionContext<ClaimInput>): CardActionPlan {
+       if (card?.assigneeId && card.assigneeId !== actor.userId) {
+         throw new AppException('hub.tasks.already_claimed'); // rules the table cannot express
+       }
+       return {
+         patch: { assigneeId: actor.userId }, // card header
+         detail: { claimedById: actor.userId, claimedAt: now }, // the type's detail table
+         event: { kind: 'claimed', data: { userId: actor.userId } }, // `from` and `to` are added for you
+         watchers: actor.userId ? [{ userId: actor.userId, reason: 'assignee' }] : [],
+       };
+     }
+   }
+   ```
+
+3. Add it to the `providers` of the module (`modules/tasks/tasks.module.ts`). The registry finds it through the decorator.
+4. Test it through `service.apply(...)` in `test/e2e/<module>.e2e-spec.ts`. `test/e2e/cards.e2e-spec.ts` is the model.
+
+The plan's other fields: `create` (when target is null), `notify`, `summary`, `write` (extra rows in the same
+transaction, through your own repository; what it returns joins the event's data) and `followUps` (more actions in the
+same transaction, each with its own event). See `modules/cards/domain/card-action.ts`. `permissions(payload, card)`
+replaces the default row for an action whose rows depend on its input, such as an update touching routing fields.
+
+`modules/tasks/application/task-create.action.ts` is the working example.
+
+## Add a card type
+
+The ten types already have machines (`CARD_MACHINES`), detail tables and repository wiring. Add the module:
+
+1. `src/modules/<type>/<type>.module.ts`, importing `CardsModule` from `@/modules/cards`, and `index.ts`.
+2. Add it to `imports` in `src/app.module.ts`.
+3. Add actions as above, and the create schema to the union in `modules/cards/presentation/http/card.dto.ts`.
+
+A brand-new type would also need `CARD_TYPES`, a machine, a detail model in `prisma/schema/details.prisma` plus a migration,
+and `DETAIL_RELATION` and `DETAIL_DELEGATE` in `modules/cards/infrastructure/prisma-card.repository.ts`.
+
+## Add an endpoint
+
+```ts
+@ApiTags('tasks')
+@Controller('workspaces/:ws/tasks')
+export class TasksController {
+  constructor(private readonly cards: CardService) {}
+
+  @Post(':key/claim')
+  @Permissions('task.claim') // or @Public(). An arch test requires one of them.
+  @ApiOkResponse({ type: CardWrittenDto })
+  async claim(@Param('key') key: string, @Actor() actor: MemberActor, @Body() body: ClaimDto) {
+    return toCardWritten(await this.cards.apply(actor, { cardKey: key }, 'task.claim', body));
+  }
+}
+```
+
+- `@Permissions` is the route-level check: could these roles ever do it? `apply` decides with the card in hand.
+- DTOs are `createZodDto(schema)` over a schema from `@hub/contracts`. Share that schema with the MCP tool.
+- Return plain values. The interceptor wraps them as `{ data, meta }`; return `{ items, pagination }` for a list. Throw
+  `AppException('hub.x.y')`: add new codes to `packages/contracts/src/errors.ts` and to both `src/i18n/*/errors.json`.
+- Run `pnpm api:sync` and commit `apps/web/openapi/openapi.json`, or `pnpm check` fails.
+- Non-card mutations (members, settings, sources, projects) do not use `apply`, but must call `AuditService.record` inside
+  their transaction.
+
+## Add an MCP tool
+
+The module does not exist yet (H1-01). The contract it must follow:
+
+1. Every tool has a row in `MCP_TOOLS` (`packages/contracts/src/mcp/tools.ts`) naming the permission actions it performs.
+   A contracts test fails when a mutating action with surface `any` has no tool, or a tool performs a `web_only` one.
+2. Set `destructive: true` for `destructiveHint`, and have the description tell Claude to confirm in the chat first.
+3. Add an optional `project` input. Resolve with `actors.forProject(principal, { argument: input.project, header })`.
+4. Call `CardService.apply` or the owning service, the same as the web, and never Prisma (dependency-cruiser enforces this
+   for `presentation/mcp/`). Reuse the REST schema from `@hub/contracts`. Return Markdown stating what changed and the
+   card's URL (`docs/05` §2.3).
+
+## Data access
+
+- Inject `TransactionHost<PrismaTransactionalAdapter>` and use `.tx`, which joins the active transaction.
+- Outside production, a query on a table with `workspace_id` and no scope predicate throws `WorkspaceScopeError`
+  (`infra/prisma/workspace-scope.ts`). `findUnique({ where: { id, workspaceId } })` is fine.
+  `runUnscoped(reason, fn)` is for the rare query that must cross projects, such as an invite looked up by its token.
+- A new model with `workspaceId` goes in `WORKSPACE_SCOPED_MODELS`; an arch test checks it against the schema.
+
+## Background work
+
+Extend `BaseProcessor` (`infra/queue/queue.service.ts`), name a queue from `QUEUES`, implement `process`, add it to a module.
+Workers start where `PROCESS_ROLE` is `worker` or `all`. In tests `QUEUE_MODE=inline` runs jobs in the caller's process.
+
+Notifications: return `notify` from a plan. `OutboxProcessor.registerSender(channel, sender)` connects a channel; with no
+sender a job ends `skipped`.
+
+Realtime: `RealtimePublisher` publishes a `RealtimeCardEvent` to `workspaceEventsChannel(id)` after commit. The SSE module
+subscribes with `RedisClients.createSubscriber()`.

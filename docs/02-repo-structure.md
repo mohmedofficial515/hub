@@ -17,7 +17,7 @@ hub/
 ├── apps/
 │   ├── api/                             # NestJS: REST + MCP + worker (one image, PROCESS_ROLE)
 │   ├── web/                             # Next.js 15 app
-│   └── lab/                             # redesign lab (moved from F:\Goteav\redesign), Vite 8
+│   └── lab/                             # DEFERRED (docs/15 §3): the lab stays in F:\Goteav\redesign, read through LAB_ROOT
 ├── packages/
 │   ├── contracts/                       # @hub/contracts — Zod schemas + TS types shared by api, web, team-pack
 │   └── team-pack/                       # @hub/team-pack — Claude Code plugin + `hub` CLI installer
@@ -42,13 +42,18 @@ typecheck      pnpm -r typecheck
 lint           eslint . && prettier --check .
 test           pnpm -r test
 test:e2e       pnpm --filter @hub/api test:e2e && pnpm --filter @hub/web test:e2e
-check          pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @hub/web api:check
+check          pnpm lint && pnpm typecheck && arch:check && pnpm test && openapi:export && pnpm --filter @hub/web api:check
 api:sync       pnpm --filter @hub/api openapi:export && pnpm --filter @hub/web api:sync
 db:migrate     pnpm --filter @hub/api prisma:migrate
 compose:up     docker compose -f infra/compose.dev.yaml up -d
 ```
 
 ## apps/api
+
+**How to add a card type, an action, an endpoint or an MCP tool: `apps/api/README.md`.** Reality differs
+from the tree below in three small ways: `prisma.config.ts` sits at `apps/api/`; ESLint is one root config
+(`eslint.config.mjs` with `tools/eslint/`), so `apps/web` has no config of its own; and modules gain their
+folders as they gain code.
 
 ```
 apps/api/
@@ -137,6 +142,9 @@ apps/web/
 
 ## apps/lab
 
+**Deferred for the first release (docs/15 §3):** there is no `apps/lab` yet, because moving it edits
+global agent files. The section below describes the later move (H2-04).
+
 The current `F:\Goteav\redesign` tree moves here unchanged except paths:
 
 ```
@@ -156,9 +164,9 @@ apps/lab/
 ```
 packages/contracts/src/
 ├── index.ts
-├── cards/  card.ts  task.ts  decision.ts  need.ts  change.ts  handoff.ts  redesign.ts  doc.ts  release.ts   # Zod payload schemas + status enums + transitions tables
-├── roles.ts  events.ts (event kinds)  errors.ts (codes)  secret-patterns.ts
-├── mcp/ tools.ts (input/output schemas of every MCP tool)  prompts.ts
+├── cards/  card.ts  machine.ts  task.ts  decision.ts  need.ts  change.ts  handoff.ts  redesign.ts  doc.ts  release.ts  idea.ts  plan.ts   # Zod payload schemas + status enums + machines (CARD_MACHINES)
+├── roles.ts  actor.ts (Principal, Actor)  permissions.ts (matrix as data)  projects.ts  events.ts (event kinds, realtime message)  errors.ts (codes)  secret-patterns.ts
+├── mcp/ tools.ts (the tool table; input schemas arrive with H1-01)  prompts.ts (H1-01)
 └── capture/ session-log.ts  hook-payload.ts  oasdiff.ts
 ```
 

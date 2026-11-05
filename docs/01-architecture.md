@@ -102,7 +102,7 @@ Every card has the common header; the type adds a payload table (full schema in
 ```
 Card
   id (uuid v7)          key "GTV-123" (workspace prefix + sequence)
-  workspace_id          type: task|decision|need|change|handoff|redesign|doc|release
+  workspace_id          type: task|decision|need|change|handoff|redesign|doc|release|idea|plan
   title                 body (markdown)       status (per-type machine)   priority P0..P3
   owner_role            assignee_user_id?     created_by: user | agent(user) | system(adapter)
   source: manual|github|openapi|session|lab|docs|import      external_key? (unique per ws)
@@ -120,16 +120,18 @@ task      backlog → ready → claimed → in_progress → in_review → done
           unclaim: claimed | in_progress → ready
 decision  open → decided | withdrawn | superseded          flags: overdue (due_at < now), escalated
 need      requested → in_progress (start) → delivered → verified   | cancelled
-handoff   pending → acknowledged → applied                 | dismissed (human-only)
+handoff   pending → acknowledged → applied                 | dismissed
 redesign  draft → review (send_to_review) → approved → ported      | rejected   (mirrors lab front-matter; `reference` for v1-baseline)
           request_changes: review → review (note appended; event changes_requested)
 change    recorded (terminal; commits/PRs/session logs are facts)         PR sub-state: open|merged|closed
 doc       current | stale | removed                        (stale = source file changed since last index — transient)
 release   planned → released
+idea      open → exploring → accepted | parked | rejected      reopen: parked | rejected → open   (accepted also directly from open)
+plan      draft → in_review → approved → in_progress → done    abandoned from any state; approved is for owner or pm
 ```
 
-Transitions are implemented as a table in `domain/transitions.ts` of each module; any other
-transition answers `409 hub.cards.invalid_transition`.
+Transitions are a table per card type in `@hub/contracts` (`cards/<type>.ts`, `CARD_MACHINES`), read by
+`CardService.apply`; any other transition answers `409 hub.cards.invalid_transition`.
 
 ### 4.2 Who may do what (summary; full matrix in `04-api-reference.md` §2)
 
@@ -139,9 +141,12 @@ transition answers `409 hub.cards.invalid_transition`.
   original decider role.
 - `owner`/`pm`: edit priorities, reassign, archive, manage members and sources, approve/reject
   redesigns (owner only for redesigns).
-- Agents (API tokens): everything the token's member may do **except** `decide`, `verify` a need,
-  approve/reject a redesign, archive, manage members. These are human-only (`human_only` flag on
-  the action).
+- Agents (API tokens): everything the token's member may do, including decide, verify, approve, reject
+  and delete (D27). Permissions depend on role only. The actor kind is recorded, never used to refuse.
+  The one limit: secret values never pass through MCP, so API tokens, passwords and source tokens are
+  set in the web UI only (`surface: web_only` in the permission table).
+- Delete maps onto the archive flag and is recoverable (D28): a deleted card leaves every page, count
+  and search result, and can be restored from the Deleted view.
 
 ## 5. Core data flows
 
@@ -149,9 +154,10 @@ transition answers `409 hub.cards.invalid_transition`.
 
 ```
 REST controller | MCP tool | adapter
-        └─► CardService.apply(actor, cardId, action, payload)
-                ├─ load card + payload, check permission (role, human_only)
-                ├─ domain transition / rule
+        └─► CardService.apply(actor, target, action, payload)
+                ├─ validate payload, secret filter, project open
+                ├─ lock card, check permission (role only, D27)
+                ├─ status machine, then the action's plan (apps/api/README.md)
                 ├─ in ONE transaction:
                 │     update card + payload · insert card_event · insert audit_log
                 │     · insert notification_jobs (outbox) for watchers / routed role
@@ -180,7 +186,7 @@ form one `change` card (`kind: commits`), updated in place until the window clos
 
 ```
 open ──(reminder at due-24h, due-2h)──▶ overdue ──(after escalation_hours)──▶ escalated to pm
-  │ decide(option, rationale) by a human holding the decider role
+  │ decide(option, rationale) by a member holding the decider role, from the web or their Claude Code
   ▼
 decided ─► ADR markdown generated (template) ─► github.createAdrPr(repo, path, content)
          ─► blocked_by links on other cards resolved → those cards get `unblocked` events + notifications
@@ -245,9 +251,10 @@ Agent enrichment (optional, per member):
 - `@modelcontextprotocol/sdk` server with **Streamable HTTP** transport mounted on the Nest Express
   adapter at `POST/GET/DELETE /mcp`. Stateless mode (new server + transport per request) — simplest
   to scale and restart; tools are cheap.
-- Auth: `Authorization: Bearer <personal api token>` → `ApiTokenGuard` → actor (member + roles +
-  workspace). The token is scoped to **one workspace**. A member with several workspaces creates one
-  token per workspace (the MCP server name in Claude Code can differ: `hub`, `hub-bitaqaty`).
+- Auth: `Authorization: Bearer <personal api token>` → a Principal (the member). The token belongs to the
+  member, not to a workspace (docs/15 §5). Each call picks its project: the tool's `project` argument,
+  else the `X-Hub-Project` header `hub link <slug>` writes, else the member's default project.
+  `ActorService.forProject` then reads the live roles. A project the member is not in answers not found.
 - Tools call the same application services as REST; no logic in the MCP layer besides shaping
   text output for the model (compact Markdown tables, card keys, next-step hints).
 - Prompts (`/hub:start`, `/hub:next`, `/hub:done`, `/hub:decision`, `/hub:need`), the `/hub:ask` skill (D26) and
@@ -266,8 +273,7 @@ Agent enrichment (optional, per member):
 | Release notes | Hub skeleton from included cards; `/hub:release-notes` polishes per audience | `hub.update_card` |
 | Weekly summary | Hub template; `/hub:weekly` narrates | `hub.save_brief({kind:'weekly'})` |
 
-Rules: Hub stores who wrote what (`actor.kind = agent`, with the member behind it); agents can
-never perform human-only actions (§9); there is no queue, no credential and no model name anywhere
+Rules: Hub stores who wrote what (`actor.kind = agent`, with the member behind it); there is no queue, no credential and no model name anywhere
 in Hub's configuration.
 
 ## 9. Security model
@@ -277,8 +283,8 @@ in Hub's configuration.
 | Network | Only the host's 80/443 are reachable on the LAN; containers talk on an internal Docker network; Postgres/Redis unpublished. Caddy `allowedHosts` = `hub.goteav.lan`, `<static-ip>`. |
 | Transport | TLS from Caddy's internal CA; root cert installed by the team-pack installer; HSTS on. |
 | Sessions | httpOnly, `Secure`, `SameSite=Lax` cookies; refresh rotation with family revocation on reuse (same as backend identity). |
-| API tokens | 40-byte random, shown once, stored as SHA-256; prefix `hub_` + 8-char id for lookup; last-used-at; revoke; scoped to one workspace and the member's roles at call time (roles are resolved live, not frozen). |
-| Human-only actions | `decide`, `verify need`, `approve/reject redesign`, `archive`, member/source management, settings. Enforced in `CardService` by `actor.kind === 'user'` — MCP and hooks cannot perform them even with an owner's token. |
+| API tokens | 40-byte random, shown once, stored as SHA-256; prefix `hub_` + 8-char id for lookup; last-used-at; revoke; belongs to the member, with the project chosen per call and roles resolved live, not frozen (docs/15 §5). |
+| Actor kind | Recorded, never used to refuse (D27). An owner's Claude Code may do what the owner may do. Sensitive and destructive tools carry `destructiveHint` and tell Claude to confirm in the chat first; Hub does not enforce that, and the event records `via: mcp`. API tokens, passwords and source tokens are web only. Hook tokens stay limited to `/capture/*`, `/me` and `/me/context`. |
 | Secret filter | Applied to every free-text input (REST, MCP, hooks) before persistence; patterns in `packages/contracts/src/secret-patterns.ts`; rejection code `hub.security.secret_detected` with the matched pattern name (never the value). |
 | Audit | Every mutation → `audit_log` (actor, kind, via, card, summary, ip, user-agent). Read-only page for owner/pm. |
 | Rate limits | `@nestjs/throttler` over Redis: auth endpoints 10/min/IP, MCP 120/min/token, hooks 60/min/token. |

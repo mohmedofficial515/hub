@@ -63,20 +63,24 @@ endpoint (documented inline). `?cursor` from another endpoint → `400 hub.commo
 Every request resolves to an `Actor`:
 
 ```ts
-type Actor =
-  | { kind: 'user';  userId: string; via: 'web';  workspaceId?: string; roles: Role[] }   // cookie session
-  | { kind: 'agent'; userId: string; via: 'mcp';  workspaceId: string;  roles: Role[]; tokenId: string }  // api token kind=mcp
-  | { kind: 'hook';  userId: string; via: 'hook'; workspaceId: string;  roles: Role[]; tokenId: string }  // api token kind=hook
+// packages/contracts/src/actor.ts. Credentials give a Principal, which belongs to no project.
+type Principal =
+  | { kind: 'user';  userId: string; via: 'web' }                       // cookie session
+  | { kind: 'agent'; userId: string; via: 'mcp';  tokenId: string }     // api token kind=mcp
+  | { kind: 'hook';  userId: string; via: 'hook'; tokenId: string };    // api token kind=hook
+// Choosing a project and reading live roles gives an Actor, which every mutation takes.
+type Actor = (Principal & { workspaceId: string; roles: Role[] })
+  | { kind: 'system'; userId: null; via: 'adapter' | 'import' | 'scheduler'; workspaceId: string; roles: [] };
 ```
 
 | Mechanism | How | Notes |
 | --- | --- | --- |
 | Cookie session | `hub_access` (JWT, 15 min, `jose` HS256 with `HUB_JWT_SECRET`), `hub_refresh` (opaque, 30 days, `Path=/api/v1/auth/refresh`) — both `HttpOnly; Secure; SameSite=Lax` | Refresh rotation per family; reuse of a rotated token revokes the family (`401 hub.identity.refresh_invalid`). |
-| API token | `Authorization: Bearer hub_<prefix8>_<secret>` | Lookup by `prefix`, compare SHA-256. `ApiToken.workspaceId` **must equal** the `{ws}` in the path → else `403 hub.identity.token_scope`. `kind=hook` tokens may only call `/capture/*`, `/me` and `/me/context` → else `403 hub.identity.token_scope`. Roles are resolved live from `Membership.roles` on every call. `lastUsedAt` updated at most once per minute. |
+| API token | `Authorization: Bearer hub_<prefix8>_<secret>` | Lookup by `prefix`, compare SHA-256. The token belongs to the member. The project is the `{ws}` in the path; on MCP it is the `project` argument, else the `X-Hub-Project` header, else the member's default project (15 §5). A project the member is not in → `404 hub.workspaces.not_found`. `kind=hook` tokens may only call `/capture/*`, `/me` and `/me/context` → else `403 hub.identity.token_scope`. Roles are resolved live from `Membership.roles` on every call. `lastUsedAt` updated at most once per minute. |
 | CSRF | Cookie requests to mutating methods must send `X-Requested-With: hub` (custom header → CORS preflight). Same-origin only (`CORS` allows `https://hub.goteav.lan` and the configured `HUB_PUBLIC_URL`). | |
 | TOTP | Members holding a role in `security.totp_required_roles` must have TOTP enabled; otherwise every workspace route answers `403 hub.identity.totp_setup_required` until they enrol. Sign-in returns `totpRequired` when enabled. | |
 
-`actor.kind === 'user'` is required by **human-only** actions (§2) regardless of roles.
+The actor kind is recorded, never used to refuse (D27).
 
 ### 1.7 Rate limits (`@nestjs/throttler`, Redis store)
 
@@ -94,7 +98,7 @@ Response carries `Retry-After` seconds.
 
 ```ts
 type Role = 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
-type CardType = 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release';
+type CardType = 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
 type Priority = 'P0' | 'P1' | 'P2' | 'P3';
 type CardKey = `${string}-${number}`;              // "GTV-123"; regex ^[A-Z]{2,6}-\d+$
 type Markdown = string;                           // secret-filtered on input; limits per field
@@ -112,7 +116,7 @@ type CardSummary = {
 };
 type CardFull = CardSummary & {
   body: Markdown | null;
-  detail: TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail;
+  detail: TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail | IdeaDetail | PlanDetail;
   links: { kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates'; card: CardSummary }[];
   watchers: { userId: string; displayName: string; reason: string }[];
   attachments: { id: string; kind: string; name: string; url: string; width: number | null; height: number | null }[];
@@ -150,8 +154,9 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.identity.totp_already_enabled` / `totp_not_enabled` | 409 | enrolment state |
 | `hub.identity.session_expired` | 401 | access JWT expired/invalid → client calls refresh |
 | `hub.identity.refresh_invalid` | 401 | refresh revoked, expired, or reused |
+| `hub.identity.token_invalid` | 401 | bearer token malformed or unknown |
 | `hub.identity.token_revoked` | 401 | API token revoked |
-| `hub.identity.token_scope` | 403 | token workspace ≠ path workspace, or hook token outside `/capture/*` |
+| `hub.identity.token_scope` | 403 | hook token outside `/capture/*`, `/me`, `/me/context` |
 | `hub.identity.account_disabled` | 403 | `User.status=disabled` |
 | `hub.identity.invite_invalid` | 404 | token unknown |
 | `hub.identity.invite_expired` | 410 | past `expiresAt` |
@@ -160,8 +165,9 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.identity.password_weak` | 400 | < 12 chars or in the 10k common list |
 | `hub.identity.reset_invalid` | 404 | reset token unknown/used/expired |
 | `hub.workspaces.slug_taken` / `key_prefix_taken` | 409 | create workspace |
-| `hub.workspaces.not_member` | 403 | actor not an active member of `{ws}` |
-| `hub.workspaces.archived` | 409 | mutation on an archived workspace |
+| `hub.workspaces.not_found` | 404 | no such project, or the actor is not an active member of it (15 §5) |
+| `hub.workspaces.no_project` | 400 | MCP call with no argument, header or default project |
+| `hub.workspaces.closed` | 409 | mutation on a closed project |
 | `hub.workspaces.last_owner` | 409 | removing/demoting the last active owner |
 | `hub.workspaces.role_invalid` | 400 | unknown role key |
 | `hub.workspaces.member_removed` | 409 | acting on a removed membership |
@@ -174,8 +180,7 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.cards.not_found` | 404 | key unknown in this workspace |
 | `hub.cards.type_mismatch` | 409 | action not valid for the card's type |
 | `hub.cards.invalid_transition` | 409 | `details.from`, `details.to` |
-| `hub.cards.human_only` | 403 | actor is `agent`/`hook` on a human-only action |
-| `hub.cards.archived` | 409 | mutation on an archived card |
+| `hub.cards.archived` | 409 | mutation on a deleted card; restore it first |
 | `hub.cards.link_self` | 400 | |
 | `hub.cards.link_exists` | 409 | |
 | `hub.cards.link_cycle` | 409 | `blocks`/`parent` would form a cycle |
@@ -195,6 +200,7 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.decisions.adr_pr_failed` | 502 | GitHub refused; `details.reason` |
 | `hub.needs.not_responsible` | 403 | |
 | `hub.needs.location_required` | 400 | deliver without `location` |
+| `hub.needs.self_verify_note_required` | 400 | verifying your own delivery without a note (D24) |
 | `hub.handoffs.not_recipient` | 403 | actor lacks `toRole` |
 | `hub.handoffs.already_acknowledged` | 409 | |
 | `hub.redesign.owner_only` | 403 | approve/reject by non-owner |
@@ -214,65 +220,80 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.github.rate_limited` | 503 | secondary rate limit; `Retry-After` |
 | `hub.github.repo_not_found` | 502 | |
 | `hub.github.clone_failed` | 500 | |
+| `hub.plans.step_not_found` | 404 | |
+| `hub.plans.revision_not_found` | 404 | |
 | `hub.security.secret_detected` | 422 | `details.pattern`, `details.field` |
 
 ## 2. Permission matrix
+
+The executable table is `packages/contracts/src/permissions.ts`. This one explains it, and the code wins.
 
 Legend: `✓` allowed · `R` allowed when the card's routed role (`ownerRole` / `deciderRole` /
 `responsibleRole` / `toRole`) is one of the actor's roles · `S` allowed when the task's
 `specialty` maps to the actor's role (`backend→backend`, `frontend→frontend`, `design→designer`,
 `qa→qa`, `ops`/`docs`→`backend|frontend`) · `A` assignee/claimer only · `C` creator only ·
-`✗` not allowed. Column **HO** = human-only (`actor.kind === 'user'` required). Column **MCP** =
-reachable through an `mcp` token (same role rules apply, `HO` wins). `owner` implies every `pm`
-right.
+`✗` not allowed. `owner` implies every `pm` right, except where a row says otherwise.
 
-| Action | owner | pm | accountant | backend | frontend | designer | qa | HO | MCP |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Create task | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create decision | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create need | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create handoff | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create release | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
-| Create change / redesign / doc | system only (adapters, `log_session`) | | | | | | | | `log_session` only |
-| Edit title/body/tags/module | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Edit priority / dueAt / ownerRole / assignee | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ (pm/owner tokens) |
-| Task: claim / unclaim | ✓ | ✓ | ✗ | S | S | S | S | | ✓ |
-| Task: start / submit-review / done | ✓ | ✓ | ✗ | A | A | A | A | | ✓ |
-| Task: cancel / reopen | ✓ | ✓ | ✗ | C | C | C | C | | ✓ |
-| Task: edit specialty/effort/acceptance/prompt | ✓ | ✓ | ✗ | S | S | S | S | | ✓ |
-| Decision: edit options (while open) | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Decision: decide | ✓ | R | R | R | R | R | R | ✓ | ✗ |
-| Decision: withdraw | ✓ | ✓ | C | C | C | C | C | ✓ | ✗ |
-| Decision: supersede | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Decision: draft ADR body | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Decision: open ADR PR | ✓ | ✓ | R | R | R | R | R | ✓ | ✗ |
-| Need: start / deliver | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Need: verify | ✓ | ✓ | R | R | R | R | R | ✓ | ✗ |
-| Need: cancel | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Handoff: acknowledge / apply / dismiss | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Redesign: submit for review | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | | ✓ |
-| Redesign: approve / reject | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Redesign: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
-| Redesign: mark ported | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ | | ✓ |
-| Release: edit included / notes / mark released | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ |
-| Archive / restore card | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Comment | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Edit own comment (15 min) | C | C | C | C | C | C | C | | ✓ |
-| Redact comment | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Watch / unwatch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Read any non-archived card, timeline, docs, search | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Read archived cards | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ |
-| Members: invite, change roles, remove, GitHub identity | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Workspace: rename, timezone, archive | ✓ | rename/timezone | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Settings: read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Settings: write | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Sources: manage, run-now, import | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Own API tokens: create/revoke | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
-| Own profile, channels, push, Telegram | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✗ |
-| Briefs: read own; save narrative | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ (own) |
-| Audit log: read | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
-| Docs: reindex now | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
+**Actor kind plays no part (D27):** a member's Claude Code may do whatever the member may do. The only
+actions refused to MCP are those that carry a secret value (own API tokens, own profile and channels, a
+source's secret); they have `surface: web_only` and no tool. Hook tokens stay limited to `/capture/*`, `/me`
+and `/me/context`.
+
+| Action | owner | pm | accountant | backend | frontend | designer | qa |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Create task | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create decision | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create need | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create handoff | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create release | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Create change / redesign / doc | system only (adapters, `log_session`) | | | | | | |
+| Edit title/body/tags/module | ✓ | ✓ | C | C | C | C | C |
+| Edit priority / dueAt / ownerRole / assignee | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Task: claim / unclaim | ✓ | ✓ | ✗ | S | S | S | S |
+| Task: start / submit-review / done | ✓ | ✓ | ✗ | A | A | A | A |
+| Task: cancel / reopen | ✓ | ✓ | ✗ | C | C | C | C |
+| Task: edit specialty/effort/acceptance/prompt | ✓ | ✓ | ✗ | S | S | S | S |
+| Decision: edit options (while open) | ✓ | ✓ | C | C | C | C | C |
+| Decision: decide | ✓ | R | R | R | R | R | R |
+| Decision: withdraw | ✓ | ✓ | C | C | C | C | C |
+| Decision: supersede | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Decision: draft ADR body | ✓ | ✓ | R | R | R | R | R |
+| Decision: open ADR PR | ✓ | ✓ | R | R | R | R | R |
+| Need: start / deliver | ✓ | ✓ | R | R | R | R | R |
+| Need: verify | ✓ | ✓ | R | R | R | R | R |
+| Need: cancel | ✓ | ✓ | C | C | C | C | C |
+| Handoff: acknowledge / dismiss | ✓ | ✓ | R | R | R | R | R |
+| Handoff: apply (D25) | R | R | R | R | R | R | R |
+| Redesign: submit for review | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| Redesign: approve / reject | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Redesign: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Redesign: mark ported | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ |
+| Release: edit included / notes / mark released | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Delete / restore card (D28) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Comment | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Edit own comment (15 min) | C | C | C | C | C | C | C |
+| Redact comment | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Watch / unwatch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Read any non-archived card, timeline, docs, search | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Read deleted cards | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Idea: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Idea: edit / explore / accept / park / reject / reopen / turn into a plan | ✓ | ✓ | C | C | C | C | C |
+| Plan: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Plan: edit / submit for review / start / finish / abandon / create tasks from steps | ✓ | ✓ | C | C | C | C | C |
+| Plan: approve | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Project: create (D30) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Members: invite, change roles, remove, GitHub identity | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Project: edit details | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Project: close, reopen | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Settings: read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Settings: write | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Sources: manage, run-now, import | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Own API tokens: create/revoke | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Own profile, channels, push, Telegram | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Briefs: read own; save narrative | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audit log: read | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Docs: reindex now | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 `CardFull.allowedActions` is computed from this table so the UI never guesses.
 
@@ -286,8 +307,10 @@ body: …          200|201: …          errors: …          effects: …
 ```
 
 `token` means an `mcp` API token is accepted in addition to a session. Unless stated, every
-workspace route requires an active membership (`403 hub.workspaces.not_member`) and refuses
-mutations on an archived workspace (`409 hub.workspaces.archived`).
+workspace route requires an active membership (else `404 hub.workspaces.not_found`) and refuses
+mutations on a closed project (`409 hub.workspaces.closed`). **Every `HO: yes` and `cards.human_only` below is
+void (D27); `auth: session` on a card action also means `token`.** H0-05 and H0-06 remove them as they implement
+each route. Where an entry lists several events for one action, read 03 §5.2: one apply is one event.
 
 ### 3.1 Health and metrics
 
@@ -387,12 +410,11 @@ body: { displayName?: string; locale?: 'ar' | 'en'; avatarColor?: string }
 200: { data: Me }
 
 GET /me/tokens                                   auth: session
-200: { data: { id; workspace: { slug; name }; name; kind: 'mcp' | 'hook'; prefix; lastUsedAt; createdAt; revokedAt }[] }
+200: { data: { id; name; kind: 'mcp' | 'hook'; prefix; lastUsedAt; createdAt; revokedAt }[] }
 
 POST /me/tokens                                  auth: session   HO: yes
-body: { workspace: string /* slug */; name: string; kind: 'mcp' | 'hook' }
+body: { name: string; kind: 'mcp' | 'hook' }                          // a token belongs to the member, not a project (15 §5)
 201: { data: { id; token: string /* full, shown once */; prefix; name; kind } }
-errors: workspaces.not_member 403
 effects: audit identity.token.create
 
 DELETE /me/tokens/{id}                           auth: session   HO: yes
@@ -745,7 +767,7 @@ errors: redesign.owner_only 403 · redesign.not_in_review 409 · redesign.lab_un
 effects: review → approved; front-matter `status: approved`; commit + push to the hub repo (06 §5.6); event approved; port task created (specialty = lab.port_task_specialty, origin redesign_port, prompt = port template 07 §6.7) linked `relates`; notification task_ready to that role; audit
 
 POST /workspaces/{ws}/redesign/{key}/reject      auth: session   role: owner   HO: yes   body: { note: string }   200   review → rejected; front-matter; event rejected
-POST /workspaces/{ws}/redesign/{key}/request-changes   auth: session   role: owner|pm|qa   HO: yes   body: { note: string }   200   review → draft; event changes_requested; comment created with the note; notification to designer role
+POST /workspaces/{ws}/redesign/{key}/request-changes   auth: session   role: owner|pm|qa   HO: yes   body: { note: string }   200   review → review (status stays, 01 §4.1 and 10); event changes_requested; comment created with the note; notification to designer role
 POST /workspaces/{ws}/redesign/{key}/mark-ported auth: session | token   role: frontend|owner|pm   body: { ref: string /* "feat/x@abc123 (Goteav-Dashboard)" */ }   200   approved → ported; front-matter `status: ported`, `ported: <ref>`; event ported; linked port task → done if still open (event status_changed reason ported)
 POST /workspaces/{ws}/redesign/rescan            auth: session   role: owner|pm   HO: yes   202: { data: { runId } }
 ```
