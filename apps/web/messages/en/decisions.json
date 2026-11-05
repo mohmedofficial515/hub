@@ -105,6 +105,7 @@
     "docs": "Related docs",
     "create": "Create decision",
     "required": "Write the question to continue.",
-    "needTwo": "Give at least two options a title."
+    "needTwo": "Give at least two options a title.",
+    "dueHint": "Empty uses the project’s default."
   }
 }

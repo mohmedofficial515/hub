@@ -25,7 +25,7 @@ import { Bidi, fill, fmt } from '@/components/common/text';
 import { openCard } from '@/components/shell/router';
 import { useRoute } from '@/components/shell/router';
 import { Button } from '@/components/ui/button';
-import { detectSecret, Field, SecretFilterError, Select, Textarea } from '@/components/ui/form';
+import { detectSecret, Field, SecretFilterError, Textarea } from '@/components/ui/form';
 import { writeCard } from '@/features/cards/store';
 import type { DecisionCard, DecisionOption } from '@/features/cards/types';
 import { useSession } from '@/features/session/session';
@@ -34,6 +34,9 @@ import { absolute, duration, nowMs, num, rel, when } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+
+import { DecisionEditForm } from './decision-edit';
+import { EDIT, EditButton } from './edit-bits';
 
 /** Strings only this section needs. The card vocabulary stays in `kit/i18n.ts`. */
 const MIN_RATIONALE = 20;
@@ -183,8 +186,6 @@ function DecideForm({
   const presetOption = preset?.key === card.key ? preset.optionId : '';
   const [option, setOption] = useState(presetOption);
   const [rationale, setRationale] = useState('');
-  const [draftAdr, setDraftAdr] = useState(true);
-  const [repo, setRepo] = useState<keyof typeof m.repos>('backend');
   const [tried, setTried] = useState(false);
 
   useEffect(() => {
@@ -199,7 +200,7 @@ function DecideForm({
     setTried(true);
     if (!option || short || secret) return;
     const picked = d.options.find((o) => o.id === option);
-    onSave('decide', { optionId: option, optionTitle: picked?.title, rationale: rationale.trim(), draftAdr });
+    onSave('decide', { optionId: option, optionTitle: picked?.title, rationale: rationale.trim() });
   };
 
   return (
@@ -240,33 +241,7 @@ function DecideForm({
         />
       </Field>
       {secret && <SecretFilterError pattern={secret} />}
-      <label className="flex min-h-11 items-start gap-2 text-body-sm text-foreground md:min-h-0">
-        <input
-          type="checkbox"
-          checked={draftAdr}
-          onChange={(e) => setDraftAdr(e.target.checked)}
-          className={cn('mt-0.5 size-4 shrink-0 accent-primary', focusRing)}
-        />
-        <span>
-          <span className="font-medium">{m.draftAdr}</span>
-          <span className="block text-muted-foreground">{m.draftAdrHint}</span>
-        </span>
-      </label>
-      {draftAdr && (
-        <Field id={`${formId}-repo`} label={m.adrRepo}>
-          <Select
-            id={`${formId}-repo`}
-            value={repo}
-            onChange={(e) => setRepo(e.target.value as keyof typeof m.repos)}
-          >
-            {(Object.keys(m.repos) as (keyof typeof m.repos)[]).map((key) => (
-              <option key={key} value={key}>
-                {m.repos[key]}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      )}
+      <p className="text-body-sm text-muted-foreground">{m.draftAdrHint}</p>
       <div className="flex flex-wrap gap-2">
         <Button type="submit" variant="primary">
           {s.save}
@@ -364,9 +339,17 @@ export function DecisionSection({ card, action, cancelAction, perform }: Section
   const late = card.status === 'open' && card.dueAt && Date.parse(card.dueAt) < nowMs();
   const closing = [...card.events].reverse().find((e) => e.data.reason || e.data.byKey)?.data;
   const blocks = card.links.filter((l) => l.kind === 'blocks');
+  const editable =
+    !card.archivedAt &&
+    ['card.edit_content', 'card.edit_routing', 'decision.edit_options'].some((a) =>
+      card.allowedActions.includes(a),
+    );
+
+  if (action === EDIT && editable) return <DecisionEditForm card={card} />;
 
   return (
     <div className="flex flex-col gap-5">
+      {editable && <EditButton />}
       <div>
         <p className="text-caption text-muted-foreground">{s.question}</p>
         <p className="mt-0.5 text-body-lg text-foreground">

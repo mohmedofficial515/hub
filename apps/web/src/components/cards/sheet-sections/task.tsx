@@ -33,6 +33,9 @@ import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
+import { EDIT, EditButton } from './edit-bits';
+import { TaskEditForm } from './task-edit';
+
 /** Strings only this section needs. The shared vocabulary stays in `kit/i18n.ts`. */
 function SubmitForm({
   onSave,
@@ -150,9 +153,17 @@ export function TaskSection({ card, action, cancelAction, perform }: SectionProp
   const longPrompt = task.prompt && task.prompt !== command ? task.prompt : null;
   const prNumber = task.prUrl ? /(\d+)\/?$/.exec(task.prUrl)?.[1] : undefined;
   const h = card.dueAt ? hoursFromNow(card.dueAt) : null;
+  const editable =
+    !card.archivedAt &&
+    ['card.edit_content', 'card.edit_routing', 'task.edit_detail'].some((a) =>
+      card.allowedActions.includes(a),
+    );
+
+  if (action === EDIT && editable) return <TaskEditForm card={card} />;
 
   return (
     <div className="flex flex-col gap-5">
+      {editable && <EditButton />}
       {action === 'submit_review' && (
         <SubmitForm
           onSave={(prUrl, note) =>

@@ -101,5 +101,43 @@
     "firstLink": "Open sources",
     "noMatch": "No tasks match these filters",
     "noMatchBody": "Try another specialty, or clear the filters."
+  },
+  "deleted": {
+    "title": "Deleted",
+    "back": "Back to tasks",
+    "explain": "Deleted cards are hidden from every page, count and search. Restoring one puts it back as it was, with its history. Owner and PM see all of them; everyone else sees the cards they created.",
+    "count": {
+      "zero": "Nothing deleted",
+      "one": "1 deleted card",
+      "other": "# deleted cards"
+    },
+    "type": "Type",
+    "anyType": "All types",
+    "when": "Deleted",
+    "createdBy": "Created by",
+    "emptyTitle": "Nothing here",
+    "emptyBody": "A card you delete stays here until someone restores it.",
+    "thing": "deleted cards",
+    "restored": "Restored {key}"
+  },
+  "edit": {
+    "specialty": "Specialty",
+    "effort": "Effort",
+    "noEffort": "Not set",
+    "role": "Role",
+    "noRole": "No role",
+    "assignee": "Assignee",
+    "noAssignee": "Nobody",
+    "due": "Due",
+    "module": "Module",
+    "repo": "Repository",
+    "branch": "Branch",
+    "pr": "Pull request link",
+    "prInvalid": "Write a full link, starting with https://",
+    "acceptance": "Acceptance",
+    "acceptanceHint": "One \"- [ ] item\" per line.",
+    "prompt": "Prompt",
+    "promptHint": "What an agent reads when it starts this task.",
+    "who": "Some fields are locked: the owner and PM set priority, role, assignee and due date. The owner, the PM and the task’s specialty set its details. The owner, the PM and its creator set the rest."
   }
 }

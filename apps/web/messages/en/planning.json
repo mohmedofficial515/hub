@@ -1,1 +1,146 @@
-{}
+{
+  "title": "Planning",
+  "errorThing": "ideas and plans",
+  "loading": "Loading ideas and plans",
+  "summary": {
+    "ideas": {
+      "zero": "No ideas open",
+      "one": "1 idea open",
+      "other": "# ideas open"
+    },
+    "plans": {
+      "zero": "no plans in motion",
+      "one": "1 plan in motion",
+      "other": "# plans in motion"
+    }
+  },
+  "newIdea": "New idea",
+  "newPlan": "New plan",
+  "scope": {
+    "label": "What to show",
+    "active": "Active",
+    "closed": "Closed"
+  },
+  "filters": {
+    "search": "Search by key or title…"
+  },
+  "focal": {
+    "label": "Next up",
+    "open": "Open the plan",
+    "openIdea": "Open the idea",
+    "moving": "Moving now",
+    "moreSteps": {
+      "one": "1 more step",
+      "other": "# more steps"
+    },
+    "noSteps": "No steps yet. Add them, then create tasks from them.",
+    "progress": "{done} of {total} steps done",
+    "noProblem": "The problem has not been written yet."
+  },
+  "lanes": {
+    "ideas": "What we are thinking about",
+    "plans": "What is planned next",
+    "closedIdeas": "Ideas that are settled",
+    "closedPlans": "Plans that ended"
+  },
+  "groups": {
+    "exploring": "Being explored",
+    "open": "Not started",
+    "accepted": "Accepted",
+    "parked": "Parked",
+    "rejected": "Rejected",
+    "in_review": "Waiting for approval",
+    "approved": "Approved, not started",
+    "in_progress": "In progress",
+    "draft": "Drafts",
+    "done": "Done",
+    "abandoned": "Abandoned"
+  },
+  "row": {
+    "progress": "{done} of {total}",
+    "noSteps": "No steps yet",
+    "noText": "Not written yet",
+    "steps": "Step progress"
+  },
+  "empty": {
+    "firstTitle": "Nothing is being thought about yet",
+    "firstBody": "Write down an idea worth thinking about, or start a plan. Claude Code can draft one too:",
+    "ideasTitle": "No ideas here",
+    "ideasBody": "An idea is a problem worth thinking about before it becomes work.",
+    "plansTitle": "No plans here",
+    "plansBody": "A plan is a written approach with steps. Its steps become tasks.",
+    "noMatch": "Nothing matches these filters",
+    "clear": "Clear filters"
+  },
+  "newIdeaForm": {
+    "title": "New idea",
+    "titleLabel": "The idea, in a line",
+    "problem": "Problem",
+    "problemHint": "What is wrong or missing? Markdown works.",
+    "notes": "Notes",
+    "role": "Role",
+    "noRole": "No role",
+    "create": "Create idea"
+  },
+  "newPlanForm": {
+    "title": "New plan",
+    "titleLabel": "Plan title",
+    "body": "The approach",
+    "bodyHint": "Markdown works. Every save keeps the previous text.",
+    "steps": "Steps",
+    "stepsHint": "One step per line. You can give each a role later.",
+    "create": "Create plan"
+  },
+  "edit": {
+    "edit": "Edit",
+    "save": "Save",
+    "saved": "Saved",
+    "title": "Title",
+    "titleRequired": "Write a title to continue.",
+    "body": "Description",
+    "priority": "Priority",
+    "tags": "Tags",
+    "tagsHint": "Separate them with commas.",
+    "write": "Write",
+    "preview": "Preview",
+    "nothingToPreview": "Nothing to preview yet.",
+    "changedElsewhere": "Someone changed this card while you were editing. Saving replaces their text with yours."
+  },
+  "idea": {
+    "role": "Role",
+    "noRole": "No role",
+    "body": "Description",
+    "toPlanTitle": "Turn into a plan",
+    "toPlanHint": "This creates a linked plan and marks the idea as accepted.",
+    "planTitle": "Plan title",
+    "planBody": "The plan’s text",
+    "toPlanSave": "Create the plan",
+    "turned": "Created plan {key}"
+  },
+  "plan": {
+    "fromIdea": "From idea",
+    "stepTitle": "Step {n}",
+    "stepRole": "Role",
+    "noRole": "No role",
+    "addStep": "Add a step",
+    "moveUp": "Move step {n} up",
+    "moveDown": "Move step {n} down",
+    "removeStep": "Remove step {n}",
+    "stepsHint": "A step with a task follows that task, so it finishes when the task does.",
+    "stepRequired": "Give this step a title, or remove it.",
+    "tasksHint": "{n} with no task yet",
+    "revisions": "Revisions",
+    "revision": "Revision {n}",
+    "current": "Current",
+    "replacedBy": "Replaced by",
+    "show": "Show",
+    "hide": "Hide",
+    "restore": "Restore",
+    "restoreTitle": "Restore revision {n}?",
+    "restoreBody": "Its text becomes the plan’s text, as a new revision. Nothing is lost.",
+    "restored": "Restored revision {n}",
+    "noRevisions": "This is the first text. Saving a change adds a revision.",
+    "revisionsThing": "revisions",
+    "emptyText": "This revision had no text."
+  }
+}

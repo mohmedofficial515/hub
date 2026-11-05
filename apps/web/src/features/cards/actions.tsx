@@ -54,7 +54,8 @@ export function usePerformAction() {
     const card = getCard(target);
     if (!card) return;
     const { type, status } = card;
-    if (currentRoute().cardKey === key) closeCard();
+    // "Create tasks from steps" keeps its sheet: each step gains its task there, which is the answer the member is waiting for.
+    if (currentRoute().cardKey === key && action !== 'to_tasks') closeCard();
 
     const inverse = inverseOf(type, action);
     const message = fill(t.done[action], { key: <Ltr mono>{target}</Ltr> });

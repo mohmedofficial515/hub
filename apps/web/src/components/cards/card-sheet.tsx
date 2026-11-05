@@ -443,7 +443,8 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
   }
 
   const Section = sheetSections[card.type];
-  const isManager = me.roles.includes('owner') || me.roles.includes('pm');
+  // The API's answer for this member: owner, pm and the card's creator (D28).
+  const canArchive = card.allowedActions.includes(card.archivedAt ? 'card.restore' : 'card.delete');
   const copyLink = () => void copyText(location.href).then(() => showToast({ message: t.copy.copied }));
 
   return (
@@ -482,7 +483,7 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
                   <Link2 aria-hidden className="size-4" strokeWidth={1.75} />
                   {t.sheet.copyLink}
                 </DropdownMenu.Item>
-                {isManager && (
+                {canArchive && (
                   <DropdownMenu.Item
                     onSelect={() => (card.archivedAt ? void setArchived(card.key, false) : setArchive(true))}
                     className={menuItemClass}
@@ -542,10 +543,16 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
         </div>
         <ActionBar card={card} action={action} />
         {card.archivedAt && (
-          <p className="rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
-            {fmt(t.sheet.archived, { when: '' })}
-            <RelativeTime iso={card.archivedAt} />
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
+            <p>
+              {fmt(t.sheet.archived, { when: '' })} <RelativeTime iso={card.archivedAt} />
+            </p>
+            {canArchive && (
+              <Button size="sm" className="ms-auto" onClick={() => void setArchived(card.key, false)}>
+                {t.sheet.restore}
+              </Button>
+            )}
+          </div>
         )}
       </header>
 
@@ -575,7 +582,8 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
         </Tabs.List>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <Tabs.Content value="details" className="flex flex-col gap-5 p-4 outline-none md:p-6">
-            {card.body ? (
+            {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
+            {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
               <p className="text-body-lg text-foreground">
                 <Bidi>{card.body}</Bidi>
               </p>
