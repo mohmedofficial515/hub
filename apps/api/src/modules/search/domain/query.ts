@@ -39,9 +39,29 @@ const STOP = '\u0002';
 
 export const HEADLINE_OPTIONS = `StartSel=${START},StopSel=${STOP},MaxFragments=2,MaxWords=30,MinWords=8,FragmentDelimiter=" … "`;
 
-/** Escapes everything, then lets the one tag through: a document's own HTML must not run on the page. */
+/**
+ * The marks a person reads as noise in a line of prose: emphasis, inline code, heading and list marks, a link's address. Text inside them stays, and an
+ * underscore or star inside a word (`snake_case`, `2*3`) is left alone. It runs before the highlight markers are turned into tags.
+ */
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/(^|[\s(])#{1,6}\s+/g, '$1')
+    .replace(/(^|\n)\s*(?:[-*+]|\d+\.)\s+/g, '$1')
+    .replace(/(^|\n)\s*>\s?/g, '$1')
+    .replace(/\|/g, ' ')
+    .replace(/`+/g, '')
+    .replace(/(\*\*|__)(?=\S)|(?<=\S)(\*\*|__)/g, '')
+    .replace(/(^|[\s(\u0001])[*_](?=\S)/g, '$1')
+    .replace(/(?<=\S)[*_](?=$|[\s).,:;!?\u0002])/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Clears the Markdown, escapes everything, then lets the one tag through: a document's own HTML must not run on the page. */
 export function safeExcerpt(headline: string): string {
-  return headline
+  return stripMarkdown(headline)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
