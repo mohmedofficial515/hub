@@ -854,30 +854,27 @@ POST /workspaces/{ws}/docs/reindex               auth: session | token   role: o
 ### 3.16 Capture
 
 ```
-POST /workspaces/{ws}/capture/session            auth: hook token (kind=hook) | mcp token   rate: 60/min/token
-body: HookSessionPayload  (05 §3.2; summarised)
+POST /capture/session                            auth: hook token (kind=hook) | mcp token   rate: 60/min/token
+project: `X-Hub-Project`, else the project whose repoPaths hold `cwd`, else the member's default (15 §5)
+body: hookSessionPayloadSchema in @hub/contracts/capture, as below
   { sessionId: string; reason: 'clear' | 'resume' | 'logout' | 'prompt_input_exit' | 'other' | 'sigterm'; cwd: string; repo: string | null /* source name resolved from git remote */;
     branch: string | null; headSha: string | null; startedAt: string | null; endedAt: string; durationSec: number | null;
     commits: { sha: string; message: string; at: string }[] /* since session start, ≤ 100 */;
     files: { path: string; status: 'A' | 'M' | 'D' | 'R' }[] /* ≤ 300, from git status + diff --name-status */;
     tool?: { version: string } }
-202: { data: { sessionLogId: string; cardKey: CardKey | null /* set when a card already exists for this session */ } }
+202: { data: { sessionLogId: string; cardKey: CardKey | null /* set when a card already exists for this session */; project: string } }
 errors: capture.payload_invalid 400 · identity.token_scope 403
 effects: SessionLog upsert (hookReceivedAt/hookPayload); delayed job `session.reconcile` at +capture.session.hook_grace_minutes (06 §3)
 
-GET /me/context?cwd=<urlencoded cwd>             auth: hook token | mcp token   (workspace = the token's workspace; no {ws} in the path so the hook needs only HUB_URL + token)
-200: text/plain; charset=utf-8  — compact "what's new for you" (≤ 8 000 chars) rendered by digests for SessionStart injection: unread routed items, ready tasks for my roles, my no-summary sessions, last 10 timeline rows; `cwd` lets Hub add the repo/branch hints of the source whose clonePath/app matches
+GET /me/context?cwd=<urlencoded cwd>             auth: hook token | mcp token   (project chosen as for /capture/session; no {ws} in the path, so the hook needs only the URL and token)
+200: { data: { project: string | null; text: string } }  — ≤ 8 500 chars for SessionStart: the active project, what awaits me, ready tasks, my no-summary sessions, latest changes
 errors: identity.token_scope 403 (session cookie not accepted here)
 ```
 
 ```
 GET /workspaces/{ws}/capture/runs?source=&kind=&cursor&limit   auth: session   role: owner|pm   200: { data: CaptureRun[] }
 
-POST /workspaces/{ws}/capture/import/goteav      auth: session   role: owner   HO: yes
-body: { decisionsYaml: string /* contents */; suggestionsYaml: string; statusFiles: { name: string; content: string }[]; contractChangesMd: string | null; dryRun?: boolean }
-202: { data: { runId } } · dryRun → 200: { data: { wouldCreate: Record<CardType, number>; wouldUpdate: Record<CardType, number>; problems: string[] } }
-errors: capture.import_running 409
-// The CLI wrapper `scripts/import-goteav.ts` reads the files from F:\Goteav and calls this endpoint; see 06 §7.
+// The Goteav import has no route: `pnpm import:goteav` runs it in its own process on the owner's machine (06 §7).
 ```
 
 ### 3.17 Inbox and notifications

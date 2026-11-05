@@ -19,6 +19,7 @@ pnpm --filter @hub/api dev                        # http://localhost:7310/api/v1
 | `pnpm test:e2e`         | real Postgres and Redis through Testcontainers                |
 | `pnpm api:sync`         | re-export OpenAPI into `apps/web/openapi` after an API change |
 | `pnpm migrations:check` | lint of migration SQL (in `apps/api`)                         |
+| `pnpm import:goteav`    | Goteav's history into project `goteav`; `--dry-run` writes nothing (`docs/06` §7) |
 
 `@hub/contracts` is built to `dist` on install. Tests and typecheck read its source; a running API reads `dist`,
 so `pnpm dev` at the root also runs its watcher. If you start only the API, run `pnpm --filter @hub/contracts build`
@@ -153,17 +154,20 @@ export class TasksController {
 
 ## Add an MCP tool
 
-The module does not exist yet (H1-01). The contract it must follow:
+`modules/mcp` (`docs/05` §2). To add one:
 
-1. Every tool has a row in `MCP_TOOLS` (`packages/contracts/src/mcp/tools.ts`) naming the permission actions it performs.
-   A contracts test fails when a mutating action with surface `any` has no tool, or a tool performs a `web_only` one.
-2. Set `destructive: true` for `destructiveHint`, and have the description tell Claude to confirm in the chat first.
-3. Add an optional `project` input. Resolve with `actors.forProject(principal, { argument: input.project, header })`.
-4. A tool that creates cards wraps its work in `IdempotencyService.run(principal.userId, toolName, toolCallId, input, work)`
-   (docs/04 §1.4), since it has no route for the interceptor.
-5. Call `CardService.apply` or the owning service, the same as the web, and never Prisma (dependency-cruiser enforces this
-   for `presentation/mcp/`). Reuse the REST schema from `@hub/contracts`. Return Markdown stating what changed and the
-   card's URL (`docs/05` §2.3).
+1. Add a row to `TOOL_TABLE` (`packages/contracts/src/mcp/tools.ts`): `description`, Zod `input` reusing the REST schema, the permission
+   `actions`, and `routes`, the REST routes it stands for. `mcp-parity.spec.ts` fails when a mutating route has no tool, so a new web
+   mutation needs a row, or a line in `MCP_EXCLUDED_ROUTES` saying why not. `project` is added for you.
+2. `destructive: true` sets `destructiveHint` and tells Claude to confirm in the chat first. `createsCards: true` wraps it in
+   `IdempotencyService.run`, keyed by the tool use id Claude Code sends.
+3. Add the handler, in `presentation/mcp/tools/`. A missing one is a compile error. It gets `(context, input)` and returns Markdown stating
+   what changed: `context.apply(verb, key, action, payload)` does the card case, the same call as the route. For a service that is not a
+   card action, get the actor with `context.allowed('member.invite')`, since no `ActorGuard` ran the route-level check. Never touch Prisma
+   (dependency-cruiser enforces this).
+4. Secrets: the wrapper filters every input. A tool never takes a secret value.
+
+Prompts are in `packages/contracts/src/mcp/prompts.ts`, resources in `hub-mcp-server.factory.ts`.
 
 ## Data access
 

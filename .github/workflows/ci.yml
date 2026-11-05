@@ -45,3 +45,11 @@ jobs:
       - uses: ./.github/actions/setup
       - run: pnpm --filter @hub/api openapi:export
       - run: pnpm --filter @hub/web api:check
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npm i -g @anthropic-ai/claude-code
+      - run: pnpm --filter @hub/team-pack test
+      - run: pnpm --filter @hub/team-pack plugin:validate

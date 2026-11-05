@@ -104,8 +104,8 @@ H0-08  Web pages: timeline, card, tasks, decisions, needs, handoffs, members, se
 
 H0-09  Goteav importer and seed                                     after: H0-06
   Reads:        06 (importer section) · 03 §4.2 (onboarding.paths, modules.catalogue), §5.1 import keys · the source files under F:\Goteav\backend\docs\map\data, docs\status, F:\Goteav\.goteav-ops\contract-changes.md
-  Deliverables: modules/capture importer + scripts/import-goteav.ts (`pnpm import:goteav --workspace goteav --root F:\Goteav`): decisions YAML → decision cards, suggestions YAML → task cards with prompts, status notes → doc cards (kind status) + the release card, contract-changes bullets → applied handoff cards dated from the bullet, modules catalogue, onboarding paths per role; idempotent on re-run; scripts/seed-dev.ts for a demo workspace
-  Acceptance:   running the importer twice creates no duplicates; counts reported (created/updated/skipped); every imported card links back to its source path in body; the Goteav workspace shows 67 tasks from suggestions with their priority/effort and the decisions with options
+  Deliverables: modules/capture importer + apps/api/scripts/import-goteav.ts (`pnpm import:goteav --workspace goteav --root F:/Goteav`): decisions YAML → decision cards, suggestions YAML → task cards with prompts, status notes → doc cards (kind status) + the release card, contract-changes bullets → applied handoff cards dated from the bullet, modules catalogue, onboarding paths per role; idempotent on re-run; scripts/seed-dev.ts for a demo workspace
+  Acceptance:   running the importer twice creates no duplicates; counts reported (created/updated/skipped); every imported card links back to its source path in body; the Goteav workspace shows a task per suggestion (76 on 2026-11-05) with their priority/effort and the decisions with options
   Tests:        unit with fixture copies of the YAML/MD files; e2e import on Testcontainers
 
 H0-10  Compose stack, images, Caddy, host script (first cut)        after: H0-08, H0-09
@@ -126,7 +126,7 @@ needs and handoffs; Today page v1.
 H1-01  MCP server and core tools                                     after: H0-06
   Reads:        01 §7 · 05 (server, conventions, tools: get_project_brief, whats_new, get_card, list_cards, list_tasks, claim_task, update_task, create_task, update_card, comment, link_cards) · 04 §2 (agent column)
   Deliverables: modules/mcp with @modelcontextprotocol/sdk Streamable HTTP mounted at /mcp (stateless), bearer → actor, rate limit, the listed tools with Zod schemas and Markdown outputs exactly as 05, error mapping to MCP tool errors (isError + code)
-  Acceptance:   `claude mcp add --transport http hub https://localhost/mcp --header "Authorization: Bearer <token>"` works from a developer machine; tools/list shows the catalogue with descriptions; claim_task from Claude Code produces the same events as the web; human_only tools are absent from the catalogue (not merely refused)
+  Acceptance:   `claude mcp add --transport http hub https://localhost/mcp --header "Authorization: Bearer <token>"` works from a developer machine; tools/list shows the catalogue with descriptions; claim_task from Claude Code produces the same events as the web; every web mutation has a tool (D27, docs/15 §6)
   Tests:        unit with the SDK in-memory client per tool (happy + permission + validation); e2e over HTTP with a real token; arch: every tool name exists in @hub/contracts/mcp/tools.ts
 
 H1-02  Session logging and reconciliation                            after: H1-01
@@ -138,11 +138,11 @@ H1-02  Session logging and reconciliation                            after: H1-0
 H1-03  Decision, need, handoff, brief and ADR-draft tools            after: H1-01
   Reads:        05 (request_decision, get_decision, create_need, list_needs, create_handoff, list_handoffs, acknowledge_handoff, save_brief, draft_adr) · 03 §10 (Brief)
   Deliverables: the listed tools; Brief table + save_brief; draft_adr stores adrBody and sets adrStatus=drafted (PR comes in H3-06)
-  Acceptance:   an agent can open a decision routed to accountant with a deadline and the card shows "opened by agent (member)"; decide remains impossible via MCP; acknowledge_handoff via MCP allowed, dismiss not
+  Acceptance:   an agent can open a decision routed to accountant with a deadline and the card shows "opened by agent (member)"; decide works through MCP for whoever holds the role, as on the web (D27)
   Tests:        unit per tool; e2e: request_decision → web decide → get_decision returns rationale
 
 H1-04  Prompts and resources                                         after: H1-02, H1-03
-  Reads:        05 (prompts /hub:start, /hub:next, /hub:done, /hub:decision, /hub:need; resources hub://brief/today, hub://card/{key}, hub://decisions/open, hub://handoffs/pending) — /hub:ask and hub://doc arrive in H2-06
+  Reads:        05 (prompts /hub:start, /hub:next, /hub:done, /hub:decision, /hub:need; resources hub://brief/today, hub://card/{key}, hub://decisions/open, hub://handoffs/pending) — /hub:ask and /hub:plan are skills (D26)
   Deliverables: registerPrompt/registerResource implementations with the exact texts in 05
   Acceptance:   `/hub:start` in Claude Code narrates today's sections and lists no-summary sessions; `/hub:done` ends with a log_session call (verified in the SessionLog); prompt texts contain the no-secrets rule
   Tests:        unit: prompt text golden files; manual checklist recorded in the status note
