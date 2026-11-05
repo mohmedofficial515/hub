@@ -38,6 +38,7 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
+import { auditActionLabel, isMachineSummary } from '@/features/settings/audit-label';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { auditExportHref, type AuditFilters, type AuditRow, useAudit } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -62,7 +63,7 @@ function Actor({ row }: { row: AuditRow }) {
     <ActorChip
       kind={row.actor.kind}
       memberId={row.actor.userId ?? undefined}
-      adapter={row.actor.displayName ?? row.via}
+      adapter={row.actor.displayName ?? undefined}
     />
   );
 }
@@ -96,6 +97,7 @@ function Target({ row }: { row: AuditRow }) {
 function RowDetail({ row }: { row: AuditRow }) {
   const t = useT<SettingsMessages>('settings');
   const items = [
+    { label: t.audit.detail.code, value: row.action },
     { label: t.audit.detail.record, value: row.id },
     { label: t.audit.detail.ip, value: row.ip ?? t.audit.detail.none },
     { label: t.audit.detail.client, value: row.userAgent ?? t.audit.detail.none },
@@ -143,6 +145,14 @@ export function AuditTab() {
   const { ws } = useRoute();
   const members = useMembers().data ?? [];
   const s = t.audit;
+  const actionLabel = (code: string) =>
+    auditActionLabel(code, {
+      ...s.actionWords,
+      groups: s.groups,
+      actions: kit.actions,
+      actionsByType: kit.actionsByType,
+      types: kit.types,
+    });
   // Six columns need the room of a laptop. Tablet and phone read the same rows as a compact ledger.
   const wide = useMedia('(min-width: 1024px)');
   const filtersInline = useMedia('(min-width: 768px)');
@@ -359,21 +369,17 @@ export function AuditTab() {
                       <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
                         {s.via[r.via as keyof typeof s.via] ?? r.via}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap">
-                        <code dir="ltr" translate="no" className="key text-caption text-foreground">
-                          {r.action}
-                        </code>
-                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-foreground">{actionLabel(r.action)}</td>
                       <td className="px-3 py-2">
                         <Target row={r} />
                       </td>
                       <td className="px-3 py-2 text-foreground">
-                        <Bidi>{r.summary}</Bidi>
+                        {!isMachineSummary(r.summary) && <Bidi>{r.summary}</Bidi>}
                       </td>
                       <td className="py-1.5 pe-2">
                         <ExpandButton
                           open={open === r.id}
-                          label={fmt(s.expand, { action: r.action })}
+                          label={fmt(s.expand, { action: actionLabel(r.action) })}
                           onClick={() => toggle(r.id)}
                         />
                       </td>
@@ -411,17 +417,15 @@ export function AuditTab() {
                           <Ltr className="text-body-sm text-muted-foreground tabular-nums">
                             {time(r.createdAt, locale)}
                           </Ltr>
-                          <code
-                            dir="ltr"
-                            translate="no"
-                            className="key text-caption break-all text-foreground"
-                          >
-                            {r.action}
-                          </code>
+                          <span className="text-body-sm font-medium text-foreground">
+                            {actionLabel(r.action)}
+                          </span>
                         </p>
-                        <p className="mt-0.5 text-body-sm text-foreground">
-                          <Bidi>{r.summary}</Bidi>
-                        </p>
+                        {!isMachineSummary(r.summary) && (
+                          <p className="mt-0.5 text-body-sm text-foreground">
+                            <Bidi>{r.summary}</Bidi>
+                          </p>
+                        )}
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-2">
                           <Actor row={r} />
                           <span className="text-body-sm text-muted-foreground">
@@ -432,7 +436,7 @@ export function AuditTab() {
                       </div>
                       <ExpandButton
                         open={open === r.id}
-                        label={fmt(s.expand, { action: r.action })}
+                        label={fmt(s.expand, { action: actionLabel(r.action) })}
                         onClick={() => toggle(r.id)}
                       />
                     </div>

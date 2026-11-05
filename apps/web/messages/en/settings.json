@@ -454,7 +454,8 @@
     "backupNone": "Not connected",
     "backupNoneNote": "No backup job runs in this release.",
     "workerNever": "No heartbeat yet.",
-    "oldestNone": "Nothing waiting"
+    "oldestNone": "Nothing waiting",
+    "labAddress": "Address {url}."
   },
   "audit": {
     "title": "Audit log",
@@ -485,7 +486,8 @@
       "hook": "Hook",
       "adapter": "Adapter",
       "scheduler": "Scheduler",
-      "telegram": "Telegram"
+      "telegram": "Telegram",
+      "import": "Import"
     },
     "rangeInvalid": "The start date is after the end date.",
     "clear": "Clear filters",
@@ -503,7 +505,8 @@
       "record": "Record",
       "ip": "IP address",
       "client": "Client",
-      "none": "None"
+      "none": "None",
+      "code": "Action code"
     },
     "noMatchTitle": "No rows match these filters",
     "noMatchBody": "Widen the dates or clear the filters.",
@@ -514,7 +517,68 @@
       "one": "1 record shown",
       "other": "# records shown"
     },
-    "exportStarted": "Downloading the CSV"
+    "exportStarted": "Downloading the CSV",
+    "actionWords": {
+      "codes": {
+        "capture:import:goteav": "Imported Goteav history",
+        "identity:invite:accept": "Accepted an invite",
+        "identity:invite:create": "Created an invite",
+        "identity:invite:resend": "Resent an invite",
+        "identity:invite:revoke": "Revoked an invite",
+        "identity:password:change": "Changed a password",
+        "identity:password:reset": "Reset a password",
+        "identity:sign_in": "Signed in",
+        "identity:token:create": "Created an access token",
+        "identity:token:revoke": "Revoked an access token",
+        "identity:totp:disable": "Turned off two-step sign-in",
+        "identity:totp:enable": "Turned on two-step sign-in",
+        "identity:totp:recovery_used": "Used a recovery code",
+        "members:change_roles": "Changed a member’s roles",
+        "members:enable": "Enabled a member",
+        "members:github_identity": "Linked a GitHub account",
+        "members:password_reset_link": "Created a reset link",
+        "settings:reset": "Reset a setting",
+        "settings:update": "Changed a setting",
+        "sources:create": "Added a source",
+        "sources:delete": "Removed a source",
+        "sources:update": "Changed a source",
+        "workspaces:create": "Created a project",
+        "workspaces:update": "Changed a project"
+      },
+      "verbs": {
+        "create": "Create",
+        "change": "Change",
+        "edit": "Edit",
+        "update": "Edit",
+        "edit_content": "Edit content",
+        "edit_routing": "Edit routing",
+        "edit_detail": "Edit details",
+        "edit_options": "Edit options",
+        "comment": "Comment",
+        "comment_edit": "Edit a comment",
+        "comment_redact": "Redact a comment",
+        "link": "Add a link",
+        "watch": "Watch",
+        "delete": "Delete",
+        "restore": "Restore",
+        "sync": "Sync",
+        "rescan": "Rescan",
+        "remind": "Remind",
+        "unblock": "Unblock",
+        "review": "Review",
+        "supersede": "Supersede",
+        "escalate": "Escalate",
+        "close_as_ported": "Close as ported",
+        "generate_notes": "Write notes",
+        "sync_step": "Sync a step",
+        "restore_revision": "Restore a revision",
+        "log": "Log",
+        "save": "Save",
+        "save_weekly": "Save the weekly summary",
+        "mark_removed": "Mark removed",
+        "mark_current": "Mark current"
+      }
+    }
   },
   "notifications": {
     "title": "Notifications",

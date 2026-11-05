@@ -485,7 +485,8 @@
     "backupNone": "غير متصل",
     "backupNoneNote": "لا تعمل مهمة نسخ احتياطي في هذا الإصدار.",
     "workerNever": "لا نبض بعد.",
-    "oldestNone": "لا شيء منتظر"
+    "oldestNone": "لا شيء منتظر",
+    "labAddress": "العنوان {url}."
   },
   "audit": {
     "title": "سجل التدقيق",
@@ -516,7 +517,8 @@
       "hook": "Hook",
       "adapter": "محوّل",
       "scheduler": "مجدول",
-      "telegram": "تيليجرام"
+      "telegram": "تيليجرام",
+      "import": "استيراد"
     },
     "rangeInvalid": "تاريخ البداية بعد تاريخ النهاية.",
     "clear": "امسح الفلاتر",
@@ -534,7 +536,8 @@
       "record": "رقم السجل",
       "ip": "عنوان IP",
       "client": "العميل",
-      "none": "لا يوجد"
+      "none": "لا يوجد",
+      "code": "رمز العملية"
     },
     "noMatchTitle": "لا صفوف تطابق هذه الفلاتر",
     "noMatchBody": "وسّع المدة أو امسح الفلاتر.",
@@ -549,7 +552,68 @@
       "many": "# سجلًا ظاهرًا",
       "other": "# سجل ظاهر"
     },
-    "exportStarted": "يجري تنزيل ملف CSV"
+    "exportStarted": "يجري تنزيل ملف CSV",
+    "actionWords": {
+      "codes": {
+        "capture:import:goteav": "استيراد سجل Goteav",
+        "identity:invite:accept": "قبول دعوة",
+        "identity:invite:create": "إنشاء دعوة",
+        "identity:invite:resend": "إعادة إرسال دعوة",
+        "identity:invite:revoke": "إلغاء دعوة",
+        "identity:password:change": "تغيير كلمة المرور",
+        "identity:password:reset": "استعادة كلمة المرور",
+        "identity:sign_in": "تسجيل الدخول",
+        "identity:token:create": "إنشاء رمز وصول",
+        "identity:token:revoke": "إلغاء رمز وصول",
+        "identity:totp:disable": "إيقاف التحقق بخطوتين",
+        "identity:totp:enable": "تفعيل التحقق بخطوتين",
+        "identity:totp:recovery_used": "استخدام رمز استرداد",
+        "members:change_roles": "تغيير أدوار عضو",
+        "members:enable": "تفعيل عضو",
+        "members:github_identity": "ربط حساب GitHub",
+        "members:password_reset_link": "إنشاء رابط استعادة",
+        "settings:reset": "إعادة ضبط إعداد",
+        "settings:update": "تعديل إعداد",
+        "sources:create": "إضافة مصدر",
+        "sources:delete": "حذف مصدر",
+        "sources:update": "تعديل مصدر",
+        "workspaces:create": "إنشاء مشروع",
+        "workspaces:update": "تعديل مشروع"
+      },
+      "verbs": {
+        "create": "إنشاء",
+        "change": "تعديل",
+        "edit": "تعديل",
+        "update": "تعديل",
+        "edit_content": "تعديل المحتوى",
+        "edit_routing": "تعديل التوجيه",
+        "edit_detail": "تعديل التفاصيل",
+        "edit_options": "تعديل الخيارات",
+        "comment": "تعليق",
+        "comment_edit": "تعديل تعليق",
+        "comment_redact": "حجب تعليق",
+        "link": "إضافة رابط",
+        "watch": "متابعة",
+        "delete": "حذف",
+        "restore": "استعادة",
+        "sync": "مزامنة",
+        "rescan": "إعادة فحص",
+        "remind": "تذكير",
+        "unblock": "إزالة التوقف",
+        "review": "مراجعة",
+        "supersede": "استبدال",
+        "escalate": "تصعيد",
+        "close_as_ported": "إغلاق بعد النقل",
+        "generate_notes": "كتابة الملاحظات",
+        "sync_step": "مزامنة خطوة",
+        "restore_revision": "استعادة مراجعة",
+        "log": "تسجيل",
+        "save": "حفظ",
+        "save_weekly": "حفظ الملخص الأسبوعي",
+        "mark_removed": "تعليم كمحذوف",
+        "mark_current": "تعليم كحالي"
+      }
+    }
   },
   "notifications": {
     "title": "الإشعارات",

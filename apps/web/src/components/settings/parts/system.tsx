@@ -345,7 +345,7 @@ export function SystemTab() {
             <ServiceRow
               name={s.services.lab}
               state="ok"
-              detail={fmt(s.version, { version: sys.version.lab })}
+              detail={fmt(s.labAddress, { url: sys.version.lab })}
             />
           )}
         </ul>
