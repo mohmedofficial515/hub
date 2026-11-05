@@ -21,6 +21,7 @@ import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
 import { CaptureModule } from './modules/capture';
 import { CardsModule } from './modules/cards';
 import { DecisionsModule } from './modules/decisions';
+import { DigestsModule } from './modules/digests';
 import { DocsModule } from './modules/docs';
 import { HandoffsModule } from './modules/handoffs';
 import { HealthModule } from './modules/health';
@@ -35,6 +36,7 @@ import { RedesignModule } from './modules/redesign';
 import { ReleasesModule } from './modules/releases';
 import { SchedulerModule } from './modules/scheduler';
 import { TasksModule } from './modules/tasks';
+import { TodayModule } from './modules/today';
 import { WorkspacesModule } from './modules/workspaces';
 import { AllExceptionsFilter, EnvelopeInterceptor } from './shared/http';
 
@@ -68,6 +70,8 @@ const REQUEST_ID_HEADER = 'x-request-id';
     CardsModule,
     NotificationsModule,
     SchedulerModule,
+    DigestsModule,
+    TodayModule,
     TasksModule,
     DecisionsModule,
     NeedsModule,

@@ -1129,6 +1129,180 @@ export type TimelineRowDto = {
             noSummary: boolean;
         };
         awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
     };
     collapsed: number;
     collapsedKinds: Array<string>;
@@ -1400,6 +1574,1743 @@ export type OnboardingGroupDto = {
         done: boolean;
         doneAt: string | null;
     }>;
+};
+
+export type BriefDto = {
+    id: string | null;
+    kind: 'morning' | 'weekly';
+    date: string;
+    sections: {
+        awaitingMe: {
+            decisions: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            needs: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            handoffs: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            reviews: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+        };
+        deadlines: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        changes: {
+            since: string;
+            repos: Array<{
+                name: string;
+                commitCount: number;
+                authors: Array<string>;
+                prs: Array<{
+                    key: string;
+                    kind: string;
+                }>;
+            }>;
+            sessions: Array<{
+                key: string;
+                title: string;
+                author: string | null;
+            }>;
+            handoffs: Array<{
+                key: string;
+                title: string;
+            }>;
+        };
+        decided: Array<{
+            key: string;
+            title: string;
+            option: string | null;
+            rationale: string | null;
+        }>;
+        readyTasks: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        mySessions: Array<{
+            sessionId: string;
+            repo: string | null;
+            branch: string | null;
+        }>;
+        blocked: Array<{
+            key: string;
+            title: string;
+            blockerKey: string | null;
+            blockerRole: string | null;
+        }>;
+        releases: Array<{
+            key: string;
+            version: string | null;
+            title: string;
+        }>;
+    } | {
+        from: string;
+        to: string;
+        counts: {
+            byType: {
+                [key: string]: number;
+            };
+            byKind: {
+                [key: string]: number;
+            };
+            commits: number;
+            prsMerged: number;
+            sessions: number;
+            sessionsNoSummary: number;
+        };
+        decided: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        released: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        merged: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        handoffs: {
+            created: number;
+            applied: number;
+            pending: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+                ageHours: number;
+            }>;
+        };
+        needs: {
+            delivered: number;
+            verified: number;
+            open: number;
+        };
+        redesign: {
+            approved: number;
+            ported: number;
+            inReview: number;
+        };
+        overdue: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        nextWeek: Array<{
+            key: string;
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            title: string;
+            status: string;
+            priority: string;
+            dueAt: string | null;
+            overdue: boolean;
+            escalated: boolean;
+            action: string | null;
+        }>;
+        topRepos: Array<{
+            name: string;
+            commits: number;
+        }>;
+        contributors: Array<{
+            user: {
+                kind: 'user' | 'agent' | 'system';
+                userId: string | null;
+                displayName: string | null;
+                via: string;
+            };
+            events: number;
+        }>;
+    };
+    markdown: string;
+    narrative: string | null;
+    narrativeBy: {
+        id: string;
+        displayName: string;
+    } | null;
+    narrativeAt: string | null;
+    generatedNow: boolean;
+    createdAt: string | null;
+    updatedAt: string | null;
+};
+
+export type SaveNarrativeDto = {
+    narrative: string;
+};
+
+export type SummaryDto = {
+    from: string;
+    to: string;
+    byType: {
+        [key: string]: number;
+    };
+    byKind: {
+        [key: string]: number;
+    };
+    decided: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    released: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    merged: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    newHandoffs: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    newNeeds: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    topActors: Array<{
+        user: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        events: number;
+    }>;
+};
+
+export type TodayDto = {
+    date: string;
+    timezone: string;
+    now: string;
+    brief: {
+        id: string | null;
+        kind: 'morning' | 'weekly';
+        date: string;
+        sections: {
+            awaitingMe: {
+                decisions: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                needs: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                handoffs: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                reviews: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+            };
+            deadlines: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            changes: {
+                since: string;
+                repos: Array<{
+                    name: string;
+                    commitCount: number;
+                    authors: Array<string>;
+                    prs: Array<{
+                        key: string;
+                        kind: string;
+                    }>;
+                }>;
+                sessions: Array<{
+                    key: string;
+                    title: string;
+                    author: string | null;
+                }>;
+                handoffs: Array<{
+                    key: string;
+                    title: string;
+                }>;
+            };
+            decided: Array<{
+                key: string;
+                title: string;
+                option: string | null;
+                rationale: string | null;
+            }>;
+            readyTasks: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            mySessions: Array<{
+                sessionId: string;
+                repo: string | null;
+                branch: string | null;
+            }>;
+            blocked: Array<{
+                key: string;
+                title: string;
+                blockerKey: string | null;
+                blockerRole: string | null;
+            }>;
+            releases: Array<{
+                key: string;
+                version: string | null;
+                title: string;
+            }>;
+        } | {
+            from: string;
+            to: string;
+            counts: {
+                byType: {
+                    [key: string]: number;
+                };
+                byKind: {
+                    [key: string]: number;
+                };
+                commits: number;
+                prsMerged: number;
+                sessions: number;
+                sessionsNoSummary: number;
+            };
+            decided: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            released: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            merged: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            handoffs: {
+                created: number;
+                applied: number;
+                pending: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                    ageHours: number;
+                }>;
+            };
+            needs: {
+                delivered: number;
+                verified: number;
+                open: number;
+            };
+            redesign: {
+                approved: number;
+                ported: number;
+                inReview: number;
+            };
+            overdue: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            nextWeek: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            topRepos: Array<{
+                name: string;
+                commits: number;
+            }>;
+            contributors: Array<{
+                user: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                events: number;
+            }>;
+        };
+        markdown: string;
+        narrative: string | null;
+        narrativeBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        narrativeAt: string | null;
+        generatedNow: boolean;
+        createdAt: string | null;
+        updatedAt: string | null;
+    };
+    awaitingMe: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
+    }>;
+    readyTasks: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+        detail: {
+            cardId: string;
+            specialty: string;
+            effort: string | null;
+            acceptance: string | null;
+            prompt: string | null;
+            origin: string;
+            claimedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            claimedAt: string | null;
+            branch: string | null;
+            prUrl: string | null;
+            startedAt: string | null;
+            doneAt: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            question: string;
+            options: Array<{
+                id: string;
+                title: string;
+                pros: Array<string>;
+                cons: Array<string>;
+                cost: string | null;
+                recommended: boolean;
+            }>;
+            deciderRole: string;
+            chosenOptionId: string | null;
+            rationale: string | null;
+            decidedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            decidedAt: string | null;
+            remindersSent: Array<number>;
+            escalatedAt: string | null;
+            escalatedToRole: string | null;
+            adrRepoSourceId: string | null;
+            adrPath: string | null;
+            adrPrUrl: string | null;
+            adrStatus: string;
+            adrBody: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            responsibleRole: string;
+            location: string | null;
+            deliveredBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            deliveredAt: string | null;
+            verifiedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            verifiedAt: string | null;
+            verificationNote: string | null;
+        } | {
+            cardId: string;
+            kind: string;
+            authorLogin: string | null;
+            commitCount: number;
+            filesChanged: number;
+            additions: number;
+            deletions: number;
+            prNumber: number | null;
+            prState: string | null;
+            prUrl: string | null;
+            session: {
+                [key: string]: unknown;
+            } | null;
+        } | {
+            cardId: string;
+            fromRole: string;
+            toRole: string;
+            kind: string;
+            severity: string;
+            summary: string;
+            prompt: string | null;
+            payload: {
+                [key: string]: unknown;
+            };
+            sourceCardId: string | null;
+            acknowledgedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            acknowledgedAt: string | null;
+            appliedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            appliedAt: string | null;
+            appliedTaskId: string | null;
+        } | {
+            cardId: string;
+            app: string;
+            page: string;
+            version: string;
+            labPath: string;
+            labUrl: string;
+            base: string | null;
+            touchesComponents: Array<string>;
+            reviewScore: number | null;
+            reviewSummary: string | null;
+            frontMatter: {
+                [key: string]: unknown;
+            };
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+            rejectedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            rejectedAt: string | null;
+            decisionNote: string | null;
+            portTaskId: string | null;
+            portedRef: string | null;
+        } | {
+            cardId: string;
+            sourceId: string;
+            path: string;
+            kind: string;
+            lang: string;
+            headings: Array<{
+                level: number;
+                text: string;
+                anchor: string;
+            }>;
+            wordCount: number;
+            lastCommitSha: string | null;
+            contentHash: string | null;
+            lastIndexedAt: string;
+        } | {
+            cardId: string;
+            version: string;
+            repo: string | null;
+            tag: string | null;
+            releasedAt: string | null;
+            includedIds: Array<string>;
+            notes: {
+                team?: string | null;
+                owner?: string | null;
+                accountant?: string | null;
+            };
+        } | {
+            cardId: string;
+            problem: string | null;
+            notes: string | null;
+            role: string | null;
+            planCardId: string | null;
+        } | {
+            cardId: string;
+            steps: Array<{
+                id: string;
+                title: string;
+                role?: string;
+                taskKey?: string;
+                done: boolean;
+            }>;
+            revision: number;
+            sourceIdeaId: string | null;
+            approvedBy: {
+                id: string;
+                displayName: string;
+            } | null;
+            approvedAt: string | null;
+        } | null;
+    }>;
+    deadlines: Array<{
+        id: string;
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        status: string;
+        priority: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole: string | null;
+        assignee: {
+            id: string;
+            displayName: string;
+            avatarColor: string;
+        } | null;
+        module: string | null;
+        repo: string | null;
+        branch: string | null;
+        tags: Array<string>;
+        dueAt: string | null;
+        closedAt: string | null;
+        archivedAt: string | null;
+        commentCount: number;
+        lastEventAt: string;
+        createdAt: string;
+        createdBy: {
+            kind: 'user' | 'agent' | 'system';
+            userId: string | null;
+            displayName: string | null;
+            via: string;
+        };
+        source: string;
+        flags: {
+            blocked: boolean;
+            overdue: boolean;
+            escalated: boolean;
+            stale: boolean;
+            noSummary: boolean;
+        };
+        awaiting: string | null;
+    }>;
+    noSummarySessions: Array<{
+        sessionLogId: string;
+        sessionId: string;
+        repo: string | null;
+        branch: string | null;
+        at: string;
+        durationMin: number | null;
+        commits: number;
+        files: number;
+        cardKey: string | null;
+    }>;
+    changesSince: {
+        since: string;
+        events: Array<{
+            event: {
+                id: string;
+                seq: number;
+                kind: string;
+                actor: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                via: string;
+                data: {
+                    [key: string]: unknown;
+                };
+                createdAt: string;
+            };
+            card: {
+                id: string;
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: 'P0' | 'P1' | 'P2' | 'P3';
+                ownerRole: string | null;
+                assignee: {
+                    id: string;
+                    displayName: string;
+                    avatarColor: string;
+                } | null;
+                module: string | null;
+                repo: string | null;
+                branch: string | null;
+                tags: Array<string>;
+                dueAt: string | null;
+                closedAt: string | null;
+                archivedAt: string | null;
+                commentCount: number;
+                lastEventAt: string;
+                createdAt: string;
+                createdBy: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                source: string;
+                flags: {
+                    blocked: boolean;
+                    overdue: boolean;
+                    escalated: boolean;
+                    stale: boolean;
+                    noSummary: boolean;
+                };
+                awaiting: string | null;
+                detail: {
+                    cardId: string;
+                    specialty: string;
+                    effort: string | null;
+                    acceptance: string | null;
+                    prompt: string | null;
+                    origin: string;
+                    claimedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    claimedAt: string | null;
+                    branch: string | null;
+                    prUrl: string | null;
+                    startedAt: string | null;
+                    doneAt: string | null;
+                } | {
+                    cardId: string;
+                    kind: string;
+                    question: string;
+                    options: Array<{
+                        id: string;
+                        title: string;
+                        pros: Array<string>;
+                        cons: Array<string>;
+                        cost: string | null;
+                        recommended: boolean;
+                    }>;
+                    deciderRole: string;
+                    chosenOptionId: string | null;
+                    rationale: string | null;
+                    decidedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    decidedAt: string | null;
+                    remindersSent: Array<number>;
+                    escalatedAt: string | null;
+                    escalatedToRole: string | null;
+                    adrRepoSourceId: string | null;
+                    adrPath: string | null;
+                    adrPrUrl: string | null;
+                    adrStatus: string;
+                    adrBody: string | null;
+                } | {
+                    cardId: string;
+                    kind: string;
+                    responsibleRole: string;
+                    location: string | null;
+                    deliveredBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    deliveredAt: string | null;
+                    verifiedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    verifiedAt: string | null;
+                    verificationNote: string | null;
+                } | {
+                    cardId: string;
+                    kind: string;
+                    authorLogin: string | null;
+                    commitCount: number;
+                    filesChanged: number;
+                    additions: number;
+                    deletions: number;
+                    prNumber: number | null;
+                    prState: string | null;
+                    prUrl: string | null;
+                    session: {
+                        [key: string]: unknown;
+                    } | null;
+                } | {
+                    cardId: string;
+                    fromRole: string;
+                    toRole: string;
+                    kind: string;
+                    severity: string;
+                    summary: string;
+                    prompt: string | null;
+                    payload: {
+                        [key: string]: unknown;
+                    };
+                    sourceCardId: string | null;
+                    acknowledgedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    acknowledgedAt: string | null;
+                    appliedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    appliedAt: string | null;
+                    appliedTaskId: string | null;
+                } | {
+                    cardId: string;
+                    app: string;
+                    page: string;
+                    version: string;
+                    labPath: string;
+                    labUrl: string;
+                    base: string | null;
+                    touchesComponents: Array<string>;
+                    reviewScore: number | null;
+                    reviewSummary: string | null;
+                    frontMatter: {
+                        [key: string]: unknown;
+                    };
+                    approvedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    approvedAt: string | null;
+                    rejectedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    rejectedAt: string | null;
+                    decisionNote: string | null;
+                    portTaskId: string | null;
+                    portedRef: string | null;
+                } | {
+                    cardId: string;
+                    sourceId: string;
+                    path: string;
+                    kind: string;
+                    lang: string;
+                    headings: Array<{
+                        level: number;
+                        text: string;
+                        anchor: string;
+                    }>;
+                    wordCount: number;
+                    lastCommitSha: string | null;
+                    contentHash: string | null;
+                    lastIndexedAt: string;
+                } | {
+                    cardId: string;
+                    version: string;
+                    repo: string | null;
+                    tag: string | null;
+                    releasedAt: string | null;
+                    includedIds: Array<string>;
+                    notes: {
+                        team?: string | null;
+                        owner?: string | null;
+                        accountant?: string | null;
+                    };
+                } | {
+                    cardId: string;
+                    problem: string | null;
+                    notes: string | null;
+                    role: string | null;
+                    planCardId: string | null;
+                } | {
+                    cardId: string;
+                    steps: Array<{
+                        id: string;
+                        title: string;
+                        role?: string;
+                        taskKey?: string;
+                        done: boolean;
+                    }>;
+                    revision: number;
+                    sourceIdeaId: string | null;
+                    approvedBy: {
+                        id: string;
+                        displayName: string;
+                    } | null;
+                    approvedAt: string | null;
+                } | null;
+            };
+            collapsed: number;
+            collapsedKinds: Array<string>;
+        }>;
+        total: number;
+    };
+    counters: {
+        inboxUnread: number;
+        awaitingMe: number;
+        decisionsOpen: number;
+        decisionsMine: number;
+        decisionsOverdue: number;
+        needsOpen: number;
+        needsMine: number;
+        handoffsPending: number;
+        handoffsMine: number;
+        tasksReadyForMe: number;
+        redesignInReview: number;
+        noSummarySessions: number;
+        newEvents: number;
+        onboardingLeft: number;
+        invitesPending: number;
+        sourceProblems: number;
+        planningOpen: number;
+    };
+    team: {
+        week: {
+            from: string;
+            to: string;
+            iso: string;
+        };
+        totals: Array<{
+            key: 'sessions' | 'commits' | 'prsMerged' | 'decided' | 'handoffs' | 'closed';
+            value: number;
+            prev: number;
+            available: boolean;
+        }>;
+        flow: Array<{
+            type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            created: number;
+            closed: number;
+        }>;
+        days: Array<string>;
+        members: Array<{
+            userId: string;
+            displayName: string;
+            avatarColor: string;
+            roles: Array<string>;
+            lastActiveAt: string | null;
+            sessions: number;
+            commits: number;
+            cardsClosed: number;
+            handoffsSent: number;
+            activity: Array<number>;
+            focus: {
+                key: string;
+                title: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+            } | null;
+        }>;
+    };
+    sources: Array<{
+        id: string;
+        name: string;
+        kind: string;
+        status: 'ok' | 'lagging' | 'failing' | 'never_run';
+        lagSec: number | null;
+        lastSuccessAt: string | null;
+        lastError: string | null;
+        target: string | null;
+        runs24h: number;
+        cards24h: number;
+    }>;
+    weekly: {
+        id: string | null;
+        kind: 'morning' | 'weekly';
+        date: string;
+        sections: {
+            awaitingMe: {
+                decisions: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                needs: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                handoffs: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+                reviews: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                }>;
+            };
+            deadlines: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            changes: {
+                since: string;
+                repos: Array<{
+                    name: string;
+                    commitCount: number;
+                    authors: Array<string>;
+                    prs: Array<{
+                        key: string;
+                        kind: string;
+                    }>;
+                }>;
+                sessions: Array<{
+                    key: string;
+                    title: string;
+                    author: string | null;
+                }>;
+                handoffs: Array<{
+                    key: string;
+                    title: string;
+                }>;
+            };
+            decided: Array<{
+                key: string;
+                title: string;
+                option: string | null;
+                rationale: string | null;
+            }>;
+            readyTasks: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            mySessions: Array<{
+                sessionId: string;
+                repo: string | null;
+                branch: string | null;
+            }>;
+            blocked: Array<{
+                key: string;
+                title: string;
+                blockerKey: string | null;
+                blockerRole: string | null;
+            }>;
+            releases: Array<{
+                key: string;
+                version: string | null;
+                title: string;
+            }>;
+        } | {
+            from: string;
+            to: string;
+            counts: {
+                byType: {
+                    [key: string]: number;
+                };
+                byKind: {
+                    [key: string]: number;
+                };
+                commits: number;
+                prsMerged: number;
+                sessions: number;
+                sessionsNoSummary: number;
+            };
+            decided: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            released: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            merged: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            handoffs: {
+                created: number;
+                applied: number;
+                pending: Array<{
+                    key: string;
+                    type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                    title: string;
+                    status: string;
+                    priority: string;
+                    dueAt: string | null;
+                    overdue: boolean;
+                    escalated: boolean;
+                    action: string | null;
+                    ageHours: number;
+                }>;
+            };
+            needs: {
+                delivered: number;
+                verified: number;
+                open: number;
+            };
+            redesign: {
+                approved: number;
+                ported: number;
+                inReview: number;
+            };
+            overdue: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            nextWeek: Array<{
+                key: string;
+                type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+                title: string;
+                status: string;
+                priority: string;
+                dueAt: string | null;
+                overdue: boolean;
+                escalated: boolean;
+                action: string | null;
+            }>;
+            topRepos: Array<{
+                name: string;
+                commits: number;
+            }>;
+            contributors: Array<{
+                user: {
+                    kind: 'user' | 'agent' | 'system';
+                    userId: string | null;
+                    displayName: string | null;
+                    via: string;
+                };
+                events: number;
+            }>;
+        };
+        markdown: string;
+        narrative: string | null;
+        narrativeBy: {
+            id: string;
+            displayName: string;
+        } | null;
+        narrativeAt: string | null;
+        generatedNow: boolean;
+        createdAt: string | null;
+        updatedAt: string | null;
+    } | null;
+};
+
+export type CountersDto = {
+    inboxUnread: number;
+    awaitingMe: number;
+    decisionsOpen: number;
+    decisionsMine: number;
+    decisionsOverdue: number;
+    needsOpen: number;
+    needsMine: number;
+    handoffsPending: number;
+    handoffsMine: number;
+    tasksReadyForMe: number;
+    redesignInReview: number;
+    noSummarySessions: number;
+    newEvents: number;
+    onboardingLeft: number;
+    invitesPending: number;
+    sourceProblems: number;
+    planningOpen: number;
 };
 
 export type TaskPromptDto = {
@@ -2749,6 +4660,139 @@ export type OnboardingControllerTickResponses = {
 };
 
 export type OnboardingControllerTickResponse = OnboardingControllerTickResponses[keyof OnboardingControllerTickResponses];
+
+export type BriefsControllerTodayData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/briefs/today';
+};
+
+export type BriefsControllerTodayResponses = {
+    200: BriefDto;
+};
+
+export type BriefsControllerTodayResponse = BriefsControllerTodayResponses[keyof BriefsControllerTodayResponses];
+
+export type BriefsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        kind?: 'morning' | 'weekly';
+        date?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/briefs';
+};
+
+export type BriefsControllerListResponses = {
+    200: Array<BriefDto>;
+};
+
+export type BriefsControllerListResponse = BriefsControllerListResponses[keyof BriefsControllerListResponses];
+
+export type BriefsControllerWeeklyData = {
+    body?: never;
+    path: {
+        isoWeek: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/briefs/weekly/{isoWeek}';
+};
+
+export type BriefsControllerWeeklyResponses = {
+    200: BriefDto;
+};
+
+export type BriefsControllerWeeklyResponse = BriefsControllerWeeklyResponses[keyof BriefsControllerWeeklyResponses];
+
+export type BriefsControllerNarrativeData = {
+    body: SaveNarrativeDto;
+    path: {
+        kind: string;
+        date: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/briefs/{kind}/{date}/narrative';
+};
+
+export type BriefsControllerNarrativeResponses = {
+    200: BriefDto;
+};
+
+export type BriefsControllerNarrativeResponse = BriefsControllerNarrativeResponses[keyof BriefsControllerNarrativeResponses];
+
+export type BriefsControllerSummaryData = {
+    body?: never;
+    path?: never;
+    query: {
+        period: 'day' | 'week';
+        date?: string;
+    };
+    url: '/api/v1/workspaces/{ws}/timeline/summary';
+};
+
+export type BriefsControllerSummaryResponses = {
+    200: SummaryDto;
+};
+
+export type BriefsControllerSummaryResponse = BriefsControllerSummaryResponses[keyof BriefsControllerSummaryResponses];
+
+export type TodayControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/today';
+};
+
+export type TodayControllerGetResponses = {
+    200: TodayDto;
+};
+
+export type TodayControllerGetResponse = TodayControllerGetResponses[keyof TodayControllerGetResponses];
+
+export type TodayControllerSeenData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/today/seen';
+};
+
+export type TodayControllerSeenResponses = {
+    204: void;
+};
+
+export type TodayControllerSeenResponse = TodayControllerSeenResponses[keyof TodayControllerSeenResponses];
+
+export type TodayControllerGetCountersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/counters';
+};
+
+export type TodayControllerGetCountersResponses = {
+    200: CountersDto;
+};
+
+export type TodayControllerGetCountersResponse = TodayControllerGetCountersResponses[keyof TodayControllerGetCountersResponses];
+
+export type TasksControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: Array<'backlog' | 'ready' | 'claimed' | 'in_progress' | 'in_review' | 'done' | 'cancelled'>;
+        q?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/tasks';
+};
+
+export type TasksControllerListResponses = {
+    200: unknown;
+};
 
 export type TasksControllerReadyData = {
     body?: never;

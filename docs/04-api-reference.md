@@ -646,7 +646,7 @@ query: { from?: string; to?: string; types?: CardType[]; roles?: Role[] /* cards
          mine?: boolean /* events on cards I watch/own/claimed */; cursor?; limit? (default 50) }
 sort: createdAt desc, collapsed: consecutive events of the same card within 30 min → one row with `collapsed: n`
 200: { data: TimelineRow[], meta: { pagination; dayCounts?: { date: string; count: number }[] /* only when both from and to given */ } }
-type TimelineRow = { event: Event /* the newest of the row */; card: CardSummary; collapsed: number /* how many more it folds: the "+n" */; collapsedKinds: string[] /* their distinct kinds */ }
+type TimelineRow = { event: Event /* the newest of the row */; card: CardSummary & { detail }; collapsed: number /* how many more it folds: the "+n" */; collapsedKinds: string[] /* their distinct kinds */ }
 // watch/unwatch and deleted cards are left out unless `kinds` asks for them; a plan's previousBody is not in `data` (see /plans/{key}/revisions).
 
 GET /workspaces/{ws}/timeline/summary            auth: session | token
@@ -957,19 +957,25 @@ These are required by the pages and were not in §3.1–3.22. They follow the sa
 
 ```
 GET /workspaces/{ws}/today                       auth: session | token
-200: { data: { brief: Brief & { generatedNow: boolean }; awaitingMe: CardSummary[]; readyTasks: CardSummary[]; deadlines: CardSummary[];
-               noSummarySessions: { sessionLogId; sessionId; repo; branch; hookReceivedAt; cardKey }[];
-               changesSince: { since: string; events: TimelineRow[]; total: number }; counters: Counters } }
-// composite for the Today page (09 §4); `brief` is the same object as /briefs/today; `since` = member.lastSeenAt of the previous visit
-// (stored per workspace in Redis `seen:<ws>:<user>` and moved forward by POST /workspaces/{ws}/today/seen)
+200: { data: Today }   // the exact shape is `todaySchema` in @hub/contracts/today.ts
+type Today = { date; timezone; now; brief: Brief & { generatedNow: boolean }; awaitingMe: CardWithDetail[]; readyTasks: CardWithDetail[]; deadlines: CardSummary[];
+               noSummarySessions: { sessionLogId; sessionId; repo; branch; at; durationMin; commits; files; cardKey }[];
+               changesSince: { since: string; events: TimelineRow[] /* at most 50 rows, my own left out */; total: number /* events */ };
+               counters: Counters; team: TeamStats; sources: SourceHealth[] /* enabled, problems first */; weekly: Brief | null /* this week's, once stored */ }
+type TeamStats = { week: { iso; from; to }; totals: { key: 'sessions'|'commits'|'prsMerged'|'decided'|'handoffs'|'closed'; value; prev /* the whole previous ISO week */; available: boolean /* false: no source feeds it */ }[];
+                   flow: { type; created; closed }[]; days: string[] /* 14 local dates */; members: { userId; displayName; avatarColor; roles; lastActiveAt; sessions; commits; cardsClosed; handoffsSent; activity: number[]; focus: { key; title; type } | null }[] }
+type SourceHealth = { id; name; kind; status: 'ok'|'lagging'|'failing'|'never_run'; lagSec; lastSuccessAt; lastError; target; runs24h; cards24h }
+// Composite for the Today page (09 §4). Reading it clears nothing. `since` is the previous visit, kept per project in Redis `seen:<ws>:<user>`.
+// There is no sparkline or trend data and no "online" flag: nothing real feeds them (15 §8).
 
-POST /workspaces/{ws}/today/seen                 auth: session   204   effects: lastSeenAt for this workspace = now
+POST /workspaces/{ws}/today/seen                 auth: session | token   204   effects: the visit: clears `counters.newEvents`. The web calls it on visiting Today or Timeline (review M4). Publishes `inbox.read` to the member's other tabs.
 
 GET /workspaces/{ws}/counters                    auth: session | token
 200: { data: Counters }
-type Counters = { inboxUnread: number; awaitingMe: number; decisionsOpen: number; decisionsOverdue: number; needsOpen: number;
-                  handoffsPending: number; tasksReadyForMe: number; redesignInReview: number; noSummarySessions: number }
-// also pushed on the SSE stream as `counters` (§4) after every change that affects the member
+type Counters = { inboxUnread; awaitingMe; decisionsOpen; decisionsMine; decisionsOverdue /* of mine */; needsOpen /* requested, in progress, delivered */; needsMine;
+                  handoffsPending /* pending, acknowledged */; handoffsMine; tasksReadyForMe; redesignInReview; noSummarySessions; newEvents; onboardingLeft;
+                  invitesPending /* owner, pm */; sourceProblems /* owner, pm */; planningOpen /* ideas open or exploring, plans not finished */ }
+// Derived from state on every read, so a badge cannot drift. Not pushed: every card event and `inbox.*` message makes the web refetch it.
 
 GET /workspaces/{ws}/docs/tree                   auth: session | token
 200: { data: { source: { id; name }; folders: { path: string; docs: (CardSummary & { detail: DocDetail })[]; folders: Folder[] }[] }[] }

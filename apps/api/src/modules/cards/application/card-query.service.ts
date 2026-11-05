@@ -561,8 +561,31 @@ export class CardQueryService {
     return this.reader.findAttachments(card.id);
   }
 
+  /** Any cards by a condition, judged for this member, for pages that compose several lists (Today, briefs). */
+  async matching(
+    actor: Actor,
+    where: Prisma.CardWhereInput,
+    options: { readonly limit: number; readonly sort?: CardPage['sort'] },
+  ): Promise<CardSummary[]> {
+    const filter: CardFilter = { ...(await this.moments(actor.workspaceId)), where };
+    const rows = await this.reader.findCards(actor.workspaceId, filter, {
+      limit: options.limit,
+      sort: options.sort ?? 'lastEvent',
+    });
+    return this.summaries(actor, rows.slice(0, options.limit));
+  }
+
+  /** "Since last visit": the one number the sidebar's Timeline count and Today both show (review M4). */
+  countSince(actor: MemberActor, since: Date): Promise<number> {
+    return this.reader.countTimeline(actor.workspaceId, { from: since, excludeActorId: actor.userId });
+  }
+
   /** `GET /timeline` (docs/04 §3.9): events, newest first, with the collapse hint. */
-  async timeline(actor: MemberActor, input: TimelineQueryInput): Promise<Paginated<TimelineRow>> {
+  async timeline(
+    actor: MemberActor,
+    input: TimelineQueryInput,
+    options: { readonly excludeOwn?: boolean } = {},
+  ): Promise<Paginated<TimelineRow>> {
     const limit = input.limit ?? DEFAULT_TIMELINE_LIMIT;
     const from = input.from ? new Date(input.from) : undefined;
     const to = input.to ? new Date(input.to) : undefined;
@@ -577,6 +600,7 @@ export class CardQueryService {
       ...(input.kinds ? { kinds: input.kinds } : {}),
       ...(input.q ? { q: input.q } : {}),
       ...(input.mine ? { mineUserId: actor.userId } : {}),
+      ...(options.excludeOwn ? { excludeActorId: actor.userId } : {}),
     };
 
     // Fold across batches, so a row is whole before it is shown: read until one row more than asked is closed.
