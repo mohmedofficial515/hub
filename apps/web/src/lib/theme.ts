@@ -22,6 +22,11 @@ export function setTheme(theme: Theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark');
   document.documentElement.style.colorScheme = theme;
   document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=${YEAR}; samesite=lax`;
+  const surface = getComputedStyle(document.documentElement).getPropertyValue('--background').trim();
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+    meta.removeAttribute('media');
+    meta.setAttribute('content', surface);
+  });
   listeners.forEach((l) => l());
 }
 

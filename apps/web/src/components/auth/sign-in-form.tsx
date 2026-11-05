@@ -85,6 +85,7 @@ export function SignInForm() {
           error={tried && missingEmail ? t.errors.emailRequired : undefined}
         >
           <TextInput
+            name="email"
             id={`${id}-email`}
             type="email"
             dir="ltr"
@@ -103,6 +104,7 @@ export function SignInForm() {
         >
           <div className="relative">
             <TextInput
+              name="password"
               id={`${id}-password`}
               type={show ? 'text' : 'password'}
               dir="ltr"

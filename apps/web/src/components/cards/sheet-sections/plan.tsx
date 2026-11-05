@@ -25,6 +25,7 @@ import type { PlanCard, PlanStep, Priority, Role } from '@/features/cards/types'
 import { linkedOfType, restoreRevision, savePlan, usePlanRevisions } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 import { num } from '@/lib/format';
+import { useUnsavedGuard } from '@/lib/hooks';
 import { kitMessages, useLocale, useT } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
@@ -208,6 +209,14 @@ function PlanEditForm({ card }: { card: PlanCard }) {
     })),
   );
   const [tried, setTried] = useState(false);
+  const [baseSteps] = useState(steps);
+  useUnsavedGuard(
+    title !== card.title ||
+      body !== baseBody ||
+      priority !== card.priority ||
+      tags !== card.tags.join(', ') ||
+      JSON.stringify(steps) !== JSON.stringify(baseSteps),
+  );
 
   const noTitle = !title.trim();
   const blankStep = steps.some((step) => !step.title.trim());

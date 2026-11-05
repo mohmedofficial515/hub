@@ -5,7 +5,7 @@
  */
 import '../globals.css';
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Cairo, Inter, JetBrains_Mono } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -35,7 +35,21 @@ const jetbrains = JetBrains_Mono({
   display: 'swap',
 });
 
-export const metadata: Metadata = { title: 'Hub', robots: { index: false } };
+// No title here: Next would keep writing it over the page's own (review m1). Each page sets it with `useDocumentTitle`.
+export const metadata: Metadata = { robots: { index: false } };
+
+/** The browser's own bar follows the theme: the cookie's when there is one, else the system's. */
+const SURFACE = { light: '#f4f8f3', dark: '#0b100c' };
+export async function generateViewport(): Promise<Viewport> {
+  const theme = (await cookies()).get('hub-theme')?.value;
+  if (theme === 'dark' || theme === 'light') return { themeColor: SURFACE[theme] };
+  return {
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: SURFACE.light },
+      { media: '(prefers-color-scheme: dark)', color: SURFACE.dark },
+    ],
+  };
+}
 
 const FOLLOW_SYSTEM = `(function(){try{var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var r=document.documentElement;r.classList.toggle('dark',d);r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 

@@ -47,6 +47,7 @@ import {
   useUpdateProject,
 } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
+import { useUnsavedGuard } from '@/lib/hooks';
 
 import { FormSection, Segmented } from './shared';
 
@@ -321,6 +322,7 @@ export function GeneralTab() {
   const setClosed = useSetProjectClosed();
   const s = t.general;
   const [overrides, setOverrides] = useState<Partial<Fields>>({});
+  useUnsavedGuard(Object.keys(overrides).length > 0);
   const [closing, setClosing] = useState(false);
 
   const saved = useMemo<Fields | null>(() => {

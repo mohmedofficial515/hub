@@ -27,7 +27,9 @@ import { RouterBridge } from '@/components/shell/router';
 import { ShortcutsDialog } from '@/components/shell/shortcuts-dialog';
 import { DesktopSidebar, SidebarDrawer, useSidebarCollapsed } from '@/components/shell/sidebar';
 import { views } from '@/components/shell/views';
+import { useSession } from '@/features/session/session';
 import { onSignedOut } from '@/lib/api/client';
+import { useDocumentTitle } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { messages } from '@/lib/i18n';
 
@@ -35,9 +37,9 @@ import { messages } from '@/lib/i18n';
 function useViewFocus() {
   const t = useT(messages);
   const { view } = useRoute();
+  useDocumentTitle(t.nav[view], useSession().workspace?.name);
   const first = useRef(true);
   useLayoutEffect(() => {
-    document.title = `${t.nav[view]} · Hub`;
     if (first.current) {
       first.current = false;
       return;

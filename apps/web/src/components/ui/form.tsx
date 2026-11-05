@@ -80,17 +80,22 @@ export function Field({
 const controlClass =
   'w-full rounded-md border border-input bg-card text-body text-foreground placeholder:text-muted-foreground';
 
+/** A control is named after its id unless it says otherwise, so a browser's autofill has something to go on (review m9). */
 export function TextInput({ className, ...rest }: ComponentProps<'input'>) {
-  return <input className={cn(controlClass, 'h-11 px-3 md:h-9', focusRing, className)} {...rest} />;
+  return (
+    <input name={rest.id} className={cn(controlClass, 'h-11 px-3 md:h-9', focusRing, className)} {...rest} />
+  );
 }
 
 export function Textarea({ className, ...rest }: ComponentProps<'textarea'>) {
-  return <textarea className={cn(controlClass, 'px-3 py-2', focusRing, className)} {...rest} />;
+  return (
+    <textarea name={rest.id} className={cn(controlClass, 'px-3 py-2', focusRing, className)} {...rest} />
+  );
 }
 
 export function Select({ className, children, ...rest }: ComponentProps<'select'>) {
   return (
-    <select className={cn(controlClass, 'h-11 px-2 md:h-9', focusRing, className)} {...rest}>
+    <select name={rest.id} className={cn(controlClass, 'h-11 px-2 md:h-9', focusRing, className)} {...rest}>
       {children}
     </select>
   );

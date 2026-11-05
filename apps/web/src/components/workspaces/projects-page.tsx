@@ -27,6 +27,7 @@ import { qk } from '@/features/cards/keys';
 import { signOut } from '@/features/session/auth';
 import { useMe, useWorkspaces, type WorkspaceRef } from '@/features/session/session';
 import { isHubError } from '@/lib/api/errors';
+import { useDocumentTitle } from '@/lib/hooks';
 import { messages, useLocale, useT } from '@/lib/i18n';
 import type { WorkspacesDict } from '@/lib/i18n/page-dicts';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ function ProjectCard({ project }: { project: WorkspaceRef }) {
 
 export function ProjectsPage() {
   const t = useT<WorkspacesDict>('workspaces');
+  useDocumentTitle(t.title);
   const shell = useT(messages);
   const locale = useLocale();
   const router = useRouter();
@@ -110,7 +112,7 @@ export function ProjectsPage() {
             </span>
             <div className="ms-auto flex items-center gap-1">
               <LanguageAndTheme signedIn t={shell} />
-              <Button variant="ghost" onClick={() => void signOut(locale)} className="max-md:px-2">
+              <Button variant="ghost" onClick={() => void signOut(locale)} className="hit-44 max-md:px-2">
                 <LogOut aria-hidden className="size-4 rtl:-scale-x-100" strokeWidth={1.75} />
                 <span className="max-md:sr-only">{shell.sidebar.signOut}</span>
               </Button>

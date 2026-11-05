@@ -58,6 +58,7 @@ export function ForgotForm() {
           error={tried && !email.trim() ? t.errors.emailRequired : undefined}
         >
           <TextInput
+            name="email"
             id={`${id}-email`}
             type="email"
             dir="ltr"

@@ -4,7 +4,25 @@
  * @file hooks.ts
  * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/hooks.ts. Contract: apps/web/README.md.
  */
-import { useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
+
+/** While a form holds unsaved edits, closing or reloading the tab asks first (review m9). */
+export function useUnsavedGuard(dirty: boolean) {
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+}
+
+/** The tab's name, most specific first: "Tasks · Goteav · Hub". */
+export function useDocumentTitle(...parts: (string | undefined)[]) {
+  const title = [...parts.filter(Boolean), 'Hub'].join(' · ');
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+}
 
 /** Matches a media query. The lab renders client-side only, so there is no hydration concern. */
 export function useMedia(query: string, serverValue = false) {

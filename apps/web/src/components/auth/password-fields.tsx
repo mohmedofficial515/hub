@@ -44,6 +44,7 @@ export function PasswordFields({
         error={tried ? problem.password : undefined}
       >
         <TextInput
+          name="new-password"
           id={`${id}-new`}
           type="password"
           dir="ltr"
@@ -60,6 +61,7 @@ export function PasswordFields({
         error={tried ? problem.confirm : undefined}
       >
         <TextInput
+          name="confirm-password"
           id={`${id}-confirm`}
           type="password"
           dir="ltr"

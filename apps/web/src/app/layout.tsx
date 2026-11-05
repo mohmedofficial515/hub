@@ -3,8 +3,6 @@
  */
 import type { ReactNode } from 'react';
 
-export const metadata = { title: 'Hub' };
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   return children;
 }

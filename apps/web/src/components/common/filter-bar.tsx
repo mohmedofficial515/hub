@@ -385,6 +385,7 @@ export function FilterBar<S extends string = string>({
             >
               <span className="shrink-0 text-body-sm text-muted-foreground">{select.label}</span>
               <Select
+                name={select.param}
                 value={query.get(select.param) ?? ''}
                 onChange={(e) => setQuery({ [select.param]: e.target.value || null })}
                 className="w-auto max-w-56 min-w-28 text-body-sm md:h-8"

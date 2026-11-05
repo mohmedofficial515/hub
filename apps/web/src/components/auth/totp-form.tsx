@@ -44,6 +44,7 @@ function CodeField({
   return (
     <Field id={id} label={label} required error={error}>
       <TextInput
+        name="code"
         id={id}
         dir="ltr"
         autoFocus

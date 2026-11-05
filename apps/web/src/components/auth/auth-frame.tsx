@@ -11,6 +11,7 @@ import type { ReactNode } from 'react';
 
 import { IconButton } from '@/components/kit';
 import { Ocellus } from '@/components/shell/ocellus';
+import { useDocumentTitle } from '@/lib/hooks';
 import { messages, type ShellDict, useLocale, useT } from '@/lib/i18n';
 import { setLocaleEverywhere, setTheme, useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export function AuthFrame({
   foot?: ReactNode;
   wide?: boolean;
 }) {
+  useDocumentTitle(typeof title === 'string' ? title : undefined);
   const t = useT(messages);
   const locale = useLocale();
   return (
