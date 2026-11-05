@@ -1,3 +1,4 @@
+export { type GoteavImportReport, GoteavImportService } from './application/goteav-import.service';
 export { SessionContextService } from './application/session-context.service';
 export {
   type LoggedSession,

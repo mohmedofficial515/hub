@@ -21,6 +21,7 @@ import { RedisClients } from '@/infra/redis/redis.module';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
+import { BriefsService } from '@/modules/digests';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
 import { InboxService } from '@/modules/notifications';
 import { PlanReadService } from '@/modules/plans';
@@ -54,6 +55,7 @@ export class McpDeps {
     readonly onboarding: OnboardingService,
     readonly audit: AuditQueryService,
     readonly inbox: InboxService,
+    readonly briefs: BriefsService,
     readonly me: MeService,
     readonly sessions: SessionsService,
     readonly sessionContext: SessionContextService,

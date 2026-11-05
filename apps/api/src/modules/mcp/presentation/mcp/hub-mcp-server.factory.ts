@@ -210,8 +210,8 @@ export class HubMcpServerFactory {
       'hub://brief/today',
       { title: 'Your brief', mimeType: 'text/markdown' },
       async (uri) => {
-        const rendered = await this.deps.sessionContext.render(principal, header, undefined);
-        return markdown(uri, rendered.text);
+        const brief = await this.deps.briefs.today(await context().actor());
+        return markdown(uri, [brief.narrative, brief.markdown].filter(Boolean).join('\n\n'));
       },
     );
     server.registerResource(

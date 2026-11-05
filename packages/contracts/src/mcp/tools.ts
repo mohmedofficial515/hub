@@ -68,6 +68,7 @@ import {
   updateSourceSchema,
 } from '../projects';
 import { roleSchema, specialtySchema } from '../roles';
+import { saveNarrativeSchema } from '../today';
 
 const key = z.object({ key: cardKeySchema.describe('The card key, such as GTV-123') });
 const limit = z.number().int().min(1).max(100).optional();
@@ -721,9 +722,10 @@ const TOOL_TABLE = {
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$|^\d{4}-W\d{2}$/)
         .optional(),
-      narrative: z.string().trim().min(1).max(8000),
+      narrative: saveNarrativeSchema.shape.narrative,
     }),
     actions: ['brief.save', 'brief.save_weekly'],
+    routes: [`PUT ${W}/briefs/:kind/:date/narrative`],
   },
 
   // Projects
@@ -981,4 +983,5 @@ export const MCP_TOOL_NAMES = MCP_TOOLS.map((tool) => tool.name);
 /** REST routes with no tool on purpose, with why. Everything else that mutates must appear in a tool's `routes`. */
 export const MCP_EXCLUDED_ROUTES: Readonly<Record<string, string>> = {
   'POST /capture/session': 'called by the SessionEnd hook; log_session is the agent side',
+  'POST /workspaces/:ws/today/seen': 'the Today page marking what its viewer has seen; a chat has no page',
 };

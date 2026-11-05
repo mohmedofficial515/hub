@@ -410,6 +410,18 @@ describe('MCP over HTTP', () => {
     });
   });
 
+  it('saves a brief narrative and shows it in the brief resource, weekly only for owner and pm', async () => {
+    const { token } = await setup();
+    const hub = await connect(token);
+    expect(await hub.ok('save_brief', { narrative: 'Today we ship.' })).toContain('morning brief');
+    const brief = await hub.client.readResource({ uri: 'hub://brief/today' });
+    expect(JSON.stringify(brief.contents)).toContain('Today we ship.');
+    expect(await hub.ok('save_brief', { kind: 'weekly', narrative: 'This week.' })).toContain('weekly brief');
+    const qa = await setup(['qa']);
+    const refused = await (await connect(qa.token)).call('save_brief', { kind: 'weekly', narrative: 'No.' });
+    expect(refused.content[0]?.text).toContain('hub.common.forbidden');
+  });
+
   it('a change on the web is visible to the next tool call', async () => {
     const { workspace, token } = await setup();
     const hub = await connect(token);

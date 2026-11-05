@@ -5,6 +5,7 @@
  */
 import { settingsCatalogue } from '@hub/contracts';
 
+import { isoWeekOf, localDate } from '@/modules/digests';
 import { AppException } from '@/shared/errors';
 
 import { cardRef, cardTable, moreLine, plain } from '../render';
@@ -132,7 +133,16 @@ export const workspaceToolHandlers = {
       'Write them with log_session(sessionId, changed).',
     ].join('\n');
   },
-  save_brief: () => notAvailable('The Today page and briefs (H1-06)'),
+  async save_brief(context, input) {
+    const actor = await context.actor();
+    const kind = input.kind ?? 'morning';
+    const { timezone } = await context.deps.projects.get(actor);
+    const now = context.deps.clock.now();
+    const today = localDate(now, timezone);
+    const date = input.date ?? (kind === 'weekly' ? isoWeekOf(today).iso : today);
+    await context.deps.briefs.saveNarrative(actor, kind, date, { narrative: input.narrative });
+    return `Saved the ${kind} brief of ${date}. It shows on the Today page.`;
+  },
 
   // Projects
   async list_projects(context) {
