@@ -60,9 +60,9 @@ describe('sortList', () => {
     task('T-5', { status: 'backlog', priority: 'P0' }),
   ];
 
-  it('with no column chosen, puts open work first by priority and finished work last', () => {
+  it('with no column chosen, puts ready work above the backlog, and finished work last', () => {
     const sorted = sortList(mixed(), { status: null, sort: null, desc: false }, 'me', roles);
-    expect(sorted.map((c) => c.key)).toEqual(['T-5', 'T-4', 'T-2', 'T-1', 'T-3']);
+    expect(sorted.map((c) => c.key)).toEqual(['T-4', 'T-2', 'T-5', 'T-1', 'T-3']);
   });
 
   it('an explicit sort by priority may still mix them', () => {

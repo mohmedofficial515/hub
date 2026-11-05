@@ -78,9 +78,9 @@ export function sortList(
   roles: readonly Role[],
 ) {
   const order = byPriority(memberId, roles);
-  // No column chosen: open work by priority, finished work after it. A chosen column may mix them (review M5).
-  const openFirst = (a: TaskCard, b: TaskCard) =>
-    Number(FINISHED.has(a.status)) - Number(FINISHED.has(b.status)) || order(a, b);
+  // No column chosen: work I can move first, then the backlog, then finished work, by priority inside each. A chosen column may mix them (review M5, R9).
+  const stage = (card: TaskCard) => (FINISHED.has(card.status) ? 2 : card.status === 'backlog' ? 1 : 0);
+  const openFirst = (a: TaskCard, b: TaskCard) => stage(a) - stage(b) || order(a, b);
   const compare: Record<SortKey, (a: TaskCard, b: TaskCard) => number> = {
     key: (a, b) => a.key.localeCompare(b.key, undefined, { numeric: true }),
     priority: order,

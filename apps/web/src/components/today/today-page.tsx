@@ -37,6 +37,7 @@ import {
   useT,
 } from '@/components/kit';
 import { type CardSummaryDto, toListItem } from '@/features/cards/map';
+import { byPriority } from '@/features/tasks/model';
 import { toStreamRow } from '@/features/timeline/use-timeline';
 import { enrich, useDetailed, useSeenOnLeave, useTodayQuery } from '@/features/today/use-today';
 import { isHubError } from '@/lib/api/errors';
@@ -90,8 +91,12 @@ export function TodayPage() {
   const readyDetail = useDetailed(data?.readyTasks);
   const stack = useMemo(() => rows.map((row): StackCard => enrich(row, stackDetail)), [rows, stackDetail]);
   const ready = useMemo(
-    () => (readyRows ?? []).map((row) => enrich(row, readyDetail)),
-    [readyRows, readyDetail],
+    // The Tasks list's own order, so that the first row here is the first ready row there (review R9).
+    () =>
+      (readyRows ?? [])
+        .map((row) => enrich(row, readyDetail))
+        .sort(byPriority(me.id, roles) as (a: { key: string }, b: { key: string }) => number),
+    [readyRows, readyDetail, me.id, roles],
   );
   const deadlines = useMemo(
     () => (data?.deadlines ?? []).map((dto) => toListItem(dto as unknown as CardSummaryDto)),
