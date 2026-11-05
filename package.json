@@ -24,6 +24,7 @@
     "api:sync": "pnpm --filter @hub/api openapi:export && pnpm --filter @hub/web api:sync",
     "db:migrate": "pnpm --filter @hub/api prisma:migrate",
     "db:deploy": "pnpm --filter @hub/api prisma:deploy",
+    "seed:owner": "pnpm --filter @hub/api seed:owner",
     "compose:up": "docker compose -f infra/compose.dev.yaml up -d",
     "compose:down": "docker compose -f infra/compose.dev.yaml down"
   },

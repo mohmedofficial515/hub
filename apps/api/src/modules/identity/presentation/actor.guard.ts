@@ -1,7 +1,8 @@
 /**
  * @file Global guard: authenticates, resolves the Actor for `:ws`, checks `@Permissions` at route level.
  * @description Card-bound grants (routed, specialty, assignee, creator) cannot be judged here; `CardService`
- * decides them with the card in hand. Roles are resolved live on every request (docs/15 §5).
+ * decides them with the card in hand. Roles are resolved live on every request (docs/15 §5). A route marked
+ * `@SessionOnly()` refuses API tokens, which keeps secrets and token creation away from MCP (D27 limits).
  */
 import { isPossible, type PermissionAction } from '@hub/contracts';
 import { type CanActivate, type ExecutionContext, Inject, Injectable } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { type HubRequest, PERMISSIONS_KEY, PUBLIC_KEY } from '@/shared/http';
 
 import { ActorService } from '../application/actor.service';
 import { PRINCIPAL_RESOLVER, type PrincipalResolver } from '../application/ports/principal-resolver';
+import { SESSION_ONLY_KEY } from './session-only.decorator';
 
 @Injectable()
 export class ActorGuard implements CanActivate {
@@ -30,6 +32,10 @@ export class ActorGuard implements CanActivate {
     const principal = await this.resolver.resolve(request);
     if (!principal) throw new AppException('hub.common.unauthorized');
     request.principal = principal;
+
+    if (principal.kind !== 'user' && this.reflector.getAllAndOverride<boolean>(SESSION_ONLY_KEY, targets)) {
+      throw new AppException('hub.identity.token_scope');
+    }
 
     const slug = request.params['ws'];
     if (typeof slug === 'string') {

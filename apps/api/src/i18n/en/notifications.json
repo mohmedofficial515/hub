@@ -1,3 +1,11 @@
 {
-  "task_ready": "{cardKey} is ready: {title}"
+  "member_joined": "{name} joined the project",
+  "task_ready": "{cardKey} is ready: {title}",
+  "routed_decision": "A decision for you: {cardKey} {title}",
+  "routed_need": "A need for you: {cardKey} {title}",
+  "routed_handoff": "A handoff for you: {cardKey} {title}",
+  "review_requested": "Ready for review: {cardKey} {title}",
+  "mention": "You were mentioned on {cardKey}: {title}",
+  "unblocked": "{cardKey} is unblocked by {byCardKey}: {title}",
+  "release_released": "Released: {cardKey} {title}"
 }

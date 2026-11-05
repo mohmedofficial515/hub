@@ -8,6 +8,8 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/test/e2e/**/*.e2e-spec.ts'],
   transform: { '^.+\\.[tj]s$': ['@swc/jest', { $schema: undefined, sourceMaps: 'inline' }] },
+  // jose ships ESM only, so it is compiled for the Jest runtime, as in F:/Goteav/backend.
+  transformIgnorePatterns: ['[\\/]node_modules[\\/](?!(\.pnpm[\\/])?jose)'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

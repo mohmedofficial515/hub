@@ -7,4 +7,5 @@ process.env['LOG_LEVEL'] = 'silent';
 process.env['DATABASE_URL'] ??= 'postgresql://unit:unit@localhost:1/unit';
 process.env['REDIS_URL'] ??= 'redis://localhost:1/0';
 process.env['HUB_SECRET_KEY'] ??= Buffer.alloc(32, 2).toString('base64');
+process.env['HUB_JWT_SECRET'] ??= 'unit-signing-key-that-is-long-enough-for-hs256';
 process.env['QUEUE_MODE'] = 'inline';

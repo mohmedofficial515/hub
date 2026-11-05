@@ -328,7 +328,7 @@ PR when the lab needs newer primitives. Build: `docker build -f infra/docker/lab
 | `POSTGRES_PASSWORD` | postgres | yes | 32 random chars | used to build `DATABASE_URL` |
 | `REDIS_URL` | api, worker | yes | `redis://redis:6379/0` | |
 | `HUB_SECRET_KEY` | api, worker | yes | `openssl rand -base64 32` | AES-256-GCM key for `secret_enc`/`totp_secret_enc` (rotation: `pnpm ops:rotate-key`) |
-| `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY` | api | yes | ES256 PEM (`openssl ecparam -genkey -name prime256v1`) | access tokens (15 min) |
+| `HUB_JWT_SECRET` | api | yes | `pnpm setup:env`, or 32+ random chars | HS256 key of the access token (15 min) and the TOTP challenge (5 min) |
 | `SESSION_COOKIE_DOMAIN` | api | no | `hub.goteav.lan` | defaults to the public URL host |
 | `PROCESS_ROLE` | api/worker | yes | `api` \| `worker` | which processors register |
 | `PORT` | api, web | yes | `7310` / `7300` | |
@@ -357,7 +357,7 @@ anything a `need` tracks.
 ```bash
 sudo -u hub -H bash
 cd /srv/hub && git clone https://github.com/Alremaal-Co/hub.git && cd hub   # deploy key or token with read access
-cp .env.example .env && nano .env            # fill: POSTGRES_PASSWORD, HUB_SECRET_KEY, JWT keys, HUB_PUBLIC_URL, HUB_OWNER_*, HUB_WORKSPACE_*
+cp .env.example .env && nano .env            # fill: POSTGRES_PASSWORD, HUB_SECRET_KEY, HUB_JWT_SECRET, HUB_PUBLIC_URL, HUB_OWNER_*, HUB_WORKSPACE_*
 sudo mkdir -p /mnt/backup/hub && sudo chown hub:hub /mnt/backup/hub   # second disk mounted at /mnt/backup
 docker compose -f infra/compose.yaml --env-file .env pull     # or build locally: docker compose … build
 docker compose -f infra/compose.yaml --env-file .env up -d    # migrate runs first, seeds the owner + workspace

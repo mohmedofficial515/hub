@@ -1,9 +1,10 @@
 /**
  * @file Boots the real AppModule on the test containers.
- * @description The principal comes from the `x-test-user` header until H0-03 lands sign-in; a test sends
- * `x-test-kind: agent` to act as a Claude Code token. The clock is a `FakeClock` the test can move.
+ * @description By default the principal comes from the `x-test-user` header, and a test sends
+ * `x-test-kind: agent` to act as a Claude Code token. `createTestApp({ realAuth: true })` uses real cookies and
+ * tokens instead (`test/helpers/auth.ts`). The clock is a `FakeClock` the test can move, and mail is recorded.
  */
-import type { Principal } from '@hub/contracts';
+import type { Principal, Role } from '@hub/contracts';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -11,7 +12,13 @@ import type { Request } from 'express';
 import { AppModule } from '@/app.module';
 import { configureApp } from '@/app.setup';
 import { CLOCK, FakeClock } from '@/infra/clock/clock';
-import { PRINCIPAL_RESOLVER, type PrincipalResolver } from '@/modules/identity';
+import {
+  Mailer,
+  type MailMessage,
+  PRINCIPAL_RESOLVER,
+  type PrincipalResolver,
+  TotpPolicy,
+} from '@/modules/identity';
 
 class HeaderPrincipalResolver implements PrincipalResolver {
   async resolve(request: Request): Promise<Principal | null> {
@@ -23,26 +30,60 @@ class HeaderPrincipalResolver implements PrincipalResolver {
   }
 }
 
+/** Tests that are not about auth need no enrolment, whichever roles their members hold. */
+class NoTotpPolicy {
+  async assertSatisfied(): Promise<void> {}
+  async requiredRoles(): Promise<readonly Role[]> {
+    return [];
+  }
+  async requiredForUser(): Promise<boolean> {
+    return false;
+  }
+}
+
 export interface TestApp {
   readonly app: INestApplication;
   readonly clock: FakeClock;
+  readonly mailer: RecordingMailer;
 }
 
 const open: INestApplication[] = [];
 
-export async function createTestApp(): Promise<TestApp> {
+export interface TestAppOptions {
+  /** Real cookies, tokens and TOTP enforcement, for tests of sign-in itself. */
+  readonly realAuth?: boolean;
+}
+
+/** Keeps the messages a test sent, so it can follow a link out of them. */
+export class RecordingMailer extends Mailer {
+  readonly sent: MailMessage[] = [];
+
+  async send(message: MailMessage): Promise<void> {
+    this.sent.push(message);
+  }
+}
+
+export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
   const clock = new FakeClock();
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+  const mailer = new RecordingMailer();
+  let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
     .useValue(clock)
-    .overrideProvider(PRINCIPAL_RESOLVER)
-    .useClass(HeaderPrincipalResolver)
-    .compile();
+    .overrideProvider(Mailer)
+    .useValue(mailer);
+  if (!options.realAuth) {
+    builder = builder
+      .overrideProvider(PRINCIPAL_RESOLVER)
+      .useClass(HeaderPrincipalResolver)
+      .overrideProvider(TotpPolicy)
+      .useValue(new NoTotpPolicy());
+  }
+  const moduleRef = await builder.compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app);
   await app.init();
   open.push(app);
-  return { app, clock };
+  return { app, clock, mailer };
 }
 
 export async function closeTestApps(): Promise<void> {

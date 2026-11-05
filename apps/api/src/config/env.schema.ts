@@ -1,7 +1,6 @@
 /**
  * @file Environment schema (docs/13 env catalogue, docs/15 §3 and §9).
- * @description Only what a local run cannot work without is required. The JWT variables stay optional
- * until H0-03 picks the signing scheme (docs/04 says HS256, docs/13 says ES256).
+ * @description Only what a local run cannot work without is required.
  */
 import { z } from 'zod';
 
@@ -28,10 +27,8 @@ export const envSchema = z.object({
   QUEUE_MODE: z.enum(['bullmq', 'inline']).default('bullmq'),
   REPOS_ROOT: z.string().default('.tmp/repos'),
 
-  // Identity (H0-03)
-  HUB_JWT_SECRET: optionalText,
-  JWT_PRIVATE_KEY: optionalText,
-  JWT_PUBLIC_KEY: optionalText,
+  // Identity (H0-03). HS256 signing key of the access token and the TOTP challenge.
+  HUB_JWT_SECRET: z.string().min(32),
   SESSION_COOKIE_DOMAIN: optionalText,
   HUB_OWNER_EMAIL: optionalText,
   HUB_OWNER_PASSWORD: optionalText,

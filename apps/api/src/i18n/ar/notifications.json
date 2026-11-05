@@ -1,3 +1,11 @@
 {
-  "task_ready": "{cardKey} جاهزة: {title}"
+  "member_joined": "انضم {name} إلى المشروع",
+  "task_ready": "{cardKey} جاهزة: {title}",
+  "routed_decision": "قرار بانتظارك: {cardKey} {title}",
+  "routed_need": "احتياج بانتظارك: {cardKey} {title}",
+  "routed_handoff": "إحالة بانتظارك: {cardKey} {title}",
+  "review_requested": "جاهزة للمراجعة: {cardKey} {title}",
+  "mention": "ذُكرتَ في {cardKey}: {title}",
+  "unblocked": "{cardKey} لم تعد محجوبة بعد {byCardKey}: {title}",
+  "release_released": "صدر: {cardKey} {title}"
 }

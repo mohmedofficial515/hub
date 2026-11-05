@@ -4,7 +4,7 @@
  * sources, tokens, projects) calls `record` itself, inside its own transaction. Never pass a secret in
  * `summary`. The request's ip and user agent come from CLS, set in app.module.ts.
  */
-import { type Actor, storedActorKind } from '@hub/contracts';
+import { type Actor, storedActorKind, type Via } from '@hub/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { ClsService } from 'nestjs-cls';
@@ -21,6 +21,14 @@ export interface AuditEntry {
   readonly summary: string;
 }
 
+/** Who did something when no project is involved. */
+export interface AccountSubject {
+  readonly kind: 'user' | 'agent' | 'hook';
+  readonly userId: string;
+  readonly via: Via;
+  readonly tokenId?: string;
+}
+
 /** Keys of the CLS store, filled by the middleware in app.module.ts. */
 export const CLS_IP = 'hub.ip';
 export const CLS_USER_AGENT = 'hub.userAgent';
@@ -34,14 +42,27 @@ export class AuditService {
   ) {}
 
   async record(actor: Actor, entry: AuditEntry): Promise<void> {
+    await this.write(actor.workspaceId, actor, entry);
+  }
+
+  /** An account event that belongs to no project: sign-in, password, TOTP, own tokens. */
+  async recordAccount(subject: AccountSubject, entry: AuditEntry): Promise<void> {
+    await this.write(null, subject, entry);
+  }
+
+  private async write(
+    workspaceId: string | null,
+    actor: Actor | AccountSubject,
+    entry: AuditEntry,
+  ): Promise<void> {
     const active = this.cls.isActive();
     await this.txHost.tx.auditLog.create({
       data: {
-        workspaceId: actor.workspaceId,
+        workspaceId,
         actorKind: storedActorKind(actor),
         actorId: actor.userId,
         via: actor.via,
-        tokenId: 'tokenId' in actor ? actor.tokenId : null,
+        tokenId: 'tokenId' in actor ? (actor.tokenId ?? null) : null,
         action: entry.action,
         targetType: entry.targetType,
         targetId: entry.targetId ?? null,

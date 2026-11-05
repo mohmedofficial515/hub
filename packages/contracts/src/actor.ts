@@ -36,7 +36,7 @@ export interface SystemActor {
 export type Actor = MemberActor | SystemActor;
 
 /** How the actor is stored on `cards.created_by_kind` and `card_events.actor_kind` (docs/03 §5). */
-export function storedActorKind(actor: Actor): 'user' | 'agent' | 'system' {
+export function storedActorKind(actor: { readonly kind: ActorKind }): 'user' | 'agent' | 'system' {
   if (actor.kind === 'hook') return 'agent';
   return actor.kind;
 }

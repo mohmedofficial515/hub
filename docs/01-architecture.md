@@ -282,12 +282,12 @@ in Hub's configuration.
 | --- | --- |
 | Network | Only the host's 80/443 are reachable on the LAN; containers talk on an internal Docker network; Postgres/Redis unpublished. Caddy `allowedHosts` = `hub.goteav.lan`, `<static-ip>`. |
 | Transport | TLS from Caddy's internal CA; root cert installed by the team-pack installer; HSTS on. |
-| Sessions | httpOnly, `Secure`, `SameSite=Lax` cookies; refresh rotation with family revocation on reuse (same as backend identity). |
-| API tokens | 40-byte random, shown once, stored as SHA-256; prefix `hub_` + 8-char id for lookup; last-used-at; revoke; belongs to the member, with the project chosen per call and roles resolved live, not frozen (docs/15 §5). |
+| Sessions | httpOnly, `SameSite=Lax` cookies, `Secure` when the public URL is https; refresh rotation with family revocation on reuse (same as backend identity). |
+| API tokens | `hub_<prefix8>_<secret>`: 40 random bytes, shown once, stored as SHA-256; prefix `hub_` + 8 hex characters for lookup; last-used-at; revoke; belongs to the member, with the project chosen per call and roles resolved live, not frozen (docs/15 §5). |
 | Actor kind | Recorded, never used to refuse (D27). An owner's Claude Code may do what the owner may do. Sensitive and destructive tools carry `destructiveHint` and tell Claude to confirm in the chat first; Hub does not enforce that, and the event records `via: mcp`. API tokens, passwords and source tokens are web only. Hook tokens stay limited to `/capture/*`, `/me` and `/me/context`. |
 | Secret filter | Applied to every free-text input (REST, MCP, hooks) before persistence; patterns in `packages/contracts/src/secret-patterns.ts`; rejection code `hub.security.secret_detected` with the matched pattern name (never the value). |
 | Audit | Every mutation → `audit_log` (actor, kind, via, card, summary, ip, user-agent). Read-only page for owner/pm. |
-| Rate limits | `@nestjs/throttler` over Redis: auth endpoints 10/min/IP, MCP 120/min/token, hooks 60/min/token. |
+| Rate limits | `infra/throttler/rate-limit.guard.ts` over Redis: auth endpoints 10/min/IP, MCP 120/min/token, hooks 60/min/token. |
 | Backups | Nightly `pg_dump` to a second disk/USB + weekly copy off-host (`13-operations.md`). |
 | Supply chain | `pnpm audit` in CI, lockfile committed, Dockerfiles pin base images by digest, non-root `node` user, read-only root FS where possible. |
 

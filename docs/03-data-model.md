@@ -45,6 +45,7 @@ model User {
   avatarColor   String    @map("avatar_color")          // one of 12 token names, assigned at creation
   totpSecretEnc String?   @map("totp_secret_enc")       // AES-256-GCM with HUB_SECRET_KEY, base64
   totpEnabledAt DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  totpRecoveryCodes String[] @default([]) @map("totp_recovery_codes") // sha256 of each unused code
   status        String    @default("active")            // active | disabled
   lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(3)
   defaultWorkspaceId String? @map("default_workspace_id") @db.Uuid // the default project, which switch_project sets (15 §5)
@@ -108,7 +109,8 @@ model LoginAttempt { id BigInt @id @default(autoincrement()); email String; ip S
 ```
 
 Lockout rule (code, not schema): 10 failed attempts per email **or** per IP in 15 minutes →
-`423 hub.identity.locked` for 15 minutes.
+`423 hub.identity.locked` for 15 minutes, counted from the failure that completed the ten. Wrong TOTP and
+recovery codes count as failures. Attempts refused by a lock are not recorded, so a locked account opens on time.
 
 ## 3. workspaces.prisma
 
@@ -372,7 +374,7 @@ model CardComment {
 model CardWatcher {
   cardId    String   @map("card_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  reason    String                                      // creator | assignee | role | mention | manual
+  reason    String                                      // creator | assignee | role | mention | commenter | manual
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   card      Card     @relation(fields: [cardId], references: [id])
   @@id([cardId, userId])
@@ -431,8 +433,8 @@ from, to }`, with no separate `status_changed`). An edit of several fields is on
 | `session_logged` | `{ sessionId, hasSummary }` | change (session) |
 | `approved` / `rejected` / `changes_requested` / `ported` | `{ note?, ref? }` | redesign |
 | `unblocked` | `{ byCardKey }` | any blocked card when a blocker closes |
-| `archived` / `restored` | `{}` | owner/pm. This is delete and restore (D28). |
-| `plan_revised` | `{ revision, previousBody }` | plan: every save of the body, keeping the previous text |
+| `archived` / `restored` | `{ reason? }` | owner, pm and the card's creator. This is delete and restore (D28). |
+| `plan_revised` | `{ revision, previousBody, restoredFrom? }` | plan: every save of the body, keeping the previous text. `revision` is the new number, so `previousBody` is revision - 1 |
 | `plan_steps_changed` | `{ steps }` | plan |
 | `idea_to_plan` | `{ planKey }` | idea, moving it to accepted |
 | `plan_to_tasks` | `{ taskKeys[] }` | plan |

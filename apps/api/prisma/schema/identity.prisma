@@ -7,6 +7,7 @@ model User {
   avatarColor   String    @map("avatar_color")          // one of 12 token names, assigned at creation
   totpSecretEnc String?   @map("totp_secret_enc")       // AES-256-GCM with HUB_SECRET_KEY, base64
   totpEnabledAt DateTime? @map("totp_enabled_at") @db.Timestamptz(3)
+  totpRecoveryCodes String[] @default([]) @map("totp_recovery_codes") // sha256 of each unused code
   status        String    @default("active")            // active | disabled
   lastSeenAt    DateTime? @map("last_seen_at") @db.Timestamptz(3)
   defaultWorkspaceId String? @map("default_workspace_id") @db.Uuid // switch_project sets it

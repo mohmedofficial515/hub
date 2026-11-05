@@ -54,9 +54,19 @@ Types are in `@hub/contracts` (`actor.ts`). Credentials give a `Principal`, whic
 | An MCP tool                     | `actors.forProject(principal, { argument: input.project, header })`        |
 | An adapter or job               | `{ kind: 'system', userId: null, via: 'adapter', workspaceId, roles: [] }` |
 
-Sign-in plugs in at one place: bind the real implementation to `PRINCIPAL_RESOLVER` in `identity.module.ts`
-(`resolve(request): Promise<Principal | null>`). Until then every non-public route answers 401, and e2e tests send
-`x-test-user` (`test/setup/create-test-app.ts`).
+`PRINCIPAL_RESOLVER` is `CredentialsResolver`: a bearer token, else the session cookie. `ActorService` also applies the TOTP
+rule, so REST and MCP are the same. Mark a route `@SessionOnly()` (`@/modules/identity`) when a token must not reach it; an
+arch test requires it for every `web_only` action.
+
+E2e tests send `x-test-user` by default, with TOTP off (`test/setup/create-test-app.ts`). `createTestApp({ realAuth: true })`
+uses real credentials: `test/helpers/auth.ts` has `anAccount`, `aToken`, `totpCode` and a cookie-keeping `Browser`. Mail goes
+to `mailer.sent`.
+
+First owner: `pnpm setup:env`, set `HUB_OWNER_EMAIL` in `.env`, `pnpm db:deploy`, `pnpm seed:owner`. It is safe to run again.
+
+Other modules read settings with `SettingsService.value(workspaceId, key)` and a source's secret with
+`SourcesService.readSecret(workspaceId, id)` (`@/modules/workspaces`). Limit a route with `@RateLimit('search')`
+(`infra/throttler/rate-limit.guard.ts`).
 
 ## Add an action to a card type
 
@@ -90,11 +100,20 @@ Sign-in plugs in at one place: bind the real implementation to `PRINCIPAL_RESOLV
 4. Test it through `service.apply(...)` in `test/e2e/<module>.e2e-spec.ts`. `test/e2e/cards.e2e-spec.ts` is the model.
 
 The plan's other fields: `create` (when target is null), `notify`, `summary`, `write` (extra rows in the same
-transaction, through your own repository; what it returns joins the event's data) and `followUps` (more actions in the
-same transaction, each with its own event). See `modules/cards/domain/card-action.ts`. `permissions(payload, card)`
-replaces the default row for an action whose rows depend on its input, such as an update touching routing fields.
+transaction, through `CardRepository`; what it returns joins the event's data), `followUps` (more actions in the
+same transaction, each with its own event), `prepare` (actions to run before `write` and the event, whose results `write`
+receives, for "create tasks from steps" recording the new keys) and `noop` (nothing changed: no event at all). See
+`modules/cards/domain/card-action.ts`. `permissions(payload, card)` replaces the default row for an action whose rows depend
+on its input or the card, such as an update touching routing fields. A follow-up with `trusted: true` skips the matrix,
+because the outer action was permitted; the actor is still recorded. A row of `surface: system` is reachable no other way.
 
-`modules/tasks/application/task-create.action.ts` is the working example.
+`plan` runs before the status machine, so a rule that wants its own code for a wrong state (`hub.decisions.already_decided`)
+throws there. A card reaching a terminal status, or deleted, unblocks its dependants: `apply` does that, not your action.
+
+A status move with no rule of its own is one line: extend `PlainTransition`, `OptionalReasonTransition` or `ReasonTransition`
+from `@/modules/cards`.
+
+`modules/tasks/application/task-create.action.ts` is the working example; `modules/plans` shows `prepare` and `followUps`.
 
 ## Add a card type
 
@@ -160,5 +179,12 @@ Workers start where `PROCESS_ROLE` is `worker` or `all`. In tests `QUEUE_MODE=in
 Notifications: return `notify` from a plan. `OutboxProcessor.registerSender(channel, sender)` connects a channel; with no
 sender a job ends `skipped`.
 
-Realtime: `RealtimePublisher` publishes a `RealtimeCardEvent` to `workspaceEventsChannel(id)` after commit. The SSE module
-subscribes with `RedisClients.createSubscriber()`.
+Realtime: `CardService` publishes each card event after commit, so a card change reaches every open page with no work from
+you. For anything else, `RealtimePublisher.publishEnvelope(workspaceId, { event, data, audience })`: `inbox.new` with
+`{ userIds }`, `source.run` with `{ roles }`. Messages name what changed and carry no text; pages refetch through the API.
+
+## Read cards
+
+`CardQueryService` (`@/modules/cards`) is every read: `list`, `listWithDetail(actor, type, { where, sort, ... })` for a type's
+page, `full`, `deleted`, `events`, `comments`, `timeline`, `summaries`. `actionsFor` and `awaitedAction` in `@hub/contracts` are
+the one rule for what a card offers and whether it waits on a member; `GET /cards?awaiting=me` is that stack.
