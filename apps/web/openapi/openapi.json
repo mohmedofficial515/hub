@@ -3452,6 +3452,160 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/docs/save": {
+      "post": {
+        "operationId": "DocsController_save",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDocDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveDocResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Write a document to its file, keeping the earlier text as a revision. Refuses a stale base. No Git commit",
+        "tags": [
+          "docs"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/docs/{key}/revisions": {
+      "get": {
+        "operationId": "DocsController_revisions",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocRevisionSummaryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The earlier texts of a document, newest first",
+        "tags": [
+          "docs"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}": {
+      "get": {
+        "operationId": "DocsController_revision",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocRevisionDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One earlier text of a document",
+        "tags": [
+          "docs"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}/restore": {
+      "post": {
+        "operationId": "DocsController_restore",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreDocRevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveDocResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Put an earlier text back. What is there now becomes a revision too",
+        "tags": [
+          "docs"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/docs": {
       "get": {
         "operationId": "DocsController_list",
@@ -3648,6 +3802,348 @@
         "summary": "One document with its file, contents and who mentions it",
         "tags": [
           "docs"
+        ]
+      }
+    },
+    "/api/v1/bridge/self": {
+      "delete": {
+        "operationId": "BridgeSelfController_remove",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "A device revokes itself as it uninstalls",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices": {
+      "get": {
+        "operationId": "DevicesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceRowDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "The member’s paired devices, with online state and the last health report",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/connect-command": {
+      "get": {
+        "operationId": "DevicesController_connectCommand",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectCommandDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The one command that connects a new device, and the one that removes Hub from it",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}/health": {
+      "get": {
+        "operationId": "DevicesController_health",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runs the device’s health checks now. Offline, the last report stands",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}/fix": {
+      "post": {
+        "operationId": "DevicesController_fix",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runs one fix from the closed list on the device, then its checks",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/{id}": {
+      "delete": {
+        "operationId": "DevicesController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke a device. Its credentials stop at once and its socket closes",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/start": {
+      "post": {
+        "operationId": "PairingController_start",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingStartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingStartedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A device asks to pair. It shows the short code and opens the approval page",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/poll": {
+      "post": {
+        "operationId": "PairingController_poll",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingPollDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingPollAnswerDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A device asks for the answer. Its credentials come back once",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}": {
+      "get": {
+        "operationId": "PairingController_view",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingViewDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "What is asking to pair, for the approval page",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}/approve": {
+      "post": {
+        "operationId": "PairingController_approve",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Approve a device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/pairing/{code}/deny": {
+      "post": {
+        "operationId": "PairingController_deny",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Refuse a device",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/devices/{id}/link": {
+      "post": {
+        "operationId": "WorkspaceDevicesController_link",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkFolderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Link a folder on this device to the project, and accept its trust (D44)",
+        "tags": [
+          "devices"
         ]
       }
     },
@@ -6401,25 +6897,33 @@
         ]
       }
     },
-    "/api/v1/bridge/self": {
-      "delete": {
-        "operationId": "BridgeSelfController_remove",
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "A device revokes itself as it uninstalls",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/me/devices": {
+    "/api/v1/workspaces/{ws}/chats": {
       "get": {
-        "operationId": "DevicesController_list",
-        "parameters": [],
+        "operationId": "ChatsController_list",
+        "parameters": [
+          {
+            "name": "deleted",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -6428,147 +6932,27 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DeviceRowDto"
+                    "$ref": "#/components/schemas/ChatRowDto"
                   }
                 }
               }
             }
           }
         },
-        "summary": "The member’s paired devices, with online state and the last health report",
+        "summary": "This member’s chats on this project, pinned first. `deleted=true` lists deleted ones",
         "tags": [
-          "devices"
+          "chats"
         ]
-      }
-    },
-    "/api/v1/me/devices/connect-command": {
-      "get": {
-        "operationId": "DevicesController_connectCommand",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConnectCommandDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "The one command that connects a new device, and the one that removes Hub from it",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/me/devices/{id}/health": {
-      "get": {
-        "operationId": "DevicesController_health",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceRowDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Runs the device’s health checks now. Offline, the last report stands",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/me/devices/{id}/fix": {
+      },
       "post": {
-        "operationId": "DevicesController_fix",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FixDeviceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceRowDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Runs one fix from the closed list on the device, then its checks",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/me/devices/{id}": {
-      "delete": {
-        "operationId": "DevicesController_revoke",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Revoke a device. Its credentials stop at once and its socket closes",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/pairing/start": {
-      "post": {
-        "operationId": "PairingController_start",
+        "operationId": "ChatsController_create",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PairingStartDto"
+                "$ref": "#/components/schemas/CreateChatDto"
               }
             }
           }
@@ -6579,56 +6963,57 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingStartedDto"
+                  "$ref": "#/components/schemas/ChatRowDto"
                 }
               }
             }
           }
         },
-        "summary": "A device asks to pair. It shows the short code and opens the approval page",
+        "summary": "A new chat on a device, in a folder registered on this project",
         "tags": [
-          "devices"
+          "chats"
         ]
       }
     },
-    "/api/v1/pairing/poll": {
-      "post": {
-        "operationId": "PairingController_poll",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PairingPollDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PairingPollAnswerDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "A device asks for the answer. Its credentials come back once",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/pairing/{code}": {
+    "/api/v1/workspaces/{ws}/chats/engine": {
       "get": {
-        "operationId": "PairingController_view",
+        "operationId": "ChatsController_engine",
         "parameters": [
           {
-            "name": "code",
+            "name": "device",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EngineStatusDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Claude Code on one device: version, range, sign-in, and which selectors it supports",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}": {
+      "get": {
+        "operationId": "ChatsController_get",
+        "parameters": [
+          {
+            "name": "id",
             "required": true,
             "in": "path",
             "schema": {
@@ -6642,69 +7027,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PairingViewDto"
+                  "$ref": "#/components/schemas/ChatFullDto"
                 }
               }
             }
           }
         },
-        "summary": "What is asking to pair, for the approval page",
+        "summary": "One chat with every message, step and approval. This is also how a device catches up",
         "tags": [
-          "devices"
+          "chats"
         ]
-      }
-    },
-    "/api/v1/pairing/{code}/approve": {
-      "post": {
-        "operationId": "PairingController_approve",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Approve a device",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/pairing/{code}/deny": {
-      "post": {
-        "operationId": "PairingController_deny",
-        "parameters": [
-          {
-            "name": "code",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "summary": "Refuse a device",
-        "tags": [
-          "devices"
-        ]
-      }
-    },
-    "/api/v1/workspaces/{ws}/devices/{id}/link": {
-      "post": {
-        "operationId": "WorkspaceDevicesController_link",
+      },
+      "patch": {
+        "operationId": "ChatsController_update",
         "parameters": [
           {
             "name": "id",
@@ -6720,7 +7055,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LinkFolderDto"
+                "$ref": "#/components/schemas/UpdateChatDto"
               }
             }
           }
@@ -6731,15 +7066,447 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LinkResultDto"
+                  "$ref": "#/components/schemas/ChatRowDto"
                 }
               }
             }
           }
         },
-        "summary": "Link a folder on this device to the project, and accept its trust (D44)",
+        "summary": "Rename or pin a chat, or set its mode, model and effort for the next turn",
         "tags": [
-          "devices"
+          "chats"
+        ]
+      },
+      "delete": {
+        "operationId": "ChatsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a chat. It can be restored (D28). A running turn stops first",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/restore": {
+      "post": {
+        "operationId": "ChatsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Bring a deleted chat back",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/messages": {
+      "post": {
+        "operationId": "ChatsController_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendChatMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatTurnStartedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send a message. The reply streams; another send while it runs is refused",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/retry": {
+      "post": {
+        "operationId": "ChatsController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatTurnStartedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send the last message again as a new turn",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/stop": {
+      "post": {
+        "operationId": "ChatsController_stop",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Stop the running turn: the interrupt first, then the process tree if it does not end",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/branch": {
+      "post": {
+        "operationId": "ChatsController_branch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BranchChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatRowDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A new chat holding the words up to a message",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/approvals/{approval}": {
+      "post": {
+        "operationId": "ChatsController_answer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "approval",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerApprovalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Allow once or deny a paused call. The first answer wins; later ones get a conflict",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/export": {
+      "get": {
+        "operationId": "ChatsController_export",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatExportDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The chat as Markdown",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/chats/{id}/diff": {
+      "get": {
+        "operationId": "ChatsController_diff",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "path",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 1000,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatDiffDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One file’s diff against HEAD as it is now on the device. Read only",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/prompt-templates": {
+      "get": {
+        "operationId": "PromptTemplatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PromptTemplateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Frequent prompts saved on this project",
+        "tags": [
+          "chats"
+        ]
+      },
+      "post": {
+        "operationId": "PromptTemplatesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptTemplateInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptTemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Save a frequent prompt",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/prompt-templates/{id}": {
+      "put": {
+        "operationId": "PromptTemplatesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptTemplateInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptTemplateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change a saved prompt",
+        "tags": [
+          "chats"
+        ]
+      },
+      "delete": {
+        "operationId": "PromptTemplatesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Delete a saved prompt",
+        "tags": [
+          "chats"
         ]
       }
     }
@@ -26026,6 +26793,185 @@
           "worker"
         ]
       },
+      "SaveDocDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 2000000
+          },
+          "baseHash": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "SaveDocResultDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "nullable": true
+          },
+          "hash": {
+            "type": "string"
+          },
+          "revisionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "unchanged": {
+            "type": "boolean"
+          },
+          "withheld": {
+            "type": "boolean"
+          },
+          "similar": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "title",
+                "path",
+                "source"
+              ]
+            }
+          }
+        },
+        "required": [
+          "path",
+          "source",
+          "key",
+          "hash",
+          "revisionId",
+          "unchanged",
+          "withheld",
+          "similar"
+        ]
+      },
+      "DocRevisionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "savedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "chars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "contentHash",
+          "reason",
+          "savedById",
+          "createdAt",
+          "chars"
+        ]
+      },
+      "DocRevisionDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "savedById": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "chars": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "contentHash",
+          "reason",
+          "savedById",
+          "createdAt",
+          "chars",
+          "content"
+        ]
+      },
+      "RestoreDocRevisionDto": {
+        "type": "object",
+        "properties": {
+          "baseHash": {
+            "type": "string",
+            "maxLength": 100
+          }
+        }
+      },
       "TreeDto__schema0": {
         "type": "object",
         "properties": {
@@ -27325,6 +28271,328 @@
         },
         "required": [
           "data"
+        ]
+      },
+      "DeviceRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "bridgeVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "claudeVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "vscodeFound": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "pairedAt": {
+            "type": "string"
+          },
+          "health": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "enum": [
+                    "claude_found",
+                    "claude_version",
+                    "claude_path_version",
+                    "claude_signed_in",
+                    "mcp_server",
+                    "plugin",
+                    "login_start",
+                    "vscode"
+                  ]
+                },
+                "ok": {
+                  "type": "boolean"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "ok",
+                    "warn",
+                    "error"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "maxLength": 500,
+                  "nullable": true
+                },
+                "fix": {
+                  "type": "string",
+                  "enum": [
+                    "mcp_server",
+                    "plugin",
+                    "login_start",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "hint": {
+                  "type": "string",
+                  "maxLength": 300,
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "ok",
+                "level",
+                "detail",
+                "fix",
+                "hint"
+              ]
+            }
+          },
+          "healthAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "online",
+          "bridgeVersion",
+          "claudeVersion",
+          "vscodeFound",
+          "lastSeenAt",
+          "pairedAt",
+          "health",
+          "healthAt"
+        ]
+      },
+      "ConnectCommandDto": {
+        "type": "object",
+        "properties": {
+          "apiUrl": {
+            "type": "string"
+          },
+          "connect": {
+            "type": "string"
+          },
+          "uninstall": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "apiUrl",
+          "connect",
+          "uninstall"
+        ]
+      },
+      "FixDeviceDto": {
+        "type": "object",
+        "properties": {
+          "fix": {
+            "type": "string",
+            "enum": [
+              "mcp_server",
+              "plugin",
+              "login_start"
+            ]
+          }
+        },
+        "required": [
+          "fix"
+        ]
+      },
+      "PairingStartDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "win32",
+              "darwin",
+              "linux"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "platform"
+        ]
+      },
+      "PairingStartedDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string"
+          },
+          "userCode": {
+            "type": "string"
+          },
+          "approveUrl": {
+            "type": "string"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "pollSeconds": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "deviceCode",
+          "userCode",
+          "approveUrl",
+          "expiresInSeconds",
+          "pollSeconds"
+        ]
+      },
+      "PairingPollDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "PairingPollAnswerDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "denied",
+              "claimed",
+              "expired"
+            ]
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "credential": {
+            "type": "string"
+          },
+          "hookToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "PairingViewDto": {
+        "type": "object",
+        "properties": {
+          "userCode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "denied",
+              "claimed",
+              "expired"
+            ]
+          },
+          "expiresAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userCode",
+          "name",
+          "platform",
+          "status",
+          "expiresAt"
+        ]
+      },
+      "LinkFolderDto": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "folder"
+        ]
+      },
+      "LinkResultDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "linked",
+              "already_linked",
+              "shape_unexpected",
+              "mcp_failed"
+            ]
+          },
+          "folder": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "backup": {
+            "type": "string",
+            "nullable": true
+          },
+          "registered": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "outcome",
+          "folder",
+          "project",
+          "backup",
+          "registered"
         ]
       },
       "LabPageDto": {
@@ -31797,326 +33065,1070 @@
           "text"
         ]
       },
-      "DeviceRowDto": {
+      "ChatRowDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
-          "name": {
+          "deviceId": {
             "type": "string"
           },
-          "platform": {
+          "deviceName": {
             "type": "string"
           },
-          "online": {
+          "deviceOnline": {
             "type": "boolean"
           },
-          "bridgeVersion": {
-            "type": "string",
-            "nullable": true
+          "deviceRevoked": {
+            "type": "boolean"
           },
-          "claudeVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "vscodeFound": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "lastSeenAt": {
-            "type": "string",
-            "nullable": true
-          },
-          "pairedAt": {
+          "folder": {
             "type": "string"
           },
-          "health": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "enum": [
-                    "claude_found",
-                    "claude_version",
-                    "claude_path_version",
-                    "claude_signed_in",
-                    "mcp_server",
-                    "plugin",
-                    "login_start",
-                    "vscode"
-                  ]
-                },
-                "ok": {
-                  "type": "boolean"
-                },
-                "level": {
-                  "type": "string",
-                  "enum": [
-                    "ok",
-                    "warn",
-                    "error"
-                  ]
-                },
-                "detail": {
-                  "type": "string",
-                  "maxLength": 500,
-                  "nullable": true
-                },
-                "fix": {
-                  "type": "string",
-                  "enum": [
-                    "mcp_server",
-                    "plugin",
-                    "login_start",
-                    null
-                  ],
-                  "nullable": true
-                },
-                "hint": {
-                  "type": "string",
-                  "maxLength": 300,
-                  "nullable": true
-                }
-              },
-              "required": [
-                "id",
-                "ok",
-                "level",
-                "detail",
-                "fix",
-                "hint"
-              ]
-            }
+          "branch": {
+            "type": "string",
+            "nullable": true
           },
-          "healthAt": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          },
+          "effort": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "parentChatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentMessageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "lastSeq": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "deletedAt": {
             "type": "string",
             "nullable": true
           }
         },
         "required": [
           "id",
-          "name",
-          "platform",
-          "online",
-          "bridgeVersion",
-          "claudeVersion",
-          "vscodeFound",
-          "lastSeenAt",
-          "pairedAt",
-          "health",
-          "healthAt"
+          "deviceId",
+          "deviceName",
+          "deviceOnline",
+          "deviceRevoked",
+          "folder",
+          "branch",
+          "mode",
+          "model",
+          "effort",
+          "sessionId",
+          "title",
+          "pinned",
+          "parentChatId",
+          "parentMessageId",
+          "running",
+          "lastSeq",
+          "createdAt",
+          "updatedAt",
+          "deletedAt"
         ]
       },
-      "ConnectCommandDto": {
+      "EngineStatusDto": {
         "type": "object",
         "properties": {
-          "apiUrl": {
-            "type": "string"
+          "found": {
+            "type": "boolean"
           },
-          "connect": {
-            "type": "string"
-          },
-          "uninstall": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "apiUrl",
-          "connect",
-          "uninstall"
-        ]
-      },
-      "FixDeviceDto": {
-        "type": "object",
-        "properties": {
-          "fix": {
+          "version": {
             "type": "string",
-            "enum": [
-              "mcp_server",
-              "plugin",
-              "login_start"
+            "nullable": true
+          },
+          "inRange": {
+            "type": "boolean"
+          },
+          "testedRange": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "string"
+              },
+              "max": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "min",
+              "max"
             ]
-          }
-        },
-        "required": [
-          "fix"
-        ]
-      },
-      "PairingStartDto": {
-        "type": "object",
-        "properties": {
-          "name": {
+          },
+          "message": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 80
+            "maxLength": 500,
+            "nullable": true
           },
-          "platform": {
-            "type": "string",
-            "enum": [
-              "win32",
-              "darwin",
-              "linux"
-            ]
-          }
-        },
-        "required": [
-          "name",
-          "platform"
-        ]
-      },
-      "PairingStartedDto": {
-        "type": "object",
-        "properties": {
-          "deviceCode": {
-            "type": "string"
+          "signedIn": {
+            "type": "boolean",
+            "nullable": true
           },
-          "userCode": {
-            "type": "string"
+          "effortSupported": {
+            "type": "boolean"
           },
-          "approveUrl": {
-            "type": "string"
+          "modelSupported": {
+            "type": "boolean"
           },
-          "expiresInSeconds": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "pollSeconds": {
+          "live": {
             "type": "integer",
             "minimum": -9007199254740991,
             "maximum": 9007199254740991
           }
         },
         "required": [
-          "deviceCode",
-          "userCode",
-          "approveUrl",
-          "expiresInSeconds",
-          "pollSeconds"
+          "found",
+          "version",
+          "inRange",
+          "testedRange",
+          "message",
+          "signedIn",
+          "effortSupported",
+          "modelSupported",
+          "live"
         ]
       },
-      "PairingPollDto": {
+      "CreateChatDto": {
         "type": "object",
         "properties": {
-          "deviceCode": {
+          "device": {
             "type": "string",
-            "minLength": 32,
-            "maxLength": 128
-          }
-        },
-        "required": [
-          "deviceCode"
-        ]
-      },
-      "PairingPollAnswerDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "approved",
-              "denied",
-              "claimed",
-              "expired"
-            ]
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
           },
-          "deviceId": {
-            "type": "string"
-          },
-          "credential": {
-            "type": "string"
-          },
-          "hookToken": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "PairingViewDto": {
-        "type": "object",
-        "properties": {
-          "userCode": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "platform": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "approved",
-              "denied",
-              "claimed",
-              "expired"
-            ]
-          },
-          "expiresAt": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "userCode",
-          "name",
-          "platform",
-          "status",
-          "expiresAt"
-        ]
-      },
-      "LinkFolderDto": {
-        "type": "object",
-        "properties": {
           "folder": {
             "type": "string",
             "minLength": 1,
             "maxLength": 500
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.\\-[\\]]{0,63}$"
+          },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
           }
         },
         "required": [
+          "device",
           "folder"
         ]
       },
-      "LinkResultDto": {
+      "ChatFullDto": {
         "type": "object",
         "properties": {
-          "outcome": {
-            "type": "string",
-            "enum": [
-              "linked",
-              "already_linked",
-              "shape_unexpected",
-              "mcp_failed"
-            ]
+          "id": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "deviceOnline": {
+            "type": "boolean"
+          },
+          "deviceRevoked": {
+            "type": "boolean"
           },
           "folder": {
             "type": "string"
           },
-          "project": {
-            "type": "string"
-          },
-          "backup": {
+          "branch": {
             "type": "string",
             "nullable": true
           },
-          "registered": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          },
+          "effort": {
+            "type": "string",
+            "nullable": true
+          },
+          "sessionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "parentChatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentMessageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "running": {
+            "type": "boolean"
+          },
+          "lastSeq": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "ordinal": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "assistant"
+                  ]
+                },
+                "content": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "type": "boolean"
+                },
+                "context": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "string",
+                      "maxLength": 80
+                    },
+                    "card": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "attachments": {
+                      "maxItems": 20,
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "card"
+                                ]
+                              },
+                              "key": {
+                                "type": "string",
+                                "maxLength": 40
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "key"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "doc"
+                                ]
+                              },
+                              "key": {
+                                "type": "string",
+                                "maxLength": 40
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "key"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "file"
+                                ]
+                              },
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "path"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "nullable": true
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "running",
+                    "done",
+                    "failed",
+                    "stopped",
+                    "interrupted",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "failure": {
+                  "type": "string",
+                  "enum": [
+                    "signed_out",
+                    "rate_limited",
+                    "billing",
+                    "overloaded",
+                    "version_out_of_range",
+                    "claude_missing",
+                    "session_missing",
+                    "folder_not_allowed",
+                    "folder_missing",
+                    "device_offline",
+                    "cut_off",
+                    "unknown",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "failureMessage": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "model": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "claudeVersion": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "durationMs": {
+                  "type": "number",
+                  "nullable": true
+                },
+                "usage": {
+                  "type": "object",
+                  "properties": {
+                    "inputTokens": {
+                      "type": "number"
+                    },
+                    "outputTokens": {
+                      "type": "number"
+                    },
+                    "cacheReadTokens": {
+                      "type": "number"
+                    },
+                    "cacheWriteTokens": {
+                      "type": "number"
+                    }
+                  },
+                  "nullable": true
+                },
+                "limit": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "limitType": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "resetsAt": {
+                      "type": "number"
+                    },
+                    "utilization": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "nullable": true
+                },
+                "stages": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "protocol": {
+                        "type": "string",
+                        "enum": [
+                          "work",
+                          "doc"
+                        ]
+                      },
+                      "stage": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "started",
+                          "done",
+                          "failed"
+                        ]
+                      },
+                      "note": {
+                        "type": "string"
+                      },
+                      "at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "protocol",
+                      "stage",
+                      "state",
+                      "at"
+                    ]
+                  }
+                },
+                "plan": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "changedFiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "tool",
+                          "git"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "maxLength": 4
+                      },
+                      "additions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "deletions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "source"
+                    ]
+                  }
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "toolUseId": {
+                        "type": "string"
+                      },
+                      "parentToolUseId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "running",
+                          "waiting",
+                          "done",
+                          "error",
+                          "cut_off"
+                        ]
+                      },
+                      "input": {},
+                      "output": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "decision": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "textOffset": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "startedAt": {
+                        "type": "string"
+                      },
+                      "endedAt": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "toolUseId",
+                      "parentToolUseId",
+                      "name",
+                      "status",
+                      "input",
+                      "output",
+                      "decision",
+                      "textOffset",
+                      "startedAt",
+                      "endedAt"
+                    ]
+                  }
+                },
+                "approvals": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "toolUseId": {
+                        "type": "string"
+                      },
+                      "toolName": {
+                        "type": "string"
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "delete",
+                          "move",
+                          "commit",
+                          "push",
+                          "deploy",
+                          "branch",
+                          "worktree",
+                          "docker",
+                          "hub_project",
+                          "hub_doc",
+                          "hub_sensitive",
+                          "other"
+                        ]
+                      },
+                      "input": {},
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "allowed",
+                          "denied",
+                          "timed_out",
+                          "stopped"
+                        ]
+                      },
+                      "expiresAt": {
+                        "type": "string"
+                      },
+                      "answeredAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "messageId",
+                      "toolUseId",
+                      "toolName",
+                      "command",
+                      "category",
+                      "input",
+                      "status",
+                      "expiresAt",
+                      "answeredAt",
+                      "createdAt"
+                    ]
+                  }
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "endedAt": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "ordinal",
+                "role",
+                "content",
+                "truncated",
+                "context",
+                "status",
+                "failure",
+                "failureMessage",
+                "model",
+                "claudeVersion",
+                "durationMs",
+                "usage",
+                "limit",
+                "stages",
+                "plan",
+                "changedFiles",
+                "steps",
+                "approvals",
+                "createdAt",
+                "endedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "deviceId",
+          "deviceName",
+          "deviceOnline",
+          "deviceRevoked",
+          "folder",
+          "branch",
+          "mode",
+          "model",
+          "effort",
+          "sessionId",
+          "title",
+          "pinned",
+          "parentChatId",
+          "parentMessageId",
+          "running",
+          "lastSeq",
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "messages"
+        ]
+      },
+      "UpdateChatDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.\\-[\\]]{0,63}$",
+            "nullable": true
+          },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max",
+              null
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "SendChatMessageDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50000
+          },
+          "context": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "card": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "attachments": {
+                "maxItems": 20,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "card"
+                          ]
+                        },
+                        "key": {
+                          "type": "string",
+                          "maxLength": 40
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "key"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "doc"
+                          ]
+                        },
+                        "key": {
+                          "type": "string",
+                          "maxLength": 40
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "key"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "file"
+                          ]
+                        },
+                        "path": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "path"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.\\-[\\]]{0,63}$"
+          },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "ChatTurnStartedDto": {
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "string"
+          },
+          "userMessageId": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "userMessageId",
+          "messageId"
+        ]
+      },
+      "RetryChatDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "plan",
+              "execute"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9.\\-[\\]]{0,63}$"
+          },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ]
+          }
+        }
+      },
+      "BranchChatDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "AnswerApprovalDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "allow",
+              "deny"
+            ]
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "ChatExportDto": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string"
+          },
+          "markdown": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fileName",
+          "markdown"
+        ]
+      },
+      "ChatDiffDto": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "diff": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "available": {
             "type": "boolean"
           }
         },
         "required": [
-          "outcome",
-          "folder",
-          "project",
-          "backup",
-          "registered"
+          "path",
+          "diff",
+          "truncated",
+          "available"
+        ]
+      },
+      "PromptTemplateDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "body",
+          "updatedAt"
+        ]
+      },
+      "PromptTemplateInputDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          }
+        },
+        "required": [
+          "title",
+          "body"
         ]
       }
     }

@@ -3,6 +3,7 @@
  * @description The file is read from the source's folder on each view, with the path checked against that folder, and
  * passes the secret filter on the way out as it did on the way in, since the file may have changed since the last run.
  */
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { isAbsolute, join, relative } from 'node:path';
 
@@ -34,13 +35,12 @@ const newFolder = (name: string, path: string): MutableFolder => ({
   folders: new Map(),
 });
 
-const freeze = (folder: MutableFolder): DocFolder =>
-  ({
-    name: folder.name,
-    path: folder.path,
-    docs: folder.docs,
-    folders: [...folder.folders.values()].sort((a, b) => a.name.localeCompare(b.name)).map(freeze),
-  });
+const freeze = (folder: MutableFolder): DocFolder => ({
+  name: folder.name,
+  path: folder.path,
+  docs: folder.docs,
+  folders: [...folder.folders.values()].sort((a, b) => a.name.localeCompare(b.name)).map(freeze),
+});
 
 @Injectable()
 export class DocsReadService {
@@ -96,7 +96,13 @@ export class DocsReadService {
     return sources.flatMap((source) => {
       const root = roots.get(source.id);
       return root
-        ? [{ source: { id: source.id, name: source.name }, root: freeze(root), total: totals.get(source.id) ?? 0 }]
+        ? [
+            {
+              source: { id: source.id, name: source.name },
+              root: freeze(root),
+              total: totals.get(source.id) ?? 0,
+            },
+          ]
         : [];
     });
   }
@@ -104,7 +110,12 @@ export class DocsReadService {
   private async fileOf(
     workspaceId: string,
     card: CardView,
-  ): Promise<{ content: string | null; unavailable: DocContent['unavailable']; docSource: DocContent['docSource'] }> {
+  ): Promise<{
+    content: string | null;
+    unavailable: DocContent['unavailable'];
+    docSource: DocContent['docSource'];
+    fileHash: string | null;
+  }> {
     const sourceId = String(card.detail?.['sourceId']);
     const source = await this.txHost.tx.source.findUnique({
       where: { id: sourceId, workspaceId },
@@ -115,17 +126,24 @@ export class DocsReadService {
     const { path: root } = source.config as { path?: string };
     const inner = String(card.detail?.['path']);
     if (!root || isAbsolute(inner) || relative(root, join(root, inner)).startsWith('..')) {
-      return { content: null, unavailable: 'missing', docSource: summary };
+      return { content: null, unavailable: 'missing', docSource: summary, fileHash: null };
     }
     try {
-      const body = stripFrontMatter(await readFile(join(root, inner), 'utf8'));
+      const bytes = await readFile(join(root, inner));
+      const body = stripFrontMatter(bytes.toString('utf8'));
       assertNoSecrets({ body });
-      return { content: body, unavailable: null, docSource: summary };
+      return {
+        content: body,
+        unavailable: null,
+        docSource: summary,
+        fileHash: createHash('sha256').update(bytes).digest('hex'),
+      };
     } catch (error) {
       return {
         content: null,
         unavailable: error instanceof AppException ? 'secret' : 'missing',
         docSource: summary,
+        fileHash: null,
       };
     }
   }

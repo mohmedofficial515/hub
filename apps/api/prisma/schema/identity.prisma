@@ -17,6 +17,7 @@ model User {
   sessions      Session[]
   apiTokens     ApiToken[]
   devices       Device[]
+  chats         Chat[]
   @@map("users")
 }
 
@@ -108,6 +109,7 @@ model Device {
   user          User            @relation(fields: [userId], references: [id])
   tokens        ApiToken[]
   pairings      DevicePairing[]
+  chats         Chat[]
   @@index([userId])
   @@map("devices")
 }

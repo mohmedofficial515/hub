@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { homedir, hostname, platform } from 'node:os';
 
 const PIPE_GRACE_MS = 2_000;
+const MAX_RUN_OUTPUT = 8_000_000;
 
 export function childEnv(env) {
   const clean = {};
@@ -55,12 +56,46 @@ export function realSystem() {
           clearTimeout(timer);
           setTimeout(() => finish(code ?? 1), PIPE_GRACE_MS).unref();
         });
-        child.stdout.on('data', (chunk) => (stdout += chunk));
-        child.stderr.on('data', (chunk) => (stderr += chunk));
+        const cap = options.maxOutput ?? MAX_RUN_OUTPUT;
+        child.stdout.on('data', (chunk) => {
+          if (stdout.length < cap) stdout += chunk;
+        });
+        child.stderr.on('data', (chunk) => {
+          if (stderr.length < cap) stderr += chunk;
+        });
         child.on('error', () => finish(127));
         child.on('close', (code) => finish(code ?? 1));
         child.stdin.end(options.input ?? '');
       });
+    },
+    /** A long-running program with its pipes open, for a chat. No shell. */
+    spawnStream(command, args, options) {
+      return spawn(command, args, {
+        cwd: options.cwd,
+        env: options.env,
+        shell: false,
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    },
+    /** Ends a process and everything it started. `child.kill()` alone leaves children behind on Windows (S1 Q7). */
+    killTree(pid) {
+      if (platform() === 'win32') {
+        return new Promise((done) => {
+          const child = spawn('taskkill.exe', ['/PID', String(pid), '/T', '/F'], {
+            stdio: 'ignore',
+            windowsHide: true,
+          });
+          child.on('exit', done);
+          child.on('error', done);
+        });
+      }
+      try {
+        process.kill(pid);
+      } catch {
+        /* Already gone. */
+      }
+      return Promise.resolve();
     },
     /** Starts a program that outlives this one. */
     spawnDetached(command, args) {

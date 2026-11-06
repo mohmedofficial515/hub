@@ -3,11 +3,11 @@
  * @description It says who it is, sends a heartbeat, holds the folder list Hub sends, and answers actions through `dispatch`. A dropped connection retries with a backoff, because Hub may simply be off.
  * A revoked device stops for good: it exits and leaves its files, and `uninstall` or a new `connect` is the owner's next step. Frames are never logged, as they can hold anything a chat holds.
  */
-import { appendFileSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { rmSync, writeFileSync } from 'node:fs';
 
 import { dispatch } from './actions.mjs';
 import { resolveClaude } from './claude.mjs';
+import { createLog } from './log.mjs';
 import { hubPaths, readJson } from './paths.mjs';
 import {
   BRIDGE_ACTIONS,
@@ -16,34 +16,22 @@ import {
   BRIDGE_SOCKET_PATH,
   BRIDGE_VERSION,
 } from './protocol.mjs';
+import { turnManager } from './turns.mjs';
 import { resolveVsCode } from './vscode.mjs';
 
 const HEARTBEAT_MS = 25_000;
 const STATUS_REFRESH_MS = 5 * 60_000;
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
-const LOG_LIMIT_BYTES = 1_048_576;
 
 export function socketUrl(url) {
   return `${url.replace(/^http/, 'ws')}${BRIDGE_SOCKET_PATH}`;
 }
 
-function logger(system) {
-  const file = hubPaths(system).log;
-  return (line) => {
-    try {
-      mkdirSync(dirname(file), { recursive: true });
-      if ((statSync(file, { throwIfNoEntry: false })?.size ?? 0) > LOG_LIMIT_BYTES) rmSync(file);
-      appendFileSync(file, `${new Date().toISOString()} ${line}\n`);
-    } catch {
-      /* A log must not stop the bridge. */
-    }
-  };
-}
-
 export function createBridge(system, device) {
-  const log = logger(system);
+  const log = createLog(hubPaths(system).log);
   let folders = [];
+  let docRoots = [];
   let socket = null;
   let heartbeat = null;
   let stopped = false;
@@ -55,7 +43,7 @@ export function createBridge(system, device) {
     resolveDone = resolve;
   });
 
-  const context = { system, url: device.url, folders: () => folders };
+  const context = { system, url: device.url, folders: () => folders, docRoots: () => docRoots };
 
   async function refreshStatus() {
     if (Date.now() - statusAt < STATUS_REFRESH_MS) return status;
@@ -90,10 +78,12 @@ export function createBridge(system, device) {
     }
     if (frame.type === 'welcome') {
       folders = Array.isArray(frame.folders) ? frame.folders : [];
+      docRoots = Array.isArray(frame.docRoots) ? frame.docRoots : [];
       backoff = BACKOFF_MIN_MS;
       log(`Connected as device ${frame.deviceId}, ${folders.length} folders`);
     } else if (frame.type === 'allowlist') {
       folders = Array.isArray(frame.folders) ? frame.folders : [];
+      docRoots = Array.isArray(frame.docRoots) ? frame.docRoots : [];
     } else if (frame.type === 'action') {
       void onAction(target, frame);
     }
@@ -102,7 +92,9 @@ export function createBridge(system, device) {
   function finish(code) {
     stopped = true;
     if (heartbeat) clearInterval(heartbeat);
-    resolveDone(code);
+    turnManager(context)
+      .shutdown()
+      .finally(() => resolveDone(code));
   }
 
   function open() {
@@ -128,6 +120,8 @@ export function createBridge(system, device) {
     });
     target.addEventListener('close', (event) => {
       if (heartbeat) clearInterval(heartbeat);
+      // Nobody can answer an approval or see the reply now, and the API has already marked these interrupted.
+      if (socket === target) turnManager(context).stopAll();
       if (event.code === BRIDGE_CLOSE.revoked) {
         log('This device was revoked. Stopping.');
         finish(0);

@@ -25,6 +25,8 @@ export type SourceKind = (typeof SOURCE_KINDS)[number];
 export const localPathSourceConfigSchema = z.object({
   path: z.string().min(1),
   purpose: z.enum(['docs', 'lab']),
+  /** The paired device that holds this folder, when it is not on the API's own machine (docs/16 §10). */
+  deviceId: z.uuid().optional(),
   include: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),
   kinds: z.record(z.string(), z.string()).optional(),

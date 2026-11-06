@@ -20,6 +20,7 @@ import { RedisModule } from './infra/redis/redis.module';
 import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
 import { CaptureModule } from './modules/capture';
 import { CardsModule } from './modules/cards';
+import { ChatsModule } from './modules/chats';
 import { DecisionsModule } from './modules/decisions';
 import { DevicesModule } from './modules/devices';
 import { DigestsModule } from './modules/digests';
@@ -91,6 +92,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     WorkspacesModule,
     CaptureModule,
     DevicesModule,
+    ChatsModule,
     McpModule,
   ],
   providers: [

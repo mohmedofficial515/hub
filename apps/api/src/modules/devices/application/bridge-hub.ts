@@ -141,6 +141,7 @@ export class BridgeHub {
           protocol: BRIDGE_PROTOCOL_VERSION,
           deviceId,
           folders,
+          docRoots: await this.docRootsFor(connection.userId, deviceId),
         });
         connection.ready = true;
         return;
@@ -202,7 +203,11 @@ export class BridgeHub {
   async pushAllowlist(deviceId: string): Promise<void> {
     const connection = this.connections.get(deviceId);
     if (!connection) return;
-    this.send(connection, { type: 'allowlist', folders: await this.foldersFor(connection.userId) });
+    this.send(connection, {
+      type: 'allowlist',
+      folders: await this.foldersFor(connection.userId),
+      docRoots: await this.docRootsFor(connection.userId, deviceId),
+    });
   }
 
   /** The folders of every open project this member belongs to (`repoPaths`). The bridge refuses anything else. */
@@ -215,6 +220,22 @@ export class BridgeHub {
     return memberships.flatMap(({ workspace }) =>
       workspace.repoPaths.map((path) => ({ path, project: workspace.slug })),
     );
+  }
+
+  /** Docs folders this member's projects keep on this device (docs/16 §10). */
+  private async docRootsFor(userId: string, deviceId: string): Promise<string[]> {
+    const memberships = await this.txHost.tx.membership.findMany({
+      where: { userId, status: 'active', workspace: { status: { not: 'closed' } } },
+      select: { workspaceId: true },
+    });
+    const sources = await this.txHost.tx.source.findMany({
+      where: { workspaceId: { in: memberships.map((row) => row.workspaceId) }, kind: 'local_path' },
+      select: { config: true },
+    });
+    return sources.flatMap((source) => {
+      const config = source.config as { path?: string; purpose?: string; deviceId?: string };
+      return config.path && config.purpose === 'docs' && config.deviceId === deviceId ? [config.path] : [];
+    });
   }
 
   private send(connection: Connection, frame: HubFrame): void {

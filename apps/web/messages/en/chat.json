@@ -1,0 +1,104 @@
+{
+  "modes": {
+    "ask": "Ask",
+    "plan": "Plan",
+    "execute": "Execute"
+  },
+  "modeHints": {
+    "ask": "Read only. Claude can read this folder and Hub, and cannot change anything or run commands.",
+    "plan": "Read only, and ends in a proposed plan for you to review. It cannot change anything or run commands.",
+    "execute": "Claude reads and edits inside this folder freely. Delete, commit, push, deploy, branch, worktree and docker wait for your approval, as does any command you have not allowed."
+  },
+  "states": {
+    "running": "Working",
+    "done": "Done",
+    "failed": "Failed",
+    "stopped": "Stopped",
+    "interrupted": "Cut off"
+  },
+  "failures": {
+    "signed_out": "Claude is signed out on this device. Run claude auth login there, then try again.",
+    "rate_limited": "The usage limit is reached. It resets at the time shown.",
+    "billing": "Claude reports a billing problem on this account.",
+    "overloaded": "Claude is overloaded right now. Try again in a moment.",
+    "version_out_of_range": "This device's Claude Code is outside the versions Hub has tested. Use Open in VS Code until Hub is updated.",
+    "claude_missing": "Claude Code was not found on this device.",
+    "session_missing": "Claude no longer has this conversation. Send again to start over from here.",
+    "folder_not_allowed": "That folder is not registered on this project.",
+    "folder_missing": "That folder does not exist on the device.",
+    "device_offline": "The device went offline during this turn.",
+    "cut_off": "Claude Code stopped before the turn ended.",
+    "unknown": "This turn failed, and Claude did not say why."
+  },
+  "approvals": {
+    "title": "Waiting for your approval",
+    "allow": "Allow once",
+    "deny": "Deny",
+    "expires": "Denied automatically if nobody answers by {time}",
+    "answeredElsewhere": "Already answered on another device."
+  },
+  "categories": {
+    "delete": "Deletes files",
+    "move": "Moves or overwrites files",
+    "commit": "Changes Git history",
+    "push": "Pushes to a remote",
+    "deploy": "Deploys or reaches another machine",
+    "branch": "Creates or switches a branch",
+    "worktree": "Creates a worktree",
+    "docker": "Runs Docker",
+    "hub_project": "Changes the project, including its allowed folders",
+    "hub_doc": "Writes a document",
+    "hub_sensitive": "A sensitive Hub action",
+    "other": "A command you have not allowed"
+  },
+  "stages": {
+    "understand": "Understand",
+    "plan": "Plan",
+    "execute": "Execute",
+    "verify": "Verify",
+    "report": "Report",
+    "search": "Search",
+    "propose": "Propose",
+    "draft": "Draft",
+    "save": "Save",
+    "link": "Link"
+  },
+  "suggestions": {
+    "explain_card": {
+      "label": "Explain this",
+      "prompt": "Explain {key}: what it is, where it stands, and what it depends on."
+    },
+    "plan_card": {
+      "label": "Plan this",
+      "prompt": "Make a plan for {key}, with steps and acceptance checks."
+    },
+    "work_card": { "label": "Do this task", "prompt": "/hub:work {key}" },
+    "decide_card": {
+      "label": "Help me decide",
+      "prompt": "Lay out the options on {key}, with what each one costs, so I can decide."
+    },
+    "deliver_card": {
+      "label": "Deliver this",
+      "prompt": "What does {key} need, and what is left before it can be delivered?"
+    },
+    "review_card": {
+      "label": "Review this",
+      "prompt": "Review the work on {key} against its acceptance checks."
+    },
+    "apply_card": { "label": "Apply this handoff", "prompt": "Read the handoff {key} and apply it here." },
+    "redesign_card": {
+      "label": "Redesign this",
+      "prompt": "Look at the redesign {key} and tell me what to change next."
+    },
+    "improve_doc": { "label": "Improve this doc", "prompt": "/hub:doc improve {key}" },
+    "document_card": { "label": "Document this", "prompt": "/hub:doc document {key}" },
+    "find_doc_gaps": { "label": "Find gaps", "prompt": "/hub:doc gaps" },
+    "whats_next": {
+      "label": "What should I do next?",
+      "prompt": "What should I do next on this project, and why?"
+    },
+    "summarize_today": { "label": "Sum up today", "prompt": "Sum up what is waiting on me today." },
+    "plan_topic": { "label": "Plan something new", "prompt": "/hub:plan " },
+    "find_docs": { "label": "Find in the docs", "prompt": "Search this project's docs for: " }
+  }
+}

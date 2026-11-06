@@ -23,6 +23,15 @@ export function stripFrontMatter(raw: string): string {
   return match ? source.slice(match[0].length) : source;
 }
 
+/** The front matter as written, and the rest. `save_doc` keeps the first when a writer sends only the second. */
+export function splitFrontMatter(raw: string): { frontMatter: string; body: string } {
+  const source = raw.replace(/^\uFEFF/, '');
+  const match = /^---\r?\n[\s\S]*?\r?\n---\r?\n?/.exec(source);
+  return match
+    ? { frontMatter: match[0], body: source.slice(match[0].length) }
+    : { frontMatter: '', body: source };
+}
+
 /** GitHub-style anchors, keeping Arabic letters, and unique within the file. */
 export function slugger(): (text: string) => string {
   const seen = new Map<string, number>();

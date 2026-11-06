@@ -10,6 +10,7 @@ import { routing } from './routing';
 
 export const NAMESPACES = [
   'kit',
+  'chat',
   'shell',
   'auth',
   'workspaces',

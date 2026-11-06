@@ -51,8 +51,11 @@ export class EventsController {
     const member = { userId: actor.userId, roles: actor.roles };
     let lastSent = lastEventId && isValidStreamId(lastEventId) ? lastEventId : '0-0';
     const send = (message: RealtimeMessage): void => {
-      if (compareStreamIds(message.streamId, lastSent) <= 0) return;
-      lastSent = message.streamId;
+      // A transient message has no stream id: it is not in the buffer, and it must not move the cursor.
+      if (message.streamId !== '') {
+        if (compareStreamIds(message.streamId, lastSent) <= 0) return;
+        lastSent = message.streamId;
+      }
       if (isForMember(message, member)) response.write(toFrames(message));
     };
 

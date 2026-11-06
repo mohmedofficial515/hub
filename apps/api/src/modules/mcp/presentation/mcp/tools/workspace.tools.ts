@@ -144,6 +144,7 @@ export const workspaceToolHandlers = {
     return [
       cardRef(doc),
       `Path: ${plain(doc.detail?.['path'])}`,
+      ...(doc.fileHash ? [`Version: ${doc.fileHash}`] : []),
       part.slice(0, input.maxChars ?? 20_000),
     ].join('\n');
   },

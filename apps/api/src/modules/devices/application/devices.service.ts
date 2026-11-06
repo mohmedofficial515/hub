@@ -144,7 +144,8 @@ export class DevicesService {
     return { outcome: answer.outcome, folder, project: project.slug, backup: answer.backup, registered };
   }
 
-  private async owned(userId: string, id: string): Promise<DeviceRow> {
+  /** A member's device that is still paired, or `hub.devices.not_found`. A revoked device answers the same. */
+  async owned(userId: string, id: string): Promise<DeviceRow> {
     if (!z.uuid().safeParse(id).success) throw new AppException('hub.devices.not_found');
     const row = await this.txHost.tx.device.findFirst({ where: { id, userId, revokedAt: null } });
     if (!row) throw new AppException('hub.devices.not_found');

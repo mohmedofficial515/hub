@@ -3995,6 +3995,54 @@ export type SystemDto = {
     };
 };
 
+export type SaveDocDto = {
+    key?: string;
+    source?: string;
+    path?: string;
+    content: string;
+    baseHash?: string;
+    reason?: string;
+};
+
+export type SaveDocResultDto = {
+    path: string;
+    source: string;
+    key: string | null;
+    hash: string;
+    revisionId: string | null;
+    unchanged: boolean;
+    withheld: boolean;
+    similar: Array<{
+        key: string;
+        title: string;
+        path: string;
+        source: string;
+    }>;
+};
+
+export type DocRevisionSummaryDto = {
+    id: string;
+    contentHash: string;
+    reason: string | null;
+    savedById: string | null;
+    createdAt: string;
+    chars: number;
+};
+
+export type DocRevisionDetailDto = {
+    id: string;
+    contentHash: string;
+    reason: string | null;
+    savedById: string | null;
+    createdAt: string;
+    chars: number;
+    content: string;
+};
+
+export type RestoreDocRevisionDto = {
+    baseHash?: string;
+};
+
 export type TreeDtoSchema0 = {
     name: string;
     path: string;
@@ -4274,6 +4322,81 @@ export type MentionsDto = {
         source: string;
         title: string;
     }>;
+};
+
+export type DeviceRowDto = {
+    id: string;
+    name: string;
+    platform: string;
+    online: boolean;
+    bridgeVersion: string | null;
+    claudeVersion: string | null;
+    vscodeFound: boolean | null;
+    lastSeenAt: string | null;
+    pairedAt: string;
+    health: Array<{
+        id: 'claude_found' | 'claude_version' | 'claude_path_version' | 'claude_signed_in' | 'mcp_server' | 'plugin' | 'login_start' | 'vscode';
+        ok: boolean;
+        level: 'ok' | 'warn' | 'error';
+        detail: string | null;
+        fix: 'mcp_server' | 'plugin' | 'login_start' | null;
+        hint: string | null;
+    }>;
+    healthAt: string | null;
+};
+
+export type ConnectCommandDto = {
+    apiUrl: string;
+    connect: string;
+    uninstall: string;
+};
+
+export type FixDeviceDto = {
+    fix: 'mcp_server' | 'plugin' | 'login_start';
+};
+
+export type PairingStartDto = {
+    name: string;
+    platform: 'win32' | 'darwin' | 'linux';
+};
+
+export type PairingStartedDto = {
+    deviceCode: string;
+    userCode: string;
+    approveUrl: string;
+    expiresInSeconds: number;
+    pollSeconds: number;
+};
+
+export type PairingPollDto = {
+    deviceCode: string;
+};
+
+export type PairingPollAnswerDto = {
+    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
+    deviceId?: string;
+    credential?: string;
+    hookToken?: string;
+};
+
+export type PairingViewDto = {
+    userCode: string;
+    name: string;
+    platform: string;
+    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
+    expiresAt: string;
+};
+
+export type LinkFolderDto = {
+    folder: string;
+};
+
+export type LinkResultDto = {
+    outcome: 'linked' | 'already_linked' | 'shape_unexpected' | 'mcp_failed';
+    folder: string;
+    project: string;
+    backup: string | null;
+    registered: boolean;
 };
 
 export type LabPageDto = {
@@ -5263,79 +5386,230 @@ export type ContextDto = {
     text: string;
 };
 
-export type DeviceRowDto = {
+export type ChatRowDto = {
     id: string;
-    name: string;
-    platform: string;
-    online: boolean;
-    bridgeVersion: string | null;
-    claudeVersion: string | null;
-    vscodeFound: boolean | null;
-    lastSeenAt: string | null;
-    pairedAt: string;
-    health: Array<{
-        id: 'claude_found' | 'claude_version' | 'claude_path_version' | 'claude_signed_in' | 'mcp_server' | 'plugin' | 'login_start' | 'vscode';
-        ok: boolean;
-        level: 'ok' | 'warn' | 'error';
-        detail: string | null;
-        fix: 'mcp_server' | 'plugin' | 'login_start' | null;
-        hint: string | null;
+    deviceId: string;
+    deviceName: string;
+    deviceOnline: boolean;
+    deviceRevoked: boolean;
+    folder: string;
+    branch: string | null;
+    mode: 'ask' | 'plan' | 'execute';
+    model: string | null;
+    effort: string | null;
+    sessionId: string | null;
+    title: string;
+    pinned: boolean;
+    parentChatId: string | null;
+    parentMessageId: string | null;
+    running: boolean;
+    lastSeq: number;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
+};
+
+export type EngineStatusDto = {
+    found: boolean;
+    version: string | null;
+    inRange: boolean;
+    testedRange: {
+        min: string;
+        max: string;
+    };
+    message: string | null;
+    signedIn: boolean | null;
+    effortSupported: boolean;
+    modelSupported: boolean;
+    live: number;
+};
+
+export type CreateChatDto = {
+    device: string;
+    folder: string;
+    title?: string;
+    mode?: 'ask' | 'plan' | 'execute';
+    model?: string;
+    effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+};
+
+export type ChatFullDto = {
+    id: string;
+    deviceId: string;
+    deviceName: string;
+    deviceOnline: boolean;
+    deviceRevoked: boolean;
+    folder: string;
+    branch: string | null;
+    mode: 'ask' | 'plan' | 'execute';
+    model: string | null;
+    effort: string | null;
+    sessionId: string | null;
+    title: string;
+    pinned: boolean;
+    parentChatId: string | null;
+    parentMessageId: string | null;
+    running: boolean;
+    lastSeq: number;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: string | null;
+    messages: Array<{
+        id: string;
+        ordinal: number;
+        role: 'user' | 'assistant';
+        content: string;
+        truncated: boolean;
+        context: {
+            page?: string;
+            card?: string;
+            attachments?: Array<{
+                kind: 'card';
+                key: string;
+            } | {
+                kind: 'doc';
+                key: string;
+            } | {
+                kind: 'file';
+                path: string;
+            }>;
+        } | null;
+        status: 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | null;
+        failure: 'signed_out' | 'rate_limited' | 'billing' | 'overloaded' | 'version_out_of_range' | 'claude_missing' | 'session_missing' | 'folder_not_allowed' | 'folder_missing' | 'device_offline' | 'cut_off' | 'unknown' | null;
+        failureMessage: string | null;
+        model: string | null;
+        claudeVersion: string | null;
+        durationMs: number | null;
+        usage: {
+            inputTokens?: number;
+            outputTokens?: number;
+            cacheReadTokens?: number;
+            cacheWriteTokens?: number;
+        } | null;
+        limit: {
+            status: string;
+            limitType?: string;
+            resetsAt?: number;
+            utilization?: number;
+        } | null;
+        stages: Array<{
+            protocol: 'work' | 'doc';
+            stage: string;
+            state: 'started' | 'done' | 'failed';
+            note?: string;
+            at: string;
+        }>;
+        plan: string | null;
+        changedFiles: Array<{
+            path: string;
+            source: 'tool' | 'git';
+            status?: string;
+            additions?: number;
+            deletions?: number;
+        }>;
+        steps: Array<{
+            id: string;
+            toolUseId: string;
+            parentToolUseId: string | null;
+            name: string;
+            status: 'running' | 'waiting' | 'done' | 'error' | 'cut_off';
+            input: unknown;
+            output: string | null;
+            decision: string | null;
+            textOffset: number;
+            startedAt: string;
+            endedAt: string | null;
+        }>;
+        approvals: Array<{
+            id: string;
+            messageId: string;
+            toolUseId: string;
+            toolName: string;
+            command: string;
+            category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
+            input: unknown;
+            status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped';
+            expiresAt: string;
+            answeredAt: string | null;
+            createdAt: string;
+        }>;
+        createdAt: string;
+        endedAt: string | null;
     }>;
-    healthAt: string | null;
 };
 
-export type ConnectCommandDto = {
-    apiUrl: string;
-    connect: string;
-    uninstall: string;
+export type UpdateChatDto = {
+    title?: string;
+    pinned?: boolean;
+    mode?: 'ask' | 'plan' | 'execute';
+    model?: string | null;
+    effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | null;
 };
 
-export type FixDeviceDto = {
-    fix: 'mcp_server' | 'plugin' | 'login_start';
+export type SendChatMessageDto = {
+    text: string;
+    context?: {
+        page?: string;
+        card?: string;
+        attachments?: Array<{
+            kind: 'card';
+            key: string;
+        } | {
+            kind: 'doc';
+            key: string;
+        } | {
+            kind: 'file';
+            path: string;
+        }>;
+    };
+    mode?: 'ask' | 'plan' | 'execute';
+    model?: string;
+    effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 };
 
-export type PairingStartDto = {
-    name: string;
-    platform: 'win32' | 'darwin' | 'linux';
+export type ChatTurnStartedDto = {
+    chatId: string;
+    userMessageId: string;
+    messageId: string;
 };
 
-export type PairingStartedDto = {
-    deviceCode: string;
-    userCode: string;
-    approveUrl: string;
-    expiresInSeconds: number;
-    pollSeconds: number;
+export type RetryChatDto = {
+    mode?: 'ask' | 'plan' | 'execute';
+    model?: string;
+    effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 };
 
-export type PairingPollDto = {
-    deviceCode: string;
+export type BranchChatDto = {
+    message: string;
+    title?: string;
 };
 
-export type PairingPollAnswerDto = {
-    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
-    deviceId?: string;
-    credential?: string;
-    hookToken?: string;
+export type AnswerApprovalDto = {
+    decision: 'allow' | 'deny';
 };
 
-export type PairingViewDto = {
-    userCode: string;
-    name: string;
-    platform: string;
-    status: 'pending' | 'approved' | 'denied' | 'claimed' | 'expired';
-    expiresAt: string;
+export type ChatExportDto = {
+    fileName: string;
+    markdown: string;
 };
 
-export type LinkFolderDto = {
-    folder: string;
+export type ChatDiffDto = {
+    path: string;
+    diff: string;
+    truncated: boolean;
+    available: boolean;
 };
 
-export type LinkResultDto = {
-    outcome: 'linked' | 'already_linked' | 'shape_unexpected' | 'mcp_failed';
-    folder: string;
-    project: string;
-    backup: string | null;
-    registered: boolean;
+export type PromptTemplateDto = {
+    id: string;
+    title: string;
+    body: string;
+    updatedAt: string;
+};
+
+export type PromptTemplateInputDto = {
+    title: string;
+    body: string;
 };
 
 export type AuthControllerSignInData = {
@@ -6748,6 +7022,66 @@ export type MetricsControllerMetricsResponses = {
     200: unknown;
 };
 
+export type DocsControllerSaveData = {
+    body: SaveDocDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/save';
+};
+
+export type DocsControllerSaveResponses = {
+    200: SaveDocResultDto;
+};
+
+export type DocsControllerSaveResponse = DocsControllerSaveResponses[keyof DocsControllerSaveResponses];
+
+export type DocsControllerRevisionsData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/{key}/revisions';
+};
+
+export type DocsControllerRevisionsResponses = {
+    200: Array<DocRevisionSummaryDto>;
+};
+
+export type DocsControllerRevisionsResponse = DocsControllerRevisionsResponses[keyof DocsControllerRevisionsResponses];
+
+export type DocsControllerRevisionData = {
+    body?: never;
+    path: {
+        key: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}';
+};
+
+export type DocsControllerRevisionResponses = {
+    200: DocRevisionDetailDto;
+};
+
+export type DocsControllerRevisionResponse = DocsControllerRevisionResponses[keyof DocsControllerRevisionResponses];
+
+export type DocsControllerRestoreData = {
+    body: RestoreDocRevisionDto;
+    path: {
+        key: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}/restore';
+};
+
+export type DocsControllerRestoreResponses = {
+    200: SaveDocResultDto;
+};
+
+export type DocsControllerRestoreResponse = DocsControllerRestoreResponses[keyof DocsControllerRestoreResponses];
+
 export type DocsControllerListData = {
     body?: never;
     path?: never;
@@ -6821,6 +7155,176 @@ export type DocsControllerGetData = {
 export type DocsControllerGetResponses = {
     200: unknown;
 };
+
+export type BridgeSelfControllerRemoveData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/bridge/self';
+};
+
+export type BridgeSelfControllerRemoveResponses = {
+    204: void;
+};
+
+export type BridgeSelfControllerRemoveResponse = BridgeSelfControllerRemoveResponses[keyof BridgeSelfControllerRemoveResponses];
+
+export type DevicesControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices';
+};
+
+export type DevicesControllerListResponses = {
+    200: Array<DeviceRowDto>;
+};
+
+export type DevicesControllerListResponse = DevicesControllerListResponses[keyof DevicesControllerListResponses];
+
+export type DevicesControllerConnectCommandData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices/connect-command';
+};
+
+export type DevicesControllerConnectCommandResponses = {
+    200: ConnectCommandDto;
+};
+
+export type DevicesControllerConnectCommandResponse = DevicesControllerConnectCommandResponses[keyof DevicesControllerConnectCommandResponses];
+
+export type DevicesControllerHealthData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}/health';
+};
+
+export type DevicesControllerHealthResponses = {
+    200: DeviceRowDto;
+};
+
+export type DevicesControllerHealthResponse = DevicesControllerHealthResponses[keyof DevicesControllerHealthResponses];
+
+export type DevicesControllerFixData = {
+    body: FixDeviceDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}/fix';
+};
+
+export type DevicesControllerFixResponses = {
+    200: DeviceRowDto;
+};
+
+export type DevicesControllerFixResponse = DevicesControllerFixResponses[keyof DevicesControllerFixResponses];
+
+export type DevicesControllerRevokeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}';
+};
+
+export type DevicesControllerRevokeResponses = {
+    204: void;
+};
+
+export type DevicesControllerRevokeResponse = DevicesControllerRevokeResponses[keyof DevicesControllerRevokeResponses];
+
+export type PairingControllerStartData = {
+    body: PairingStartDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/pairing/start';
+};
+
+export type PairingControllerStartResponses = {
+    201: PairingStartedDto;
+};
+
+export type PairingControllerStartResponse = PairingControllerStartResponses[keyof PairingControllerStartResponses];
+
+export type PairingControllerPollData = {
+    body: PairingPollDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/pairing/poll';
+};
+
+export type PairingControllerPollResponses = {
+    200: PairingPollAnswerDto;
+};
+
+export type PairingControllerPollResponse = PairingControllerPollResponses[keyof PairingControllerPollResponses];
+
+export type PairingControllerViewData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}';
+};
+
+export type PairingControllerViewResponses = {
+    200: PairingViewDto;
+};
+
+export type PairingControllerViewResponse = PairingControllerViewResponses[keyof PairingControllerViewResponses];
+
+export type PairingControllerApproveData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}/approve';
+};
+
+export type PairingControllerApproveResponses = {
+    204: void;
+};
+
+export type PairingControllerApproveResponse = PairingControllerApproveResponses[keyof PairingControllerApproveResponses];
+
+export type PairingControllerDenyData = {
+    body?: never;
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/pairing/{code}/deny';
+};
+
+export type PairingControllerDenyResponses = {
+    204: void;
+};
+
+export type PairingControllerDenyResponse = PairingControllerDenyResponses[keyof PairingControllerDenyResponses];
+
+export type WorkspaceDevicesControllerLinkData = {
+    body: LinkFolderDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/devices/{id}/link';
+};
+
+export type WorkspaceDevicesControllerLinkResponses = {
+    200: LinkResultDto;
+};
+
+export type WorkspaceDevicesControllerLinkResponse = WorkspaceDevicesControllerLinkResponses[keyof WorkspaceDevicesControllerLinkResponses];
 
 export type EventsControllerStreamData = {
     body?: never;
@@ -7836,172 +8340,270 @@ export type CaptureControllerMeResponses = {
 
 export type CaptureControllerMeResponse = CaptureControllerMeResponses[keyof CaptureControllerMeResponses];
 
-export type BridgeSelfControllerRemoveData = {
+export type ChatsControllerListData = {
     body?: never;
     path?: never;
-    query?: never;
-    url: '/api/v1/bridge/self';
+    query?: {
+        deleted?: 'true' | 'false';
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/chats';
 };
 
-export type BridgeSelfControllerRemoveResponses = {
-    204: void;
+export type ChatsControllerListResponses = {
+    200: Array<ChatRowDto>;
 };
 
-export type BridgeSelfControllerRemoveResponse = BridgeSelfControllerRemoveResponses[keyof BridgeSelfControllerRemoveResponses];
+export type ChatsControllerListResponse = ChatsControllerListResponses[keyof ChatsControllerListResponses];
 
-export type DevicesControllerListData = {
-    body?: never;
+export type ChatsControllerCreateData = {
+    body: CreateChatDto;
     path?: never;
     query?: never;
-    url: '/api/v1/me/devices';
+    url: '/api/v1/workspaces/{ws}/chats';
 };
 
-export type DevicesControllerListResponses = {
-    200: Array<DeviceRowDto>;
+export type ChatsControllerCreateResponses = {
+    201: ChatRowDto;
 };
 
-export type DevicesControllerListResponse = DevicesControllerListResponses[keyof DevicesControllerListResponses];
+export type ChatsControllerCreateResponse = ChatsControllerCreateResponses[keyof ChatsControllerCreateResponses];
 
-export type DevicesControllerConnectCommandData = {
+export type ChatsControllerEngineData = {
     body?: never;
     path?: never;
-    query?: never;
-    url: '/api/v1/me/devices/connect-command';
+    query: {
+        device: string;
+    };
+    url: '/api/v1/workspaces/{ws}/chats/engine';
 };
 
-export type DevicesControllerConnectCommandResponses = {
-    200: ConnectCommandDto;
+export type ChatsControllerEngineResponses = {
+    200: EngineStatusDto;
 };
 
-export type DevicesControllerConnectCommandResponse = DevicesControllerConnectCommandResponses[keyof DevicesControllerConnectCommandResponses];
+export type ChatsControllerEngineResponse = ChatsControllerEngineResponses[keyof ChatsControllerEngineResponses];
 
-export type DevicesControllerHealthData = {
+export type ChatsControllerRemoveData = {
     body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/api/v1/me/devices/{id}/health';
+    url: '/api/v1/workspaces/{ws}/chats/{id}';
 };
 
-export type DevicesControllerHealthResponses = {
-    200: DeviceRowDto;
+export type ChatsControllerRemoveResponses = {
+    204: void;
 };
 
-export type DevicesControllerHealthResponse = DevicesControllerHealthResponses[keyof DevicesControllerHealthResponses];
+export type ChatsControllerRemoveResponse = ChatsControllerRemoveResponses[keyof ChatsControllerRemoveResponses];
 
-export type DevicesControllerFixData = {
-    body: FixDeviceDto;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/me/devices/{id}/fix';
-};
-
-export type DevicesControllerFixResponses = {
-    200: DeviceRowDto;
-};
-
-export type DevicesControllerFixResponse = DevicesControllerFixResponses[keyof DevicesControllerFixResponses];
-
-export type DevicesControllerRevokeData = {
+export type ChatsControllerGetData = {
     body?: never;
     path: {
         id: string;
     };
     query?: never;
-    url: '/api/v1/me/devices/{id}';
+    url: '/api/v1/workspaces/{ws}/chats/{id}';
 };
 
-export type DevicesControllerRevokeResponses = {
+export type ChatsControllerGetResponses = {
+    200: ChatFullDto;
+};
+
+export type ChatsControllerGetResponse = ChatsControllerGetResponses[keyof ChatsControllerGetResponses];
+
+export type ChatsControllerUpdateData = {
+    body: UpdateChatDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}';
+};
+
+export type ChatsControllerUpdateResponses = {
+    200: ChatRowDto;
+};
+
+export type ChatsControllerUpdateResponse = ChatsControllerUpdateResponses[keyof ChatsControllerUpdateResponses];
+
+export type ChatsControllerRestoreData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/restore';
+};
+
+export type ChatsControllerRestoreResponses = {
+    200: ChatRowDto;
+};
+
+export type ChatsControllerRestoreResponse = ChatsControllerRestoreResponses[keyof ChatsControllerRestoreResponses];
+
+export type ChatsControllerSendData = {
+    body: SendChatMessageDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/messages';
+};
+
+export type ChatsControllerSendResponses = {
+    200: ChatTurnStartedDto;
+};
+
+export type ChatsControllerSendResponse = ChatsControllerSendResponses[keyof ChatsControllerSendResponses];
+
+export type ChatsControllerRetryData = {
+    body: RetryChatDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/retry';
+};
+
+export type ChatsControllerRetryResponses = {
+    200: ChatTurnStartedDto;
+};
+
+export type ChatsControllerRetryResponse = ChatsControllerRetryResponses[keyof ChatsControllerRetryResponses];
+
+export type ChatsControllerStopData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/stop';
+};
+
+export type ChatsControllerStopResponses = {
     204: void;
 };
 
-export type DevicesControllerRevokeResponse = DevicesControllerRevokeResponses[keyof DevicesControllerRevokeResponses];
+export type ChatsControllerStopResponse = ChatsControllerStopResponses[keyof ChatsControllerStopResponses];
 
-export type PairingControllerStartData = {
-    body: PairingStartDto;
+export type ChatsControllerBranchData = {
+    body: BranchChatDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/branch';
+};
+
+export type ChatsControllerBranchResponses = {
+    201: ChatRowDto;
+};
+
+export type ChatsControllerBranchResponse = ChatsControllerBranchResponses[keyof ChatsControllerBranchResponses];
+
+export type ChatsControllerAnswerData = {
+    body: AnswerApprovalDto;
+    path: {
+        id: string;
+        approval: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/approvals/{approval}';
+};
+
+export type ChatsControllerAnswerResponses = {
+    204: void;
+};
+
+export type ChatsControllerAnswerResponse = ChatsControllerAnswerResponses[keyof ChatsControllerAnswerResponses];
+
+export type ChatsControllerExportData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/export';
+};
+
+export type ChatsControllerExportResponses = {
+    200: ChatExportDto;
+};
+
+export type ChatsControllerExportResponse = ChatsControllerExportResponses[keyof ChatsControllerExportResponses];
+
+export type ChatsControllerDiffData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        path: string;
+    };
+    url: '/api/v1/workspaces/{ws}/chats/{id}/diff';
+};
+
+export type ChatsControllerDiffResponses = {
+    200: ChatDiffDto;
+};
+
+export type ChatsControllerDiffResponse = ChatsControllerDiffResponses[keyof ChatsControllerDiffResponses];
+
+export type PromptTemplatesControllerListData = {
+    body?: never;
     path?: never;
     query?: never;
-    url: '/api/v1/pairing/start';
+    url: '/api/v1/workspaces/{ws}/prompt-templates';
 };
 
-export type PairingControllerStartResponses = {
-    201: PairingStartedDto;
+export type PromptTemplatesControllerListResponses = {
+    200: Array<PromptTemplateDto>;
 };
 
-export type PairingControllerStartResponse = PairingControllerStartResponses[keyof PairingControllerStartResponses];
+export type PromptTemplatesControllerListResponse = PromptTemplatesControllerListResponses[keyof PromptTemplatesControllerListResponses];
 
-export type PairingControllerPollData = {
-    body: PairingPollDto;
+export type PromptTemplatesControllerCreateData = {
+    body: PromptTemplateInputDto;
     path?: never;
     query?: never;
-    url: '/api/v1/pairing/poll';
+    url: '/api/v1/workspaces/{ws}/prompt-templates';
 };
 
-export type PairingControllerPollResponses = {
-    200: PairingPollAnswerDto;
+export type PromptTemplatesControllerCreateResponses = {
+    201: PromptTemplateDto;
 };
 
-export type PairingControllerPollResponse = PairingControllerPollResponses[keyof PairingControllerPollResponses];
+export type PromptTemplatesControllerCreateResponse = PromptTemplatesControllerCreateResponses[keyof PromptTemplatesControllerCreateResponses];
 
-export type PairingControllerViewData = {
+export type PromptTemplatesControllerRemoveData = {
     body?: never;
-    path: {
-        code: string;
-    };
-    query?: never;
-    url: '/api/v1/pairing/{code}';
-};
-
-export type PairingControllerViewResponses = {
-    200: PairingViewDto;
-};
-
-export type PairingControllerViewResponse = PairingControllerViewResponses[keyof PairingControllerViewResponses];
-
-export type PairingControllerApproveData = {
-    body?: never;
-    path: {
-        code: string;
-    };
-    query?: never;
-    url: '/api/v1/pairing/{code}/approve';
-};
-
-export type PairingControllerApproveResponses = {
-    204: void;
-};
-
-export type PairingControllerApproveResponse = PairingControllerApproveResponses[keyof PairingControllerApproveResponses];
-
-export type PairingControllerDenyData = {
-    body?: never;
-    path: {
-        code: string;
-    };
-    query?: never;
-    url: '/api/v1/pairing/{code}/deny';
-};
-
-export type PairingControllerDenyResponses = {
-    204: void;
-};
-
-export type PairingControllerDenyResponse = PairingControllerDenyResponses[keyof PairingControllerDenyResponses];
-
-export type WorkspaceDevicesControllerLinkData = {
-    body: LinkFolderDto;
     path: {
         id: string;
     };
     query?: never;
-    url: '/api/v1/workspaces/{ws}/devices/{id}/link';
+    url: '/api/v1/workspaces/{ws}/prompt-templates/{id}';
 };
 
-export type WorkspaceDevicesControllerLinkResponses = {
-    200: LinkResultDto;
+export type PromptTemplatesControllerRemoveResponses = {
+    204: void;
 };
 
-export type WorkspaceDevicesControllerLinkResponse = WorkspaceDevicesControllerLinkResponses[keyof WorkspaceDevicesControllerLinkResponses];
+export type PromptTemplatesControllerRemoveResponse = PromptTemplatesControllerRemoveResponses[keyof PromptTemplatesControllerRemoveResponses];
+
+export type PromptTemplatesControllerUpdateData = {
+    body: PromptTemplateInputDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/prompt-templates/{id}';
+};
+
+export type PromptTemplatesControllerUpdateResponses = {
+    200: PromptTemplateDto;
+};
+
+export type PromptTemplatesControllerUpdateResponse = PromptTemplatesControllerUpdateResponses[keyof PromptTemplatesControllerUpdateResponses];

@@ -50,6 +50,12 @@ export interface IndexableSource {
   readonly config: LocalPathSourceConfig;
 }
 
+interface KnownDoc {
+  readonly id: string;
+  readonly status: string;
+  readonly doc: { readonly path: string; readonly contentHash: string | null } | null;
+}
+
 const toPosix = (path: string): string => path.split(sep).join('/');
 
 @Injectable()
@@ -79,6 +85,7 @@ export class DocsIndexerService {
   private async replaceChunks(workspaceId: string, cardId: string, chunks: readonly Chunk[]): Promise<void> {
     await this.txHost.withTransaction(async () => {
       await this.txHost.tx.docChunk.deleteMany({ where: { workspaceId, docCardId: cardId } });
+      if (chunks.length === 0) return;
       await this.txHost.tx.docChunk.createMany({
         data: chunks.map((chunk, ordinal) => ({
           workspaceId,
@@ -106,21 +113,63 @@ export class DocsIndexerService {
     for (const path of files) {
       const raw = await readFile(join(source.config.path, path));
       if (raw.length > MAX_FILE_BYTES) continue;
-      const text = raw.toString('utf8');
-      const hash = createHash('sha256').update(raw).digest('hex');
-      const existing = byPath.get(path);
-      if (existing?.doc?.contentHash === hash && existing.status === 'current') {
-        result.unchanged += 1;
-        continue;
-      }
-      const body = stripFrontMatter(text);
-      try {
-        assertNoSecrets({ body });
-      } catch (error) {
-        if (!(error instanceof AppException)) throw error;
-        result.withheld.push(path);
-        continue;
-      }
+      const outcome = await this.indexFile(source, actor, path, raw, byPath.get(path));
+      if (outcome === 'withheld') result.withheld.push(path);
+      else result[outcome] += 1;
+    }
+
+    const onDisk = new Set(files);
+    for (const card of known) {
+      if (!card.doc || onDisk.has(card.doc.path) || card.status === 'removed') continue;
+      await this.cards.apply(actor, { cardId: card.id }, 'doc.mark_removed', {});
+      await this.txHost.tx.docChunk.deleteMany({ where: { workspaceId, docCardId: card.id } });
+      result.removed += 1;
+    }
+    if (result.withheld.length > 0) {
+      this.logger.warn(`${source.name}: ${result.withheld.length} files look like they hold a secret`);
+    }
+    return result;
+  }
+
+  /** One file just saved (docs/16 §10), so search and pages see it at once, with no whole-source run. */
+  async indexOne(
+    source: IndexableSource,
+    path: string,
+    raw: Buffer,
+  ): Promise<{ key: string | null; withheld: boolean }> {
+    const { workspaceId } = source;
+    const actor: SystemActor = { kind: 'system', userId: null, via: 'adapter', workspaceId, roles: [] };
+    const known = await this.txHost.tx.card.findFirst({
+      where: { workspaceId, type: 'doc', doc: { sourceId: source.id, path } },
+      select: { id: true, status: true, doc: { select: { path: true, contentHash: true } } },
+    });
+    const outcome = await this.indexFile(source, actor, path, raw, known ?? undefined);
+    const card = await this.txHost.tx.card.findFirst({
+      where: { workspaceId, type: 'doc', doc: { sourceId: source.id, path } },
+      select: { key: true },
+    });
+    return { key: card?.key ?? null, withheld: outcome === 'withheld' };
+  }
+
+  private async indexFile(
+    source: IndexableSource,
+    actor: SystemActor,
+    path: string,
+    raw: Buffer,
+    existing: KnownDoc | undefined,
+  ): Promise<'created' | 'updated' | 'unchanged' | 'withheld'> {
+    const { workspaceId } = source;
+    const text = raw.toString('utf8');
+    const hash = createHash('sha256').update(raw).digest('hex');
+    if (existing?.doc?.contentHash === hash && existing.status === 'current') return 'unchanged';
+    const body = stripFrontMatter(text);
+    try {
+      assertNoSecrets({ body });
+    } catch (error) {
+      if (!(error instanceof AppException)) throw error;
+      return 'withheld';
+    }
+    {
       const kind = kindOf(path, source.config.kinds);
       const detail = {
         sourceId: source.id,
@@ -138,7 +187,6 @@ export class DocsIndexerService {
           await this.cards.apply(actor, { cardId: existing.id }, 'doc.mark_current', {});
         }
         await this.cards.apply(actor, { cardId: existing.id }, 'doc.update', { title, detail });
-        result.updated += 1;
       } else {
         const written = await this.cards.apply(actor, null, 'doc.create', {
           title,
@@ -147,21 +195,9 @@ export class DocsIndexerService {
           detail,
         });
         cardId = written.card.id;
-        result.created += 1;
       }
       if (cardId) await this.replaceChunks(workspaceId, cardId, chunksOf(body));
+      return existing ? 'updated' : 'created';
     }
-
-    const onDisk = new Set(files);
-    for (const card of known) {
-      if (!card.doc || onDisk.has(card.doc.path) || card.status === 'removed') continue;
-      await this.cards.apply(actor, { cardId: card.id }, 'doc.mark_removed', {});
-      await this.txHost.tx.docChunk.deleteMany({ where: { workspaceId, docCardId: card.id } });
-      result.removed += 1;
-    }
-    if (result.withheld.length > 0) {
-      this.logger.warn(`${source.name}: ${result.withheld.length} files look like they hold a secret`);
-    }
-    return result;
   }
 }

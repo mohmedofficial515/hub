@@ -98,7 +98,14 @@
     },
     "docs": {
       "not_found": "Document not found.",
-      "reindex_running": "Indexing is already running."
+      "reindex_running": "Indexing is already running.",
+      "stale_base": "This document changed after you read it. Read it again, then save.",
+      "bad_path": "That path is not a Markdown file inside this source.",
+      "source_not_writable": "That source is not a local folder of documents.",
+      "base_required": "Saving over an existing document needs the version you read.",
+      "too_large": "This document is too large to save.",
+      "revision_not_found": "No such revision.",
+      "unavailable": "The device that holds this document is not reachable."
     },
     "capture": {
       "payload_invalid": "The hook payload is not valid.",
@@ -122,6 +129,18 @@
     },
     "audit": {
       "export_too_large": "Too many rows to export. Narrow the filters."
+    },
+    "chats": {
+      "not_found": "No such chat.",
+      "turn_running": "This chat is already working on a turn. Wait for it, or stop it.",
+      "not_running": "This chat has no turn running.",
+      "folder_not_allowed": "That folder is not registered on this project. Link it first.",
+      "approval_not_found": "No such approval.",
+      "approval_answered": "This approval was already answered, on this or another device.",
+      "approval_expired": "This approval has ended: nobody answered in time, or the turn stopped.",
+      "template_not_found": "No such template.",
+      "message_not_found": "That message is not in this chat.",
+      "nothing_to_retry": "There is no earlier message to retry."
     },
     "devices": {
       "not_found": "No such device.",

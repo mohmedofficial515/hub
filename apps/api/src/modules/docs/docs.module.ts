@@ -3,16 +3,20 @@
  */
 import { Module } from '@nestjs/common';
 
+import { AuditModule } from '@/modules/audit';
 import { CardsModule } from '@/modules/cards';
+import { DevicesModule } from '@/modules/devices';
+import { SearchModule } from '@/modules/search';
 
 import { DocMarkCurrentAction, DocMarkRemovedAction, DocUpdateAction } from './application/doc-actions';
 import { DocCreateAction } from './application/doc-create.action';
 import { DocsIndexerService } from './application/docs-indexer.service';
 import { DocsReadService } from './application/docs-read.service';
+import { DocsWriteService } from './application/docs-write.service';
 import { DocsController } from './presentation/http/docs.controller';
 
 @Module({
-  imports: [CardsModule],
+  imports: [AuditModule, CardsModule, DevicesModule, SearchModule],
   controllers: [DocsController],
   providers: [
     DocCreateAction,
@@ -21,7 +25,8 @@ import { DocsController } from './presentation/http/docs.controller';
     DocMarkCurrentAction,
     DocsIndexerService,
     DocsReadService,
+    DocsWriteService,
   ],
-  exports: [DocsIndexerService, DocsReadService],
+  exports: [DocsIndexerService, DocsReadService, DocsWriteService],
 })
 export class DocsModule {}

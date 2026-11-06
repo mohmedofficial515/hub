@@ -1,43 +1,60 @@
 ---
 name: work
-description: Work with the team's Hub, the shared timeline of tasks, decisions, needs, handoffs, plans and docs. Use at the start of a session, when choosing a task, when a business rule is unclear, when something external is missing, when a change affects another team, when planning, and before finishing.
-user-invocable: false
+description: Carry out one Hub task from its card, with stages the panel shows as a live checklist and evidence written back on the card. The task is never completed here.
+user-invocable: true
+argument-hint: '<card key>'
 ---
 
-# Hub
+Carry out this card: $ARGUMENTS
 
-Hub is the team's operations room. This chat reaches it through the `hub` MCP server, with the member's own permissions. Cards are referenced by key, such as `GTV-123`. Hub holds no secrets and must never receive one.
+If no card key was given, ask for one and stop. Say which project is active.
 
-Every chat acts on one project: the tool's `project` argument, else the folder's link, else the member's default. Say which project is active when you first use Hub.
+At the start and end of each stage below, call `hub.report_stage` with `protocol: "work"`, the stage, and `state`: `started`, then `done` or `failed`. A panel shows these as a checklist on this turn. Elsewhere they cost nothing. A short `note` says what happened, with no secret in it.
 
-## When to call what
+## 1. Understand (`understand`)
 
-| Situation                                              | Call                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Session starts                                         | `/hub:start`, or `hub.whats_new`                                                      |
-| Choosing work                                          | `/hub:next`, or `hub.list_tasks` then `hub.claim_task`                                |
-| You start editing code for a task                      | `hub.start_task`                                                                      |
-| A business rule, limit, name or flow is unclear        | `hub.search_docs`, `hub.get_doc`; still unclear: `hub.request_decision`. Never guess. |
-| A token, account, contract, value or access is missing | `hub.create_need`: describe it, never paste the value                                 |
-| Your change affects another team                       | `hub.create_handoff` with a ready prompt                                              |
-| You see work for later                                 | `hub.create_task`, or `followUps` of `log_session`                                    |
-| Something worth thinking about                         | `hub.create_idea`; `/hub:plan` to write a plan                                        |
-| You stop: task done, end of day, context nearly full   | `/hub:done`: `hub.log_session`, then `hub.submit_task`                                |
+Read the card with `hub.get_card`, then what it links to: other cards, decisions, plans. Read its docs with `hub.search_docs` and `hub.get_doc`. Look at the code it names.
 
-## Sensitive tools
+A business rule, limit, name or flow still unclear: stop and ask, or offer `hub.request_decision`. Never guess one. Something external missing: `hub.create_need`, describing it and never pasting the value.
 
-Whatever the member may do on the web, you may do here, including decide, verify, approve, reject and delete. Tools marked sensitive ask you to confirm with the user in the chat first: always do. A deleted card can be restored with `hub.restore_card`.
+## 2. Plan (`plan`)
 
-## Conventions
+Write the steps, and the acceptance checks that would prove the work done: exact commands, or exact things to look at. Take the checks from the card when it has them. Show this, then go on unless the card or I said to wait.
 
-- Branch names: `feat/<key-lower>-<slug>`. Follow the project's rule about asking before creating a branch.
-- Commit messages: Conventional Commits with the key at the end of the subject, such as `fix(payments): hold the row during refund (GTV-139)`.
-- `sessionId` for `log_session` is the "Hub session id" line injected at session start.
-- Write titles and summaries in the language the team uses for that field. Keep paths, endpoints and code identifiers as they are.
+Move the task to started with `hub.start_task` if it is not already.
 
-## Before you finish
+## 3. Execute (`execute`)
 
-1. `hub.log_session` with `changed`, `remaining`, `handoffs`, `followUps`, `cardKeys`, `commits`.
-2. The task you claimed moved on, with its PR URL if one exists.
-3. Open questions turned into `hub.request_decision`, missing things into `hub.create_need`.
-4. No secret anywhere in what you sent.
+Do the steps in this folder. Keep to the card's scope, and name anything else you notice rather than doing it. Commit, push, branch, delete and deploy each pause for my approval when this runs in the panel, and follow the project's rules anywhere else.
+
+## 4. Verify (`verify`)
+
+Run every check from stage 2 and show its real output. Never report a check you did not run.
+
+**A failed check stops here.** Report `verify` as `failed` with the check's name in the note, say what failed and what you think the cause is, and go straight to stage 5. Do not call the work done.
+
+## 5. Report (`report`)
+
+Write the report on the card with `hub.comment`, in this form:
+
+```markdown
+## Work report
+
+**Result:** done, checks passed | stopped at Verify | stopped: <why>
+
+**What changed:** <in plain words>
+
+**Files:** <paths, or "none">
+
+**Checks run:**
+
+- `<exact command or check>`: passed | failed, with the line that shows it
+
+**Not checked:** <what was not run or could not be, or "nothing">
+```
+
+Then give me the same summary here.
+
+**Never call `hub.complete_task`.** The owner confirms the work. If the checks passed and the card's flow has a review step, `hub.submit_task` may move it there, and only if I asked for that.
+
+Never send a secret, token or password to Hub, in any field.

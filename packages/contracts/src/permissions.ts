@@ -171,6 +171,13 @@ const MATRIX = {
   'device.manage': EVERYONE,
   'device.pair': EVERYONE,
   'device.link': OWNER_PM,
+  // Chats (docs/16 §7). Running one and answering its approvals are the owner's own press: no token and no agent reaches them, so an agent cannot start agents or approve itself.
+  'chat.read': EVERYONE,
+  'chat.manage': EVERYONE,
+  'chat.run': EVERYONE,
+  'chat.answer': EVERYONE,
+  // Writing a local-path doc (docs/16 §10). The accountant reads.
+  'docs.write': ['Y', 'Y', 'N', 'Y', 'Y', 'Y', 'Y'],
 } as const satisfies Record<string, Row>;
 
 export type PermissionAction = keyof typeof MATRIX;
@@ -182,6 +189,8 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'source.set_secret',
   'device.pair',
   'device.link',
+  'chat.run',
+  'chat.answer',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {

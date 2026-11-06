@@ -1,18 +1,695 @@
 /**
- * @file The extension point for Slice 3: chat turns (docs/16 §7, S1 "Recommended commands" and "Event mapping").
- * @description Each handler receives `(args, context, emit)`. The folder rule has already passed by the time it runs, and `context.claudePath()` gives the newest binary. For a turn, call
- * `emit(kind, data)` once per stream event and return when the turn ends: the frames arrive in order on the API's `BridgeHub.request(..., { onEvent })`, and the return value is the one `result`.
- * Spawn with `system.run`'s rules: no shell, prompt on stdin, and Stop by the interrupt control message, then `taskkill /T /F`, never `child.kill()` alone (S1 Q7).
- * They are refused here on purpose, so that nothing can start a turn before Slice 3 brings the D41 approvals with it.
+ * @file Chat turns on this device (docs/16 §7, S1 Q2 to Q8): one live `claude` per chat in use, `--resume` when there is none, and stop that leaves nothing behind.
+ * @description `turn.start` spawns the binary directly (never a shell) with the prompt on stdin. Raw events go through `claude-events.mjs` and leave as `TurnEvent`s with `emit`, and the action answers when the turn ends. A live process stays for
+ * `IDLE_MS`, then its stdin closes. After an interrupt the process is let go and the next message resumes, because a second message after an interrupt is unproven (S1 Q7). The bridge owns the approval window: when it ends the call is denied, never
+ * allowed, and `CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT` sits above it so the engine's own limit never fires first (S1 C10). A dropped socket stops every running turn, since nobody could answer an approval or see the reply.
+ * The bridge never reads Claude's credentials: the binary signs itself in. Nothing a chat says is logged.
  */
-import { Refusal } from './protocol.mjs';
+import { randomUUID } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const notYet = (name) => async () => {
-  throw new Refusal('not_implemented', `${name} arrives with the chat panel`);
+import { CLAUDE_MAX_VERSION, CLAUDE_MIN_VERSION, inTestedRange, resolveClaude } from './claude.mjs';
+import { createEventMapper } from './claude-events.mjs';
+import { branchOf, changedFiles, diffOf, snapshot } from './git-facts.mjs';
+import { hubPaths } from './paths.mjs';
+import { categoryOf, describeCall, executeSettings, MODE_FLAGS, readOnlySettings } from './permissions.mjs';
+import { Refusal } from './protocol.mjs';
+import { childEnv } from './system.mjs';
+
+export const CHAT_MODES = ['ask', 'plan', 'execute'];
+export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+const MODEL = /^[a-z0-9][a-z0-9.\-[\]]{0,63}$/i;
+const APPROVAL_SHIM = fileURLToPath(new URL('../bin/hub-approval-shim.mjs', import.meta.url));
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const IDLE_MS = 10 * 60_000;
+const APPROVAL_WINDOW_MS = 30 * 60_000;
+const ENGINE_LIMIT_MARGIN_MS = 10 * 60_000;
+const STOP_GRACE_MS = 5_000;
+const EXIT_GRACE_MS = 3_000;
+const TOOL_MATCH_WAIT_MS = 3_000;
+const MAX_LIVE = 3;
+const ENGINE_CACHE_MS = 5 * 60_000;
+const STDERR_TAIL = 2_000;
+const CHANGED_FILES_LIMIT = 300;
+const DIFF_LIMIT = 200_000;
+const MAX_STDOUT_BUFFER = 64_000_000;
+const OK_ENV_FOR_CLAUDE = new Set(['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY']);
+
+/** docs/16 §13's one switch: the owner, or a test, may hand the binary an API key or a stand-in model through the bridge's own environment. */
+function extraEnv(env) {
+  try {
+    const parsed = JSON.parse(env.HUB_BRIDGE_CLAUDE_ENV ?? '{}');
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        ([key, value]) => OK_ENV_FOR_CLAUDE.has(key) && typeof value === 'string',
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+
+const number = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+function pipePath(system) {
+  const name = `hub-bridge-${randomUUID()}`;
+  return process.platform === 'win32' ? `\\\\.\\pipe\\${name}` : join(hubPaths(system).chat, `${name}.sock`);
+}
+
+/** The per-context manager. One bridge has one context, and a test builds its own. */
+function createManager(context) {
+  const { system } = context;
+  const chatDir = hubPaths(system).chat;
+  const chats = new Map();
+  const byKey = new Map();
+  const starting = new Set();
+  let server = null;
+  let serverPath = null;
+  let engineCache = null;
+
+  const approvalWindow = () => number(system.env.HUB_BRIDGE_APPROVAL_TIMEOUT_MS, APPROVAL_WINDOW_MS);
+  const idleWindow = () => number(system.env.HUB_BRIDGE_IDLE_MS, IDLE_MS);
+
+  function ensureChatDir() {
+    mkdirSync(chatDir, { recursive: true });
+  }
+
+  /** Files from a process that died with the machine. Each is small, but nothing here may pile up. */
+  function sweepChatDir() {
+    if (!existsSync(chatDir)) return;
+    const liveFiles = new Set([...chats.values()].map((proc) => proc.mcpFile));
+    for (const name of readdirSync(chatDir)) {
+      const file = join(chatDir, name);
+      if (name.endsWith('.mcp.json') && !liveFiles.has(file)) rmSync(file, { force: true });
+    }
+  }
+
+  function startServer() {
+    if (server) return Promise.resolve();
+    ensureChatDir();
+    serverPath = pipePath(system);
+    return new Promise((resolve, reject) => {
+      const next = createServer((socket) => onShimSocket(socket));
+      next.once('error', reject);
+      next.listen(serverPath, () => {
+        next.removeListener('error', reject);
+        next.unref?.();
+        server = next;
+        resolve();
+      });
+    });
+  }
+
+  function onShimSocket(socket) {
+    let raw = '';
+    socket.setEncoding('utf8');
+    socket.on('error', () => {});
+    socket.on('data', (chunk) => {
+      if (raw === null) return;
+      raw += chunk;
+      if (raw.length > 8_000_000) {
+        raw = null;
+        socket.destroy();
+        return;
+      }
+      const end = raw.indexOf('\n');
+      if (end === -1) return;
+      let message;
+      try {
+        message = JSON.parse(raw.slice(0, end));
+      } catch {
+        socket.destroy();
+        return;
+      }
+      raw = null;
+      const proc = byKey.get(message.key);
+      const reply = (answer) => {
+        if (!socket.destroyed) socket.end(`${JSON.stringify(answer)}\n`);
+      };
+      if (!proc) {
+        reply({ behavior: 'deny', message: 'This chat is no longer running.' });
+        return;
+      }
+      void onApproval(proc, message, reply, socket);
+    });
+  }
+
+  async function waitForToolUse(proc, toolUseId) {
+    const deadline = Date.now() + TOOL_MATCH_WAIT_MS;
+    while (Date.now() < deadline) {
+      if (proc.mapper.state.tools.has(toolUseId)) return true;
+      await new Promise((done) => setTimeout(done, 25));
+    }
+    return proc.mapper.state.tools.has(toolUseId);
+  }
+
+  async function onApproval(proc, message, reply, socket) {
+    const { toolName, input, toolUseId } = message;
+    const turn = proc.turn;
+    const refuse = (text) => reply({ behavior: 'deny', message: text });
+    if (!turn) return refuse('No turn is running in this chat.');
+    if (typeof toolName !== 'string' || typeof toolUseId !== 'string') return refuse('Not a real tool call.');
+    // A direct call by the model has no matching tool use for the tool it names, and grants nothing (S1 Q4).
+    if (!(await waitForToolUse(proc, toolUseId)) || proc.mapper.state.tools.get(toolUseId) !== toolName) {
+      return refuse('This does not match a tool call in the stream, so it is refused.');
+    }
+    if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
+    if (MODE_FLAGS[proc.options.mode].readOnly) {
+      if (toolName === 'ExitPlanMode' && typeof input?.plan === 'string') {
+        turn.emit('plan.proposed', { kind: 'plan.proposed', plan: input.plan });
+        return refuse('The plan is shown to the owner. Stop here and wait for them.');
+      }
+      return refuse(`This chat is in ${proc.options.mode} mode, which is read only.`);
+    }
+    const approvalId = randomUUID();
+    const window = approvalWindow();
+    const pending = {
+      approvalId,
+      turn,
+      settled: false,
+      settle(status, answer) {
+        if (pending.settled) return false;
+        pending.settled = true;
+        clearTimeout(pending.timer);
+        turn.approvals.delete(approvalId);
+        turn.emit('approval.resolved', { kind: 'approval.resolved', approvalId, status });
+        reply(answer);
+        return true;
+      },
+      timer: null,
+      input,
+    };
+    pending.timer = setTimeout(() => {
+      pending.settle('timed_out', {
+        behavior: 'deny',
+        message: 'Nobody answered in time, so this was denied.',
+      });
+    }, window);
+    pending.timer.unref?.();
+    turn.approvals.set(approvalId, pending);
+    // Claude Code exited, or the shim went: nothing is waiting any more.
+    socket.on('close', () => pending.settle('stopped', { behavior: 'deny', message: 'The call ended.' }));
+    turn.emit('approval.requested', {
+      kind: 'approval.requested',
+      approvalId,
+      toolUseId,
+      toolName,
+      command: describeCall(toolName, input),
+      category: categoryOf(toolName, input),
+      input: input ?? {},
+      expiresAt: new Date(Date.now() + window).toISOString(),
+    });
+    return undefined;
+  }
+
+  /** The newest copy inside the tested range, with a clear message when there is none (docs/16 §13). */
+  async function engine() {
+    if (engineCache && Date.now() - engineCache.at < ENGINE_CACHE_MS) return engineCache.value;
+    const found = await resolveClaude(system);
+    const best = found.copies.find((copy) => inTestedRange(copy.version, system.env));
+    let message = null;
+    if (!best) {
+      message =
+        found.copies.length === 0
+          ? 'Claude Code was not found on this device.'
+          : `Claude Code ${found.copies.map((copy) => copy.version).join(', ')} is outside the versions Hub has tested (${CLAUDE_MIN_VERSION} to ${CLAUDE_MAX_VERSION}). Use Open in VS Code until Hub is updated.`;
+    }
+    let effortSupported = false;
+    let modelSupported = false;
+    if (best) {
+      const help = await system.run(best.path, ['--help'], { timeoutMs: 20_000 });
+      effortSupported = help.stdout.includes('--effort');
+      modelSupported = help.stdout.includes('--model');
+    }
+    const value = { best: best ?? null, copies: found.copies, message, effortSupported, modelSupported };
+    engineCache = { at: Date.now(), value };
+    return value;
+  }
+
+  function writeSettings(mode) {
+    ensureChatDir();
+    const file = join(
+      chatDir,
+      MODE_FLAGS[mode].readOnly ? 'settings-read-only.json' : 'settings-execute.json',
+    );
+    const settings = MODE_FLAGS[mode].readOnly ? readOnlySettings() : executeSettings();
+    writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
+    return file;
+  }
+
+  function writeMcpConfig(key) {
+    ensureChatDir();
+    const file = join(chatDir, `${randomUUID()}.mcp.json`);
+    const config = {
+      mcpServers: {
+        hubperm: {
+          type: 'stdio',
+          command: system.nodePath,
+          args: [APPROVAL_SHIM],
+          env: { HUB_APPROVAL_PIPE: serverPath, HUB_APPROVAL_KEY: key },
+        },
+      },
+    };
+    writeFileSync(file, JSON.stringify(config), { mode: 0o600 });
+    return file;
+  }
+
+  function buildArgs(options, settingsFile, mcpFile, engineInfo) {
+    const args = [
+      '-p',
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--include-partial-messages',
+      '--input-format',
+      'stream-json',
+      '--permission-mode',
+      MODE_FLAGS[options.mode].permissionMode,
+      '--settings',
+      settingsFile,
+      '--mcp-config',
+      mcpFile,
+      '--permission-prompt-tool',
+      'mcp__hubperm__approve',
+    ];
+    if (options.model) args.push('--model', options.model);
+    if (options.effort && engineInfo.effortSupported) args.push('--effort', options.effort);
+    if (options.sessionId) args.push('--resume', options.sessionId);
+    return args;
+  }
+
+  const processKey = (options) =>
+    [options.folder, options.mode, options.model ?? '', options.effort ?? ''].join('\u0000');
+
+  function closeIdle(proc) {
+    clearTimeout(proc.idleTimer);
+    try {
+      proc.child.stdin.end();
+    } catch {
+      /* Already closed. */
+    }
+    // It should leave by itself; if not, its tree goes.
+    proc.exitTimer = setTimeout(() => killTree(proc), EXIT_GRACE_MS);
+    proc.exitTimer.unref?.();
+  }
+
+  function killTree(proc) {
+    if (proc.exited) return Promise.resolve();
+    return system.killTree(proc.child.pid);
+  }
+
+  function makeRoom() {
+    const idle = [...chats.values()].filter((proc) => !proc.turn && !proc.exited);
+    while (chats.size >= MAX_LIVE && idle.length > 0) {
+      const oldest = idle.shift();
+      chats.delete(oldest.chatId);
+      closeIdle(oldest);
+    }
+  }
+
+  function endTurn(proc, turn, ended) {
+    if (turn.finished) return;
+    turn.finished = true;
+    if (proc.turn === turn) proc.turn = null;
+    clearTimeout(turn.stopTimer);
+    for (const pending of [...turn.approvals.values()]) {
+      pending.settle('stopped', { behavior: 'deny', message: 'The turn ended.' });
+    }
+    turn.emit('turn.ended', { kind: 'turn.ended', ...ended });
+    turn.done({ status: ended.status });
+  }
+
+  async function finishWithFacts(proc, turn, facts) {
+    if (turn.finishing) return;
+    turn.finishing = true;
+    const after = await snapshot(system, proc.options.folder).catch(() => null);
+    const files = changedFiles(
+      proc.options.folder,
+      turn.before,
+      after,
+      proc.mapper.state.toolPaths,
+      CHANGED_FILES_LIMIT,
+    );
+    const { ok, failure, message, ...reported } = facts;
+    const stopped = turn.stopRequested;
+    const clean = Object.fromEntries(Object.entries(reported).filter(([, value]) => value !== undefined));
+    const ended = stopped
+      ? { status: 'stopped', ...clean }
+      : ok
+        ? { status: 'done', ...clean }
+        : {
+            status: 'failed',
+            ...clean,
+            ...(failure ? { failure } : {}),
+            ...(message ? { message } : {}),
+          };
+    if (turn.startedAt) ended.durationMs = Date.now() - turn.startedAt;
+    if (files.length > 0) ended.changedFiles = files;
+    endTurn(proc, turn, ended);
+    if (stopped || !ok) {
+      chats.delete(proc.chatId);
+      closeIdle(proc);
+    } else {
+      armIdle(proc);
+    }
+  }
+
+  function armIdle(proc) {
+    clearTimeout(proc.idleTimer);
+    proc.idleTimer = setTimeout(() => {
+      if (proc.turn) return;
+      chats.delete(proc.chatId);
+      closeIdle(proc);
+    }, idleWindow());
+    proc.idleTimer.unref?.();
+  }
+
+  function onLine(proc, line) {
+    let raw;
+    try {
+      raw = JSON.parse(line);
+    } catch {
+      return;
+    }
+    const { events, result } = proc.mapper.map(raw);
+    const { turn } = proc;
+    if (!turn) return;
+    for (const event of events) {
+      if (event.kind === 'turn.session') {
+        if (turn.sessionSent) continue;
+        turn.sessionSent = true;
+        proc.options.sessionId = event.sessionId;
+        turn.emit(event.kind, {
+          ...event,
+          ...(turn.resumed ? { resumed: true } : {}),
+          ...(turn.branch ? { branch: turn.branch.slice(0, 300) } : {}),
+          ...(turn.effortApplied ? { effortApplied: turn.effortApplied } : {}),
+        });
+      } else {
+        turn.emit(event.kind, event);
+      }
+    }
+    if (result) void finishWithFacts(proc, turn, result);
+  }
+
+  function spawnProcess(chatId, options, engineInfo) {
+    const key = randomUUID();
+    const settingsFile = writeSettings(options.mode);
+    const mcpFile = writeMcpConfig(key);
+    const env = {
+      ...childEnv(system.env),
+      ...extraEnv(system.env),
+      CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: String(approvalWindow() + ENGINE_LIMIT_MARGIN_MS),
+    };
+    const child = system.spawnStream(
+      engineInfo.best.path,
+      buildArgs(options, settingsFile, mcpFile, engineInfo),
+      {
+        cwd: options.folder,
+        env,
+      },
+    );
+    const proc = {
+      chatId,
+      child,
+      key,
+      options: { ...options },
+      processKey: processKey(options),
+      mapper: createEventMapper(),
+      mcpFile,
+      turn: null,
+      exited: false,
+      stderr: '',
+      idleTimer: null,
+      exitTimer: null,
+      buffer: '',
+    };
+    byKey.set(key, proc);
+    chats.set(chatId, proc);
+    child.stdout.setEncoding?.('utf8');
+    child.stderr.setEncoding?.('utf8');
+    child.stdout.on('data', (chunk) => {
+      proc.buffer += chunk;
+      if (proc.buffer.length > MAX_STDOUT_BUFFER) proc.buffer = '';
+      let end = proc.buffer.indexOf('\n');
+      while (end !== -1) {
+        const line = proc.buffer.slice(0, end);
+        proc.buffer = proc.buffer.slice(end + 1);
+        if (line.trim()) onLine(proc, line);
+        end = proc.buffer.indexOf('\n');
+      }
+    });
+    child.stderr.on('data', (chunk) => {
+      proc.stderr = `${proc.stderr}${chunk}`.slice(-STDERR_TAIL);
+    });
+    child.stdin.on?.('error', () => {});
+    const gone = () => {
+      if (proc.exited) return;
+      proc.exited = true;
+      clearTimeout(proc.idleTimer);
+      clearTimeout(proc.exitTimer);
+      byKey.delete(key);
+      if (chats.get(chatId) === proc) chats.delete(chatId);
+      rmSync(mcpFile, { force: true });
+      const { turn } = proc;
+      if (!turn || turn.finishing) return;
+      if (turn.stopRequested) {
+        void finishWithFacts(proc, turn, { ok: true });
+        return;
+      }
+      endTurn(proc, turn, {
+        status: 'failed',
+        failure: proc.mapper.state.failure ?? 'cut_off',
+        message: (proc.stderr.trim() || 'Claude Code stopped before the turn ended.').slice(0, 300),
+        ...(turn.startedAt ? { durationMs: Date.now() - turn.startedAt } : {}),
+      });
+    };
+    child.on('exit', gone);
+    child.on('error', gone);
+    return proc;
+  }
+
+  function validateStart(args) {
+    const { chatId, prompt, mode, model, effort, sessionId, folder } = args;
+    const fine =
+      typeof chatId === 'string' &&
+      UUID.test(chatId) &&
+      typeof prompt === 'string' &&
+      prompt !== '' &&
+      CHAT_MODES.includes(mode) &&
+      (model === undefined || (typeof model === 'string' && MODEL.test(model))) &&
+      (effort === undefined || CHAT_EFFORTS.includes(effort)) &&
+      (sessionId === undefined || (typeof sessionId === 'string' && UUID.test(sessionId)));
+    if (!fine) throw new Refusal('bad_arguments');
+    if (!existsSync(folder) || !statSync(folder).isDirectory()) throw new Refusal('folder_missing');
+  }
+
+  async function start(args, emit) {
+    validateStart(args);
+    const options = {
+      folder: args.folder,
+      mode: args.mode,
+      ...(args.model ? { model: args.model } : {}),
+      ...(args.effort ? { effort: args.effort } : {}),
+      ...(args.sessionId ? { sessionId: args.sessionId } : {}),
+    };
+    const chatId = args.chatId;
+    if (chats.get(chatId)?.turn || starting.has(chatId)) throw new Refusal('turn_running');
+    starting.add(chatId);
+    try {
+      return await begin(chatId, args, options, emit);
+    } finally {
+      starting.delete(chatId);
+    }
+  }
+
+  async function begin(chatId, args, options, emit) {
+    const send = (kind, data) => emit(kind, data);
+    const info = await engine();
+    if (!info.best) {
+      const failure = info.copies.length === 0 ? 'claude_missing' : 'version_out_of_range';
+      send('turn.ended', { kind: 'turn.ended', status: 'failed', failure, message: info.message });
+      return { status: 'failed' };
+    }
+    await startServer();
+    // Before the process exists, so nothing it says can arrive ahead of the turn.
+    const before = await snapshot(system, options.folder).catch(() => null);
+    const branch = await branchOf(system, options.folder).catch(() => null);
+
+    let proc = chats.get(chatId);
+    const reusable =
+      proc &&
+      !proc.exited &&
+      proc.processKey === processKey(options) &&
+      (!options.sessionId || proc.options.sessionId === options.sessionId);
+    if (proc && !reusable) {
+      chats.delete(chatId);
+      closeIdle(proc);
+      proc = null;
+    }
+    let resumed = false;
+    if (!proc) {
+      makeRoom();
+      sweepChatDir();
+      resumed = Boolean(options.sessionId);
+      proc = spawnProcess(chatId, options, info);
+    } else {
+      clearTimeout(proc.idleTimer);
+      proc.mapper.nextTurn();
+    }
+
+    return new Promise((done) => {
+      const turn = {
+        emit: send,
+        done,
+        before,
+        branch,
+        resumed,
+        effortApplied: options.effort && info.effortSupported ? options.effort : null,
+        startedAt: Date.now(),
+        approvals: new Map(),
+        stopRequested: false,
+        finished: false,
+        finishing: false,
+        sessionSent: false,
+        stopTimer: null,
+      };
+      proc.turn = turn;
+      if (proc.exited) {
+        endTurn(proc, turn, {
+          status: 'failed',
+          failure: 'cut_off',
+          message: (proc.stderr.trim() || 'Claude Code stopped at once.').slice(0, 300),
+        });
+        return;
+      }
+      proc.child.stdin.write(
+        `${JSON.stringify({ type: 'user', message: { role: 'user', content: args.prompt } })}\n`,
+      );
+    });
+  }
+
+  function answer(args) {
+    const { chatId, approvalId, decision } = args;
+    if (!['allow', 'deny'].includes(decision)) throw new Refusal('bad_arguments');
+    const pending = chats.get(chatId)?.turn?.approvals.get(approvalId);
+    if (!pending) return { accepted: false };
+    const accepted =
+      decision === 'allow'
+        ? pending.settle('allowed', { behavior: 'allow', updatedInput: pending.input ?? {} })
+        : pending.settle('denied', { behavior: 'deny', message: 'The owner denied this.' });
+    return { accepted };
+  }
+
+  /** Interrupt first, tree-kill last (S1 Q7). Answers once it has been asked; the turn's own end reports the rest. */
+  function stop(chatId) {
+    const proc = chats.get(chatId);
+    const turn = proc?.turn;
+    if (!turn) return { stopped: false };
+    if (turn.stopRequested) return { stopped: true };
+    turn.stopRequested = true;
+    for (const pending of [...turn.approvals.values()]) {
+      pending.settle('stopped', { behavior: 'deny', message: 'The owner stopped this turn.' });
+    }
+    try {
+      proc.child.stdin.write(
+        `${JSON.stringify({ type: 'control_request', request_id: randomUUID(), request: { subtype: 'interrupt' } })}\n`,
+      );
+    } catch {
+      /* The tree-kill below is the answer. */
+    }
+    turn.stopTimer = setTimeout(
+      () => void killTree(proc),
+      number(system.env.HUB_BRIDGE_STOP_GRACE_MS, STOP_GRACE_MS),
+    );
+    turn.stopTimer.unref?.();
+    return { stopped: true };
+  }
+
+  function stopAll() {
+    for (const chatId of [...chats.keys()]) stop(chatId);
+  }
+
+  function close(chatId) {
+    const proc = chats.get(chatId);
+    if (!proc) return { closed: false };
+    if (proc.turn) stop(chatId);
+    else {
+      chats.delete(chatId);
+      closeIdle(proc);
+    }
+    return { closed: true };
+  }
+
+  async function shutdown() {
+    stopAll();
+    for (const proc of [...chats.values()]) await killTree(proc);
+    server?.close();
+    server = null;
+  }
+
+  async function engineStatus() {
+    const info = await engine();
+    let signedIn = null;
+    if (info.best) {
+      const answerNow = await system.run(info.best.path, ['auth', 'status'], { timeoutMs: 20_000 });
+      try {
+        signedIn = JSON.parse(answerNow.stdout).loggedIn === true;
+      } catch {
+        signedIn = null;
+      }
+    }
+    return {
+      found: info.copies.length > 0,
+      version: info.best?.version ?? info.copies[0]?.version ?? null,
+      inRange: Boolean(info.best),
+      testedRange: { min: CLAUDE_MIN_VERSION, max: CLAUDE_MAX_VERSION },
+      message: info.message,
+      signedIn,
+      effortSupported: info.effortSupported,
+      modelSupported: info.modelSupported,
+      live: chats.size,
+    };
+  }
+
+  return {
+    start,
+    answer,
+    stop,
+    stopAll,
+    close,
+    shutdown,
+    engineStatus,
+    liveChats: () => [...chats.keys()],
+    forget: () => {
+      engineCache = null;
+    },
+  };
+}
+
+const managers = new WeakMap();
+
+export function turnManager(context) {
+  let manager = managers.get(context);
+  if (!manager) {
+    manager = createManager(context);
+    managers.set(context, manager);
+  }
+  return manager;
+}
+
 export const turnHandlers = {
-  'turn.start': notYet('turn.start'),
-  'turn.answer': notYet('turn.answer'),
-  'turn.stop': notYet('turn.stop'),
+  'turn.start': (args, context, emit) => turnManager(context).start(args, emit),
+  'turn.answer': (args, context) => turnManager(context).answer(args),
+  'turn.stop': (args, context) => turnManager(context).stop(args.chatId),
+  'chat.close': (args, context) => turnManager(context).close(args.chatId),
+  'chat.diff': (args, context) => diffOf(context.system, args.folder, args.path, DIFF_LIMIT),
+  'engine.status': (_args, context) => turnManager(context).engineStatus(),
 };

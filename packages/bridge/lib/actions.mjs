@@ -8,6 +8,7 @@ import { existsSync, statSync } from 'node:fs';
 import { allowedEntry } from './allowlist.mjs';
 import { resolveClaude } from './claude.mjs';
 import { backupConfig, inspectConfig, writeTrust } from './claude-config.mjs';
+import { docHandlers } from './doc-files.mjs';
 import { runChecks, runFix } from './health.mjs';
 import { folderServerIsRight, installFolderServer } from './install.mjs';
 import { recordLink } from './links.mjs';
@@ -15,7 +16,7 @@ import { claudeConfigFile } from './paths.mjs';
 import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
 import { turnHandlers } from './turns.mjs';
 
-const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'vscode.open']);
+const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'chat.diff', 'vscode.open']);
 
 async function linkFolder(args, context) {
   const { system, url } = context;
@@ -53,6 +54,7 @@ const handlers = {
   },
   'folder.link': linkFolder,
   ...turnHandlers,
+  ...docHandlers,
   // Slice 4: `code <folder>`, then the vscode:// link, with `resolveVsCode` (docs/16 §8).
   'vscode.open': async () => {
     throw new Refusal('not_implemented', 'vscode.open arrives with Send to VS Code');

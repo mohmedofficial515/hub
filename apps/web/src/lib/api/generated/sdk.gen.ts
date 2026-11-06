@@ -3,7 +3,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AuditControllerCsvData, AuditControllerCsvResponses, AuditControllerListData, AuditControllerListResponses, AuthControllerChangeData, AuthControllerChangeResponses, AuthControllerConfirmTotpData, AuthControllerConfirmTotpResponses, AuthControllerDisableTotpData, AuthControllerDisableTotpResponses, AuthControllerForgotData, AuthControllerForgotResponses, AuthControllerGetMeData, AuthControllerGetMeResponses, AuthControllerListSessionsData, AuthControllerListSessionsResponses, AuthControllerRecoverData, AuthControllerRecoverResponses, AuthControllerRefreshData, AuthControllerRefreshResponses, AuthControllerResetData, AuthControllerResetResponses, AuthControllerRevokeAllData, AuthControllerRevokeAllResponses, AuthControllerRevokeSessionData, AuthControllerRevokeSessionResponses, AuthControllerSetupTotpData, AuthControllerSetupTotpResponses, AuthControllerSignInData, AuthControllerSignInResponses, AuthControllerSignOutData, AuthControllerSignOutResponses, AuthControllerVerifyTotpData, AuthControllerVerifyTotpResponses, BridgeSelfControllerRemoveData, BridgeSelfControllerRemoveResponses, BriefsControllerListData, BriefsControllerListResponses, BriefsControllerNarrativeData, BriefsControllerNarrativeResponses, BriefsControllerSummaryData, BriefsControllerSummaryResponses, BriefsControllerTodayData, BriefsControllerTodayResponses, BriefsControllerWeeklyData, BriefsControllerWeeklyResponses, CaptureControllerMeData, CaptureControllerMeResponses, CaptureControllerSessionData, CaptureControllerSessionResponses, CardsControllerAddCommentData, CardsControllerAddCommentResponses, CardsControllerAttachmentsData, CardsControllerAttachmentsResponses, CardsControllerCommentsData, CardsControllerCommentsResponses, CardsControllerCreateData, CardsControllerCreateResponses, CardsControllerDeleteData, CardsControllerDeletedData, CardsControllerDeletedResponses, CardsControllerDeleteResponses, CardsControllerEditCommentData, CardsControllerEditCommentResponses, CardsControllerEventsData, CardsControllerEventsResponses, CardsControllerGetData, CardsControllerGetResponses, CardsControllerLinkData, CardsControllerLinkResponses, CardsControllerRedactCommentData, CardsControllerRedactCommentResponses, CardsControllerRestoreData, CardsControllerRestoreResponses, CardsControllerTransitionData, CardsControllerTransitionResponses, CardsControllerUnlinkData, CardsControllerUnlinkResponses, CardsControllerUnwatchData, CardsControllerUnwatchResponses, CardsControllerUpdateData, CardsControllerUpdateResponses, CardsControllerWatchData, CardsControllerWatchResponses, CardsListCardsData, CardsListCardsResponses, DecisionsControllerAdrData, DecisionsControllerAdrResponses, DecisionsControllerDecideData, DecisionsControllerDecideResponses, DecisionsControllerListData, DecisionsControllerListResponses, DecisionsControllerOptionsData, DecisionsControllerOptionsResponses, DecisionsControllerSupersedeData, DecisionsControllerSupersedeResponses, DecisionsControllerWithdrawData, DecisionsControllerWithdrawResponses, DevicesControllerConnectCommandData, DevicesControllerConnectCommandResponses, DevicesControllerFixData, DevicesControllerFixResponses, DevicesControllerHealthData, DevicesControllerHealthResponses, DevicesControllerListData, DevicesControllerListResponses, DevicesControllerRevokeData, DevicesControllerRevokeResponses, DocsControllerByPathData, DocsControllerByPathResponses, DocsControllerGetData, DocsControllerGetResponses, DocsControllerListData, DocsControllerListResponses, DocsControllerMentionsData, DocsControllerMentionsResponses, DocsControllerTreeData, DocsControllerTreeResponses, EventsControllerStreamData, EventsControllerStreamResponses, HandoffsControllerAcknowledgeData, HandoffsControllerAcknowledgeResponses, HandoffsControllerApplyData, HandoffsControllerApplyResponses, HandoffsControllerDismissData, HandoffsControllerDismissResponses, HandoffsControllerListData, HandoffsControllerListResponses, HealthControllerLiveData, HealthControllerLiveResponses, HealthControllerReadyData, HealthControllerReadyResponses, IdeasControllerAcceptData, IdeasControllerAcceptResponses, IdeasControllerExploreData, IdeasControllerExploreResponses, IdeasControllerListData, IdeasControllerListResponses, IdeasControllerParkData, IdeasControllerParkResponses, IdeasControllerRejectData, IdeasControllerRejectResponses, IdeasControllerReopenData, IdeasControllerReopenResponses, IdeasControllerToPlanData, IdeasControllerToPlanResponses, IdeasControllerUpdateData, IdeasControllerUpdateResponses, InboxControllerArchiveData, InboxControllerArchiveResponses, InboxControllerCountData, InboxControllerCountResponses, InboxControllerListData, InboxControllerListResponses, InboxControllerReadAllData, InboxControllerReadAllResponses, InboxControllerReadData, InboxControllerReadResponses, InboxControllerUnarchiveData, InboxControllerUnarchiveResponses, InboxControllerUnreadData, InboxControllerUnreadResponses, LabFilesControllerFileData, LabFilesControllerFileResponses, MeControllerCreateTokenData, MeControllerCreateTokenResponses, MeControllerListTokensData, MeControllerListTokensResponses, MeControllerRevokeTokenData, MeControllerRevokeTokenResponses, MeControllerSetDefaultProjectData, MeControllerSetDefaultProjectResponses, MeControllerUpdateData, MeControllerUpdateResponses, MembersControllerChangeRolesData, MembersControllerChangeRolesResponses, MembersControllerDisableData, MembersControllerDisableResponses, MembersControllerEnableData, MembersControllerEnableResponses, MembersControllerListData, MembersControllerListResponses, MembersControllerPasswordResetLinkData, MembersControllerPasswordResetLinkResponses, MembersControllerRemoveData, MembersControllerRemoveResponses, MembersControllerSetGithubLoginsData, MembersControllerSetGithubLoginsResponses, MetricsControllerMetricsData, MetricsControllerMetricsResponses, NeedsControllerCancelData, NeedsControllerCancelResponses, NeedsControllerDeliverData, NeedsControllerDeliverResponses, NeedsControllerListData, NeedsControllerListResponses, NeedsControllerRejectData, NeedsControllerRejectResponses, NeedsControllerStartData, NeedsControllerStartResponses, NeedsControllerVerifyData, NeedsControllerVerifyResponses, OnboardingControllerGetData, OnboardingControllerGetResponses, OnboardingControllerTickData, OnboardingControllerTickResponses, OnboardingControllerUntickData, OnboardingControllerUntickResponses, PairingControllerApproveData, PairingControllerApproveResponses, PairingControllerDenyData, PairingControllerDenyResponses, PairingControllerPollData, PairingControllerPollResponses, PairingControllerStartData, PairingControllerStartResponses, PairingControllerViewData, PairingControllerViewResponses, PlansControllerAbandonData, PlansControllerAbandonResponses, PlansControllerApproveData, PlansControllerApproveResponses, PlansControllerFinishData, PlansControllerFinishResponses, PlansControllerListData, PlansControllerListResponses, PlansControllerRestoreData, PlansControllerRestoreResponses, PlansControllerRevisionsData, PlansControllerRevisionsResponses, PlansControllerStartData, PlansControllerStartResponses, PlansControllerSubmitData, PlansControllerSubmitResponses, PlansControllerToTasksData, PlansControllerToTasksResponses, PlansControllerUpdateData, PlansControllerUpdateResponses, PublicInvitesControllerAcceptData, PublicInvitesControllerAcceptResponses, PublicInvitesControllerPreviewData, PublicInvitesControllerPreviewResponses, RedesignControllerApproveData, RedesignControllerApproveResponses, RedesignControllerCompareData, RedesignControllerCompareResponses, RedesignControllerMarkPortedData, RedesignControllerMarkPortedResponses, RedesignControllerPagesData, RedesignControllerPagesResponses, RedesignControllerReadmeData, RedesignControllerReadmeResponses, RedesignControllerRejectData, RedesignControllerRejectResponses, RedesignControllerRequestChangesData, RedesignControllerRequestChangesResponses, RedesignControllerSubmitData, RedesignControllerSubmitResponses, RedesignControllerVersionsData, RedesignControllerVersionsResponses, ReleasesControllerEditData, ReleasesControllerEditResponses, ReleasesControllerGenerateData, ReleasesControllerGenerateResponses, ReleasesControllerListData, ReleasesControllerListResponses, ReleasesControllerReleaseData, ReleasesControllerReleaseResponses, SearchControllerAllData, SearchControllerAllResponses, SearchControllerDocsData, SearchControllerDocsResponses, SettingsControllerCatalogueData, SettingsControllerCatalogueResponses, SettingsControllerListData, SettingsControllerListResponses, SettingsControllerPutData, SettingsControllerPutResponses, SettingsControllerResetData, SettingsControllerResetResponses, SourcesControllerCreateData, SourcesControllerCreateResponses, SourcesControllerGetData, SourcesControllerGetResponses, SourcesControllerListData, SourcesControllerListResponses, SourcesControllerRemoveData, SourcesControllerRemoveResponses, SourcesControllerTestData, SourcesControllerTestResponses, SourcesControllerUpdateData, SourcesControllerUpdateResponses, SystemControllerGetData, SystemControllerGetResponses, SystemControllerReindexData, SystemControllerReindexResponses, SystemControllerRescanData, SystemControllerRescanResponses, SystemControllerRunData, SystemControllerRunResponses, SystemControllerRunsData, SystemControllerRunsResponses, TasksControllerCancelData, TasksControllerCancelResponses, TasksControllerClaimData, TasksControllerClaimResponses, TasksControllerDoneData, TasksControllerDoneResponses, TasksControllerEditData, TasksControllerEditResponses, TasksControllerListData, TasksControllerListResponses, TasksControllerMarkBacklogData, TasksControllerMarkBacklogResponses, TasksControllerMarkReadyData, TasksControllerMarkReadyResponses, TasksControllerMineData, TasksControllerMineResponses, TasksControllerPromptData, TasksControllerPromptResponses, TasksControllerReadyData, TasksControllerReadyResponses, TasksControllerReopenData, TasksControllerReopenResponses, TasksControllerResumeData, TasksControllerResumeResponses, TasksControllerStartData, TasksControllerStartResponses, TasksControllerSubmitData, TasksControllerSubmitResponses, TasksControllerUnclaimData, TasksControllerUnclaimResponses, TimelineControllerListData, TimelineControllerListResponses, TodayControllerGetCountersData, TodayControllerGetCountersResponses, TodayControllerGetData, TodayControllerGetResponses, TodayControllerSeenData, TodayControllerSeenResponses, WorkspaceDevicesControllerLinkData, WorkspaceDevicesControllerLinkResponses, WorkspaceInvitesControllerCreateData, WorkspaceInvitesControllerCreateResponses, WorkspaceInvitesControllerListData, WorkspaceInvitesControllerListResponses, WorkspaceInvitesControllerResendData, WorkspaceInvitesControllerResendResponses, WorkspaceInvitesControllerRevokeData, WorkspaceInvitesControllerRevokeResponses, WorkspacesControllerCloseData, WorkspacesControllerCloseResponses, WorkspacesControllerCreateData, WorkspacesControllerCreateResponses, WorkspacesControllerGetData, WorkspacesControllerGetResponses, WorkspacesControllerListData, WorkspacesControllerListResponses, WorkspacesControllerReopenData, WorkspacesControllerReopenResponses, WorkspacesControllerUpdateData, WorkspacesControllerUpdateResponses } from './types.gen';
+import type { AuditControllerCsvData, AuditControllerCsvResponses, AuditControllerListData, AuditControllerListResponses, AuthControllerChangeData, AuthControllerChangeResponses, AuthControllerConfirmTotpData, AuthControllerConfirmTotpResponses, AuthControllerDisableTotpData, AuthControllerDisableTotpResponses, AuthControllerForgotData, AuthControllerForgotResponses, AuthControllerGetMeData, AuthControllerGetMeResponses, AuthControllerListSessionsData, AuthControllerListSessionsResponses, AuthControllerRecoverData, AuthControllerRecoverResponses, AuthControllerRefreshData, AuthControllerRefreshResponses, AuthControllerResetData, AuthControllerResetResponses, AuthControllerRevokeAllData, AuthControllerRevokeAllResponses, AuthControllerRevokeSessionData, AuthControllerRevokeSessionResponses, AuthControllerSetupTotpData, AuthControllerSetupTotpResponses, AuthControllerSignInData, AuthControllerSignInResponses, AuthControllerSignOutData, AuthControllerSignOutResponses, AuthControllerVerifyTotpData, AuthControllerVerifyTotpResponses, BridgeSelfControllerRemoveData, BridgeSelfControllerRemoveResponses, BriefsControllerListData, BriefsControllerListResponses, BriefsControllerNarrativeData, BriefsControllerNarrativeResponses, BriefsControllerSummaryData, BriefsControllerSummaryResponses, BriefsControllerTodayData, BriefsControllerTodayResponses, BriefsControllerWeeklyData, BriefsControllerWeeklyResponses, CaptureControllerMeData, CaptureControllerMeResponses, CaptureControllerSessionData, CaptureControllerSessionResponses, CardsControllerAddCommentData, CardsControllerAddCommentResponses, CardsControllerAttachmentsData, CardsControllerAttachmentsResponses, CardsControllerCommentsData, CardsControllerCommentsResponses, CardsControllerCreateData, CardsControllerCreateResponses, CardsControllerDeleteData, CardsControllerDeletedData, CardsControllerDeletedResponses, CardsControllerDeleteResponses, CardsControllerEditCommentData, CardsControllerEditCommentResponses, CardsControllerEventsData, CardsControllerEventsResponses, CardsControllerGetData, CardsControllerGetResponses, CardsControllerLinkData, CardsControllerLinkResponses, CardsControllerRedactCommentData, CardsControllerRedactCommentResponses, CardsControllerRestoreData, CardsControllerRestoreResponses, CardsControllerTransitionData, CardsControllerTransitionResponses, CardsControllerUnlinkData, CardsControllerUnlinkResponses, CardsControllerUnwatchData, CardsControllerUnwatchResponses, CardsControllerUpdateData, CardsControllerUpdateResponses, CardsControllerWatchData, CardsControllerWatchResponses, CardsListCardsData, CardsListCardsResponses, ChatsControllerAnswerData, ChatsControllerAnswerResponses, ChatsControllerBranchData, ChatsControllerBranchResponses, ChatsControllerCreateData, ChatsControllerCreateResponses, ChatsControllerDiffData, ChatsControllerDiffResponses, ChatsControllerEngineData, ChatsControllerEngineResponses, ChatsControllerExportData, ChatsControllerExportResponses, ChatsControllerGetData, ChatsControllerGetResponses, ChatsControllerListData, ChatsControllerListResponses, ChatsControllerRemoveData, ChatsControllerRemoveResponses, ChatsControllerRestoreData, ChatsControllerRestoreResponses, ChatsControllerRetryData, ChatsControllerRetryResponses, ChatsControllerSendData, ChatsControllerSendResponses, ChatsControllerStopData, ChatsControllerStopResponses, ChatsControllerUpdateData, ChatsControllerUpdateResponses, DecisionsControllerAdrData, DecisionsControllerAdrResponses, DecisionsControllerDecideData, DecisionsControllerDecideResponses, DecisionsControllerListData, DecisionsControllerListResponses, DecisionsControllerOptionsData, DecisionsControllerOptionsResponses, DecisionsControllerSupersedeData, DecisionsControllerSupersedeResponses, DecisionsControllerWithdrawData, DecisionsControllerWithdrawResponses, DevicesControllerConnectCommandData, DevicesControllerConnectCommandResponses, DevicesControllerFixData, DevicesControllerFixResponses, DevicesControllerHealthData, DevicesControllerHealthResponses, DevicesControllerListData, DevicesControllerListResponses, DevicesControllerRevokeData, DevicesControllerRevokeResponses, DocsControllerByPathData, DocsControllerByPathResponses, DocsControllerGetData, DocsControllerGetResponses, DocsControllerListData, DocsControllerListResponses, DocsControllerMentionsData, DocsControllerMentionsResponses, DocsControllerRestoreData, DocsControllerRestoreResponses, DocsControllerRevisionData, DocsControllerRevisionResponses, DocsControllerRevisionsData, DocsControllerRevisionsResponses, DocsControllerSaveData, DocsControllerSaveResponses, DocsControllerTreeData, DocsControllerTreeResponses, EventsControllerStreamData, EventsControllerStreamResponses, HandoffsControllerAcknowledgeData, HandoffsControllerAcknowledgeResponses, HandoffsControllerApplyData, HandoffsControllerApplyResponses, HandoffsControllerDismissData, HandoffsControllerDismissResponses, HandoffsControllerListData, HandoffsControllerListResponses, HealthControllerLiveData, HealthControllerLiveResponses, HealthControllerReadyData, HealthControllerReadyResponses, IdeasControllerAcceptData, IdeasControllerAcceptResponses, IdeasControllerExploreData, IdeasControllerExploreResponses, IdeasControllerListData, IdeasControllerListResponses, IdeasControllerParkData, IdeasControllerParkResponses, IdeasControllerRejectData, IdeasControllerRejectResponses, IdeasControllerReopenData, IdeasControllerReopenResponses, IdeasControllerToPlanData, IdeasControllerToPlanResponses, IdeasControllerUpdateData, IdeasControllerUpdateResponses, InboxControllerArchiveData, InboxControllerArchiveResponses, InboxControllerCountData, InboxControllerCountResponses, InboxControllerListData, InboxControllerListResponses, InboxControllerReadAllData, InboxControllerReadAllResponses, InboxControllerReadData, InboxControllerReadResponses, InboxControllerUnarchiveData, InboxControllerUnarchiveResponses, InboxControllerUnreadData, InboxControllerUnreadResponses, LabFilesControllerFileData, LabFilesControllerFileResponses, MeControllerCreateTokenData, MeControllerCreateTokenResponses, MeControllerListTokensData, MeControllerListTokensResponses, MeControllerRevokeTokenData, MeControllerRevokeTokenResponses, MeControllerSetDefaultProjectData, MeControllerSetDefaultProjectResponses, MeControllerUpdateData, MeControllerUpdateResponses, MembersControllerChangeRolesData, MembersControllerChangeRolesResponses, MembersControllerDisableData, MembersControllerDisableResponses, MembersControllerEnableData, MembersControllerEnableResponses, MembersControllerListData, MembersControllerListResponses, MembersControllerPasswordResetLinkData, MembersControllerPasswordResetLinkResponses, MembersControllerRemoveData, MembersControllerRemoveResponses, MembersControllerSetGithubLoginsData, MembersControllerSetGithubLoginsResponses, MetricsControllerMetricsData, MetricsControllerMetricsResponses, NeedsControllerCancelData, NeedsControllerCancelResponses, NeedsControllerDeliverData, NeedsControllerDeliverResponses, NeedsControllerListData, NeedsControllerListResponses, NeedsControllerRejectData, NeedsControllerRejectResponses, NeedsControllerStartData, NeedsControllerStartResponses, NeedsControllerVerifyData, NeedsControllerVerifyResponses, OnboardingControllerGetData, OnboardingControllerGetResponses, OnboardingControllerTickData, OnboardingControllerTickResponses, OnboardingControllerUntickData, OnboardingControllerUntickResponses, PairingControllerApproveData, PairingControllerApproveResponses, PairingControllerDenyData, PairingControllerDenyResponses, PairingControllerPollData, PairingControllerPollResponses, PairingControllerStartData, PairingControllerStartResponses, PairingControllerViewData, PairingControllerViewResponses, PlansControllerAbandonData, PlansControllerAbandonResponses, PlansControllerApproveData, PlansControllerApproveResponses, PlansControllerFinishData, PlansControllerFinishResponses, PlansControllerListData, PlansControllerListResponses, PlansControllerRestoreData, PlansControllerRestoreResponses, PlansControllerRevisionsData, PlansControllerRevisionsResponses, PlansControllerStartData, PlansControllerStartResponses, PlansControllerSubmitData, PlansControllerSubmitResponses, PlansControllerToTasksData, PlansControllerToTasksResponses, PlansControllerUpdateData, PlansControllerUpdateResponses, PromptTemplatesControllerCreateData, PromptTemplatesControllerCreateResponses, PromptTemplatesControllerListData, PromptTemplatesControllerListResponses, PromptTemplatesControllerRemoveData, PromptTemplatesControllerRemoveResponses, PromptTemplatesControllerUpdateData, PromptTemplatesControllerUpdateResponses, PublicInvitesControllerAcceptData, PublicInvitesControllerAcceptResponses, PublicInvitesControllerPreviewData, PublicInvitesControllerPreviewResponses, RedesignControllerApproveData, RedesignControllerApproveResponses, RedesignControllerCompareData, RedesignControllerCompareResponses, RedesignControllerMarkPortedData, RedesignControllerMarkPortedResponses, RedesignControllerPagesData, RedesignControllerPagesResponses, RedesignControllerReadmeData, RedesignControllerReadmeResponses, RedesignControllerRejectData, RedesignControllerRejectResponses, RedesignControllerRequestChangesData, RedesignControllerRequestChangesResponses, RedesignControllerSubmitData, RedesignControllerSubmitResponses, RedesignControllerVersionsData, RedesignControllerVersionsResponses, ReleasesControllerEditData, ReleasesControllerEditResponses, ReleasesControllerGenerateData, ReleasesControllerGenerateResponses, ReleasesControllerListData, ReleasesControllerListResponses, ReleasesControllerReleaseData, ReleasesControllerReleaseResponses, SearchControllerAllData, SearchControllerAllResponses, SearchControllerDocsData, SearchControllerDocsResponses, SettingsControllerCatalogueData, SettingsControllerCatalogueResponses, SettingsControllerListData, SettingsControllerListResponses, SettingsControllerPutData, SettingsControllerPutResponses, SettingsControllerResetData, SettingsControllerResetResponses, SourcesControllerCreateData, SourcesControllerCreateResponses, SourcesControllerGetData, SourcesControllerGetResponses, SourcesControllerListData, SourcesControllerListResponses, SourcesControllerRemoveData, SourcesControllerRemoveResponses, SourcesControllerTestData, SourcesControllerTestResponses, SourcesControllerUpdateData, SourcesControllerUpdateResponses, SystemControllerGetData, SystemControllerGetResponses, SystemControllerReindexData, SystemControllerReindexResponses, SystemControllerRescanData, SystemControllerRescanResponses, SystemControllerRunData, SystemControllerRunResponses, SystemControllerRunsData, SystemControllerRunsResponses, TasksControllerCancelData, TasksControllerCancelResponses, TasksControllerClaimData, TasksControllerClaimResponses, TasksControllerDoneData, TasksControllerDoneResponses, TasksControllerEditData, TasksControllerEditResponses, TasksControllerListData, TasksControllerListResponses, TasksControllerMarkBacklogData, TasksControllerMarkBacklogResponses, TasksControllerMarkReadyData, TasksControllerMarkReadyResponses, TasksControllerMineData, TasksControllerMineResponses, TasksControllerPromptData, TasksControllerPromptResponses, TasksControllerReadyData, TasksControllerReadyResponses, TasksControllerReopenData, TasksControllerReopenResponses, TasksControllerResumeData, TasksControllerResumeResponses, TasksControllerStartData, TasksControllerStartResponses, TasksControllerSubmitData, TasksControllerSubmitResponses, TasksControllerUnclaimData, TasksControllerUnclaimResponses, TimelineControllerListData, TimelineControllerListResponses, TodayControllerGetCountersData, TodayControllerGetCountersResponses, TodayControllerGetData, TodayControllerGetResponses, TodayControllerSeenData, TodayControllerSeenResponses, WorkspaceDevicesControllerLinkData, WorkspaceDevicesControllerLinkResponses, WorkspaceInvitesControllerCreateData, WorkspaceInvitesControllerCreateResponses, WorkspaceInvitesControllerListData, WorkspaceInvitesControllerListResponses, WorkspaceInvitesControllerResendData, WorkspaceInvitesControllerResendResponses, WorkspaceInvitesControllerRevokeData, WorkspaceInvitesControllerRevokeResponses, WorkspacesControllerCloseData, WorkspacesControllerCloseResponses, WorkspacesControllerCreateData, WorkspacesControllerCreateResponses, WorkspacesControllerGetData, WorkspacesControllerGetResponses, WorkspacesControllerListData, WorkspacesControllerListResponses, WorkspacesControllerReopenData, WorkspacesControllerReopenResponses, WorkspacesControllerUpdateData, WorkspacesControllerUpdateResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -717,6 +717,40 @@ export const systemControllerGet = <ThrowOnError extends boolean = false>(option
 export const metricsControllerMetrics = <ThrowOnError extends boolean = false>(options?: Options<MetricsControllerMetricsData, ThrowOnError>) => (options?.client ?? client).get<MetricsControllerMetricsResponses, unknown, ThrowOnError>({ url: '/metrics', ...options });
 
 /**
+ * Write a document to its file, keeping the earlier text as a revision. Refuses a stale base. No Git commit
+ */
+export const docsControllerSave = <ThrowOnError extends boolean = false>(options: Options<DocsControllerSaveData, ThrowOnError>) => (options.client ?? client).post<DocsControllerSaveResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/docs/save',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * The earlier texts of a document, newest first
+ */
+export const docsControllerRevisions = <ThrowOnError extends boolean = false>(options: Options<DocsControllerRevisionsData, ThrowOnError>) => (options.client ?? client).get<DocsControllerRevisionsResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/{key}/revisions', ...options });
+
+/**
+ * One earlier text of a document
+ */
+export const docsControllerRevision = <ThrowOnError extends boolean = false>(options: Options<DocsControllerRevisionData, ThrowOnError>) => (options.client ?? client).get<DocsControllerRevisionResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}', ...options });
+
+/**
+ * Put an earlier text back. What is there now becomes a revision too
+ */
+export const docsControllerRestore = <ThrowOnError extends boolean = false>(options: Options<DocsControllerRestoreData, ThrowOnError>) => (options.client ?? client).post<DocsControllerRestoreResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/docs/{key}/revisions/{id}/restore',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Indexed documents
  */
 export const docsControllerList = <ThrowOnError extends boolean = false>(options?: Options<DocsControllerListData, ThrowOnError>) => (options?.client ?? client).get<DocsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs', ...options });
@@ -740,6 +774,94 @@ export const docsControllerMentions = <ThrowOnError extends boolean = false>(opt
  * One document with its file, contents and who mentions it
  */
 export const docsControllerGet = <ThrowOnError extends boolean = false>(options: Options<DocsControllerGetData, ThrowOnError>) => (options.client ?? client).get<DocsControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/docs/{key}', ...options });
+
+/**
+ * A device revokes itself as it uninstalls
+ */
+export const bridgeSelfControllerRemove = <ThrowOnError extends boolean = false>(options?: Options<BridgeSelfControllerRemoveData, ThrowOnError>) => (options?.client ?? client).delete<BridgeSelfControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/bridge/self', ...options });
+
+/**
+ * The member’s paired devices, with online state and the last health report
+ */
+export const devicesControllerList = <ThrowOnError extends boolean = false>(options?: Options<DevicesControllerListData, ThrowOnError>) => (options?.client ?? client).get<DevicesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices', ...options });
+
+/**
+ * The one command that connects a new device, and the one that removes Hub from it
+ */
+export const devicesControllerConnectCommand = <ThrowOnError extends boolean = false>(options?: Options<DevicesControllerConnectCommandData, ThrowOnError>) => (options?.client ?? client).get<DevicesControllerConnectCommandResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/connect-command', ...options });
+
+/**
+ * Runs the device’s health checks now. Offline, the last report stands
+ */
+export const devicesControllerHealth = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerHealthData, ThrowOnError>) => (options.client ?? client).get<DevicesControllerHealthResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/{id}/health', ...options });
+
+/**
+ * Runs one fix from the closed list on the device, then its checks
+ */
+export const devicesControllerFix = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerFixData, ThrowOnError>) => (options.client ?? client).post<DevicesControllerFixResponses, unknown, ThrowOnError>({
+    url: '/api/v1/me/devices/{id}/fix',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Revoke a device. Its credentials stop at once and its socket closes
+ */
+export const devicesControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerRevokeData, ThrowOnError>) => (options.client ?? client).delete<DevicesControllerRevokeResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/{id}', ...options });
+
+/**
+ * A device asks to pair. It shows the short code and opens the approval page
+ */
+export const pairingControllerStart = <ThrowOnError extends boolean = false>(options: Options<PairingControllerStartData, ThrowOnError>) => (options.client ?? client).post<PairingControllerStartResponses, unknown, ThrowOnError>({
+    url: '/api/v1/pairing/start',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * A device asks for the answer. Its credentials come back once
+ */
+export const pairingControllerPoll = <ThrowOnError extends boolean = false>(options: Options<PairingControllerPollData, ThrowOnError>) => (options.client ?? client).post<PairingControllerPollResponses, unknown, ThrowOnError>({
+    url: '/api/v1/pairing/poll',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * What is asking to pair, for the approval page
+ */
+export const pairingControllerView = <ThrowOnError extends boolean = false>(options: Options<PairingControllerViewData, ThrowOnError>) => (options.client ?? client).get<PairingControllerViewResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}', ...options });
+
+/**
+ * Approve a device
+ */
+export const pairingControllerApprove = <ThrowOnError extends boolean = false>(options: Options<PairingControllerApproveData, ThrowOnError>) => (options.client ?? client).post<PairingControllerApproveResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}/approve', ...options });
+
+/**
+ * Refuse a device
+ */
+export const pairingControllerDeny = <ThrowOnError extends boolean = false>(options: Options<PairingControllerDenyData, ThrowOnError>) => (options.client ?? client).post<PairingControllerDenyResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}/deny', ...options });
+
+/**
+ * Link a folder on this device to the project, and accept its trust (D44)
+ */
+export const workspaceDevicesControllerLink = <ThrowOnError extends boolean = false>(options: Options<WorkspaceDevicesControllerLinkData, ThrowOnError>) => (options.client ?? client).post<WorkspaceDevicesControllerLinkResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/devices/{id}/link',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Live events of this project, for this member
@@ -1320,30 +1442,15 @@ export const captureControllerSession = <ThrowOnError extends boolean = false>(o
 export const captureControllerMe = <ThrowOnError extends boolean = false>(options?: Options<CaptureControllerMeData, ThrowOnError>) => (options?.client ?? client).get<CaptureControllerMeResponses, unknown, ThrowOnError>({ url: '/api/v1/me/context', ...options });
 
 /**
- * A device revokes itself as it uninstalls
+ * This member’s chats on this project, pinned first. `deleted=true` lists deleted ones
  */
-export const bridgeSelfControllerRemove = <ThrowOnError extends boolean = false>(options?: Options<BridgeSelfControllerRemoveData, ThrowOnError>) => (options?.client ?? client).delete<BridgeSelfControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/bridge/self', ...options });
+export const chatsControllerList = <ThrowOnError extends boolean = false>(options?: Options<ChatsControllerListData, ThrowOnError>) => (options?.client ?? client).get<ChatsControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats', ...options });
 
 /**
- * The member’s paired devices, with online state and the last health report
+ * A new chat on a device, in a folder registered on this project
  */
-export const devicesControllerList = <ThrowOnError extends boolean = false>(options?: Options<DevicesControllerListData, ThrowOnError>) => (options?.client ?? client).get<DevicesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices', ...options });
-
-/**
- * The one command that connects a new device, and the one that removes Hub from it
- */
-export const devicesControllerConnectCommand = <ThrowOnError extends boolean = false>(options?: Options<DevicesControllerConnectCommandData, ThrowOnError>) => (options?.client ?? client).get<DevicesControllerConnectCommandResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/connect-command', ...options });
-
-/**
- * Runs the device’s health checks now. Offline, the last report stands
- */
-export const devicesControllerHealth = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerHealthData, ThrowOnError>) => (options.client ?? client).get<DevicesControllerHealthResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/{id}/health', ...options });
-
-/**
- * Runs one fix from the closed list on the device, then its checks
- */
-export const devicesControllerFix = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerFixData, ThrowOnError>) => (options.client ?? client).post<DevicesControllerFixResponses, unknown, ThrowOnError>({
-    url: '/api/v1/me/devices/{id}/fix',
+export const chatsControllerCreate = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerCreateData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerCreateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1352,15 +1459,25 @@ export const devicesControllerFix = <ThrowOnError extends boolean = false>(optio
 });
 
 /**
- * Revoke a device. Its credentials stop at once and its socket closes
+ * Claude Code on one device: version, range, sign-in, and which selectors it supports
  */
-export const devicesControllerRevoke = <ThrowOnError extends boolean = false>(options: Options<DevicesControllerRevokeData, ThrowOnError>) => (options.client ?? client).delete<DevicesControllerRevokeResponses, unknown, ThrowOnError>({ url: '/api/v1/me/devices/{id}', ...options });
+export const chatsControllerEngine = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerEngineData, ThrowOnError>) => (options.client ?? client).get<ChatsControllerEngineResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/engine', ...options });
 
 /**
- * A device asks to pair. It shows the short code and opens the approval page
+ * Delete a chat. It can be restored (D28). A running turn stops first
  */
-export const pairingControllerStart = <ThrowOnError extends boolean = false>(options: Options<PairingControllerStartData, ThrowOnError>) => (options.client ?? client).post<PairingControllerStartResponses, unknown, ThrowOnError>({
-    url: '/api/v1/pairing/start',
+export const chatsControllerRemove = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerRemoveData, ThrowOnError>) => (options.client ?? client).delete<ChatsControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}', ...options });
+
+/**
+ * One chat with every message, step and approval. This is also how a device catches up
+ */
+export const chatsControllerGet = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerGetData, ThrowOnError>) => (options.client ?? client).get<ChatsControllerGetResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}', ...options });
+
+/**
+ * Rename or pin a chat, or set its mode, model and effort for the next turn
+ */
+export const chatsControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerUpdateData, ThrowOnError>) => (options.client ?? client).patch<ChatsControllerUpdateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1369,10 +1486,15 @@ export const pairingControllerStart = <ThrowOnError extends boolean = false>(opt
 });
 
 /**
- * A device asks for the answer. Its credentials come back once
+ * Bring a deleted chat back
  */
-export const pairingControllerPoll = <ThrowOnError extends boolean = false>(options: Options<PairingControllerPollData, ThrowOnError>) => (options.client ?? client).post<PairingControllerPollResponses, unknown, ThrowOnError>({
-    url: '/api/v1/pairing/poll',
+export const chatsControllerRestore = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerRestoreData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerRestoreResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}/restore', ...options });
+
+/**
+ * Send a message. The reply streams; another send while it runs is refused
+ */
+export const chatsControllerSend = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerSendData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerSendResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats/{id}/messages',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -1381,25 +1503,83 @@ export const pairingControllerPoll = <ThrowOnError extends boolean = false>(opti
 });
 
 /**
- * What is asking to pair, for the approval page
+ * Send the last message again as a new turn
  */
-export const pairingControllerView = <ThrowOnError extends boolean = false>(options: Options<PairingControllerViewData, ThrowOnError>) => (options.client ?? client).get<PairingControllerViewResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}', ...options });
+export const chatsControllerRetry = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerRetryData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerRetryResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats/{id}/retry',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
- * Approve a device
+ * Stop the running turn: the interrupt first, then the process tree if it does not end
  */
-export const pairingControllerApprove = <ThrowOnError extends boolean = false>(options: Options<PairingControllerApproveData, ThrowOnError>) => (options.client ?? client).post<PairingControllerApproveResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}/approve', ...options });
+export const chatsControllerStop = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerStopData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerStopResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}/stop', ...options });
 
 /**
- * Refuse a device
+ * A new chat holding the words up to a message
  */
-export const pairingControllerDeny = <ThrowOnError extends boolean = false>(options: Options<PairingControllerDenyData, ThrowOnError>) => (options.client ?? client).post<PairingControllerDenyResponses, unknown, ThrowOnError>({ url: '/api/v1/pairing/{code}/deny', ...options });
+export const chatsControllerBranch = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerBranchData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerBranchResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats/{id}/branch',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
- * Link a folder on this device to the project, and accept its trust (D44)
+ * Allow once or deny a paused call. The first answer wins; later ones get a conflict
  */
-export const workspaceDevicesControllerLink = <ThrowOnError extends boolean = false>(options: Options<WorkspaceDevicesControllerLinkData, ThrowOnError>) => (options.client ?? client).post<WorkspaceDevicesControllerLinkResponses, unknown, ThrowOnError>({
-    url: '/api/v1/workspaces/{ws}/devices/{id}/link',
+export const chatsControllerAnswer = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerAnswerData, ThrowOnError>) => (options.client ?? client).post<ChatsControllerAnswerResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/chats/{id}/approvals/{approval}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * The chat as Markdown
+ */
+export const chatsControllerExport = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerExportData, ThrowOnError>) => (options.client ?? client).get<ChatsControllerExportResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}/export', ...options });
+
+/**
+ * One file’s diff against HEAD as it is now on the device. Read only
+ */
+export const chatsControllerDiff = <ThrowOnError extends boolean = false>(options: Options<ChatsControllerDiffData, ThrowOnError>) => (options.client ?? client).get<ChatsControllerDiffResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/chats/{id}/diff', ...options });
+
+/**
+ * Frequent prompts saved on this project
+ */
+export const promptTemplatesControllerList = <ThrowOnError extends boolean = false>(options?: Options<PromptTemplatesControllerListData, ThrowOnError>) => (options?.client ?? client).get<PromptTemplatesControllerListResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/prompt-templates', ...options });
+
+/**
+ * Save a frequent prompt
+ */
+export const promptTemplatesControllerCreate = <ThrowOnError extends boolean = false>(options: Options<PromptTemplatesControllerCreateData, ThrowOnError>) => (options.client ?? client).post<PromptTemplatesControllerCreateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/prompt-templates',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Delete a saved prompt
+ */
+export const promptTemplatesControllerRemove = <ThrowOnError extends boolean = false>(options: Options<PromptTemplatesControllerRemoveData, ThrowOnError>) => (options.client ?? client).delete<PromptTemplatesControllerRemoveResponses, unknown, ThrowOnError>({ url: '/api/v1/workspaces/{ws}/prompt-templates/{id}', ...options });
+
+/**
+ * Change a saved prompt
+ */
+export const promptTemplatesControllerUpdate = <ThrowOnError extends boolean = false>(options: Options<PromptTemplatesControllerUpdateData, ThrowOnError>) => (options.client ?? client).put<PromptTemplatesControllerUpdateResponses, unknown, ThrowOnError>({
+    url: '/api/v1/workspaces/{ws}/prompt-templates/{id}',
     ...options,
     headers: {
         'Content-Type': 'application/json',

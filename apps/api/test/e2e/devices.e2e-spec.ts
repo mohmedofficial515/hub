@@ -356,7 +356,7 @@ describe('devices', () => {
         code: 'hub.devices.refused',
         details: expect.objectContaining({ reason: 'folder_not_allowed' }) as unknown,
       });
-      await expect(hub.request(deviceId, 'turn.start', { folder: allowed })).rejects.toMatchObject({
+      await expect(hub.request(deviceId, 'vscode.open', { folder: allowed })).rejects.toMatchObject({
         details: expect.objectContaining({ reason: 'not_implemented' }) as unknown,
       });
       await expect(hub.request(deviceId, 'vscode.open', { folder: outside })).rejects.toMatchObject({

@@ -23,7 +23,7 @@ export const BRIDGE_CLOSE = {
 
 /**
  * Everything Hub can ask of a bridge. Nothing here takes a command, and a folder argument must be on the allowlist.
- * `turn.*` and `vscode.open` are answered `not_implemented` until Slices 3 and 4 fill them (`packages/bridge/lib/actions.mjs`).
+ * `vscode.open` is answered `not_implemented` until Slice 4 fills it (`packages/bridge/lib/actions.mjs`).
  */
 export const BRIDGE_ACTIONS = [
   'health.check',
@@ -32,6 +32,11 @@ export const BRIDGE_ACTIONS = [
   'turn.start',
   'turn.answer',
   'turn.stop',
+  'chat.close',
+  'chat.diff',
+  'engine.status',
+  'doc.read',
+  'doc.write',
   'vscode.open',
 ] as const;
 export type BridgeAction = (typeof BRIDGE_ACTIONS)[number];
@@ -44,6 +49,7 @@ export const BRIDGE_REFUSALS = [
   'folder_missing',
   'not_implemented',
   'not_fixable',
+  'turn_running',
   'failed',
 ] as const;
 export type BridgeRefusal = (typeof BRIDGE_REFUSALS)[number];
@@ -180,8 +186,14 @@ export type HubFrame =
       readonly protocol: number;
       readonly deviceId: string;
       readonly folders: readonly AllowedFolder[];
+      /** Docs roots this device holds (docs/16 §10). A chat cannot run in one unless it is also a folder. */
+      readonly docRoots?: readonly string[];
     }
-  | { readonly type: 'allowlist'; readonly folders: readonly AllowedFolder[] }
+  | {
+      readonly type: 'allowlist';
+      readonly folders: readonly AllowedFolder[];
+      readonly docRoots?: readonly string[];
+    }
   | {
       readonly type: 'action';
       readonly id: string;

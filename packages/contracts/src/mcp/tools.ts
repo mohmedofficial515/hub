@@ -58,7 +58,9 @@ import {
   verifyNeedSchema,
 } from '../cards';
 import { auditQuerySchema } from '../cards/read-models';
+import { chatModelSchema, promptTemplateInputSchema, stageReportSchema, updateChatSchema } from '../chat';
 import { fixDeviceSchema } from '../devices';
+import { saveDocSchema } from '../knowledge';
 import type { PermissionAction } from '../permissions';
 import {
   createProjectSchema,
@@ -164,6 +166,32 @@ const TOOL_TABLE = {
     }),
     actions: ['docs.read'],
     readOnly: true,
+  },
+  save_doc: {
+    description:
+      'Write a Markdown document to its file, through Hub, from any device. Pass key, or source and path for a new file, with baseHash from the Version line of get_doc. The earlier text is kept as a revision, a save based on an older version is refused, and it warns about similar documents. Search first (search_docs), so nothing is written twice. It commits nothing.',
+    input: saveDocSchema,
+    actions: ['docs.write'],
+    routes: ['POST /workspaces/:ws/docs/save'],
+    destructive: true,
+  },
+  list_doc_revisions: {
+    description: 'The earlier texts of a document, newest first, each with its id for restore_doc_revision.',
+    input: z.object({ key: cardKeySchema }),
+    actions: ['docs.read'],
+    readOnly: true,
+  },
+  restore_doc_revision: {
+    description:
+      'Put an earlier text of a document back. What is there now becomes a revision too, so this can be undone.',
+    input: z.object({
+      key: cardKeySchema,
+      revision: z.string().uuid(),
+      baseHash: z.string().max(100).optional(),
+    }),
+    actions: ['docs.write'],
+    routes: ['POST /workspaces/:ws/docs/:key/revisions/:id/restore'],
+    destructive: true,
   },
   get_card: {
     description:
@@ -796,6 +824,72 @@ const TOOL_TABLE = {
     actions: ['device.manage'],
     routes: ['DELETE /me/devices/:id'],
     destructive: true,
+  },
+
+  // Chats (docs/16 §7). Starting or running one and answering its approvals are web only: an agent must not start agents or approve its own call. Slice 5's queue is how an agent run gets scheduled.
+  list_chats: {
+    description: 'Your Hub panel chats on this project, pinned first, with their device, folder and mode.',
+    input: z.object({ deleted: z.boolean().optional() }),
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  get_chat: {
+    description: 'One panel chat: its words, and for each turn the steps, status and changed files.',
+    input: z.object({ chat: z.string().uuid() }),
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  export_chat: {
+    description: 'One panel chat as Markdown.',
+    input: z.object({ chat: z.string().uuid() }),
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  update_chat: {
+    description:
+      'Rename or pin a panel chat, or set the mode, model and effort its next turn uses. It starts nothing.',
+    input: updateChatSchema.extend({ chat: z.string().uuid(), model: chatModelSchema.nullable().optional() }),
+    actions: ['chat.manage'],
+    routes: ['PATCH /workspaces/:ws/chats/:id'],
+  },
+  delete_chat: {
+    description: 'Delete a panel chat, stopping its turn if one is running. It can be restored.',
+    input: z.object({ chat: z.string().uuid() }),
+    actions: ['chat.manage'],
+    routes: ['DELETE /workspaces/:ws/chats/:id'],
+    destructive: true,
+  },
+  restore_chat: {
+    description: 'Bring a deleted panel chat back.',
+    input: z.object({ chat: z.string().uuid() }),
+    actions: ['chat.manage'],
+    routes: ['POST /workspaces/:ws/chats/:id/restore'],
+  },
+  list_prompt_templates: {
+    description: 'Frequent prompts saved on this project.',
+    input: noInput,
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  save_prompt_template: {
+    description: 'Save a frequent prompt on this project, or change one by passing its id.',
+    input: promptTemplateInputSchema.extend({ id: z.string().uuid().optional() }),
+    actions: ['chat.manage'],
+    routes: ['POST /workspaces/:ws/prompt-templates', 'PUT /workspaces/:ws/prompt-templates/:id'],
+  },
+  delete_prompt_template: {
+    description: 'Delete a saved prompt.',
+    input: z.object({ id: z.string().uuid() }),
+    actions: ['chat.manage'],
+    routes: ['DELETE /workspaces/:ws/prompt-templates/:id'],
+    destructive: true,
+  },
+  report_stage: {
+    description:
+      'Say which stage of /hub:work or /hub:doc you are in, so the panel shows a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.',
+    input: stageReportSchema,
+    actions: ['chat.read'],
+    readOnly: true,
   },
 
   // Administration

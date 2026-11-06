@@ -31,6 +31,13 @@ export function fakeSystem(overrides = {}) {
 
   function claude(args, options) {
     const line = args.join(' ');
+    if (line === '--help') {
+      return {
+        status: 0,
+        stdout: system.noEffortFlag ? '--model <m>' : '--model <m> --effort <level>',
+        stderr: '',
+      };
+    }
     if (line === '--version')
       return { status: 0, stdout: `${system.claudeVersion} (Claude Code)\n`, stderr: '' };
     if (line === 'auth status') {

@@ -22,9 +22,10 @@ import { RedisClients } from '@/infra/redis/redis.module';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
+import { ChatsService } from '@/modules/chats';
 import { DevicesService } from '@/modules/devices';
 import { BriefsService } from '@/modules/digests';
-import { DocsReadService } from '@/modules/docs';
+import { DocsReadService, DocsWriteService } from '@/modules/docs';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
 import { InboxService } from '@/modules/notifications';
 import { PlanReadService } from '@/modules/plans';
@@ -62,6 +63,8 @@ export class McpDeps {
     readonly inbox: InboxService,
     readonly briefs: BriefsService,
     readonly docs: DocsReadService,
+    readonly docsWrite: DocsWriteService,
+    readonly chats: ChatsService,
     readonly search: SearchService,
     readonly runner: SourceRunnerService,
     readonly queues: QueueService,

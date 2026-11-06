@@ -6,6 +6,7 @@ import { Module } from '@nestjs/common';
 import { AuditModule } from '@/modules/audit';
 import { CaptureModule } from '@/modules/capture';
 import { CardsModule } from '@/modules/cards';
+import { ChatsModule } from '@/modules/chats';
 import { DevicesModule } from '@/modules/devices';
 import { DigestsModule } from '@/modules/digests';
 import { DocsModule } from '@/modules/docs';
@@ -27,6 +28,7 @@ import { McpDeps } from './presentation/mcp/tool-context';
     AuditModule,
     CaptureModule,
     CardsModule,
+    ChatsModule,
     DevicesModule,
     DigestsModule,
     DocsModule,

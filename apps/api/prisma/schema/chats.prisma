@@ -1,0 +1,144 @@
+/// One conversation with the official Claude Code on one device, in one folder (docs/16 §4, §7). Hub keeps its own copy as it streams and never reads session files. Delete is recoverable (D28).
+model Chat {
+  id              String              @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId     String              @map("workspace_id") @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  deviceId        String              @map("device_id") @db.Uuid
+  folder          String
+  branch          String?
+  mode            String              @default("ask")
+  model           String?
+  effort          String?
+  sessionId       String?             @map("session_id")
+  title           String              @default("")
+  pinnedAt        DateTime?           @map("pinned_at") @db.Timestamptz(3)
+  parentChatId    String?             @map("parent_chat_id") @db.Uuid
+  parentMessageId String?             @map("parent_message_id") @db.Uuid
+  /// The last streamed event's number. A device that sees a gap rereads the chat.
+  lastSeq         Int                 @default(0) @map("last_seq")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt       DateTime?           @map("deleted_at") @db.Timestamptz(3)
+  workspace       Workspace           @relation(fields: [workspaceId], references: [id])
+  user            User                @relation(fields: [userId], references: [id])
+  device          Device              @relation(fields: [deviceId], references: [id])
+  parent          Chat?               @relation("ChatBranches", fields: [parentChatId], references: [id])
+  branches        Chat[]              @relation("ChatBranches")
+  messages        ChatMessage[]
+  steps           ChatStep[]
+  approvals       ChatApproval[]
+
+  @@index([workspaceId, userId, updatedAt])
+  @@map("chats")
+}
+
+/// A user's words, or a reply with its turn's facts. Only what the engine reported is set. `content` is capped, with a marker.
+model ChatMessage {
+  id             String         @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId    String         @map("workspace_id") @db.Uuid
+  chatId         String         @map("chat_id") @db.Uuid
+  ordinal        Int
+  role           String
+  content        String         @default("")
+  truncated      Boolean        @default(false)
+  context        Json?
+  status         String?
+  failure        String?
+  failureMessage String?        @map("failure_message")
+  model          String?
+  claudeVersion  String?        @map("claude_version")
+  durationMs     Int?           @map("duration_ms")
+  usage          Json?
+  limit          Json?
+  stages         Json           @default("[]")
+  plan           String?
+  changedFiles   Json           @default("[]") @map("changed_files")
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  endedAt        DateTime?      @map("ended_at") @db.Timestamptz(3)
+  chat           Chat           @relation(fields: [chatId], references: [id])
+  steps          ChatStep[]
+  approvals      ChatApproval[]
+
+  @@unique([chatId, ordinal])
+  @@map("chat_messages")
+}
+
+/// One tool call in a turn, with its exact input and result after the secret filter.
+model ChatStep {
+  id              String      @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId     String      @map("workspace_id") @db.Uuid
+  chatId          String      @map("chat_id") @db.Uuid
+  messageId       String      @map("message_id") @db.Uuid
+  toolUseId       String      @map("tool_use_id")
+  parentToolUseId String?     @map("parent_tool_use_id")
+  name            String
+  status          String      @default("running")
+  input           Json?
+  output          String?
+  decision        String?
+  textOffset      Int         @default(0) @map("text_offset")
+  startedAt       DateTime    @default(now()) @map("started_at") @db.Timestamptz(3)
+  endedAt         DateTime?   @map("ended_at") @db.Timestamptz(3)
+  chat            Chat        @relation(fields: [chatId], references: [id])
+  message         ChatMessage @relation(fields: [messageId], references: [id])
+
+  @@unique([messageId, toolUseId])
+  @@index([chatId])
+  @@map("chat_steps")
+}
+
+/// A paused call. The status moves once, from `pending`, which is what makes the first answer win across devices.
+model ChatApproval {
+  id           String      @id @db.Uuid
+  workspaceId  String      @map("workspace_id") @db.Uuid
+  chatId       String      @map("chat_id") @db.Uuid
+  messageId    String      @map("message_id") @db.Uuid
+  toolUseId    String      @map("tool_use_id")
+  toolName     String      @map("tool_name")
+  command      String
+  category     String
+  input        Json?
+  status       String      @default("pending")
+  answeredById String?     @map("answered_by_id") @db.Uuid
+  answeredAt   DateTime?   @map("answered_at") @db.Timestamptz(3)
+  expiresAt    DateTime    @map("expires_at") @db.Timestamptz(3)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  chat         Chat        @relation(fields: [chatId], references: [id])
+  message      ChatMessage @relation(fields: [messageId], references: [id])
+
+  @@index([chatId, status])
+  @@map("chat_approvals")
+}
+
+/// A frequent prompt, saved per project (docs/16 §7.1).
+model ChatPromptTemplate {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  title       String
+  body        String
+  createdById String    @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@map("chat_prompt_templates")
+}
+
+/// The text a document had before a save (docs/16 §10). `save_doc` writes one first, so nothing is lost.
+model DocRevision {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  docCardId   String    @map("doc_card_id") @db.Uuid
+  /// The hash of `content`, which is the version a later save names.
+  contentHash String    @map("content_hash")
+  content     String
+  reason      String?
+  savedById   String?   @map("saved_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  doc         DocDetail @relation(fields: [docCardId], references: [cardId])
+
+  @@index([docCardId, createdAt])
+  @@map("doc_revisions")
+}

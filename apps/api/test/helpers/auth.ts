@@ -95,6 +95,14 @@ export class Browser {
     return this.post('/auth/sign-in', { email, password }).expect(200);
   }
 
+  /** The Cookie header this browser would send to a path, for a raw connection such as SSE. */
+  cookieHeader(full: string): string {
+    return [...this.cookies.entries()]
+      .filter(([, jar]) => full.startsWith(jar.path))
+      .map(([name, jar]) => `${name}=${jar.value}`)
+      .join('; ');
+  }
+
   cookie(name: string): string | undefined {
     return this.cookies.get(name)?.value;
   }

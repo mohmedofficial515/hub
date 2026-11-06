@@ -3,11 +3,12 @@
  * @description What one message on the stream does to the query caches (docs/15 §7). Rows and an open sheet take the new status at
  * once, then the affected queries refetch, so a page gets live updates by using the keys in `features/cards/keys.ts`.
  */
-import type { CardType, RealtimeCardEvent } from '@hub/contracts';
+import type { CardType, ChatChanged, ChatLiveEvent, RealtimeCardEvent } from '@hub/contracts';
 import type { Query, QueryClient, QueryKey } from '@tanstack/react-query';
 
 import { qk } from '@/features/cards/keys';
 import type { CardListItem, HubCard } from '@/features/cards/types';
+import { applyChatChanged, applyChatLive } from '@/features/chat/live';
 
 /** The API's realtime message, or the name docs/04 §4 uses for the same fact. */
 export type CardEventMessage = Pick<RealtimeCardEvent, 'cardKey' | 'kind' | 'status' | 'at'> &
@@ -250,6 +251,15 @@ export function applyLiveMessage(
   }
   if (event === 'inbox.new' || event === 'inbox.read') {
     refetch({ keys: [qk.inbox(ws), qk.counters(ws)], cardTypes: [] });
+    return true;
+  }
+  // The chat panel (docs/16 §7). A long reply's pieces go straight into the open chat's cache.
+  if (event === 'chat.event') {
+    applyChatLive(client, ws, data as ChatLiveEvent);
+    return true;
+  }
+  if (event === 'chat.changed') {
+    applyChatChanged(client, ws, (data as ChatChanged).chatId);
     return true;
   }
   if (event === 'source.run') {

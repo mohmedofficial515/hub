@@ -83,6 +83,21 @@ export class RealtimePublisher {
     await this.send(workspaceId, envelope, envelope.event);
   }
 
+  /**
+   * For the chat's stream: goes to the open pages and skips the replay buffer, or one long reply would push every card event out of it. Not for anything that must survive a reconnect:
+   * a page catches up on these by reading the chat, and a `chat.changed` envelope tells it to.
+   */
+  async publishTransient(workspaceId: string, envelope: RealtimeEnvelope): Promise<void> {
+    try {
+      await this.redis.main.publish(
+        workspaceEventsChannel(workspaceId),
+        JSON.stringify({ ...envelope, streamId: '' }),
+      );
+    } catch (error) {
+      this.logger.warn(`Realtime publish failed for ${envelope.event}: ${String(error)}`);
+    }
+  }
+
   private async send(
     workspaceId: string,
     message: RealtimeCardEvent | RealtimeEnvelope,

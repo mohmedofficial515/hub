@@ -14,6 +14,7 @@ export function hubPaths(system) {
     links: join(root, 'links.json'),
     pid: join(root, 'bridge.pid'),
     log: join(root, 'bridge.log'),
+    chat: join(root, 'chat'),
     app: join(root, 'app'),
     bridgeBin: join(root, 'app', 'bridge', 'bin', 'hub-bridge.mjs'),
     helperBin: join(root, 'app', 'bridge', 'bin', 'hub-mcp-headers.mjs'),

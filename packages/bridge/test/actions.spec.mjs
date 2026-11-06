@@ -27,7 +27,7 @@ describe('the closed list', () => {
     expect(system.calls).toEqual([]);
   });
 
-  it('a turn inside an allowed folder is the Slice 3 extension point, and starts nothing yet', async () => {
+  it('a turn with no prompt is refused, and starts nothing', async () => {
     const system = fakeSystem();
     const folder = aFolder(system);
     const answer = await dispatch(
@@ -35,7 +35,7 @@ describe('the closed list', () => {
       contextFor(system, [{ path: folder, project: 'demo' }]),
       noEmit,
     );
-    expect(answer).toMatchObject({ ok: false, error: { code: 'not_implemented' } });
+    expect(answer).toMatchObject({ ok: false, error: { code: 'bad_arguments' } });
     expect(system.calls).toEqual([]);
   });
 
@@ -43,7 +43,7 @@ describe('the closed list', () => {
     const system = fakeSystem();
     const allowed = aFolder(system, 'allowed');
     const outside = aFolder(system, 'outside');
-    for (const action of ['turn.start', 'vscode.open', 'folder.link']) {
+    for (const action of ['turn.start', 'chat.diff', 'vscode.open', 'folder.link']) {
       const answer = await dispatch(
         { action, args: { folder: outside, project: 'demo' } },
         contextFor(system, [{ path: allowed, project: 'demo' }]),

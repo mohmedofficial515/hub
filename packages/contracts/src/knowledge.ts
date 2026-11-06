@@ -55,6 +55,8 @@ export type DocMentions = z.infer<typeof docMentionsSchema>;
 export const docContentSchema = z.object({
   /** The file as it is now, front-matter removed. Null when the file is gone or holds something like a secret. */
   content: z.string().nullable(),
+  /** The file's version as it is now, which `save_doc` names as its base. */
+  fileHash: z.string().nullable().optional(),
   /** Why `content` is null. */
   unavailable: z.enum(['missing', 'secret']).nullable(),
   /** The source's name and id. `source` on the card is where it came from: `docs`. */
@@ -69,6 +71,46 @@ export const docByPathQuerySchema = z.object({
   source: z.string().min(1).max(100),
   path: z.string().min(1).max(500),
 });
+
+/** `save_doc` (docs/16 §10). Name an existing doc by `key`, or a `source` and `path`, which may be a new file. */
+export const saveDocSchema = z.object({
+  key: z.string().max(40).optional(),
+  source: z.string().max(100).optional(),
+  path: z.string().max(500).optional(),
+  content: z.string().max(2_000_000),
+  /** The version read, `Version:` in `get_doc`. Required over an existing file; a new one has none. */
+  baseHash: z.string().max(100).optional(),
+  reason: z.string().max(300).optional(),
+});
+export type SaveDocInput = z.infer<typeof saveDocSchema>;
+
+export const saveDocResultSchema = z.object({
+  path: z.string(),
+  source: z.string(),
+  key: z.string().nullable(),
+  hash: z.string(),
+  /** The earlier text's revision, or null for a new file or no change. */
+  revisionId: z.string().nullable(),
+  unchanged: z.boolean(),
+  /** The file was written, and looks like it holds a secret, so it was left out of the index. */
+  withheld: z.boolean(),
+  /** Documents that look like this one: a warning, so nothing is written twice. */
+  similar: z.array(z.object({ key: z.string(), title: z.string(), path: z.string(), source: z.string() })),
+});
+export type SaveDocResult = z.infer<typeof saveDocResultSchema>;
+
+export const docRevisionSummarySchema = z.object({
+  id: z.string(),
+  contentHash: z.string(),
+  reason: z.string().nullable(),
+  savedById: z.string().nullable(),
+  createdAt: z.string(),
+  chars: z.number().int(),
+});
+export type DocRevisionSummary = z.infer<typeof docRevisionSummarySchema>;
+export const docRevisionDetailSchema = docRevisionSummarySchema.extend({ content: z.string() });
+export type DocRevisionDetail = z.infer<typeof docRevisionDetailSchema>;
+export const restoreDocRevisionSchema = z.object({ baseHash: z.string().max(100).optional() });
 
 export const docSearchQuerySchema = z.object({
   q: z.string().trim().min(2).max(200),

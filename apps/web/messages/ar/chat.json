@@ -1,0 +1,86 @@
+{
+  "modes": {
+    "ask": "سؤال",
+    "plan": "تخطيط",
+    "execute": "تنفيذ"
+  },
+  "modeHints": {
+    "ask": "قراءة فقط. يقرأ Claude هذا المجلد وHub، ولا يستطيع تغيير شيء ولا تشغيل أوامر.",
+    "plan": "قراءة فقط، وينتهي بخطة مقترحة لتراجعها. لا يستطيع تغيير شيء ولا تشغيل أوامر.",
+    "execute": "يقرأ Claude ويعدّل داخل هذا المجلد بحرية. الحذف والالتزام والدفع والنشر والفرع وشجرة العمل وdocker تنتظر موافقتك، وكذلك أي أمر لم تسمح به."
+  },
+  "states": {
+    "running": "يعمل",
+    "done": "تم",
+    "failed": "فشل",
+    "stopped": "توقف",
+    "interrupted": "انقطع"
+  },
+  "failures": {
+    "signed_out": "Claude غير مسجَّل الدخول على هذا الجهاز. شغّل claude auth login هناك ثم حاول من جديد.",
+    "rate_limited": "بلغت حد الاستخدام. يتجدد في الوقت المعروض.",
+    "billing": "يبلّغ Claude عن مشكلة في الفوترة على هذا الحساب.",
+    "overloaded": "الضغط على Claude مرتفع الآن. حاول بعد قليل.",
+    "version_out_of_range": "إصدار Claude Code على هذا الجهاز خارج الإصدارات التي اختبرها Hub. استخدم الفتح في VS Code إلى أن يُحدَّث Hub.",
+    "claude_missing": "لم يُعثر على Claude Code على هذا الجهاز.",
+    "session_missing": "لم تعد هذه المحادثة موجودة لدى Claude. أرسل من جديد لتبدأ من هنا.",
+    "folder_not_allowed": "هذا المجلد غير مسجَّل في هذا المشروع.",
+    "folder_missing": "هذا المجلد غير موجود على الجهاز.",
+    "device_offline": "انقطع اتصال الجهاز أثناء هذا الدور.",
+    "cut_off": "توقف Claude Code قبل انتهاء الدور.",
+    "unknown": "فشل هذا الدور ولم يذكر Claude السبب."
+  },
+  "approvals": {
+    "title": "بانتظار موافقتك",
+    "allow": "السماح مرة واحدة",
+    "deny": "رفض",
+    "expires": "يُرفض تلقائيًا إن لم يُجب أحد حتى {time}",
+    "answeredElsewhere": "سبقت الإجابة من جهاز آخر."
+  },
+  "categories": {
+    "delete": "يحذف ملفات",
+    "move": "ينقل ملفات أو يكتب فوقها",
+    "commit": "يغيّر سجل Git",
+    "push": "يدفع إلى مستودع بعيد",
+    "deploy": "ينشر أو يصل إلى جهاز آخر",
+    "branch": "ينشئ فرعًا أو يبدّل إليه",
+    "worktree": "ينشئ شجرة عمل",
+    "docker": "يشغّل Docker",
+    "hub_project": "يغيّر المشروع، ومنه مجلداته المسموح بها",
+    "hub_doc": "يكتب وثيقة",
+    "hub_sensitive": "إجراء حساس في Hub",
+    "other": "أمر لم تسمح به"
+  },
+  "stages": {
+    "understand": "الفهم",
+    "plan": "التخطيط",
+    "execute": "التنفيذ",
+    "verify": "التحقق",
+    "report": "التقرير",
+    "search": "البحث",
+    "propose": "الاقتراح",
+    "draft": "المسودة",
+    "save": "الحفظ",
+    "link": "الربط"
+  },
+  "suggestions": {
+    "explain_card": { "label": "اشرح هذا", "prompt": "اشرح {key}: ما هو، وأين وصل، وعلى ماذا يعتمد." },
+    "plan_card": { "label": "خطّط لهذا", "prompt": "ضع خطة لـ {key}، بخطوات وشروط قبول." },
+    "work_card": { "label": "نفّذ هذه المهمة", "prompt": "/hub:work {key}" },
+    "decide_card": { "label": "ساعدني في القرار", "prompt": "اعرض الخيارات في {key} وكلفة كل خيار لأقرر." },
+    "deliver_card": { "label": "سلّم هذا", "prompt": "ماذا يحتاج {key}، وما الذي بقي قبل تسليمه؟" },
+    "review_card": { "label": "راجع هذا", "prompt": "راجع العمل في {key} مقابل شروط القبول." },
+    "apply_card": { "label": "طبّق هذه الإحالة", "prompt": "اقرأ الإحالة {key} وطبّقها هنا." },
+    "redesign_card": {
+      "label": "أعد تصميم هذا",
+      "prompt": "انظر في إعادة التصميم {key} وقل لي ما الذي يتغير تاليًا."
+    },
+    "improve_doc": { "label": "حسّن هذه الوثيقة", "prompt": "/hub:doc improve {key}" },
+    "document_card": { "label": "وثّق هذا", "prompt": "/hub:doc document {key}" },
+    "find_doc_gaps": { "label": "ابحث عن النواقص", "prompt": "/hub:doc gaps" },
+    "whats_next": { "label": "ماذا أفعل تاليًا؟", "prompt": "ماذا أفعل تاليًا في هذا المشروع، ولماذا؟" },
+    "summarize_today": { "label": "لخّص اليوم", "prompt": "لخّص ما ينتظرني اليوم." },
+    "plan_topic": { "label": "خطّط لشيء جديد", "prompt": "/hub:plan " },
+    "find_docs": { "label": "ابحث في الوثائق", "prompt": "ابحث في وثائق هذا المشروع عن: " }
+  }
+}

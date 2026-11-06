@@ -9,6 +9,11 @@ import { delimiter, dirname, join } from 'node:path';
 
 /** Below this, `-p` lacks what the bridge relies on (docs/16 S1). */
 export const CLAUDE_MIN_VERSION = '2.1.318';
+/**
+ * The newest version the chat engine was tested on (docs/16 §13, S1 Q6: `--bare` may become the default for `-p`). Widen it only after running the real-binary suite on the new version.
+ * `HUB_CLAUDE_MAX_VERSION` on the bridge lets the owner try a newer one without a Hub update, knowingly.
+ */
+export const CLAUDE_MAX_VERSION = '2.1.318';
 
 export function parseVersion(text) {
   return /(\d+\.\d+\.\d+)/.exec(text ?? '')?.[1] ?? null;
@@ -87,6 +92,11 @@ export async function resolveClaude(system) {
     copies,
     onPath: copies.find((copy) => copy.path === onPathFile) ?? null,
   };
+}
+
+export function inTestedRange(version, env = {}) {
+  const max = parseVersion(env.HUB_CLAUDE_MAX_VERSION) ?? CLAUDE_MAX_VERSION;
+  return compareVersions(version, CLAUDE_MIN_VERSION) >= 0 && compareVersions(version, max) <= 0;
 }
 
 export function meetsMinimum(version) {

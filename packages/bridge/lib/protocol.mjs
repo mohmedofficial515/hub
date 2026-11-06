@@ -13,6 +13,11 @@ export const BRIDGE_ACTIONS = [
   'turn.start',
   'turn.answer',
   'turn.stop',
+  'chat.close',
+  'chat.diff',
+  'engine.status',
+  'doc.read',
+  'doc.write',
   'vscode.open',
 ];
 export const BRIDGE_REFUSALS = [
@@ -22,6 +27,7 @@ export const BRIDGE_REFUSALS = [
   'folder_missing',
   'not_implemented',
   'not_fixable',
+  'turn_running',
   'failed',
 ];
 export const HEALTH_FIXES = ['mcp_server', 'plugin', 'login_start'];
