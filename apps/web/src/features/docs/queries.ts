@@ -5,13 +5,14 @@
  * @description The Docs page's reads (docs/04 §3.15, §3.23). Read-only: docs live in Git. The tree sits under the cards prefix and a doc's text
  * under its card key, so when the indexer changes a doc the stream refreshes both.
  */
-import { useQuery } from '@tanstack/react-query';
+import type { DocRevisionSummary, SaveDocResult } from '@hub/contracts';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
 import { qk } from '@/features/cards/keys';
 import { type CardFullDto, type CardSummaryDto, toHubCard, toListItem } from '@/features/cards/map';
 import type { CardListItem, DocCard, DocHeading } from '@/features/cards/types';
-import { get } from '@/lib/api/client';
+import { get, post } from '@/lib/api/client';
 
 import { allDocs, type DocFolder, type DocSource, hideTwins } from './tree';
 
@@ -92,6 +93,33 @@ export function toDocWithContent(dto: DocContentDto): DocWithContent {
     toc: dto.toc ?? [],
     mentionedBy: (dto.mentionedBy ?? []).map(toListItem),
   };
+}
+
+/** A document's earlier texts, newest first (docs/16 §10). Each save keeps the text it replaced. */
+export function useDocRevisions(key: string | null) {
+  const { ws } = useRoute();
+  return useQuery({
+    queryKey: [...qk.card(ws, key ?? ''), 'revisions'] as const,
+    enabled: !!key,
+    queryFn: () => get<DocRevisionSummary[]>(`workspaces/${ws}/docs/${key}/revisions`),
+  });
+}
+
+/** Puts an earlier text back. What is there now becomes a revision too, so a restore can be undone. With `baseHash`, a file that moved refuses with `hub.docs.stale_base`. */
+export function useRestoreDocRevision(key: string) {
+  const { ws } = useRoute();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ revision, baseHash }: { revision: string; baseHash?: string }) =>
+      post<SaveDocResult>(
+        `workspaces/${ws}/docs/${key}/revisions/${revision}/restore`,
+        baseHash ? { baseHash } : {},
+      ),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: qk.card(ws, key) });
+      void client.invalidateQueries({ queryKey: qk.cardList(ws, { view: 'doc-tree' }) });
+    },
+  });
 }
 
 export function useDoc(key: string | null) {

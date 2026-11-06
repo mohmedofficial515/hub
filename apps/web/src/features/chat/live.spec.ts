@@ -3,6 +3,7 @@
  */
 import {
   CHAT_SUGGESTION_IDS,
+  type ChatDocDraftDto,
   type ChatFullDto,
   type ChatLiveEvent,
   type ChatMessageDto,
@@ -15,9 +16,12 @@ import {
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 
+import { qk } from '@/features/cards/keys';
+
 import ar from '../../../messages/ar/chat.json';
 import en from '../../../messages/en/chat.json';
 import {
+  applyChatChanged,
   applyChatLive,
   chatKeys,
   checklistOf,
@@ -27,6 +31,7 @@ import {
   pendingQuestions,
   reduceChat,
   runningMessage,
+  type TurnStatusNow,
 } from './live';
 
 const message: ChatMessageDto = {
@@ -198,6 +203,80 @@ describe('applyChatLive', () => {
     const client = new QueryClient();
     applyChatLive(client, 'ws', live(6, { kind: 'text.delta', text: 'hi' }));
     expect(client.getQueryData(chatKeys.one('ws', 'c1'))).toBeUndefined();
+  });
+});
+
+describe('what an event means outside the chat', () => {
+  const status = (client: QueryClient) =>
+    client.getQueryData<TurnStatusNow | null>(chatKeys.status('ws', 'c1'));
+  const thinking: TurnEvent = { kind: 'turn.status', state: 'thinking' };
+
+  it('keeps the latest status, even with the chat not open', () => {
+    const client = new QueryClient();
+    applyChatLive(client, 'ws', live(6, thinking));
+    expect(status(client)).toMatchObject({ state: 'thinking', at: expect.any(String) as string });
+    applyChatLive(
+      client,
+      'ws',
+      live(7, { kind: 'turn.status', state: 'retrying', attempt: 2, retryInMs: 900 }),
+    );
+    expect(status(client)).toMatchObject({ state: 'retrying', attempt: 2, retryInMs: 900 });
+  });
+
+  it.each<[string, TurnEvent]>([
+    ['text', { kind: 'text.delta', text: 'x' }],
+    ['a tool', { kind: 'tool.started', toolUseId: 't', name: 'Bash' }],
+    ['the end', { kind: 'turn.ended', status: 'done' }],
+  ])('%s clears it', (_name, event) => {
+    const client = new QueryClient();
+    applyChatLive(client, 'ws', live(6, thinking));
+    applyChatLive(client, 'ws', live(7, event));
+    expect(status(client)).toBeNull();
+  });
+
+  it('another kind of event leaves it, and a chat with none gets no entry', () => {
+    const client = new QueryClient();
+    applyChatLive(client, 'ws', live(6, { kind: 'text.delta', text: 'x' }));
+    expect(client.getQueryState(chatKeys.status('ws', 'c1'))).toBeUndefined();
+    applyChatLive(client, 'ws', live(7, thinking));
+    applyChatLive(client, 'ws', live(8, { kind: 'limit', limit: { status: 'allowed' } }));
+    expect(status(client)?.state).toBe('thinking');
+  });
+
+  it('the durable nudge clears it too, in case the end was missed', () => {
+    const client = new QueryClient();
+    applyChatLive(client, 'ws', live(6, thinking));
+    applyChatChanged(client, 'ws', 'c1');
+    expect(status(client)).toBeNull();
+  });
+
+  it('a report rereads the card and its reports, and no other card', () => {
+    const client = new QueryClient();
+    const reports = chatKeys.reports('ws', 'K-1');
+    const content = [...qk.card('ws', 'K-1'), 'content'];
+    client.setQueryData(reports, []);
+    client.setQueryData(qk.card('ws', 'K-1'), {});
+    client.setQueryData(content, {});
+    client.setQueryData(qk.card('ws', 'K-2'), {});
+    const report = { cardKey: 'K-1' } as Extract<TurnEvent, { kind: 'work.reported' }>['report'];
+    applyChatLive(client, 'ws', live(6, { kind: 'work.reported', report }));
+    expect(client.getQueryState(reports)?.isInvalidated).toBe(true);
+    expect(client.getQueryState(qk.card('ws', 'K-1'))?.isInvalidated).toBe(true);
+    expect(client.getQueryState(qk.card('ws', 'K-2'))?.isInvalidated).toBe(false);
+  });
+
+  it('only a saved draft of a known document rereads that document', () => {
+    const content = [...qk.card('ws', 'D-1'), 'content'];
+    const after = (draft: Partial<ChatDocDraftDto>) => {
+      const client = new QueryClient();
+      client.setQueryData(content, {});
+      const whole = { status: 'saved', docKey: 'D-1', ...draft } as ChatDocDraftDto;
+      applyChatLive(client, 'ws', live(6, { kind: 'doc.draft.updated', draft: whole }));
+      return client.getQueryState(content)?.isInvalidated;
+    };
+    expect(after({})).toBe(true);
+    expect(after({ status: 'refused' })).toBe(false);
+    expect(after({ docKey: null })).toBe(false);
   });
 });
 

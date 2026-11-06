@@ -14,6 +14,7 @@ import type {
   ChatStage,
   ChatStepDto,
   EngineStatus,
+  TurnEvent,
 } from '@hub/contracts';
 import { CHAT_PROTOCOLS, type ChatProtocol } from '@hub/contracts';
 import type { QueryClient } from '@tanstack/react-query';
@@ -28,7 +29,16 @@ export const chatKeys = {
   diff: (ws: string, id: string, path: string) => ['chat', ws, 'diff', id, path] as const,
   templates: (ws: string) => ['chat', ws, 'templates'] as const,
   reports: (ws: string, key: string) => ['chat', ws, 'reports', key] as const,
+  status: (ws: string, id: string) => ['chat', ws, 'status', id] as const,
 };
+
+/** What the engine is doing right now, from `turn.status`. It is on no message, because it stops being true at the next event. */
+export interface TurnStatusNow {
+  readonly state: Extract<TurnEvent, { kind: 'turn.status' }>['state'];
+  readonly attempt?: number;
+  readonly retryInMs?: number;
+  readonly at: string;
+}
 
 function draftIdOf(input: unknown): string | null {
   const draft = (input as { draft?: unknown } | null)?.draft;
@@ -251,8 +261,45 @@ export function reduceChat(chat: ChatFullDto, live: ChatLiveEvent): ChatFullDto 
   };
 }
 
+function clearTurnStatus(client: QueryClient, ws: string, chatId: string): void {
+  const key = chatKeys.status(ws, chatId);
+  if (client.getQueryData(key)) client.setQueryData(key, null);
+}
+
+/** What an event means outside the chat's own copy. These hold with or without that chat open. */
+function applySideEffects(client: QueryClient, ws: string, { chatId, event }: ChatLiveEvent): void {
+  switch (event.kind) {
+    case 'turn.status': {
+      const now: TurnStatusNow = {
+        state: event.state,
+        ...(event.attempt === undefined ? {} : { attempt: event.attempt }),
+        ...(event.retryInMs === undefined ? {} : { retryInMs: event.retryInMs }),
+        at: new Date().toISOString(),
+      };
+      client.setQueryData(chatKeys.status(ws, chatId), now);
+      return;
+    }
+    case 'text.delta':
+    case 'tool.started':
+    case 'turn.ended':
+      clearTurnStatus(client, ws, chatId);
+      return;
+    case 'work.reported':
+      void client.invalidateQueries({ queryKey: chatKeys.reports(ws, event.report.cardKey) });
+      void client.invalidateQueries({ queryKey: qk.card(ws, event.report.cardKey) });
+      return;
+    case 'doc.draft.updated':
+      if (event.draft.status === 'saved' && event.draft.docKey) {
+        void client.invalidateQueries({ queryKey: qk.card(ws, event.draft.docKey) });
+      }
+      return;
+    default:
+  }
+}
+
 /** One `chat.event`. A chat nobody has open costs nothing. */
 export function applyChatLive(client: QueryClient, ws: string, live: ChatLiveEvent): void {
+  applySideEffects(client, ws, live);
   const key = chatKeys.one(ws, live.chatId);
   const current = client.getQueryData<ChatFullDto>(key);
   if (!current) return;
@@ -263,6 +310,8 @@ export function applyChatLive(client: QueryClient, ws: string, live: ChatLiveEve
 
 /** One `chat.changed`: the durable nudge, which also carries a chat to devices that were away. */
 export function applyChatChanged(client: QueryClient, ws: string, chatId: string): void {
+  // Sent events can be missed and this one cannot, so a turn's end is never left reading "thinking".
+  clearTurnStatus(client, ws, chatId);
   void client.invalidateQueries({ queryKey: chatKeys.one(ws, chatId) });
   void client.invalidateQueries({ queryKey: chatKeys.list(ws) });
   void client.invalidateQueries({ queryKey: chatKeys.list(ws, true) });

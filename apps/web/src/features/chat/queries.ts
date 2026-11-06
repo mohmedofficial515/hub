@@ -24,12 +24,12 @@ import type {
   WorkReport,
 } from '@hub/contracts';
 import { suggestedPrompts } from '@hub/contracts';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
 import { del, get, patch, post, put } from '@/lib/api/client';
 
-import { chatKeys } from './live';
+import { chatKeys, type TurnStatusNow } from './live';
 
 const ENGINE_STALE_MS = 60_000;
 const DELETED_OPTION = { deleted: 'true' } as const;
@@ -63,6 +63,16 @@ export function useChat(id: string | null) {
     enabled: id !== null,
     queryFn: () => get<ChatFullDto>(`${base}/${id ?? ''}`),
   });
+}
+
+/** What the engine is doing right now: requesting, thinking or retrying. Only the live stream fills this, so it never fetches. Null means nothing to say. */
+export function useTurnStatus(chatId: string | null): TurnStatusNow | null {
+  const { ws } = useRoute();
+  const { data } = useQuery<TurnStatusNow | null>({
+    queryKey: chatKeys.status(ws, chatId ?? 'none'),
+    queryFn: skipToken,
+  });
+  return data ?? null;
 }
 
 /** Claude Code on a device: found, version and range, sign-in, and which selectors it supports. */
