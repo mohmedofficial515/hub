@@ -1082,6 +1082,50 @@ describe('structured results', () => {
       device.end(id);
     });
 
+    it('a redraft replaces the open draft, keeps answers for words that did not change, and the old one cannot be saved', async () => {
+      await aDocsSource();
+      const { chatId, id, key, version } = await aDraft();
+      const first = await draftOn(chatId);
+      await savePaused(id, first.id);
+      await until(async () => (await last(chatId)).approvals.length === 1);
+      const flag = first.claims.find((claim) => claim.status === 'unverified')!;
+      await browser
+        .post(`${base()}/${chatId}/approvals/${APPROVAL_ID}`, {
+          decision: 'deny',
+          note: 'Shorter, please',
+          doc: { claims: [{ id: flag.id, answer: 'remove' }] },
+        })
+        .expect(204);
+      device.say(id, { kind: 'approval.resolved', approvalId: APPROVAL_ID, status: 'denied' });
+      aToolStep(id, 'draft-2', 'mcp__hub__propose_doc');
+      const other = 'Another open point.';
+      await call(
+        'propose_doc',
+        {
+          doc: key,
+          title: 'Rate limits',
+          reason: 'Shorter',
+          baseVersion: version,
+          draft: `# Rate limits\n\n${FLAG}\n${other}\n`,
+          claims: [
+            { text: FLAG, status: 'unverified' },
+            { text: other, status: 'unverified' },
+          ],
+        },
+        'draft-2',
+      );
+      const { docDrafts } = await last(chatId);
+      expect(docDrafts.map((draft) => draft.status)).toEqual(['dropped', 'open']);
+      expect(docDrafts[1]?.claims.map((claim) => [claim.text, claim.answer])).toEqual([
+        [FLAG, 'remove'],
+        [other, null],
+      ]);
+      const old = await call('save_doc', { draft: first.id });
+      expect(old.text).toContain('hub.docs.draft_not_found');
+      expect(await prisma().auditLog.count({ where: { action: 'docs.draft' } })).toBe(2);
+      device.end(id);
+    });
+
     it('keep_flagged writes the mark into the document', async () => {
       await aDocsSource();
       const { chatId, id } = await aDraft();

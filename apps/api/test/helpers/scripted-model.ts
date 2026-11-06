@@ -6,7 +6,10 @@ import { createServer, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 export type ModelStep =
-  { readonly tool: string; readonly input: Record<string, unknown> } | { readonly text: string };
+  | { readonly tool: string; readonly input: Record<string, unknown> }
+  | { readonly text: string }
+  /** Decided when the model is asked, for a step that needs what an earlier one made. */
+  | (() => Promise<ModelStep>);
 
 interface ModelRequest {
   tools?: { name: string }[];
@@ -106,6 +109,9 @@ export async function startScriptedModel(...initial: ModelStep[]): Promise<Scrip
     let raw = '';
     request.on('data', (chunk) => (raw += String(chunk)));
     request.on('end', () => {
+      void answer();
+    });
+    const answer = async () => {
       if (!request.url?.includes('/v1/messages')) {
         response.writeHead(200, { 'content-type': 'application/json' }).end('{}');
         return;
@@ -129,11 +135,12 @@ export async function startScriptedModel(...initial: ModelStep[]): Promise<Scrip
           if (part.type === 'tool_result') results.push(JSON.stringify(part.content ?? ''));
         }
       }
-      const step = steps.shift();
+      let step = steps.shift();
+      while (typeof step === 'function') step = await step();
       if (!step) words(response, 'Done with that. ');
       else if ('tool' in step) toolUse(response, step.tool, step.input);
       else words(response, step.text);
-    });
+    };
   });
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
   return {

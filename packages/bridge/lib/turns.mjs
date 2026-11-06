@@ -397,6 +397,8 @@ function createManager(context) {
     if (options.effort && engineInfo.effortSupported) args.push('--effort', options.effort);
     if (options.sessionId) args.push('--resume', options.sessionId);
     args.push('--append-system-prompt', PANEL_PROMPT);
+    // For a test on a real sign-in: this session's plugin in place of the installed one, whose hooks would reach the owner's own Hub.
+    if (system.env.HUB_BRIDGE_PLUGIN_DIR) args.push('--plugin-dir', system.env.HUB_BRIDGE_PLUGIN_DIR);
     return args;
   }
 

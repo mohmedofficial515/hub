@@ -28,7 +28,7 @@ import { ChatsService } from '@/modules/chats';
 import { BridgeHub } from '@/modules/devices';
 import { DocsIndexerService } from '@/modules/docs';
 
-import { anAccount, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
+import { anAccount, aToken, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
 import { type ModelStep, type ScriptedModel, startScriptedModel } from '../helpers/scripted-model';
 import { aProject } from '../setup/card-harness';
 import { createTestApp } from '../setup/create-test-app';
@@ -1026,9 +1026,6 @@ describeReal('chats with the real binary', () => {
       const taskKey = task.body.data.key as string;
       const chatId = await aChat(deviceId, folder);
       const flag = 'The limit may rise to 60.';
-      await browser
-        .post(`${base()}/${chatId}/messages`, { text: `/hub:doc improve ${docCard.key}` })
-        .expect(202);
       model.script(
         stage('doc', 'search'),
         hubTool('search_docs', { q: 'rate limits' }),
@@ -1045,14 +1042,23 @@ describeReal('chats with the real binary', () => {
             { text: flag, status: 'unverified' },
           ],
         }),
+        stage('doc', 'save'),
+        // The draft's id is known only once it exists.
+        async () => {
+          const row = await until(() => prisma().docDraft.findFirst({ where: { workspaceId } }));
+          return hubTool('save_doc', { draft: row.id });
+        },
+        stage('doc', 'link'),
+        hubTool('link_cards', { from: docCard.key, to: taskKey, kind: 'relates' }),
+        { text: 'Saved and linked. ' },
       );
+      await browser
+        .post(`${base()}/${chatId}/messages`, { text: `/hub:doc improve ${docCard.key}` })
+        .expect(202);
       const waitDraft = await until(async () => {
         const last = (await getChat(chatId)).messages.at(-1)!;
         return last.docDrafts[0] ?? null;
       });
-      model.script(stage('doc', 'save'));
-      // The draft is known only now, so the rest of the script follows it.
-      model.script(hubTool('save_doc', { draft: waitDraft.id }));
       const paused = await until(async () => {
         const last = (await getChat(chatId)).messages.at(-1)!;
         return last.approvals[0] ?? null;
@@ -1070,13 +1076,6 @@ describeReal('chats with the real binary', () => {
       expect(blocked.body.error.code).toBe('hub.docs.draft_flags_open');
       expect(readFileSync(join(docs, 'limits.md'), 'utf8')).not.toContain(flag);
 
-      model.script(
-        stage('doc', 'link'),
-        hubTool('link_cards', { from: docCard.key, to: taskKey, kind: 'relates' }),
-        {
-          text: 'Saved and linked. ',
-        },
-      );
       const claim = waitDraft.claims.find((item) => item.status === 'unverified')!;
       await browser
         .post(`${base()}/${chatId}/approvals/${paused.id}`, {
@@ -1094,6 +1093,72 @@ describeReal('chats with the real binary', () => {
       expect(reply.docDrafts[0]).toMatchObject({ status: 'saved', refusedCode: null });
       expect(readFileSync(join(docs, 'limits.md'), 'utf8')).toContain(`> Unverified: ${flag}`);
       expect(await prisma().docRevision.count({ where: { workspaceId } })).toBe(1);
+    });
+
+    /** What the smoke on a real sign-in relies on, so that its one try cannot reach the owner's own Hub. */
+    it('a folder’s .mcp.json beats the user-scope hub, and a session plugin replaces the installed one and its hooks', async () => {
+      const { token } = await aToken(prisma(), userId, 'mcp');
+      const home = join(scratch, 'home');
+      const marker = join(scratch, 'installed-hook-ran.txt');
+      const installed = join(scratch, 'installed-pack');
+      cpSync(TEAM_PACK, installed, { recursive: true, filter: (from) => !from.includes('node_modules') });
+      writeFileSync(
+        join(installed, 'plugin', 'hooks', 'hooks.json'),
+        JSON.stringify({
+          hooks: {
+            SessionStart: [
+              {
+                hooks: [
+                  {
+                    type: 'command',
+                    command: `node -e "require('fs').writeFileSync(process.argv[1],'x')" "${marker.replaceAll('\\', '/')}"`,
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+      const session = join(scratch, 'session-plugin');
+      cpSync(join(TEAM_PACK, 'plugin'), session, { recursive: true });
+      rmSync(join(session, 'hooks'), { recursive: true, force: true });
+
+      const { deviceId } = await aDevice({ env: { HUB_BRIDGE_PLUGIN_DIR: session } });
+      const { path, env } = claudeHere(home);
+      execFileSync(path, ['plugin', 'marketplace', 'add', installed], { cwd: home, env, stdio: 'ignore' });
+      execFileSync(path, ['plugin', 'install', 'hub@hub', '--scope', 'user'], {
+        cwd: home,
+        env,
+        stdio: 'ignore',
+      });
+      // The user-scope server now leads nowhere, as the owner's would lead somewhere this must not reach.
+      const configDir = join(home, 'claude-config');
+      const config = JSON.parse(readFileSync(join(configDir, '.claude.json'), 'utf8')) as {
+        mcpServers: { hub: { url: string } };
+      };
+      config.mcpServers.hub.url = 'http://127.0.0.1:9/mcp';
+      writeFileSync(join(configDir, '.claude.json'), JSON.stringify(config));
+
+      const folder = await aRepo();
+      writeFileSync(
+        join(folder, '.mcp.json'),
+        JSON.stringify({
+          mcpServers: {
+            hub: {
+              type: 'http',
+              url: `http://127.0.0.1:${port}/mcp`,
+              headers: { Authorization: `Bearer ${token}`, 'X-Hub-Project': slug },
+            },
+          },
+        }),
+      );
+      const chatId = await aChat(deviceId, folder);
+      model.script(hubTool('create_idea', { title: 'Through the folder server' }), { text: 'Done. ' });
+      const reply = await turn(chatId, '/hub:work NONE-1');
+      expect(reply.status).toBe('done');
+      expect(model.lastConversation()).toContain('What this does to the card');
+      expect(await prisma().card.count({ where: { workspaceId, type: 'idea' } })).toBe(1);
+      expect(existsSync(marker)).toBe(false);
     });
 
     it('AskUserQuestion becomes a question, and the answer reaches the model, in Plan too', async () => {
@@ -1223,6 +1288,133 @@ describeReal('chats with the real binary', () => {
   // ── One small real call, on the owner's own sign-in ─────────────────────────────────────────────
 
   const itRealModel = process.env['E2E_REAL_MODEL'] ? it : it.skip;
+  const itRealWork = process.env['E2E_REAL_MODEL_WORK'] ? it : it.skip;
+
+  /**
+   * `/hub:work` on the owner's sign-in. The real config is the only place that sign-in is, so three things keep this away from their Hub: a folder `.mcp.json` beats the user-scope `hub` server, a session plugin with no hooks replaces the installed one, and the bridge has a temp root. The test above proves the first two with no model. It stops the turn before 15 model calls.
+   */
+  itRealWork(
+    'a very small smoke of /hub:work with the real model, on a temp folder and a test card',
+    async () => {
+      const sum = (path: string) =>
+        existsSync(path) ? createHash('sha256').update(readFileSync(path)).digest('hex') : 'none';
+      const settingsFile = join(homedir(), '.claude', 'settings.json');
+      const before = sum(settingsFile);
+      const { deviceId, credential } = await pair('SmokeWork');
+      const root = join(scratch, 'bridge-root');
+      mkdirSync(root, { recursive: true });
+      writeFileSync(
+        join(root, 'device.json'),
+        JSON.stringify({ url: `http://127.0.0.1:${port}`, deviceId, credential }),
+      );
+      const session = join(scratch, 'session-plugin');
+      cpSync(join(TEAM_PACK, 'plugin'), session, { recursive: true });
+      rmSync(join(session, 'hooks'), { recursive: true, force: true });
+      const clean: NodeJS.ProcessEnv = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (!/^(CLAUDE|ANTHROPIC)/i.test(key)) clean[key] = value;
+      }
+      const child = spawn(process.execPath, [BRIDGE_BIN, 'run'], {
+        env: {
+          ...clean,
+          HUB_BRIDGE_ROOT: root,
+          HUB_BRIDGE_SKIP_LOGIN_START: '1',
+          HUB_BRIDGE_PLUGIN_DIR: session,
+        },
+        stdio: 'ignore',
+        windowsHide: true,
+      });
+      bridges.push({ child, home: root });
+      await until(() => hub.isOnline(deviceId));
+
+      const folder = await aRepo('smoke');
+      const { token } = await aToken(prisma(), userId, 'mcp');
+      writeFileSync(
+        join(folder, '.mcp.json'),
+        JSON.stringify({
+          mcpServers: {
+            hub: {
+              type: 'http',
+              url: `http://127.0.0.1:${port}/mcp`,
+              headers: { Authorization: `Bearer ${token}`, 'X-Hub-Project': slug },
+            },
+          },
+        }),
+      );
+      const check = 'node --version';
+      const created = await browser.post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title: 'Write hello.txt',
+        body: `Create a file hello.txt holding the word hi. Acceptance check, exactly: ${check}`,
+        detail: { specialty: 'backend' },
+      });
+      expect(created.status).toBe(201);
+      const key = created.body.data.key as string;
+      await browser.post(`/workspaces/${slug}/tasks/${key}/claim`, {}).expect(200);
+      await browser.post(`/workspaces/${slug}/tasks/${key}/start`, {}).expect(200);
+      const chatId = await aChat(deviceId, folder);
+      const brief =
+        'Keep this very small: skip reading links and docs, call report_stage only when a stage is done, and put as many tool calls as you can in one message.';
+      await browser
+        .post(`${base()}/${chatId}/messages`, {
+          text: `/hub:work ${key} ${brief}`,
+          model: 'haiku',
+          effort: 'low',
+        })
+        .expect(202);
+
+      /** Every model call but the last holds at least one tool use, so steps plus one is the most calls this can have made. */
+      const BUDGET = 14;
+      let stopped = false;
+      const reply = await until(async () => {
+        const last = (await getChat(chatId)).messages.at(-1)!;
+        if (!stopped && last.status === 'running' && last.steps.length >= BUDGET) {
+          stopped = true;
+          await browser.post(`${base()}/${chatId}/stop`);
+        }
+        for (const approval of last.approvals) {
+          if (approval.status === 'pending') {
+            await browser.post(`${base()}/${chatId}/approvals/${approval.id}`, { decision: 'deny' });
+          }
+        }
+        return last.status !== 'running' ? last : null;
+      }, 200_000);
+
+      // eslint-disable-next-line no-console -- the owner reads what this one real run did.
+      console.info(
+        JSON.stringify(
+          {
+            status: reply.status,
+            failure: reply.failure,
+            model: reply.model,
+            stoppedByBudget: stopped,
+            steps: reply.steps.map((step) => `${step.name}:${step.status}`),
+            stages: reply.stages.map((item) => `${item.stage}:${item.state}`),
+            report: reply.reports[0] ?? null,
+            taskStatus: await prisma()
+              .card.findFirstOrThrow({ where: { workspaceId, key } })
+              .then((row) => row.status),
+            text: reply.content.slice(-400),
+          },
+          null,
+          1,
+        ),
+      );
+      expect(reply.status === 'done' || stopped).toBe(true);
+      expect(reply.model).toMatch(/haiku/);
+      expect(sum(settingsFile)).toBe(before);
+      if (reply.reports[0]) {
+        const [report] = reply.reports;
+        expect(report?.origin).toBe('panel');
+        if (report?.move.moved) {
+          expect(await prisma().card.findFirstOrThrow({ where: { workspaceId, key } })).toMatchObject({
+            status: 'in_review',
+          });
+        }
+      }
+      expect((await prisma().card.findFirstOrThrow({ where: { workspaceId, key } })).status).not.toBe('done');
+    },
+  );
 
   itRealModel('a very small smoke with the real model: stream, approval, resume', async () => {
     const sum = (path: string) =>

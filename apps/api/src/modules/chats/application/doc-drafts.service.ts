@@ -23,6 +23,7 @@ import { z } from 'zod';
 
 import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
+import { AuditService } from '@/modules/audit';
 import { DocsWriteService } from '@/modules/docs';
 import { ProjectsService } from '@/modules/workspaces';
 import { AppException } from '@/shared/errors';
@@ -82,6 +83,7 @@ export class DocDraftsService {
     private readonly docs: DocsWriteService,
     private readonly projects: ProjectsService,
     private readonly turns: TurnRegistry,
+    private readonly audit: AuditService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -112,12 +114,20 @@ export class DocDraftsService {
     }
     const duplicates = await this.duplicatesOf(actor, input.title, current.cardId);
     const turn = await this.turns.panelTurn(actor, toolUseId);
+    const earlier = turn ? await this.dropEarlier(actor, turn.chatId, current.source, current.path) : [];
+    const answered = new Map(
+      earlier
+        .flatMap((row) => row.claims as DocClaim[])
+        .filter((claim) => claim.answer !== null)
+        .map((claim) => [claim.text, claim.answer]),
+    );
     const claims: DocClaim[] = input.claims.map((claim, index) => ({
       id: `c${index + 1}`,
       text: claim.text,
       status: claim.status,
       source: claim.source ?? null,
-      answer: null,
+      // A redraft keeps the owner's answer while the claim's words are the same (review M5).
+      answer: claim.status === 'unverified' ? (answered.get(claim.text) ?? null) : null,
     }));
     // A file that holds a secret is shown to nobody: its base is filtered like anything else stored from a chat.
     const baseText = current.text === null ? null : redactSecrets(current.text);
@@ -139,9 +149,41 @@ export class DocDraftsService {
         claims,
       },
     });
+    await this.audit.record(actor, {
+      action: 'docs.draft',
+      targetType: 'doc',
+      targetId: current.cardId,
+      summary: `Proposed a draft of ${current.source}/${current.path}`.slice(0, 500),
+    });
     const draft = toDraftDto(row);
     if (turn) await this.turns.post(turn.chatId, { kind: 'doc.draft', draft });
     return { draft, inPanel: turn !== null };
+  }
+
+  /** A new draft of the same document in this chat replaces what was open, and that one says so. */
+  private async dropEarlier(
+    actor: MemberActor,
+    chatId: string,
+    source: string,
+    path: string,
+  ): Promise<DraftRow[]> {
+    const rows = await this.txHost.tx.docDraft.findMany({
+      where: {
+        workspaceId: actor.workspaceId,
+        chatId,
+        source,
+        path,
+        status: { in: ['open', 'refused'] },
+      },
+    });
+    for (const row of rows) {
+      const written = await this.txHost.tx.docDraft.update({
+        where: { id: row.id, workspaceId: actor.workspaceId },
+        data: { status: 'dropped' },
+      });
+      await this.turns.post(chatId, { kind: 'doc.draft.updated', draft: toDraftDto(written) });
+    }
+    return rows;
   }
 
   /** The drafts of these turns, for a chat's read. */
@@ -195,6 +237,9 @@ export class DocDraftsService {
     answers: readonly { readonly id: string; readonly answer: ClaimAnswer }[] = [],
   ): Promise<SaveDocResult> {
     const row = await this.draftOf(actor, draftId);
+    if (row.status === 'saved' || row.status === 'dropped') {
+      throw new AppException('hub.docs.draft_not_found');
+    }
     // In a panel chat the flags are the owner's to answer, through the panel. A model cannot pass its own answers.
     const claims = withAnswers(row.claims as DocClaim[], row.chatId ? [] : answers);
     const open = openFlags(claims);
@@ -204,7 +249,6 @@ export class DocDraftsService {
         details: { claims: open.map((claim) => claim.text) },
       });
     }
-    if (row.status === 'saved') throw new AppException('hub.docs.draft_not_found');
     const content = applyClaimAnswers(row.draft, claims);
     let saved: SaveDocResult;
     try {
