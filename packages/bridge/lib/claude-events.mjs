@@ -76,6 +76,7 @@ export function createEventMapper() {
     sessionId: null,
     model: undefined,
     claudeVersion: undefined,
+    planSent: false,
   };
 
   function onStream(raw) {
@@ -142,6 +143,10 @@ export function createEventMapper() {
         const path = part.input?.file_path ?? part.input?.notebook_path;
         if (['Write', 'Edit', 'MultiEdit', 'NotebookEdit'].includes(part.name) && typeof path === 'string') {
           state.toolPaths.add(path);
+        }
+        if (part.name === 'ExitPlanMode' && typeof part.input?.plan === 'string' && !state.planSent) {
+          state.planSent = true;
+          out.push({ kind: 'plan.proposed', plan: part.input.plan });
         }
         if (isStageTool(part.name)) {
           const stage = stageFromInput(part.input);
@@ -270,6 +275,7 @@ export function createEventMapper() {
       state.failureMessage = null;
       state.resetsAt = undefined;
       state.toolPaths = new Set();
+      state.planSent = false;
       state.streamed = new Set();
     },
   };

@@ -271,10 +271,10 @@ const COMMAND_CATEGORIES = [
   [/\b(docker|docker-compose|podman)\b/i, 'docker'],
   [/\b(psync|rsync|scp|ssh|kubectl|helm|terraform|vercel|netlify|fly|gh|publish|deploy)\b/i, 'deploy'],
   [
-    /(^|[\s;&|(])(rm|rmdir|unlink|shred|del|rd|ri|erase|Remove-Item|Clear-Content|git\s+rm|git\s+clean)\b/i,
+    /(^|[\s;&|("'])(rm|rmdir|unlink|shred|del|rd|ri|erase|Remove-Item|Clear-Content|git\s+rm|git\s+clean)\b/i,
     'delete',
   ],
-  [/(^|[\s;&|(])(mv|move|mi|Move-Item|git\s+mv)\b/i, 'move'],
+  [/(^|[\s;&|("'])(mv|move|mi|Move-Item|git\s+mv)\b/i, 'move'],
 ];
 
 /** The D41 class of a paused call, for the prompt's wording. It decides nothing. */

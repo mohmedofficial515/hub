@@ -162,9 +162,15 @@ function createManager(context) {
     }
     if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
     if (MODE_FLAGS[proc.options.mode].readOnly) {
-      if (toolName === 'ExitPlanMode' && typeof input?.plan === 'string') {
-        turn.emit('plan.proposed', { kind: 'plan.proposed', plan: input.plan });
-        return refuse('The plan is shown to the owner. Stop here and wait for them.');
+      if (toolName === 'ExitPlanMode') {
+        if (typeof input?.plan === 'string' && !proc.mapper.state.planSent) {
+          proc.mapper.state.planSent = true;
+          turn.emit('plan.proposed', { kind: 'plan.proposed', plan: input.plan });
+        }
+        // The engine may keep the plan in a file this mode cannot write, so the reply is where the owner must see it.
+        return refuse(
+          'The owner reviews plans in Hub. If you have not already, write the whole plan in your reply now, then stop and wait for them.',
+        );
       }
       return refuse(`This chat is in ${proc.options.mode} mode, which is read only.`);
     }

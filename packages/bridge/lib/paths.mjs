@@ -6,7 +6,8 @@ import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 export function hubPaths(system) {
-  const root = join(system.home, '.hub');
+  // HUB_BRIDGE_ROOT keeps a test's bridge away from this device's real one, while Claude Code still finds its own sign-in.
+  const root = system.env?.HUB_BRIDGE_ROOT || join(system.home, '.hub');
   return {
     root,
     device: join(root, 'device.json'),
