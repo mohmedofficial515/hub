@@ -52,6 +52,7 @@ import { signOut } from '@/features/session/auth';
 import { portalRoot, useFocusReturn } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { messages, type ShellDict as ShellMessages } from '@/lib/i18n';
+import { useSidebarFolded } from '@/lib/preferences';
 import { setLocaleEverywhere, setTheme, useTheme } from '@/lib/theme';
 
 interface Badge {
@@ -464,7 +465,8 @@ function SidebarBody({
 export function useSidebarCollapsed() {
   const pref = usePreference('sidebarCollapsed');
   const wide = useMedia('(min-width: 1280px)', true);
-  return pref ?? !wide;
+  const folded = useSidebarFolded();
+  return folded || (pref ?? !wide);
 }
 
 export function DesktopSidebar({ onShortcuts }: { onShortcuts: () => void }) {

@@ -227,6 +227,7 @@ test.describe('live updates through MCP', () => {
       await open(page, view(locale, ws, 'tasks', `card=${key}`));
       const written = page.waitForResponse((r) => r.url().endsWith(`/tasks/${key}/claim`) && r.ok());
       await page
+        .locator('[data-card-sheet]')
         .getByRole('button', { name: /احجز|Claim/ })
         .first()
         .click();

@@ -23,10 +23,11 @@ export interface PairingView {
   expiresAt: string;
 }
 
-export function useDevices() {
+/** The panel is on every page, so it asks less often than Settings, where someone is watching this list. */
+export function useDevices(refreshMs: number = LIST_REFRESH_MS) {
   return useQuery({
     queryKey: DEVICES_KEY,
-    refetchInterval: LIST_REFRESH_MS,
+    refetchInterval: refreshMs,
     queryFn: () => get<DeviceDto[]>('me/devices'),
   });
 }

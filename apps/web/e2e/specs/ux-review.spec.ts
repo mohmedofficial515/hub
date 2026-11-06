@@ -85,7 +85,7 @@ test('an unknown address is the app’s own page, inside the shell when it is a 
   await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
 });
 
-test('a sheet’s first open lands focus on its primary action once the card arrives', async ({
+test('a sheet’s first open lands focus on its title once the card arrives, so Enter claims nothing', async ({
   page,
   owner,
   locale,
@@ -100,7 +100,7 @@ test('a sheet’s first open lands focus on its primary action once the card arr
   await page.goto(view(locale, ws, 'decisions', `card=${key}`));
   const primary = page.locator('[data-card-sheet] [data-sheet-primary]');
   await primary.waitFor({ timeout: 30_000 });
-  await expect(primary).toBeFocused();
+  await expect(page.locator('[data-sheet-title]')).toBeFocused();
 });
 
 test('a Markdown body renders in the sheet, its excerpt is plain, and an injected script stays inert', async ({
@@ -292,6 +292,8 @@ test('Arabic on the English UI renders in Cairo, by what the renderer reports', 
   test.skip(locale !== 'en', 'A check of the English UI.');
   const title = `مهمة باللغة العربية لفحص الخط ${Date.now()}`;
   const { key } = await owner.create({ type: 'task', title, detail: { specialty: 'backend' } });
+  // The list's table form needs the page's whole width.
+  await page.addInitScript(() => localStorage.setItem('hub-panel:open', 'false'));
   await page.goto(view(locale, ws, 'tasks', 'view=list'));
   const cell = page.locator(`#task-${key}`);
   await cell.waitFor({ timeout: 30_000 });

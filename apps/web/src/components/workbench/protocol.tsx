@@ -492,7 +492,7 @@ function CheckRow({
                     </span>
                     {run.endedAt && (
                       <span className="tabular-nums">
-                        {duration(Date.parse(run.endedAt) - Date.parse(run.startedAt), locale)}
+                        {duration(Date.parse(run.endedAt) - Date.parse(run.startedAt), t)}
                       </span>
                     )}
                     {chatId && (

@@ -846,7 +846,7 @@ export function Composer({
   const device = wb.deviceName;
   const off = offOf(wb.engine);
   const time = wb.resetsAt
-    ? new Date(wb.resetsAt).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+    ? new Date(wb.resetsAt).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
         hour: '2-digit',
         minute: '2-digit',
       })

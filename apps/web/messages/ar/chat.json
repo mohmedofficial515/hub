@@ -1078,7 +1078,11 @@
         "pendingIn": "ينتظرك في: {chat}"
       }
     },
-    "listSeparator": "، "
+    "listSeparator": "، ",
+    "units": {
+      "sec": "ث",
+      "min": "د"
+    }
   },
   "tips": {
     "labels": {

@@ -90,9 +90,8 @@ type Chat = PanelChat;
 const counted = (n: number, locale: 'ar' | 'en', forms: Parameters<typeof plural>[2]) =>
   fmt(plural(n, locale, forms), { n });
 
-export function duration(ms: number, locale: 'ar' | 'en') {
-  const sec = locale === 'ar' ? 'ث' : 's';
-  const min = locale === 'ar' ? 'د' : 'min';
+export function duration(ms: number, t: { units: { sec: string; min: string } }) {
+  const { sec, min } = t.units;
   if (ms < 10000) return `${(ms / 1000).toFixed(ms < 1000 ? 2 : 1)} ${sec}`;
   const total = Math.round(ms / 1000);
   if (total < 60) return `${total} ${sec}`;
@@ -257,7 +256,6 @@ const StepIcon = ({ state }: { state: ToolCall['state'] }) =>
 /** One step. Closed it is a line. Open it shows the exact input, result or error, and who allowed it. Only values the engine reported appear. */
 function StepRow({ call, chatId }: { call: ToolCall; chatId: string }) {
   const t = useT<ChatMessages>('chat').panel;
-  const locale = useLocale();
   const [open, setOpen] = useState(call.state === 'failed');
   const s = t.pro.step;
   const row = useRef<HTMLLIElement>(null);
@@ -302,7 +300,7 @@ function StepRow({ call, chatId }: { call: ToolCall; chatId: string }) {
             {call.detail}
           </code>
           {call.ms !== undefined && (
-            <span className="shrink-0 text-muted-foreground tabular-nums">{duration(call.ms, locale)}</span>
+            <span className="shrink-0 text-muted-foreground tabular-nums">{duration(call.ms, t)}</span>
           )}
           <ChevronDown
             aria-hidden
@@ -645,7 +643,7 @@ function TurnLine({
               <Icon aria-hidden className={cn('size-3.5', turnTone[meta.state])} strokeWidth={2} />
               <span className={cn(meta.state === 'done' && 'sr-only')}>{failure ?? p.short[meta.state]}</span>
             </span>
-            {meta.ms !== undefined && <span className="tabular-nums">{duration(meta.ms, locale)}</span>}
+            {meta.ms !== undefined && <span className="tabular-nums">{duration(meta.ms, t)}</span>}
             {model && <span>{model}</span>}
             {meta.files.length > 0 && <span>{counted(meta.files.length, locale, p.files)}</span>}
             <ChevronDown
@@ -688,7 +686,7 @@ function TurnLine({
             {meta.ms !== undefined && (
               <>
                 <dt className="text-muted-foreground">{p.duration}</dt>
-                <dd className="text-foreground tabular-nums">{duration(meta.ms, locale)}</dd>
+                <dd className="text-foreground tabular-nums">{duration(meta.ms, t)}</dd>
               </>
             )}
             {meta.steps > 0 && (
@@ -766,7 +764,7 @@ const ARM_MS = 400;
 /** A time of day in the owner's words. */
 export const clockOf = (iso: string | null | undefined, locale: 'ar' | 'en') =>
   iso
-    ? new Date(iso).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+    ? new Date(iso).toLocaleTimeString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
         hour: '2-digit',
         minute: '2-digit',
       })

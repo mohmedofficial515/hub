@@ -1078,7 +1078,11 @@
         "pendingIn": "Waiting for you in: {chat}"
       }
     },
-    "listSeparator": ", "
+    "listSeparator": ", ",
+    "units": {
+      "sec": "s",
+      "min": "min"
+    }
   },
   "tips": {
     "labels": {

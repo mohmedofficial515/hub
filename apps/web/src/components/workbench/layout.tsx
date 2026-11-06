@@ -65,6 +65,7 @@ import {
 import { Header } from '@/components/shell/header';
 import { DesktopSidebar } from '@/components/shell/sidebar';
 import { QuietPrimary } from '@/components/ui/button';
+import { setSidebarFolded } from '@/lib/preferences';
 
 import { Composer, Menu, useModeKeys } from './composer';
 import { PageRoom } from './page-room';
@@ -155,7 +156,7 @@ function useBridgeFacts(): TipFact[] {
   const tipWords = useT<ChatMessages>('chat').tips;
   const wb = useWb();
   const f = tipWords.facts;
-  const when = new Intl.DateTimeFormat(useLocale() === 'ar' ? 'ar-EG' : 'en-GB', {
+  const when = new Intl.DateTimeFormat(useLocale() === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
@@ -189,7 +190,7 @@ function useUsageFacts(): TipFact[] {
       ? ([
           [
             f.resets,
-            new Date(usage.resetsAt * 1000).toLocaleString(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+            new Date(usage.resetsAt * 1000).toLocaleString(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
               weekday: 'long',
               hour: '2-digit',
               minute: '2-digit',
@@ -355,7 +356,7 @@ function ChatFacts({ chat }: { chat: Chat }) {
   const { workspace } = useSession();
   const wb = useWb();
   const f = tipWords.facts;
-  const when = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+  const when = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });
@@ -912,19 +913,10 @@ export interface ShellControls {
 
 /** While `active`, the sidebar folds to icons so the work keeps a readable column, and goes back to the owner's choice afterwards. */
 function useFoldSidebar(active: boolean) {
-  const pref = usePreference('sidebarCollapsed');
-  const folded = useRef(false);
-  const before = useRef(pref);
   useEffect(() => {
-    if (active && !folded.current) {
-      folded.current = true;
-      before.current = pref;
-      setPreference('sidebarCollapsed', true);
-    } else if (!active && folded.current) {
-      folded.current = false;
-      setPreference('sidebarCollapsed', before.current);
-    }
-  }, [active, pref]);
+    setSidebarFolded(active);
+    return () => setSidebarFolded(false);
+  }, [active]);
 }
 
 /** `Ctrl+/`: closes and reopens from anywhere, even while typing. It is the same key on an Arabic layout, through `matchKey`. */
@@ -1062,7 +1054,7 @@ export function WorkbenchLayout({
   const focusPanel = useCallback(() => {
     const target =
       document.querySelector<HTMLElement>('[data-wb-waiting]') ??
-      document.querySelector<HTMLElement>('[data-wb-input]') ??
+      document.querySelector<HTMLElement>('[data-wb-input]:not(:disabled)') ??
       document.querySelector<HTMLElement>('[data-wb-panel] button');
     target?.focus({ preventScroll: false });
   }, []);

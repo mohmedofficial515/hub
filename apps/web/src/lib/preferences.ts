@@ -41,6 +41,8 @@ function subscribe(notify: () => void) {
 
 export function setPreference<K extends keyof Prefs>(key: K, value: Prefs[K]) {
   prefs = { ...prefs, [key]: value };
+  // Choosing the sidebar by hand ends a fold.
+  if (key === 'sidebarCollapsed') folded = false;
   try {
     localStorage.setItem(KEY, JSON.stringify(prefs));
   } catch {
@@ -56,6 +58,20 @@ export function usePreference<K extends keyof Prefs>(key: K): Prefs[K] {
     () => DEFAULTS[key],
   );
 }
+
+/** The sidebar folded for the moment, because a card and the panel are both open (docs/16 §7). Never stored, so the owner's own choice is what a reload finds. */
+let folded = false;
+export function setSidebarFolded(value: boolean) {
+  if (folded === value) return;
+  folded = value;
+  listeners.forEach((l) => l());
+}
+export const useSidebarFolded = () =>
+  useSyncExternalStore(
+    subscribe,
+    () => folded,
+    () => false,
+  );
 
 /** For key handlers, which read the value at event time. */
 export const shortcutsEnabled = () => prefs.shortcuts;

@@ -490,7 +490,7 @@ export function HistoryList({
   const wb = useWb();
   const [q, setQ] = useState('');
   const f = tipWords.facts;
-  const when = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG' : 'en-GB', {
+  const when = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });

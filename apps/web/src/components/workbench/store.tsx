@@ -577,6 +577,7 @@ export const useMaybeWb = () => useContext(Ctx);
 export const panelOwes = (wb: Wb | null) => !!wb && wb.pending > 0;
 
 const ENDED_RECHECK_MS = 60_000;
+const DEVICES_REFRESH_MS = 15_000;
 
 export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const { ws, cardKey } = useRoute();
@@ -586,7 +587,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   const session = useSession();
   const localState = useLocal();
   const chats = useChats();
-  const devicesQuery = useDevices();
+  const devicesQuery = useDevices(DEVICES_REFRESH_MS);
   const devices = useMemo(() => devicesQuery.data ?? [], [devicesQuery.data]);
   const templates = usePromptTemplates();
   const project = useProject();

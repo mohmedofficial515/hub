@@ -893,6 +893,8 @@ export function CardSheet({
     opener.current = takeOpener() ?? null;
     if ((document.activeElement as HTMLElement | null)?.hasAttribute('data-wb-input')) return;
     if (wasFollowOpened()) return;
+    // An action's form has focused itself by now: child effects run first.
+    if (document.activeElement?.closest('[data-card-sheet]')) return;
     focusSheetTitle();
   }, [key]);
   const openerRef = opener;
