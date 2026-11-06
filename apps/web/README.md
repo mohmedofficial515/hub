@@ -241,14 +241,14 @@ Known limits, stated so nobody hunts for them:
 
 **Structured results on a message** (`docs/16` §7.2). Show what was verified apart from what was claimed.
 
-| Field | What it holds | Words |
-| --- | --- | --- |
-| `reports[]` | `checks[]` with `verified`, `basis` and `runs` (every real run, failures included), `changedFiles`, `filesFrom`, `notChecked`, `droppedChecks`, `counts`, `move` | `report.*` |
-| `structuredPlan`, `plan` | The structured plan when `propose_plan` was used. `plan` is the text, always | `plan.*` |
-| `questions[]` | `AskUserQuestion`, as choice cards | `question.*` |
-| `docDrafts[]` | `baseText`, `draft`, server `duplicates` with `url`, `claims` with `answer`, `status`, `refusedCode` | `draft.*` |
-| `notices[]` | `turn.starting`, `engine.warning`, `tool.blocked`, `report.refused`, in order | `starting.*`, `honest.newerVersion`, `blocked.*`, `report.refused` |
-| `approvals[].effect`, `.draftId` | The deterministic line, and the draft a `save_doc` would save. Words are `categories.<category>` | `categories.*` |
+| Field                            | What it holds                                                                                                                                                    | Words                                                              |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `reports[]`                      | `checks[]` with `verified`, `basis` and `runs` (every real run, failures included), `changedFiles`, `filesFrom`, `notChecked`, `droppedChecks`, `counts`, `move` | `report.*`                                                         |
+| `structuredPlan`, `plan`         | The structured plan when `propose_plan` was used. `plan` is the text, always                                                                                     | `plan.*`                                                           |
+| `questions[]`                    | `AskUserQuestion`, as choice cards                                                                                                                               | `question.*`                                                       |
+| `docDrafts[]`                    | `baseText`, `draft`, server `duplicates` with `url`, `claims` with `answer`, `status`, `refusedCode`                                                             | `draft.*`                                                          |
+| `notices[]`                      | `turn.starting`, `engine.warning`, `tool.blocked`, `report.refused`, in order                                                                                    | `starting.*`, `honest.newerVersion`, `blocked.*`, `report.refused` |
+| `approvals[].effect`, `.draftId` | The deterministic line, and the draft a `save_doc` would save. Words are `categories.<category>`                                                                 | `categories.*`                                                     |
 
 From `@hub/contracts`: `lineDiff(base, draft)` for the draft's diff, `applyClaimAnswers(text, claims)` for the preview of what Save writes, `openFlags(claims)` for what still blocks it, `planToPrompt(plan)` for Run this plan. Run this plan fills the composer in Execute and sends nothing.
 
