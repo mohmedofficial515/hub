@@ -61,13 +61,14 @@ export async function connectMainMachine({ root, apiUrl, env = process.env, say,
   if (!state.paired) {
     const paired = await run(['-r', './scripts/swc-register.cjs', 'scripts/pair-main-machine.ts'], {
       cwd: join(root, 'apps', 'api'),
-      env,
+      // A short script: no workers, and nothing on stdout but its one line.
+      env: { ...env, PROCESS_ROLE: 'api', LOG_LEVEL: 'silent' },
     });
     if (paired.status !== 0) {
       say('Claude Code: could not pair this machine. Settings › Devices has the command to do it by hand.');
       return { status: 'failed' };
     }
-    credentials = paired.stdout.trim();
+    credentials = paired.stdout.trim().split(/\r?\n/).at(-1) ?? '';
   }
   const connected = await run(
     [

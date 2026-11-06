@@ -169,6 +169,18 @@ export class TasksController {
 
 Prompts are in `packages/contracts/src/mcp/prompts.ts`, resources in `hub-mcp-server.factory.ts`.
 
+## Devices and the bridge
+
+`modules/devices` (`docs/16` §4, §5, `docs/05` §9). A device is one machine running `hub-bridge` (`packages/bridge`), which connects out to `/bridge`. To ask a device for something:
+
+```ts
+await bridgeHub.request(deviceId, 'health.check'); // answers its one `result`, or throws hub.devices.offline, .timeout, .refused
+await bridgeHub.request(deviceId, 'turn.start', args, { timeoutMs: null, onEvent: (event) => { /* every `event` frame, in order */ } });
+```
+
+Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a folder off its allowlist. A device credential reaches only `/mcp`, `/bridge` and `DELETE /bridge/self`
+(`deviceTokenMayCall`). A new action is a line in `BRIDGE_ACTIONS` and in `packages/bridge/lib/protocol.mjs`, a handler in `packages/bridge/lib/actions.mjs`, and a test.
+
 ## Sources and local path mode
 
 `SourceRunnerService` (`@/modules/system`) is the one way to run a `local_path` source: `open` then `finish`, or `POST /sources/{id}/run`.

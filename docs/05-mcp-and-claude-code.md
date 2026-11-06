@@ -1,6 +1,7 @@
 # 05 — MCP and Claude Code integration
 
 How every teammate's Claude Code talks to Hub, as built. Read after `15-first-release.md`, which holds the owner's scope.
+**§9 is the one-step connect (docs/16 §5), which replaces §1's "once" and "folder" lines and §3.2's token handling for a device connected that way.** §3 stays as the fallback.
 Facts about Claude Code below were checked against `code.claude.com/docs` on 2026-11-05 and, where marked **tested**, against
 Claude Code 2.1.202 on the owner's Windows machine. §8 records those runs.
 
@@ -85,6 +86,7 @@ requires every mutating route to be in a tool's `routes`, or in `MCP_EXCLUDED_RO
 | Any card | `update_card`, `move_card`, `comment`, `redact_comment`, `link_cards`, `watch_card`, `delete_card`, `restore_card` |
 | Sessions, briefs | `log_session`, `list_my_sessions_without_summary`, `save_brief` |
 | Projects | `list_projects`, `get_project`, `create_project`, `update_project`, `switch_project` |
+| Devices | `list_devices`, `check_device`, `fix_device`, `revoke_device`. No pairing tool and no Link tool (§9) |
 | Administration | `list_members`, `invite_member`, `list_invites`, `resend_invite`, `revoke_invite`, `change_member_roles`, `disable_member`, `enable_member`, `set_github_identity`, `get_settings`, `update_settings`, `list_sources`, `add_source`, `update_source`, `enable_source`, `disable_source`, `delete_source`, `test_source`, `run_source`, `reindex_docs`, `read_audit`, `list_notifications`, `read_notification`, `get_onboarding`, `tick_onboarding_item` |
 
 `open_adr_pr` answers `hub.common.unavailable` until a GitHub connection exists (H3-06, deferred by 15 §3). It is there so that
@@ -316,3 +318,74 @@ SessionEnd reached the API. Redis has `idem:*` keys per create, so Claude Code d
 6. "Create a project called Test": it appears in the switcher.
 7. Claude asks you to confirm before `decide` or `delete_card`. Hub does not enforce this: it is the description telling Claude.
 8. End the chat: the session appears on the Timeline after 10 minutes, or at once if `/hub:done` ran.
+
+## 9. One-step connect (docs/16 §5, D42)
+
+### 9.1 What a device holds
+
+`packages/bridge`, plain Node 22 with no dependencies, so Hub can serve it. Everything is under `~/.hub`.
+
+| File | Holds | Read by |
+| --- | --- | --- |
+| `device.json` | the device credential (`api_tokens.kind = device`) | the `headersHelper`, the bridge |
+| `config.json` | the hook token (`kind = hook`), `device: true` | the plugin's hooks |
+| `links.json` | the folders linked here, no secret | `uninstall` |
+| `app/bridge`, `app/team-pack` | the bridge, and the plugin's marketplace | Claude Code, the login start |
+
+Both tokens have `device_id`, stay out of Settings › Tokens, and are revoked with the device. **The device credential reaches only `/mcp`, the socket and `DELETE /bridge/self`** (`deviceTokenMayCall`). The hook token keeps its existing reach. Neither is printed, logged, or passed in an argument. Hub never sees a Claude credential: sign-in is asked of `claude auth status`, and only `loggedIn` is read.
+
+### 9.2 The MCP server
+
+**User scope, with `headersHelper`:** `{ "type": "http", "url": "<api>/mcp", "headersHelper": "\"<abs node>\" \"<abs>/hub-mcp-headers.mjs\"" }`. There is no variable and so no new terminal. The helper reads `device.json` and always prints clean JSON (S1 Q9).
+
+**A linked folder: local scope, through the CLI**, adding `"headers": { "X-Hub-Project": "<slug>" }`. Local scope lives in the user's own `~/.claude.json`, so nothing is written to the repository, a machine's absolute paths stay on that machine, and Claude Code's precedence (local over project over user) makes it win over an older `.mcp.json`. **Tested on 2.1.318:** at local scope the helper runs only once the folder is trusted, so D44 is what makes this work.
+
+**Spellings (tested on 2.1.318):** `projects` keys are case-sensitive. A trusted `C:/x` does not hold for a process whose working directory is `c:\x`, and VS Code and a terminal can differ in the drive letter. So the button writes the server and the trust for each spelling of the one folder (`folderKeys`). That stays within D44's "only that folder".
+
+### 9.3 Pairing
+
+```
+device: POST /pairing/start {name, platform}  → deviceCode (secret), userCode, approveUrl
+owner:  opens <web>/connect?code=ABCD-EFGH, compares the code, POST /pairing/:code/approve   (session only)
+device: POST /pairing/poll {deviceCode} every 3 s → pending | denied | expired | claimed + credentials, once
+```
+
+A code lasts ten minutes. Only the hash of `deviceCode` is stored. Credentials are minted at the claim and are never stored raw. `pnpm start:local` uses `PairingService.pairDirect` through `apps/api/scripts/pair-main-machine.ts`, because whoever runs it already holds the database. Those credentials go from that child's stdout to the bridge's stdin.
+
+### 9.4 The socket
+
+`/bridge` on the API port (`BridgeGateway`, `BridgeHub`). A bridge sends `Authorization: Bearer <device credential>`. An `Origin` header is refused, because a browser page always has one. A bad credential completes the handshake and closes `4401`, so the bridge knows to stop rather than retry. `4409` means another bridge took over for this device. The credential is rechecked once a minute, and revoking closes the socket at once.
+
+Frames, all JSON, validated by `bridgeFrameSchema`:
+
+| From | Frame |
+| --- | --- |
+| Bridge | `hello { protocol, status, actions }`, `heartbeat { status }` every 25 s |
+| Hub | `welcome { deviceId, folders }`, `allowlist { folders }` before every action |
+| Hub | `action { id, action, args }`, only from `BRIDGE_ACTIONS` |
+| Bridge | `event { id, seq, kind, data }`, any number, then one `result { id, ok, data \| error }` |
+
+The bridge refuses a `folder` not at or under a `repoPaths` entry of a project its member belongs to, after resolving links. There is no action that takes a command.
+
+### 9.5 The Link button
+
+`POST /workspaces/:ws/devices/:id/link { folder }`, session only, **because D44 allows the trust write only on the owner's press, so no agent may do it**. It registers the folder in `repoPaths`, then asks the bridge on that device (`folder.link`), which:
+
+1. Checks the shape of `~/.claude.json`. If it is unexpected, it changes nothing and answers `shape_unexpected`, and the page says to accept the dialog once. The folder stays registered, as that much is Hub's own data.
+2. Takes a backup, keeping its own newest five.
+3. Adds the local-scope `hub` through `claude mcp add-json`.
+4. Writes `hasTrustDialogAccepted: true` for this folder's keys only: temp file, compare the original to catch a concurrent writer, then rename. Every other key stays.
+
+If the folder does not exist on the device, the registration is undone. A second press changes nothing.
+
+### 9.6 Health
+
+`hub doctor` as data: `claude_found`, `claude_version` (S1 C3: at least 2.1.318), `claude_path_version` (a warning, with its update command), `claude_signed_in`, `mcp_server`, `plugin`, `login_start`, `vscode`. A Fix button appears for `mcp_server`, `plugin` and `login_start`, a closed list. Updating Claude Code is only ever shown as a command. `doctor`, `link` and `init` stay as the fallback; on a device connected this way `link` and `uninstall` point to the button and the command.
+
+### 9.7 Starting at login
+
+Windows: a scheduled task whose trigger and principal are this one user, which is what a standard user may create, as XML through `schtasks /Create /XML`. If that is refused, the per-user `Run` key. `conhost --headless` keeps a window from appearing. macOS: a LaunchAgent. Linux: `systemd --user`.
+
+### 9.8 Testing without touching anything real
+
+`apps/web/e2e/specs/connect.spec.ts` (`E2E_PACK=1`) runs the real binary in a temp `HOME`, `USERPROFILE` and `CLAUDE_CONFIG_DIR`. That home has no sign-in, so `ANTHROPIC_BASE_URL` points the binary at `e2e/support/fake-model.ts`, which answers with a scripted `tool_use`. The MCP connection, the helper and the `tools/call` are the real binary's own, and **no model call happens**. `HUB_BRIDGE_SKIP_LOGIN_START=1` and `HUB_BRIDGE_NO_BROWSER=1` cover the two things a home cannot isolate.

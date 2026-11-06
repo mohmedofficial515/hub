@@ -62,7 +62,7 @@ These shape the design. Source pages are under `code.claude.com/docs/en/`.
 
 Bridge rules:
 - It pairs with Hub through the browser approval in §5, and each device can be revoked in Settings.
-- It runs only in folders registered on the project (`repoPaths`). Hub cannot send it an arbitrary command or path: the only actions are start turn, answer approval, stop, open in VS Code.
+- It runs only in folders registered on the project (`repoPaths`). Hub cannot send it an arbitrary command or path: the only actions are start turn, answer approval, stop, open in VS Code, plus the health checks, the closed list of fixes and Link a folder that §5 needs (`BRIDGE_ACTIONS`).
 - It starts with the machine through a user-level scheduled task, with no admin rights.
 - It never reads `~/.claude/.credentials.json`.
 
@@ -77,6 +77,11 @@ Bridge rules:
 - `hub doctor` becomes a health panel in Settings › Devices, with a Fix button.
 
 The first-release flow keeps working as a fallback until this ships.
+
+**As built, in docs/05 §9.** Three choices the plan left open, none of which changes a decision:
+- A linked folder's `hub` server is at **local scope**, not in `.mcp.json`, so nothing lands in the repository and each device keeps its own paths. D44's trust is what makes its helper run.
+- **`~/.claude.json`'s `projects` keys are case-sensitive on Windows** (tested on 2.1.318), so Link writes each spelling of the one folder, drive letter included, or VS Code could miss what a terminal sees.
+- Pairing issues **two tokens**: the device credential, limited to MCP and the bridge channel, and a `hook` token for the plugin's hooks, which the credential cannot serve under that limit. Both are revoked with the device.
 
 ## 6. Slice 2: lab as a module
 

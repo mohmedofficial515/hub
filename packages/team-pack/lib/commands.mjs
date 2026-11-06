@@ -184,6 +184,12 @@ export async function link(system, options) {
   if (!slug || !/^[a-z0-9-]{2,32}$/.test(slug)) throw new Error('Usage: link <slug>');
   const config = loadConfig(system);
   if (!config?.token) throw new Error('Run init first');
+  // Connected by the one command, there is no token variable for a `.mcp.json` to name, and a hook token cannot list projects.
+  if (config.device) {
+    throw new Error(
+      'This device uses the one-step connect: press Link a folder in Settings › General instead',
+    );
+  }
 
   const response = await system.fetch(`${config.url}/api/v1/workspaces`, {
     headers: { authorization: `Bearer ${config.token}`, 'x-requested-with': 'hub' },
@@ -220,7 +226,10 @@ export async function doctor(system, options = {}) {
   const config = loadConfig(system);
   check('Config', Boolean(config?.token), config ? configPath(system) : 'run init');
   const url = config?.url ?? DEFAULT_URL;
-  const token = config?.token;
+  // After the one-step connect, `config.json` holds only the hook token, and the MCP check takes the device credential.
+  const device = config?.device ? readJsonFile(join(system.home, '.hub', 'device.json')) : null;
+  const token = device?.credential ?? config?.token;
+  const hookToken = config?.token;
   try {
     const health = await system.fetch(`${url}/api/v1/health/live`, { signal: AbortSignal.timeout(3000) });
     check('Hub reachable', health.ok, url);
@@ -229,10 +238,10 @@ export async function doctor(system, options = {}) {
   }
   if (token) {
     try {
-      const { project } = await context(system, url, token);
+      const { project } = await context(system, url, hookToken);
       check('Token', true, `active project: ${project ?? 'none'}`);
     } catch (error) {
-      check('Token', false, mask(String(error.message), token));
+      check('Token', false, mask(mask(String(error.message), token), hookToken));
     }
     try {
       const response = await system.fetch(`${url}/mcp`, {
@@ -259,11 +268,13 @@ export async function doctor(system, options = {}) {
       check('MCP endpoint', false, `${url}/mcp`);
     }
   }
-  check(
-    'Variable in this terminal',
-    Boolean(system.env[TOKEN_ENV]),
-    system.env[TOKEN_ENV] ? TOKEN_ENV : `open a new terminal, or run init (${TOKEN_ENV})`,
-  );
+  if (!device) {
+    check(
+      'Variable in this terminal',
+      Boolean(system.env[TOKEN_ENV]),
+      system.env[TOKEN_ENV] ? TOKEN_ENV : `open a new terminal, or run init (${TOKEN_ENV})`,
+    );
+  }
   const version = claude(system, ['--version']);
   check('Claude Code', version.status === 0, version.stdout.trim());
   if (version.status === 0) {
@@ -284,6 +295,11 @@ export async function doctor(system, options = {}) {
 }
 
 export function uninstall(system) {
+  if (loadConfig(system)?.device) {
+    throw new Error(
+      'This device uses the one-step connect: Settings › Devices shows the command that removes it',
+    );
+  }
   claude(system, ['mcp', 'remove', 'hub', '--scope', 'user']);
   claude(system, ['plugin', 'uninstall', 'hub@hub', '--scope', 'user']);
   claude(system, ['plugin', 'marketplace', 'remove', 'hub']);

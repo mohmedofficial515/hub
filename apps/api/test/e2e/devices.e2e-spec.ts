@@ -8,13 +8,15 @@ import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { WebSocket } from 'ws';
 
-import { BridgeHub } from '@/modules/devices';
+import { BridgeHub, PairingService } from '@/modules/devices';
 
-import { anAccount, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
+import { anAccount, aToken, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
 import { aProject } from '../setup/card-harness';
 import { createTestApp } from '../setup/create-test-app';
 import { maintenanceClients } from '../setup/per-test-setup';
@@ -447,6 +449,64 @@ describe('devices', () => {
       expect(answer.body.data.healthAt).not.toBeNull();
       expect(JSON.stringify(answer.body)).not.toContain(credential);
     }, 150_000);
+  });
+
+  describe('MCP parity', () => {
+    async function aClient(token: string): Promise<Client> {
+      const client = new Client({ name: 'test', version: '0' });
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`), {
+          requestInit: { headers: { Authorization: `Bearer ${token}`, 'X-Hub-Project': slug } },
+        }),
+      );
+      return client;
+    }
+
+    const textOf = (answer: unknown) =>
+      (answer as { content: { text: string }[] }).content.map((part) => part.text).join('\n');
+
+    it('lists and revokes through the same service, with no credential in the answer', async () => {
+      const { deviceId, credential } = await pair('Over MCP');
+      const { token } = await aToken(prisma(), userId, 'mcp');
+      const client = await aClient(token);
+      const listed = textOf(await client.callTool({ name: 'list_devices', arguments: {} }));
+      expect(listed).toContain('Over MCP');
+      expect(listed).toContain(deviceId);
+      expect(listed).not.toContain(credential);
+      const revoked = textOf(
+        await client.callTool({ name: 'revoke_device', arguments: { device: deviceId } }),
+      );
+      expect(revoked).toContain('Revoked');
+      const row = await prisma().device.findUniqueOrThrow({ where: { id: deviceId } });
+      expect(row.revokedAt).not.toBeNull();
+      await client.close();
+    });
+
+    it('a device credential is enough for the tools: that is what Claude Code holds', async () => {
+      const { credential } = await pair('Holds a credential');
+      const client = await aClient(credential);
+      const names = (await client.listTools()).tools.map((tool) => tool.name);
+      expect(names).toEqual(expect.arrayContaining(['list_devices', 'revoke_device', 'fix_device']));
+      expect(names.some((name) => /pair|link_folder|token|credential/.test(name))).toBe(false);
+      const project = textOf(await client.callTool({ name: 'get_project', arguments: {} }));
+      expect(project).toContain(slug);
+      await client.close();
+    });
+  });
+
+  describe('the main machine', () => {
+    it('pairs with no browser step, for the owner, and audits it', async () => {
+      const email = (await prisma().user.findUniqueOrThrow({ where: { id: userId } })).email;
+      const issued = await app.get(PairingService, { strict: false }).pairDirect(email, 'MAIN-PC', 'win32');
+      expect(issued.credential).toMatch(/^hub_/);
+      const list = await browser.get('/me/devices').expect(200);
+      expect(list.body.data[0]).toMatchObject({ id: issued.deviceId, name: 'MAIN-PC' });
+      const audit = await prisma().auditLog.findFirst({
+        where: { action: 'devices.pair', targetId: issued.deviceId },
+      });
+      expect(audit?.summary).toContain('start:local');
+      expect(audit?.summary).not.toContain(issued.credential);
+    });
   });
 
   describe('the one command', () => {

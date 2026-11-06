@@ -1,7 +1,7 @@
 /**
  * @file The installer against a temp home, a recorded `claude` and a fake Hub. Nothing real is touched.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -149,5 +149,37 @@ describe('uninstall', () => {
     expect(existsSync(join(world.home, '.hub'))).toBe(false);
     expect(world.calls).toContainEqual(['claude', 'plugin', 'uninstall', 'hub@hub', '--scope', 'user']);
     expect(world.calls).toContainEqual(['reg', 'delete', 'HKCU\\Environment', '/v', TOKEN_ENV, '/f']);
+  });
+});
+
+describe('a device connected by the one command', () => {
+  function connected() {
+    const made = fakeSystem();
+    const system = made.system ?? made;
+    const hub = join(system.home, '.hub');
+    mkdirSync(hub, { recursive: true });
+    writeFileSync(
+      join(hub, 'config.json'),
+      JSON.stringify({ url: 'http://hub', token: TOKEN, device: true }),
+    );
+    writeFileSync(
+      join(hub, 'device.json'),
+      JSON.stringify({ url: 'http://hub', credential: 'hub_devi_credential' }),
+    );
+    return made;
+  }
+
+  it('link points at the button, and writes no .mcp.json naming a variable that does not exist', async () => {
+    const made = connected();
+    const system = made.system ?? made;
+    await expect(link(system, { slug: 'goteav', cwd: system.home })).rejects.toThrow(/Link a folder/);
+    expect(existsSync(join(system.home, '.mcp.json'))).toBe(false);
+  });
+
+  it('uninstall points at the command that also revokes the device', () => {
+    const made = connected();
+    const system = made.system ?? made;
+    expect(() => uninstall(system)).toThrow(/Settings › Devices/);
+    expect(existsSync(join(system.home, '.hub', 'device.json'))).toBe(true);
   });
 });

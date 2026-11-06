@@ -37,24 +37,13 @@ pnpm import:goteav --workspace goteav --root F:/Goteav
 
 **4. Sign in** at <http://localhost:7300> with `HUB_OWNER_EMAIL` and `HUB_OWNER_PASSWORD` from `.env`. Two-step sign-in is optional (D34).
 
-**5. Get a token.** Your avatar › Access tokens › New token, kind `mcp`. It is shown once.
+**5. Claude Code is already connected.** On its first run, `pnpm start:local` pairs this machine and installs the bridge, the `hub` MCP server at user scope and the plugin. It says what it changed, with no token to copy and no new terminal. `HUB_SKIP_CONNECT=1` leaves your Claude Code alone. Settings › Devices shows this machine, with health checks and a Fix button.
 
-**6. Connect Claude Code.** Once per machine, from this repository:
+**6. Link a folder.** Settings › General › Link a folder, for each project folder. A chat there lands on that project, with no dialog. This press, and only this press, writes that folder's trust to `~/.claude.json` and keeps a backup (D44).
 
-```bash
-node packages/team-pack/bin/hub.mjs init --url http://localhost:7310 --token hub_...
-```
+**Another device.** Settings › Devices shows one command for any terminal. It opens your browser, you approve, and it sets up the rest. It needs Node 22 and Hub's address, and it is safe to run again. The same page has the command that removes everything.
 
-Then open a **new terminal**, because the token is kept in the user variable `HUB_MCP_BEARER`, and in any folder you work in:
-
-```bash
-node packages/team-pack/bin/hub.mjs doctor                      # every check green, with no model call
-cd F:/Goteav/backend
-node F:/Goteav/hub/packages/team-pack/bin/hub.mjs link goteav   # writes .mcp.json, which holds no token
-claude                                                          # approve `hub` once, then: "create a P1 task for ..."
-```
-
-The change is on the open page within a second. More in [`packages/team-pack/README.md`](packages/team-pack/README.md).
+**The older way still works**, for a machine that will not run the bridge: an `mcp` token with `node packages/team-pack/bin/hub.mjs init`, `doctor` and `link`. See [`packages/team-pack/README.md`](packages/team-pack/README.md).
 
 ### While developing
 
@@ -68,6 +57,7 @@ The change is on the open page within a second. More in [`packages/team-pack/REA
 | `apps/web`           | Next.js 15                                                             |
 | `packages/contracts` | Status machines, permission table, errors, secret patterns, tool table |
 | `packages/team-pack` | Claude Code plugin and `hub` CLI                                       |
+| `packages/bridge`    | `hub-bridge`: connects a device out to Hub. No dependencies            |
 | `infra`              | Compose files and host scripts                                         |
 
 ## Checks

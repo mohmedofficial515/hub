@@ -2,6 +2,10 @@
 
 Connects Claude Code to Hub: the `hub` MCP server, `/hub:ask` and `/hub:plan`, and session hooks. Plan: `docs/05` §3.
 
+**The one-step connect is the normal way:** `packages/bridge`, from `pnpm start:local` or the command in Settings › Devices, installs this plugin
+and the server with no token to copy. The commands below are the older flow, kept as a fallback for a machine that will not run the bridge. On a device
+connected the new way, `link` and `uninstall` point you to the button and the command instead, and `doctor` still works.
+
 ```bash
 # In Hub: Settings › Tokens › new token. Then, from this repository:
 node packages/team-pack/bin/hub.mjs init --token hub_…       # or npx @hub/team-pack, once published
