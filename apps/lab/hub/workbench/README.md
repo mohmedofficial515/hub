@@ -46,3 +46,5 @@ Hub is the owner's workbench, and the owner spends all day in it. The panel lets
 | v1-edge-strip | The work stays the page. The chat is a companion pane that closes into a strip which never hides what waits for you | review |
 | v2-floor-console | The chat takes height, never width. A console under the work, with chats as tabs and runs always beside them | review |
 | v3-conversation-desk | The conversation is the page. The work comes to it, on a stage it controls | review |
+| v4-edge-strip-pro | v1 extended with docs/16 §7.1: three depths of detail, strong tooltips, both protocols. Independent review scored 6.2 with 5 blockers | review |
+| v5-edge-strip-final | The version to approve. v4 with its review fixed: one focal point with a card open, structured results from §7.2 with verified against claimed, and tooltips that behave | review |

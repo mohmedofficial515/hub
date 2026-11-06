@@ -1,0 +1,191 @@
+/*
+ * Shared by the panel directions, on top of v5's tokens. No new colours: only layout the kit has no class for.
+ * A direction sets --wb-toast-end and --wb-toast-bottom so an Undo toast never sits on the composer.
+ */
+.peacock-app [data-toast] {
+  inset-inline-end: calc(var(--wb-toast-end, 0px) + 1.5rem);
+  bottom: calc(var(--wb-toast-bottom, 0px) + 1.5rem);
+  inset-inline-start: auto;
+}
+@media (max-width: 639px) {
+  .peacock-app [data-toast] {
+    inset-inline: 1rem;
+    bottom: calc(var(--wb-toast-bottom-phone, 0px) + 1rem);
+  }
+}
+
+/* Replies read as prose in a narrow column: tight headings, no big gaps from the docs reader. */
+.peacock-app .wb-prose h1,
+.peacock-app .wb-prose h2,
+.peacock-app .wb-prose h3,
+.peacock-app .wb-prose h4 {
+  font-size: inherit;
+  font-weight: 600;
+  margin-block: 0.75rem 0.25rem;
+}
+.peacock-app .wb-prose > :first-child > :first-child {
+  margin-block-start: 0;
+}
+
+/* While a pane is dragged, nothing animates and nothing selects. */
+[data-wb-dragging='true'],
+[data-wb-dragging='true'] * {
+  transition: none !important;
+  user-select: none;
+}
+
+/*
+ * A page laid out for the whole window is narrower here. v5's pages read the viewport, not their container, so inside the panel's squeeze they keep
+ * their desktop lanes. These overrides stand in for the container queries a real port needs (see README, what is faked).
+ */
+[data-wb-page-narrow='true'] .lg\:grid-cols-12 {
+  grid-template-columns: minmax(0, 1fr);
+}
+[data-wb-page-narrow='true'] .md\:grid-cols-5,
+[data-wb-page-narrow='true'] .md\:grid-cols-4 {
+  display: flex;
+  flex-wrap: wrap;
+}
+[data-wb-page-narrow='true'] .md\:grid-cols-5 > *,
+[data-wb-page-narrow='true'] .md\:grid-cols-4 > * {
+  flex: 1 1 9.5rem;
+}
+[data-wb-page-narrow='true'] .lg\:col-span-7,
+[data-wb-page-narrow='true'] .lg\:col-span-5 {
+  grid-column: auto;
+}
+
+/*
+ * Stand-ins for utilities the running dev server had not compiled yet (kit README: Tailwind scans when hub.css is built, and this version must not touch that
+ * file). They mean exactly what the utility means, so a rebuild changes nothing.
+ */
+.peacock-app .max-h-48 { max-height: 12rem; }
+.peacock-app .inset-2 { inset: 0.5rem; }
+.peacock-app .border-ring { border-color: var(--ring); }
+.peacock-app .bg-background\/90 { background-color: color-mix(in oklab, var(--background) 90%, transparent); }
+.peacock-app .max-h-\[40dvh\] { max-height: 40dvh; }
+.peacock-app .max-h-\[min\(70dvh\,30rem\)\] { max-height: min(70dvh, 30rem); }
+.peacock-app .max-h-\[min\(80dvh\,36rem\)\] { max-height: min(80dvh, 36rem); }
+.peacock-app .max-w-\[calc\(100vw-2rem\)\] { max-width: calc(100vw - 2rem); }
+@media (min-width: 768px) {
+  .peacock-app .md\:size-5 { width: 1.25rem; height: 1.25rem; }
+  .peacock-app .md\:min-h-7 { min-height: 1.75rem; }
+  .peacock-app .md\:min-h-7\.5 { min-height: 1.875rem; }
+}
+
+/* The tooltip never leaves the screen, in either direction, whatever it holds. */
+[data-wb-tipbox] {
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  max-height: var(--radix-tooltip-content-available-height);
+  overflow-y: auto;
+  /* It holds no links, so the pointer passes through it to whatever it happens to sit over. A neighbour under a tip still answers. */
+  pointer-events: none;
+}
+[data-radix-popper-content-wrapper]:has(> [data-wb-tipbox]) {
+  pointer-events: none;
+}
+
+/*
+ * Touch targets follow the pointer, not the width (review N1): a tablet at 768 has the desktop layout and a finger. Inside the panel, the strip and the sheet, every control is at
+ * least 44 px on a coarse pointer. This sits outside Tailwind's layers, so it beats a size utility.
+ */
+@media (pointer: coarse) {
+  [data-wb-panel] button,
+  [data-wb-panel] a[href],
+  [data-wb-panel] [role='button'],
+  [data-wb-panel] [role='menuitem'],
+  [data-wb-strip] button,
+  [data-wb-strip] [role='img'],
+  [data-card-sheet] button,
+  [data-card-sheet] a[href],
+  [data-card-sheet] [role='button'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  [data-wb-panel] label {
+    min-height: 44px;
+  }
+  [data-wb-panel] input[type='checkbox'] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  /* A long press means Explain here, so the browser's own menu and selection stay out of it. */
+  [data-wb-panel] button,
+  [data-wb-strip] button,
+  [data-card-sheet] button {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+/* Actions that only matter on the line under the pointer. On a touch screen there is no hover, so they stay. */
+@media (hover: hover) {
+  .wb-hover-reveal {
+    opacity: 0;
+  }
+  .group:hover .wb-hover-reveal,
+  .group:focus-within .wb-hover-reveal,
+  .wb-hover-reveal:focus-visible,
+  .wb-hover-reveal[data-state='open'] {
+    opacity: 1;
+  }
+}
+
+/* One row in the composer never wraps, whatever the folder is called. */
+.wb-nowrap-row {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: 0;
+  align-items: center;
+}
+
+/* The approval's long command: its start stays in view, and it scrolls inside itself. */
+.wb-command {
+  max-height: 11.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.wb-command[data-all='true'] {
+  max-height: none;
+}
+.wb-danger {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--warning-strong);
+  background: transparent;
+}
+
+/* An Arabic line in a diff is prose: the body font, and read from its own start. A hunk header and code stay mono. */
+.wb-diff-prose {
+  font-family: inherit;
+  font-size: inherit;
+}
+[data-wb-diff] [dir='rtl'] .wb-diff-text,
+.wb-diff-text.wb-diff-prose {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+}
+[lang='en'] .peacock-app .wb-diff-text.wb-diff-prose:not([dir='rtl']) {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* The focus a jump lands on: the ring, never a coloured edge. */
+[data-wb-revealed='true'] {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* While a card is open beside the page, its row button is not a second filled button (review M11). A real port passes the variant as a prop. */
+[data-wb-sheet-open='true'] [data-wb-page] button.bg-primary {
+  background-color: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+[data-wb-sheet-open='true'] [data-wb-page] button.bg-primary:hover {
+  background-color: var(--accent);
+}
+
+/* The sheet's reading column when the page has stepped aside. */
+.wb-sheet-measure {
+  max-width: 46rem;
+}
