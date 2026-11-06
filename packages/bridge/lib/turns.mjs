@@ -59,7 +59,7 @@ const STDERR_TAIL = 2_000;
 const CHANGED_FILES_LIMIT = 300;
 const DIFF_LIMIT = 200_000;
 const MAX_STDOUT_BUFFER = 64_000_000;
-const OK_ENV_FOR_CLAUDE = new Set(['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY']);
+const OK_ENV_FOR_CLAUDE = new Set(['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY', 'CLAUDE_CODE_MAX_RETRIES']);
 const UNREADABLE_MESSAGE =
   'Claude Code sent something Hub cannot read, so this turn was stopped. Nothing more will run in it. Open in VS Code to carry on there.';
 /**

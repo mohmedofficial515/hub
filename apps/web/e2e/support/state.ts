@@ -7,6 +7,8 @@ import { join, resolve } from 'node:path';
 // `E2E_RESULTS` keeps two runs at once, on their own ports, from overwriting each other's sessions.
 const DIR = resolve(process.env['E2E_RESULTS'] ?? resolve(__dirname, '../../test-results'), 'e2e-state');
 export const SHARED_FILE = join(DIR, 'shared.json');
+/** Every bridge a test started, so the run's teardown can stop one a dead worker left behind. */
+export const BRIDGE_PIDS_FILE = join(DIR, 'scripted-bridges.txt');
 export const storageFile = (who: string) => join(DIR, `${who}.storage.json`);
 
 export interface Person {
