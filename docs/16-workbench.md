@@ -30,6 +30,7 @@ Hub becomes the place the owner works from, not only where they record work:
 | D46 | **`repoPaths` stays editable through MCP, with approval (owner's choice).** A change to `repoPaths` widens the bridge's folder allowlist, so `update_project` must pause for the owner's approval in bridge runs: its permission rules must put that tool on the `ask` list. Slice 3 must test this. |
 | D47 | **Uninstall keeps folder trust (owner's choice).** Removing Hub from a device removes the `hub` servers and the bridge, and leaves folders trusted, as if the owner had accepted the dialog. |
 | D48 | **Panel design:** three clearly different directions as working prototypes in the lab. The owner picks one before the port. |
+| D49 | **Direction chosen, in principle (2026-11-06):** `hub/workbench/v1-edge-strip`, extended as §7.1 describes into `hub/workbench/v4-edge-strip-pro`. The owner gives the final approval on v4 in the lab. Two ideas come from the other directions: drag a card into the chat, and "follow the chat". |
 | D42 | **Connect:** automatic on the main machine, and one command with browser approval on any other. Linking a folder is a button in Hub. No token copying and no new terminal. |
 | D43 | **Devices reach Hub through Tailscale.** Hub is never open to the public internet. This amends D33 for those devices. |
 
@@ -120,7 +121,7 @@ Owner-run, after checking the gallery. The old folder stays until a separate req
 
 ## 7. Slice 3: chat panel
 
-**Design first.** The panel has no approved design. Build it as a new lab version, `hub/today/v6-workbench` based on `v5-peacock-app`, run `ux-critic`, and get the owner's approval before porting. No coloured side or top edges.
+**Design first.** The design lives at `hub/workbench/` in the lab (D48, D49). Run `ux-critic` on `v4-edge-strip-pro` and get the owner's final approval before porting it. No coloured side or top edges. The engine does not depend on the look, so it is built alongside the design.
 
 Behaviour to design:
 - Docked at the page edge, on every page, pushing the content. Drag to resize, one key to close, width remembered per device. Full screen on a phone.
@@ -133,7 +134,33 @@ Behaviour to design:
 - **Persona:** "working as" a role, which sets the focus and whose work is shown.
 - Honest states: bridge offline, Claude signed out, usage limit reached, the turn stopped.
 
-Each message spawns or resumes the official binary in the chosen folder. It loads that folder's `CLAUDE.md`, skills and MCP. Only one turn runs per chat.
+Each chat runs the official binary in the chosen folder, as "S1 findings" specify. It loads that folder's `CLAUDE.md`, skills and MCP. Only one turn runs per chat.
+
+### 7.1 What the owner added (2026-11-06)
+
+The owner asked for more detail, strong info tooltips, and a panel that is smart, flexible, and serves document development and task execution professionally.
+
+**Info tooltips.** Every control and status in the panel has a rich tooltip, shown on hover and keyboard focus, with touch access through a tap or an info button. Each says: what it does, its shortcut, what will happen, what it depends on, and, when disabled, exactly why and how to fix it. Status tooltips carry real values: for example, which device, Claude version, folder, and since when. A tooltip never holds the only copy of something essential.
+
+**More detail, all from real data.**
+- Each turn: steps with status, duration, model, and usage when the engine reports it.
+- Each tool step, opened: exact input, result, error.
+- Changed files for a turn with counts, opening a diff.
+- For the chat: folder, device, branch, session, mode, and when it started.
+- Nothing is invented: a value the engine does not report is left out.
+
+**Modes, always visible and switchable.** Ask (read only), Plan (read only, ends in a proposed plan), Execute (D41 permissions). Model and effort selectors where the installed Claude Code supports them. Each mode's tooltip states what it can and cannot do.
+
+**Smart context.**
+- Suggested prompts change with the page and the open card's type and state, such as Decide on a decision and Deliver on a need.
+- Attach cards, docs and files as chips. Drag a card in. "Follow the chat" brings the discussed card to the sheet, and can be turned off.
+- "Do next" with its reason (§11).
+
+**Task execution protocol**, a Hub skill the panel starts from a card, also usable in any Claude Code chat. Stages: Understand (read the card, its links and docs through Hub) → Plan (steps and acceptance checks) → Execute → Verify (run the checks, and show the real output) → Report. The stages show as a live checklist on the turn. The report goes on the card as evidence: what changed, files, checks run with results, what was not checked. The task does not complete itself (§9). A failed check stops at Verify and says so.
+
+**Document development protocol**, a Hub skill. Stages: Search (existing docs through Hub, §10) → Propose (update or new, and why, with no duplicates) → Draft (shown as a diff against the current text) → Save through `save_doc` on approval, keeping the earlier revision → Link (the doc to its related cards). Writing follows the project's rules for language and audience. Starts from "Improve this doc", "Document this task" or "Find gaps". A gap report compares what cards and code mention against the docs. Nothing is invented: a claim Claude cannot verify from the project is flagged instead of written as fact.
+
+**Flexibility.** Pin a chat. Branch from a message into a new chat. Export a chat as Markdown. Retry a turn. Stop at any time. Templates for frequent prompts, saved per project. Panel width, default mode and the tooltip level (full or compact) are remembered per device.
 
 ## 8. Slice 4: send to VS Code
 
