@@ -235,6 +235,10 @@ Known limits, stated so nobody hunts for them:
 | `usePromptTemplates()`, `useSavePromptTemplate()`, `useDeletePromptTemplate()`      | per project                                                                                         |
 | `useSuggestions({ page, card, roles, memberId })`                                   | words are `suggestions.<id>` in the `chat` namespace, with `{key}`                                  |
 
+Also: `useOpenInVsCode()` takes `{ device, folder, cardKey?, chatId? }` and answers `{ sent: true, prompt }`, where `sent` means handed over, never opened. With no bridge, copy `vscodePrompt(...)` from `@hub/contracts`, the same text. `useTurnStatus(chatId)` is what the engine is doing now, `{ state, attempt?, retryInMs?, at }` or null, filled by the stream only. A report and a saved draft reread their card and document by themselves. `useDocRevisions(key)` and `useRestoreDocRevision(key)` (`{ revision, baseHash? }`) are in `features/docs/queries.ts`. From `@hub/contracts`: `doNext(cards, { role, limit, nowMs })` ranks what to start, with reason codes whose words are the web's, and `HUB_SKILLS` lists the commands for the slash menu.
+
+**Browser specs on a real engine:** `e2e/support/scripted-engine.ts` gives a test an `engine` fixture, with the real bridge and `claude` binary against a scripted model. Its header has an example.
+
 `live.ts` also has `pendingApprovals(chat)`, `pendingQuestions(chat)`, `runningMessage(chat)`, `draftOfApproval(message, approval)` and `checklistOf(message)`, the live checklist of `/hub:work` and `/hub:doc`. Place a step in the reply's text by its `textOffset`. A refused write throws `HubError`: `hub.chats.turn_running`, `hub.chats.approval_answered`, `hub.chats.approval_device_offline`, `hub.docs.draft_flags_open`, `hub.devices.offline`.
 
 **Honest states:** `honestStateOf(chat, lastMessage, engine, now)` is the one rule, and it returns `kind`, whether `recheck` and `openInVsCode` apply, whether the `composer` can send, whether approvals can be answered, `resetsAt`, and D53's `warning`. Words are `honest.*` and `failures.<code>`. No state is a dead end.

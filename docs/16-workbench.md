@@ -242,6 +242,11 @@ The API is in `apps/api/README.md` § Chats, and the hooks in `apps/web/README.m
 - **New tables and columns:** `doc_drafts`; `chat_steps.command`; `chat_messages.structured_plan`, `reports`, `notices`; `chat_approvals.kind`, `effect`, `draft_id`, `questions`, `answers` (migration `0004`). New tools: `report_work`, `list_work_reports`, `propose_plan`, `propose_doc`. New action: `card.report_work`. New event kind: `work_reported`. `save_doc` gains `draft` and `answers`, and `content` is optional only with `draft`.
 - **Real smoke (`E2E_REAL_MODEL_WORK=1`), 2026-11-06.** `/hub:work` on haiku, on a temp folder and a test card: the card moved to In review with its one check verified, and `changedFiles` came from the device. Haiku reported `verify` as a stage and skipped `report`'s, so a model can skip a stage line, and nothing depends on it. It runs on the owner's real config, the only place their sign-in is, so a folder `.mcp.json` and a session plugin with no hooks (`HUB_BRIDGE_PLUGIN_DIR`) keep it away from their Hub. A model-free test proves both.
 - **Not caught by the server:** a passing check whose command is not the one that proves anything. Hub proves a command ran and succeeded, not that it was the right command, and a check run before later edits still counts.
+- **A stale save shows what moved.** `chatDocDraftSchema.conflict` is `{ version, text }`: the file as read at the refusal, in the same form as `baseText` (no front matter), filtered and capped at `draftChars`. It is set only with `refusedCode: 'hub.docs.stale_base'`, and cleared by a save or a redraft. `version` is null and `text` is empty when the file is gone. The whole field is null when the file cannot be read at that moment, as with its device offline, and the refusal still stands. A file holding a secret never gets here: `save_doc` refuses it earlier, for that reason.
+- **Engine facts.** `turn.session` carries `skills` and `mcpServers`, names only (500 and 100, 200 characters each), and `chatMessage.engineFacts` stores them. Null means the engine did not say, never that there are none. A server's status is left out, because `init` says `pending` for one that connects later (S1 Q6).
+- **`HUB_SKILLS`** lists `/hub:ask`, `/hub:doc`, `/hub:plan` and `/hub:work`, and a test holds it to the plugin folder. `guide` is not user-invocable. There is no `/hub:suggest` yet: §11 names it, and the plugin has no such skill.
+- **New columns:** `doc_drafts.conflict`, `chat_messages.engine_facts` (migration `0005`).
+- **A 401 is retried for minutes (new, not in S1).** With a key that stopped working, 2.1.318 emits `system/api_retry` with `error: "authentication_failed"` and backs off to over 30 s between attempts, so the turn reads `retrying` long before it ends `signed_out`. `CLAUDE_CODE_MAX_RETRIES=0` makes it fail at once, with `assistant.error: "authentication_failed"`. The bridge lets the binary finish, so this is what the owner would see. Only the scripted engine sets the variable, to `1`.
 
 ## 8. Slice 4: send to VS Code
 
@@ -254,6 +259,18 @@ A button on any card and in the panel: **Open in VS Code**.
 The same button appears on a panel chat to continue the topic there. It starts a new VS Code chat from a Hub summary and the card key, so it does not depend on session sharing. If S1 shows `session=` works reliably, a real resume can replace this.
 
 If the device has no bridge, the button copies the prompt instead.
+
+### Slice 4 as built (2026-11-06)
+
+`POST workspaces/:ws/chats/vscode` is in `apps/api/README.md` § Chats, and `useOpenInVsCode()` in `apps/web/README.md`. `vscodePrompt` and `vscodeLink` are in `@hub/contracts`, so the client shows the same text the server builds.
+
+- **No shell, in place of S1's `cmd.exe` commands.** `code.cmd` needs `cmd.exe`, so the bridge runs what it points at. On Windows `resolveVsCode` now also answers `program`, the real `Code.exe` from the registry. Elsewhere that is the resolved `code`.
+- **Detached.** A `Code.exe` that is the first window keeps running until the owner closes it, so waiting on it would hang, and killing it at a timeout would close their editor. The cost is that no exit code comes back, and a start only proves the handover, which is what S1 Q10 said anyway. The answer is `sent`, never "opened".
+- **The link's arguments are the registry entry's own:** `--open-url -- <link>`. The bridge builds the link itself from `VSCODE_LINK_PREFIX`, and the prompt is only ever encoded into it. A test holds the bridge's copy of the prefix and the 500 character cap to the contract.
+- **A three second wait** between the folder and the link, so the link lands in the right window. It is a guess until the owner's smoke: S1 waited five.
+- **`ELECTRON_RUN_AS_NODE` is removed** from what the bridge passes on, since inherited from an editor it would make `Code.exe` read a folder as a script.
+- **No extension is not refused.** With VS Code there and the extension missing, the link still goes, and VS Code says what it says. The health panel already shows the extension's state.
+- **Not checked here:** the real window. Tests inject the spawn, so nothing has opened from this code yet. The single real smoke and the owner's eye are step 4's gate (§12).
 
 ## 9. Slice 5: agent queue
 
