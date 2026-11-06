@@ -13,6 +13,8 @@ export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PROCESS_ROLE: z.enum(['api', 'worker', 'all']).default('all'),
   PORT: z.coerce.number().int().positive().default(7310),
+  /** Overrides the per-user limit of docs/04 §1.7. Only the throwaway browser stack sets it: one test user makes every page load of a whole suite. */
+  HUB_RATE_LIMIT_USER: z.coerce.number().int().positive().optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   HUB_PUBLIC_URL: z.url().default('http://localhost:7300'),
   /** Where another device reaches this API: `/mcp`, `/bridge` and the connect script. Unset: the host the browser used, on PORT. */

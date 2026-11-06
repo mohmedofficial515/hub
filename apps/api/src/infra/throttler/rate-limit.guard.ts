@@ -5,9 +5,17 @@
  * with the limit of their kind. A public route with no decorator (health) is not limited. If Redis is down
  * the request passes, because readiness already reports the outage and sign-in must not depend on a counter.
  */
-import { type CanActivate, type ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common';
+import {
+  type CanActivate,
+  type ExecutionContext,
+  Inject,
+  Injectable,
+  Logger,
+  SetMetadata,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { AppException } from '@/shared/errors';
 import type { HubRequest } from '@/shared/http';
 
@@ -37,6 +45,7 @@ export class RateLimitGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly redis: RedisClients,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -72,7 +81,7 @@ export class RateLimitGuard implements CanActivate {
     if (principal.kind === 'hook') {
       return { key: `rl:token:${principal.tokenId}`, limit: RATE_LIMITS.hook };
     }
-    return { key: `rl:user:${principal.userId}`, limit: RATE_LIMITS.user };
+    return { key: `rl:user:${principal.userId}`, limit: this.config.HUB_RATE_LIMIT_USER ?? RATE_LIMITS.user };
   }
 
   private async count(key: string, limit: number): Promise<number | null> {

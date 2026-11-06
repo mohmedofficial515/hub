@@ -487,7 +487,9 @@ test.describe('chat panel, the layout', () => {
     expect(inStrip).toBe(true);
     await page.locator('[data-wb-skip-panel]').focus();
     await page.keyboard.press('Enter');
-    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-wb-panel]'))).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-wb-panel]')))
+      .toBe(true);
   });
 
   test('a phone starts on the page, and the panel is full screen', async ({ page, locale, ws }) => {

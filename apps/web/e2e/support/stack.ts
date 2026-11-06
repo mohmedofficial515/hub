@@ -154,6 +154,7 @@ export async function startStack(): Promise<RunningStack> {
     NODE_ENV: 'development',
     PROCESS_ROLE: 'all',
     PORT: String(API_PORT),
+    HUB_RATE_LIMIT_USER: '6000',
     LOG_LEVEL: 'warn',
     TZ: 'Europe/Istanbul',
     HUB_PUBLIC_URL: WEB_URL,
