@@ -92,6 +92,8 @@ requires every mutating route to be in a tool's `routes`, or in `MCP_EXCLUDED_RO
 `open_adr_pr` answers `hub.common.unavailable` until a GitHub connection exists (H3-06, deferred by 15 §3). It is there so that
 the answer is honest rather than "no such tool".
 
+**Structured results (`docs/16` §7.2).** `report_work` and `propose_doc` take no field for what only the server can know: `verified`, a check's real runs, and duplicates are the server's. They read which panel turn a call belongs to from `_meta["claudecode/toolUseId"]`, so a call outside a panel chat is `outside_panel`, its checks stay claimed, and a task never moves. `report_work` replaces the Markdown comment as `/hub:work`'s evidence. `propose_plan` and `propose_doc` write only a turn's event and a draft, so they are on the read list in Ask and Plan. `save_doc` takes `draft`, and refuses while a flag has no answer. In a panel chat only the owner answers a flag.
+
 ### 2.5 Resources
 
 | URI | Returns |

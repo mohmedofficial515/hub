@@ -67,6 +67,7 @@ const MATRIX_ROWS: Record<Group, PermissionAction[]> = {
     'release.release',
     'card.delete',
     'card.comment',
+    'card.report_work',
     'card.comment_redact',
     'card.read',
     'card.read_deleted',

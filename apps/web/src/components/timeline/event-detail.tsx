@@ -37,6 +37,8 @@ export function EventDetail({ card, event }: { card: HubCard & { type: CardType 
   switch (event.kind) {
     case 'commented':
       return d.excerpt ? <Bidi>{str(d.excerpt)}</Bidi> : null;
+    case 'work_reported':
+      return d.summary ? <Bidi>{str(d.summary)}</Bidi> : null;
     case 'decided':
       return (
         <>

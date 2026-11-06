@@ -282,6 +282,7 @@ and `/me/context`.
 | Release: edit included / notes / mark released | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Delete / restore card (D28) | ✓ | ✓ | C | C | C | C | C |
 | Comment | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Report work (docs/16 §7.2) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Edit own comment (15 min) | C | C | C | C | C | C | C |
 | Redact comment | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |

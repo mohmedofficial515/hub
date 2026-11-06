@@ -254,6 +254,7 @@
         "claimed": "claimed",
         "unclaimed": "unclaimed",
         "commented": "commented",
+        "work_reported": "reported on the work",
         "linked": "added a link",
         "unlinked": "removed a link",
         "decided": "made the decision",

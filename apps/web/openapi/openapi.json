@@ -6988,6 +6988,18 @@
               "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "type": "string"
             }
+          },
+          {
+            "name": "fresh",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
           }
         ],
         "responses": {
@@ -7314,7 +7326,7 @@
             "description": ""
           }
         },
-        "summary": "Allow once or deny a paused call. The first answer wins; later ones get a conflict",
+        "summary": "Allow once or deny a paused call, or answer a question. The first answer wins; later ones get a conflict. An offline device refuses it",
         "tags": [
           "chats"
         ]
@@ -7505,6 +7517,40 @@
           }
         },
         "summary": "Delete a saved prompt",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/cards/{key}/work-reports": {
+      "get": {
+        "operationId": "WorkReportsController_list",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkReportDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "A card’s work reports, newest first: each check with its real runs, what is verified and what is claimed",
         "tags": [
           "chats"
         ]
@@ -33199,6 +33245,38 @@
             "maxLength": 500,
             "nullable": true
           },
+          "canRun": {
+            "type": "boolean"
+          },
+          "warning": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "newer_than_tested"
+                ]
+              },
+              "version": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "testedMax": {
+                "type": "string",
+                "maxLength": 40
+              }
+            },
+            "required": [
+              "code",
+              "version",
+              "testedMax"
+            ],
+            "nullable": true
+          },
+          "checkedAt": {
+            "type": "string",
+            "maxLength": 40
+          },
           "signedIn": {
             "type": "boolean",
             "nullable": true
@@ -33221,6 +33299,9 @@
           "inRange",
           "testedRange",
           "message",
+          "canRun",
+          "warning",
+          "checkedAt",
           "signedIn",
           "effortSupported",
           "modelSupported",
@@ -33482,6 +33563,7 @@
                     "folder_missing",
                     "device_offline",
                     "cut_off",
+                    "unreadable_event",
                     "unknown",
                     null
                   ],
@@ -33586,6 +33668,63 @@
                   "type": "string",
                   "nullable": true
                 },
+                "structuredPlan": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "steps": {
+                      "minItems": 1,
+                      "maxItems": 50,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "role": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "why": {
+                            "type": "string",
+                            "maxLength": 2000
+                          }
+                        },
+                        "required": [
+                          "title"
+                        ]
+                      }
+                    },
+                    "checks": {
+                      "maxItems": 50,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "risks": {
+                      "maxItems": 50,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "steps"
+                  ],
+                  "nullable": true
+                },
                 "changedFiles": {
                   "type": "array",
                   "items": {
@@ -33599,7 +33738,8 @@
                         "type": "string",
                         "enum": [
                           "tool",
-                          "git"
+                          "git",
+                          "claimed"
                         ]
                       },
                       "status": {
@@ -33652,6 +33792,10 @@
                         ]
                       },
                       "input": {},
+                      "command": {
+                        "type": "string",
+                        "nullable": true
+                      },
                       "output": {
                         "type": "string",
                         "nullable": true
@@ -33680,6 +33824,7 @@
                       "name",
                       "status",
                       "input",
+                      "command",
                       "output",
                       "decision",
                       "textOffset",
@@ -33726,6 +33871,9 @@
                         ]
                       },
                       "input": {},
+                      "effect": {
+                        "type": "string"
+                      },
                       "status": {
                         "type": "string",
                         "enum": [
@@ -33735,6 +33883,10 @@
                           "timed_out",
                           "stopped"
                         ]
+                      },
+                      "draftId": {
+                        "type": "string",
+                        "nullable": true
                       },
                       "expiresAt": {
                         "type": "string"
@@ -33755,10 +33907,712 @@
                       "command",
                       "category",
                       "input",
+                      "effect",
                       "status",
+                      "draftId",
                       "expiresAt",
                       "answeredAt",
                       "createdAt"
+                    ]
+                  }
+                },
+                "questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "messageId": {
+                        "type": "string"
+                      },
+                      "toolUseId": {
+                        "type": "string"
+                      },
+                      "questions": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string",
+                              "maxLength": 2000
+                            },
+                            "header": {
+                              "type": "string",
+                              "maxLength": 100
+                            },
+                            "multiSelect": {
+                              "type": "boolean"
+                            },
+                            "options": {
+                              "maxItems": 20,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "label": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "maxLength": 1000
+                                  }
+                                },
+                                "required": [
+                                  "label"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "text",
+                            "multiSelect",
+                            "options"
+                          ]
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "pending",
+                          "answered",
+                          "declined",
+                          "timed_out",
+                          "stopped"
+                        ]
+                      },
+                      "answers": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "nullable": true
+                      },
+                      "expiresAt": {
+                        "type": "string"
+                      },
+                      "answeredAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "messageId",
+                      "toolUseId",
+                      "questions",
+                      "status",
+                      "answers",
+                      "expiresAt",
+                      "answeredAt",
+                      "createdAt"
+                    ]
+                  }
+                },
+                "reports": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "cardKey": {
+                        "type": "string"
+                      },
+                      "origin": {
+                        "type": "string",
+                        "enum": [
+                          "panel",
+                          "outside_panel"
+                        ]
+                      },
+                      "chatId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "messageId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "summary": {
+                        "type": "string"
+                      },
+                      "checks": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "command": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "stepId": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "outcome": {
+                              "type": "string",
+                              "enum": [
+                                "passed",
+                                "failed",
+                                "skipped"
+                              ]
+                            },
+                            "note": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "verified": {
+                              "type": "boolean"
+                            },
+                            "basis": {
+                              "type": "string",
+                              "enum": [
+                                "matched",
+                                "outside_panel",
+                                "no_command",
+                                "no_matching_step",
+                                "step_mismatch",
+                                "not_finished",
+                                "outcome_differs"
+                              ]
+                            },
+                            "runs": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "stepId": {
+                                    "type": "string"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "passed",
+                                      "failed",
+                                      "cut_off",
+                                      "running"
+                                    ]
+                                  },
+                                  "startedAt": {
+                                    "type": "string"
+                                  },
+                                  "endedAt": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "excerpt": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "stepId",
+                                  "status",
+                                  "startedAt",
+                                  "endedAt"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "command",
+                            "stepId",
+                            "outcome",
+                            "note",
+                            "verified",
+                            "basis",
+                            "runs"
+                          ]
+                        }
+                      },
+                      "changedFiles": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "path": {
+                              "type": "string",
+                              "maxLength": 1000
+                            },
+                            "source": {
+                              "type": "string",
+                              "enum": [
+                                "tool",
+                                "git",
+                                "claimed"
+                              ]
+                            },
+                            "status": {
+                              "type": "string",
+                              "maxLength": 4
+                            },
+                            "additions": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "deletions": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "path",
+                            "source"
+                          ]
+                        }
+                      },
+                      "filesFrom": {
+                        "type": "string",
+                        "enum": [
+                          "bridge",
+                          "claimed",
+                          "none"
+                        ]
+                      },
+                      "notChecked": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "droppedChecks": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "counts": {
+                        "type": "object",
+                        "properties": {
+                          "total": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "passed": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "failed": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "skipped": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "verified": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "failedRuns": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "total",
+                          "passed",
+                          "failed",
+                          "skipped",
+                          "verified",
+                          "failedRuns"
+                        ]
+                      },
+                      "move": {
+                        "type": "object",
+                        "properties": {
+                          "moved": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "all_verified",
+                              "no_checks",
+                              "check_not_passed",
+                              "check_not_verified",
+                              "check_dropped",
+                              "outside_panel",
+                              "not_a_task",
+                              "wrong_status",
+                              "not_permitted"
+                            ]
+                          },
+                          "from": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "to": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "moved",
+                          "reason",
+                          "from",
+                          "to"
+                        ]
+                      },
+                      "reportedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "cardKey",
+                      "origin",
+                      "chatId",
+                      "messageId",
+                      "summary",
+                      "checks",
+                      "changedFiles",
+                      "filesFrom",
+                      "notChecked",
+                      "droppedChecks",
+                      "counts",
+                      "move",
+                      "reportedAt"
+                    ]
+                  }
+                },
+                "docDrafts": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "docKey": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "source": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "path": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "baseVersion": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "baseText": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "draft": {
+                        "type": "string"
+                      },
+                      "duplicates": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "key": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "source": {
+                              "type": "string"
+                            },
+                            "path": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "overlap": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "key",
+                            "title",
+                            "source",
+                            "path",
+                            "url",
+                            "overlap"
+                          ]
+                        }
+                      },
+                      "claims": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "verified",
+                                "unverified"
+                              ]
+                            },
+                            "source": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "answer": {
+                              "type": "string",
+                              "enum": [
+                                "confirm",
+                                "remove",
+                                "keep_flagged",
+                                null
+                              ],
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "text",
+                            "status",
+                            "source",
+                            "answer"
+                          ]
+                        }
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "open",
+                          "saved",
+                          "refused",
+                          "dropped"
+                        ]
+                      },
+                      "refusedCode": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "savedVersion": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "revisionId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "docKey",
+                      "source",
+                      "path",
+                      "title",
+                      "reason",
+                      "baseVersion",
+                      "baseText",
+                      "draft",
+                      "duplicates",
+                      "claims",
+                      "status",
+                      "refusedCode",
+                      "savedVersion",
+                      "revisionId",
+                      "createdAt",
+                      "updatedAt"
+                    ]
+                  }
+                },
+                "notices": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "turn.starting"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "new",
+                              "resume",
+                              "mode",
+                              "model",
+                              "effort",
+                              "folder"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "reason",
+                          "at"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "engine.warning"
+                            ]
+                          },
+                          "code": {
+                            "type": "string",
+                            "enum": [
+                              "newer_than_tested"
+                            ]
+                          },
+                          "version": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "testedMax": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "code",
+                          "version",
+                          "testedMax",
+                          "at"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "tool.blocked"
+                            ]
+                          },
+                          "toolUseId": {
+                            "type": "string",
+                            "maxLength": 100
+                          },
+                          "name": {
+                            "type": "string",
+                            "maxLength": 200
+                          },
+                          "command": {
+                            "type": "string",
+                            "maxLength": 4000
+                          },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "ask",
+                              "plan"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "toolUseId",
+                          "name",
+                          "command",
+                          "mode",
+                          "at"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "report.refused"
+                            ]
+                          },
+                          "cardKey": {
+                            "type": "string",
+                            "maxLength": 40
+                          },
+                          "checks": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "stepId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "stepId"
+                              ]
+                            }
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "cardKey",
+                          "checks",
+                          "at"
+                        ]
+                      }
                     ]
                   }
                 },
@@ -33787,9 +34641,14 @@
                 "limit",
                 "stages",
                 "plan",
+                "structuredPlan",
                 "changedFiles",
                 "steps",
                 "approvals",
+                "questions",
+                "reports",
+                "docDrafts",
+                "notices",
                 "createdAt",
                 "endedAt"
               ]
@@ -34045,6 +34904,51 @@
               "allow",
               "deny"
             ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "answers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "doc": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 200000
+              },
+              "claims": {
+                "maxItems": 100,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "maxLength": 40
+                    },
+                    "answer": {
+                      "type": "string",
+                      "enum": [
+                        "confirm",
+                        "remove",
+                        "keep_flagged"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "answer"
+                  ]
+                }
+              }
+            }
           }
         },
         "required": [
@@ -34129,6 +35033,283 @@
         "required": [
           "title",
           "body"
+        ]
+      },
+      "WorkReportDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cardKey": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "panel",
+              "outside_panel"
+            ]
+          },
+          "chatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "summary": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "command": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "stepId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": [
+                    "passed",
+                    "failed",
+                    "skipped"
+                  ]
+                },
+                "note": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "verified": {
+                  "type": "boolean"
+                },
+                "basis": {
+                  "type": "string",
+                  "enum": [
+                    "matched",
+                    "outside_panel",
+                    "no_command",
+                    "no_matching_step",
+                    "step_mismatch",
+                    "not_finished",
+                    "outcome_differs"
+                  ]
+                },
+                "runs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stepId": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "passed",
+                          "failed",
+                          "cut_off",
+                          "running"
+                        ]
+                      },
+                      "startedAt": {
+                        "type": "string"
+                      },
+                      "endedAt": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "excerpt": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "stepId",
+                      "status",
+                      "startedAt",
+                      "endedAt"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "command",
+                "stepId",
+                "outcome",
+                "note",
+                "verified",
+                "basis",
+                "runs"
+              ]
+            }
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "tool",
+                    "git",
+                    "claimed"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "maxLength": 4
+                },
+                "additions": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "deletions": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "path",
+                "source"
+              ]
+            }
+          },
+          "filesFrom": {
+            "type": "string",
+            "enum": [
+              "bridge",
+              "claimed",
+              "none"
+            ]
+          },
+          "notChecked": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "droppedChecks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "passed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "skipped": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "verified": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "failedRuns": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "total",
+              "passed",
+              "failed",
+              "skipped",
+              "verified",
+              "failedRuns"
+            ]
+          },
+          "move": {
+            "type": "object",
+            "properties": {
+              "moved": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "all_verified",
+                  "no_checks",
+                  "check_not_passed",
+                  "check_not_verified",
+                  "check_dropped",
+                  "outside_panel",
+                  "not_a_task",
+                  "wrong_status",
+                  "not_permitted"
+                ]
+              },
+              "from": {
+                "type": "string",
+                "nullable": true
+              },
+              "to": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "moved",
+              "reason",
+              "from",
+              "to"
+            ]
+          },
+          "reportedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cardKey",
+          "origin",
+          "chatId",
+          "messageId",
+          "summary",
+          "checks",
+          "changedFiles",
+          "filesFrom",
+          "notChecked",
+          "droppedChecks",
+          "counts",
+          "move",
+          "reportedAt"
         ]
       }
     }

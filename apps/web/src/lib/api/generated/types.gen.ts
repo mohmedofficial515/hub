@@ -5418,6 +5418,13 @@ export type EngineStatusDto = {
         max: string;
     };
     message: string | null;
+    canRun: boolean;
+    warning: {
+        code: 'newer_than_tested';
+        version: string;
+        testedMax: string;
+    } | null;
+    checkedAt: string;
     signedIn: boolean | null;
     effortSupported: boolean;
     modelSupported: boolean;
@@ -5475,7 +5482,7 @@ export type ChatFullDto = {
             }>;
         } | null;
         status: 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | null;
-        failure: 'signed_out' | 'rate_limited' | 'billing' | 'overloaded' | 'version_out_of_range' | 'claude_missing' | 'session_missing' | 'folder_not_allowed' | 'folder_missing' | 'device_offline' | 'cut_off' | 'unknown' | null;
+        failure: 'signed_out' | 'rate_limited' | 'billing' | 'overloaded' | 'version_out_of_range' | 'claude_missing' | 'session_missing' | 'folder_not_allowed' | 'folder_missing' | 'device_offline' | 'cut_off' | 'unreadable_event' | 'unknown' | null;
         failureMessage: string | null;
         model: string | null;
         claudeVersion: string | null;
@@ -5500,9 +5507,19 @@ export type ChatFullDto = {
             at: string;
         }>;
         plan: string | null;
+        structuredPlan: {
+            title: string;
+            steps: Array<{
+                title: string;
+                role?: string;
+                why?: string;
+            }>;
+            checks?: Array<string>;
+            risks?: Array<string>;
+        } | null;
         changedFiles: Array<{
             path: string;
-            source: 'tool' | 'git';
+            source: 'tool' | 'git' | 'claimed';
             status?: string;
             additions?: number;
             deletions?: number;
@@ -5514,6 +5531,7 @@ export type ChatFullDto = {
             name: string;
             status: 'running' | 'waiting' | 'done' | 'error' | 'cut_off';
             input: unknown;
+            command: string | null;
             output: string | null;
             decision: string | null;
             textOffset: number;
@@ -5528,10 +5546,140 @@ export type ChatFullDto = {
             command: string;
             category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
             input: unknown;
+            effect: string;
             status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped';
+            draftId: string | null;
             expiresAt: string;
             answeredAt: string | null;
             createdAt: string;
+        }>;
+        questions: Array<{
+            id: string;
+            messageId: string;
+            toolUseId: string;
+            questions: Array<{
+                text: string;
+                header?: string;
+                multiSelect: boolean;
+                options: Array<{
+                    label: string;
+                    description?: string;
+                }>;
+            }>;
+            status: 'pending' | 'answered' | 'declined' | 'timed_out' | 'stopped';
+            answers: {
+                [key: string]: string;
+            } | null;
+            expiresAt: string;
+            answeredAt: string | null;
+            createdAt: string;
+        }>;
+        reports: Array<{
+            id: string;
+            cardKey: string;
+            origin: 'panel' | 'outside_panel';
+            chatId: string | null;
+            messageId: string | null;
+            summary: string;
+            checks: Array<{
+                name: string;
+                command: string | null;
+                stepId: string | null;
+                outcome: 'passed' | 'failed' | 'skipped';
+                note: string | null;
+                verified: boolean;
+                basis: 'matched' | 'outside_panel' | 'no_command' | 'no_matching_step' | 'step_mismatch' | 'not_finished' | 'outcome_differs';
+                runs: Array<{
+                    stepId: string;
+                    status: 'passed' | 'failed' | 'cut_off' | 'running';
+                    startedAt: string;
+                    endedAt: string | null;
+                    excerpt?: string;
+                }>;
+            }>;
+            changedFiles: Array<{
+                path: string;
+                source: 'tool' | 'git' | 'claimed';
+                status?: string;
+                additions?: number;
+                deletions?: number;
+            }>;
+            filesFrom: 'bridge' | 'claimed' | 'none';
+            notChecked: Array<string>;
+            droppedChecks: Array<string>;
+            counts: {
+                total: number;
+                passed: number;
+                failed: number;
+                skipped: number;
+                verified: number;
+                failedRuns: number;
+            };
+            move: {
+                moved: boolean;
+                reason: 'all_verified' | 'no_checks' | 'check_not_passed' | 'check_not_verified' | 'check_dropped' | 'outside_panel' | 'not_a_task' | 'wrong_status' | 'not_permitted';
+                from: string | null;
+                to: string | null;
+            };
+            reportedAt: string;
+        }>;
+        docDrafts: Array<{
+            id: string;
+            docKey: string | null;
+            source: string | null;
+            path: string | null;
+            title: string;
+            reason: string;
+            baseVersion: string | null;
+            baseText: string | null;
+            draft: string;
+            duplicates: Array<{
+                key: string;
+                title: string;
+                source: string;
+                path: string;
+                url: string;
+                overlap: string | null;
+            }>;
+            claims: Array<{
+                id: string;
+                text: string;
+                status: 'verified' | 'unverified';
+                source: string | null;
+                answer: 'confirm' | 'remove' | 'keep_flagged' | null;
+            }>;
+            status: 'open' | 'saved' | 'refused' | 'dropped';
+            refusedCode: string | null;
+            savedVersion: string | null;
+            revisionId: string | null;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+        notices: Array<{
+            kind: 'turn.starting';
+            reason: 'new' | 'resume' | 'mode' | 'model' | 'effort' | 'folder';
+            at: string;
+        } | {
+            kind: 'engine.warning';
+            code: 'newer_than_tested';
+            version: string;
+            testedMax: string;
+            at: string;
+        } | {
+            kind: 'tool.blocked';
+            toolUseId: string;
+            name: string;
+            command: string;
+            mode: 'ask' | 'plan';
+            at: string;
+        } | {
+            kind: 'report.refused';
+            cardKey: string;
+            checks: Array<{
+                name: string;
+                stepId: string;
+            }>;
+            at: string;
         }>;
         createdAt: string;
         endedAt: string | null;
@@ -5586,6 +5734,17 @@ export type BranchChatDto = {
 
 export type AnswerApprovalDto = {
     decision: 'allow' | 'deny';
+    note?: string;
+    answers?: {
+        [key: string]: string;
+    };
+    doc?: {
+        content?: string;
+        claims?: Array<{
+            id: string;
+            answer: 'confirm' | 'remove' | 'keep_flagged';
+        }>;
+    };
 };
 
 export type ChatExportDto = {
@@ -5610,6 +5769,56 @@ export type PromptTemplateDto = {
 export type PromptTemplateInputDto = {
     title: string;
     body: string;
+};
+
+export type WorkReportDto = {
+    id: string;
+    cardKey: string;
+    origin: 'panel' | 'outside_panel';
+    chatId: string | null;
+    messageId: string | null;
+    summary: string;
+    checks: Array<{
+        name: string;
+        command: string | null;
+        stepId: string | null;
+        outcome: 'passed' | 'failed' | 'skipped';
+        note: string | null;
+        verified: boolean;
+        basis: 'matched' | 'outside_panel' | 'no_command' | 'no_matching_step' | 'step_mismatch' | 'not_finished' | 'outcome_differs';
+        runs: Array<{
+            stepId: string;
+            status: 'passed' | 'failed' | 'cut_off' | 'running';
+            startedAt: string;
+            endedAt: string | null;
+            excerpt?: string;
+        }>;
+    }>;
+    changedFiles: Array<{
+        path: string;
+        source: 'tool' | 'git' | 'claimed';
+        status?: string;
+        additions?: number;
+        deletions?: number;
+    }>;
+    filesFrom: 'bridge' | 'claimed' | 'none';
+    notChecked: Array<string>;
+    droppedChecks: Array<string>;
+    counts: {
+        total: number;
+        passed: number;
+        failed: number;
+        skipped: number;
+        verified: number;
+        failedRuns: number;
+    };
+    move: {
+        moved: boolean;
+        reason: 'all_verified' | 'no_checks' | 'check_not_passed' | 'check_not_verified' | 'check_dropped' | 'outside_panel' | 'not_a_task' | 'wrong_status' | 'not_permitted';
+        from: string | null;
+        to: string | null;
+    };
+    reportedAt: string;
 };
 
 export type AuthControllerSignInData = {
@@ -8374,6 +8583,7 @@ export type ChatsControllerEngineData = {
     path?: never;
     query: {
         device: string;
+        fresh?: 'true' | 'false';
     };
     url: '/api/v1/workspaces/{ws}/chats/engine';
 };
@@ -8607,3 +8817,18 @@ export type PromptTemplatesControllerUpdateResponses = {
 };
 
 export type PromptTemplatesControllerUpdateResponse = PromptTemplatesControllerUpdateResponses[keyof PromptTemplatesControllerUpdateResponses];
+
+export type WorkReportsControllerListData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/cards/{key}/work-reports';
+};
+
+export type WorkReportsControllerListResponses = {
+    200: Array<WorkReportDto>;
+};
+
+export type WorkReportsControllerListResponse = WorkReportsControllerListResponses[keyof WorkReportsControllerListResponses];

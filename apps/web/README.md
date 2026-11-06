@@ -224,7 +224,10 @@ Known limits, stated so nobody hunts for them:
 | `useCreateChat()`                                                                   | `{ device, folder, mode, model, effort, title }`                                                    |
 | `useSendMessage(id)`                                                                | `{ text, context: { page, card, attachments }, mode, model, effort }`                               |
 | `useStopTurn(id)`, `useRetryTurn(id)`                                               | stop at any time; send the last message again                                                       |
-| `useAnswerApproval(id)`                                                             | `{ approval, decision: 'allow' \| 'deny' }`. The first answer wins                                  |
+| `useAnswerApproval(id)`                                                             | `{ approval, decision, note?, doc?: { content?, claims? } }`. The first answer wins. `doc` is Save  |
+| `useAnswerQuestion(id)`                                                             | `{ question, answers? }`. By question text. No answers declines                                     |
+| `useRecheckEngine(device)`                                                          | Check again: asks the device past its cache, and fills `useEngine`                                  |
+| `useWorkReports(key)`                                                               | a card's reports, newest first, for its evidence and primary action                                 |
 | `useUpdateChat(id)`                                                                 | rename, pin, or set the next turn's mode, model, effort                                             |
 | `useBranchChat(id)`, `useDeleteChat(id)`, `useRestoreChat(id)`, `useExportChat(id)` | as named                                                                                            |
 | `useEngine(device)`                                                                 | found, version, tested range, sign-in, `effortSupported`: what the selectors and honest states read |
@@ -232,7 +235,24 @@ Known limits, stated so nobody hunts for them:
 | `usePromptTemplates()`, `useSavePromptTemplate()`, `useDeletePromptTemplate()`      | per project                                                                                         |
 | `useSuggestions({ page, card, roles, memberId })`                                   | words are `suggestions.<id>` in the `chat` namespace, with `{key}`                                  |
 
-`live.ts` also has `pendingApprovals(chat)`, `runningMessage(chat)` and `checklistOf(message)`, the live checklist of `/hub:work` and `/hub:doc`. Place a step in the reply's text by its `textOffset`. Branch on `message.failure` for the honest states, whose words are `failures.<code>`. A refused write throws `HubError`: `hub.chats.turn_running`, `hub.chats.approval_answered`, `hub.devices.offline`.
+`live.ts` also has `pendingApprovals(chat)`, `pendingQuestions(chat)`, `runningMessage(chat)`, `draftOfApproval(message, approval)` and `checklistOf(message)`, the live checklist of `/hub:work` and `/hub:doc`. Place a step in the reply's text by its `textOffset`. A refused write throws `HubError`: `hub.chats.turn_running`, `hub.chats.approval_answered`, `hub.chats.approval_device_offline`, `hub.docs.draft_flags_open`, `hub.devices.offline`.
+
+**Honest states:** `honestStateOf(chat, lastMessage, engine, now)` is the one rule, and it returns `kind`, whether `recheck` and `openInVsCode` apply, whether the `composer` can send, whether approvals can be answered, `resetsAt`, and D53's `warning`. Words are `honest.*` and `failures.<code>`. No state is a dead end.
+
+**Structured results on a message** (`docs/16` §7.2). Show what was verified apart from what was claimed.
+
+| Field | What it holds | Words |
+| --- | --- | --- |
+| `reports[]` | `checks[]` with `verified`, `basis` and `runs` (every real run, failures included), `changedFiles`, `filesFrom`, `notChecked`, `droppedChecks`, `counts`, `move` | `report.*` |
+| `structuredPlan`, `plan` | The structured plan when `propose_plan` was used. `plan` is the text, always | `plan.*` |
+| `questions[]` | `AskUserQuestion`, as choice cards | `question.*` |
+| `docDrafts[]` | `baseText`, `draft`, server `duplicates` with `url`, `claims` with `answer`, `status`, `refusedCode` | `draft.*` |
+| `notices[]` | `turn.starting`, `engine.warning`, `tool.blocked`, `report.refused`, in order | `starting.*`, `honest.newerVersion`, `blocked.*`, `report.refused` |
+| `approvals[].effect`, `.draftId` | The deterministic line, and the draft a `save_doc` would save. Words are `categories.<category>` | `categories.*` |
+
+From `@hub/contracts`: `lineDiff(base, draft)` for the draft's diff, `applyClaimAnswers(text, claims)` for the preview of what Save writes, `openFlags(claims)` for what still blocks it, `planToPrompt(plan)` for Run this plan. Run this plan fills the composer in Execute and sends nothing.
+
+**A suggestion's data says what pressing it does (D51).** `onPress: 'fill'` puts the words in the composer. `onPress: 'run'` sends them, in `mode`. When a `run` is in `execute`, show `suggestions.<id>.runs` first, so it never runs in Execute unannounced.
 
 ## i18n
 

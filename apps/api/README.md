@@ -194,6 +194,13 @@ Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a f
 - **`chat.run` and `chat.answer` are web only.** A token or an agent cannot start a chat or answer an approval, so a chat cannot approve itself.
 - **Raw Claude Code events stop at `packages/bridge/lib/claude-events.mjs`.** A new engine fact is a new `TurnEvent` in `packages/contracts/src/chat.ts`, a line in the mapper, and a case in `TurnRecorder` and `apps/web/src/features/chat/live.ts`.
 
+**Structured results** (`docs/16` §7.2 and "§7.2 as built"):
+
+- `TurnRegistry.panelTurn(actor, toolUseId)` answers which panel turn an MCP call belongs to, from `_meta["claudecode/toolUseId"]`, or null. `ToolContext.toolUseId` holds it. Use it instead of a chat argument, which a model could fill in. `TurnRegistry.post(chatId, event)` puts a server-made event on the turn, in order with the bridge's.
+- `WorkReportsService.report` judges checks in `domain/work-report.ts` (pure), then applies `card.report_work`, whose plan decides the move under the card's lock and runs `task.submit_review` as a follow-up. Read reports with `GET cards/:key/work-reports`, or `list_work_reports`.
+- `DocDraftsService` holds `propose_doc` and the save behind it. `DocsWriteService.current` and `.similar` give it the base and the real duplicates.
+- A new server-made result is a `TurnEvent`, a case in `TurnRecorder.write` and `reduceMessage`, and words in both `chat.json` files.
+
 `RealtimePublisher.publishTransient` carries the stream: it skips the replay buffer, so a long reply cannot push card events out of it. `chat.changed` is the durable nudge, and `GET chats/:id` is the catch-up.
 
 `E2E_REAL_CLAUDE=1 pnpm test:e2e chats-real-binary` runs the real bridge and binary in an isolated home with a scripted model, and costs no usage. Run it before widening `CLAUDE_MAX_VERSION`.

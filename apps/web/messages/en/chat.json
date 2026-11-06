@@ -5,8 +5,8 @@
     "execute": "Execute"
   },
   "modeHints": {
-    "ask": "Read only. Claude can read this folder and Hub, and cannot change anything or run commands.",
-    "plan": "Read only, and ends in a proposed plan for you to review. It cannot change anything or run commands.",
+    "ask": "Reads files and Hub only. No terminal and no tools from other servers, so it cannot run tests or change anything.",
+    "plan": "Reads files and Hub only, and ends in a proposed plan for you to review. No terminal and no tools from other servers.",
     "execute": "Claude reads and edits inside this folder freely. Delete, commit, push, deploy, branch, worktree and docker wait for your approval, as does any command you have not allowed."
   },
   "states": {
@@ -17,18 +17,19 @@
     "interrupted": "Cut off"
   },
   "failures": {
-    "signed_out": "Claude is signed out on this device. Run claude auth login there, then try again.",
-    "rate_limited": "The usage limit is reached. It resets at the time shown.",
+    "signed_out": "Claude is signed out on this device. Run claude auth login there, then press Check again.",
+    "rate_limited": "The usage limit is reached. It clears at the time shown, and nothing retries by itself.",
     "billing": "Claude reports a billing problem on this account.",
     "overloaded": "Claude is overloaded right now. Try again in a moment.",
-    "version_out_of_range": "This device's Claude Code is outside the versions Hub has tested. Use Open in VS Code until Hub is updated.",
+    "version_out_of_range": "This device's Claude Code is older than the minimum Hub needs. Update it, or use Open in VS Code.",
     "claude_missing": "Claude Code was not found on this device.",
     "session_missing": "Claude no longer has this conversation. Send again to start over from here.",
     "folder_not_allowed": "That folder is not registered on this project.",
     "folder_missing": "That folder does not exist on the device.",
-    "device_offline": "The device went offline during this turn.",
+    "device_offline": "The device went offline during this turn, so the turn stopped. Any approval it was waiting on did not run. Send again once the device is back.",
     "cut_off": "Claude Code stopped before the turn ended.",
-    "unknown": "This turn failed, and Claude did not say why."
+    "unknown": "This turn failed, and Claude did not say why.",
+    "unreadable_event": "Claude Code sent something Hub cannot read, so this turn was stopped. Open in VS Code to carry on there."
   },
   "approvals": {
     "title": "Waiting for your approval",
@@ -72,7 +73,11 @@
       "label": "Plan this",
       "prompt": "Make a plan for {key}, with steps and acceptance checks."
     },
-    "work_card": { "label": "Do this task", "prompt": "/hub:work {key}" },
+    "work_card": {
+      "label": "Do this task",
+      "prompt": "/hub:work {key}",
+      "runs": "Runs /hub:work now in Execute: it may start the task, edit files and run commands. Delete, commit and push still pause for you."
+    },
     "decide_card": {
       "label": "Help me decide",
       "prompt": "Lay out the options on {key}, with what each one costs, so I can decide."
@@ -83,22 +88,136 @@
     },
     "review_card": {
       "label": "Review this",
-      "prompt": "Review the work on {key} against its acceptance checks."
+      "prompt": "Run the acceptance checks of {key} and show the real output, then say whether it meets them."
     },
-    "apply_card": { "label": "Apply this handoff", "prompt": "Read the handoff {key} and apply it here." },
+    "apply_card": {
+      "label": "Apply this handoff",
+      "prompt": "Read the handoff {key} and apply it here."
+    },
     "redesign_card": {
       "label": "Redesign this",
       "prompt": "Look at the redesign {key} and tell me what to change next."
     },
-    "improve_doc": { "label": "Improve this doc", "prompt": "/hub:doc improve {key}" },
-    "document_card": { "label": "Document this", "prompt": "/hub:doc document {key}" },
-    "find_doc_gaps": { "label": "Find gaps", "prompt": "/hub:doc gaps" },
+    "improve_doc": {
+      "label": "Improve this doc",
+      "prompt": "/hub:doc improve {key}",
+      "runs": "Runs /hub:doc now in Execute: it searches, then shows a draft. Nothing is saved until you press Save."
+    },
+    "document_card": {
+      "label": "Document this",
+      "prompt": "/hub:doc document {key}",
+      "runs": "Runs /hub:doc now in Execute: it searches, then shows a draft. Nothing is saved until you press Save."
+    },
+    "find_doc_gaps": {
+      "label": "Find gaps",
+      "prompt": "/hub:doc gaps"
+    },
     "whats_next": {
       "label": "What should I do next?",
       "prompt": "What should I do next on this project, and why?"
     },
-    "summarize_today": { "label": "Sum up today", "prompt": "Sum up what is waiting on me today." },
-    "plan_topic": { "label": "Plan something new", "prompt": "/hub:plan " },
-    "find_docs": { "label": "Find in the docs", "prompt": "Search this project's docs for: " }
+    "summarize_today": {
+      "label": "Sum up today",
+      "prompt": "Sum up what is waiting on me today."
+    },
+    "plan_topic": {
+      "label": "Plan something new",
+      "prompt": "/hub:plan "
+    },
+    "find_docs": {
+      "label": "Find in the docs",
+      "prompt": "Search this project's docs for: "
+    }
+  },
+  "honest": {
+    "recheck": "Check again",
+    "rechecked": "Checked at {time}",
+    "resetsAt": "Clears at {time}",
+    "offlineApproval": "The device is offline, so this cannot be answered. Its turn stopped and nothing ran.",
+    "newerVersion": "Claude Code {version} is newer than the version Hub tested ({tested}). It runs and the permission rules stay active, but a change in its behaviour may show up here first."
+  },
+  "starting": {
+    "new": "Starting Claude Code. This takes about 10 seconds.",
+    "resume": "Starting Claude Code again from this conversation. This takes about 10 seconds.",
+    "mode": "The mode changed, so Claude Code is restarting. This takes about 10 seconds.",
+    "model": "The model changed, so Claude Code is restarting. This takes about 10 seconds.",
+    "effort": "The effort changed, so Claude Code is restarting. This takes about 10 seconds.",
+    "folder": "The folder changed, so Claude Code is restarting. This takes about 10 seconds."
+  },
+  "blocked": {
+    "title": "{mode} refused this",
+    "switch": "Switch to Execute",
+    "switchHint": "Restarts Claude Code in Execute, where it can run this. Delete, commit, push and the like still pause for you."
+  },
+  "report": {
+    "title": "Work report",
+    "verified": "Verified",
+    "claimed": "Claimed by Claude",
+    "counts": "{verified} of {total} checks verified",
+    "failedRuns": "{count} failed runs",
+    "runs": "Real runs",
+    "notChecked": "Not checked",
+    "dropped": "Left out since the last report",
+    "refused": "Report refused: a step it says passed really failed",
+    "filesFrom": {
+      "bridge": "From this device's own facts",
+      "claimed": "Claude's words, with nothing from the device to back them",
+      "none": "No files named"
+    },
+    "basis": {
+      "matched": "Agrees with the last real run",
+      "outside_panel": "Outside the panel, so there are no steps to check",
+      "no_command": "No command to match, so this is only Claude's word",
+      "no_matching_step": "No step ran this exact command",
+      "step_mismatch": "The named step ran something else",
+      "not_finished": "Its run has no result",
+      "outcome_differs": "The last real run succeeded, and Claude reported otherwise"
+    },
+    "move": {
+      "all_verified": "Every check is verified, so the task moved to In review. You complete it.",
+      "no_checks": "It stays where it is: the report has no checks.",
+      "check_not_passed": "It stays where it is: not every check passed.",
+      "check_not_verified": "It stays where it is: not every check matches a real step that succeeded.",
+      "check_dropped": "It stays where it is: this report leaves out a check an earlier one named.",
+      "outside_panel": "This chat is outside the panel, so the checks stay claimed and the task does not move.",
+      "not_a_task": "It stays where it is: this card is not a task.",
+      "wrong_status": "It stays where it is: only a started task moves to In review.",
+      "not_permitted": "It stays where it is: your roles do not allow moving it."
+    }
+  },
+  "plan": {
+    "title": "Proposed plan",
+    "checks": "Checks",
+    "risks": "Risks",
+    "run": "Run this plan",
+    "runHint": "Puts the plan in the composer in Execute. Nothing runs until you send it."
+  },
+  "question": {
+    "title": "Claude is asking",
+    "send": "Send answer",
+    "decline": "Do not answer",
+    "other": "Something else",
+    "timedOut": "Nobody answered in 30 minutes.",
+    "stopped": "The turn stopped before this was answered."
+  },
+  "draft": {
+    "title": "Proposed document",
+    "newDoc": "A new document",
+    "duplicates": "Similar documents",
+    "noDuplicates": "Hub found no similar document.",
+    "checkedAgainst": "Checked against",
+    "flags": "Not verified",
+    "confirm": "It is true",
+    "remove": "Take it out",
+    "keepFlagged": "Keep, marked not verified",
+    "save": "Save",
+    "saveWithMarks": "Save with {count} not-verified marks",
+    "answerFlags": "Answer each flag before saving: {count} left",
+    "refused": "Not saved",
+    "refusedCodes": {
+      "hub.docs.stale_base": "This document changed after the draft was written, so nothing was saved.",
+      "hub.docs.draft_flags_open": "A flag has no answer yet, so nothing was saved."
+    },
+    "saved": "Saved. The earlier text is kept as a revision, and nothing is committed."
   }
 }

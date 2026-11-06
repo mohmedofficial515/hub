@@ -5,11 +5,15 @@
  */
 import type {
   ChatApprovalDto,
+  ChatDocDraftDto,
+  ChatDto,
   ChatFullDto,
   ChatLiveEvent,
   ChatMessageDto,
+  ChatQuestionDto,
   ChatStage,
   ChatStepDto,
+  EngineStatus,
 } from '@hub/contracts';
 import { CHAT_PROTOCOLS, type ChatProtocol } from '@hub/contracts';
 import type { QueryClient } from '@tanstack/react-query';
@@ -23,7 +27,13 @@ export const chatKeys = {
   engine: (ws: string, device: string) => ['chat', ws, 'engine', device] as const,
   diff: (ws: string, id: string, path: string) => ['chat', ws, 'diff', id, path] as const,
   templates: (ws: string) => ['chat', ws, 'templates'] as const,
+  reports: (ws: string, key: string) => ['chat', ws, 'reports', key] as const,
 };
+
+function draftIdOf(input: unknown): string | null {
+  const draft = (input as { draft?: unknown } | null)?.draft;
+  return typeof draft === 'string' ? draft : null;
+}
 
 function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessageDto {
   const { event } = live;
@@ -34,6 +44,16 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
   });
   const approval = (id: string, change: (item: ChatApprovalDto) => ChatApprovalDto) =>
     message.approvals.map((item) => (item.id === id ? change(item) : item));
+  const notice = (event: ChatMessageDto['notices'][number]) => ({
+    ...message,
+    notices: [...message.notices, event],
+  });
+  const upsertDraft = (draft: ChatDocDraftDto) => ({
+    ...message,
+    docDrafts: message.docDrafts.some((item) => item.id === draft.id)
+      ? message.docDrafts.map((item) => (item.id === draft.id ? draft : item))
+      : [...message.docDrafts, draft],
+  });
   switch (event.kind) {
     case 'text.delta':
       return { ...message, content: message.content + event.text };
@@ -56,6 +76,7 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
             name: event.name,
             status: 'running',
             input: null,
+            command: null,
             output: null,
             decision: null,
             textOffset: message.content.length,
@@ -65,7 +86,11 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
         ],
       };
     case 'tool.input':
-      return step(event.toolUseId, (item) => ({ ...item, input: event.input }));
+      return step(event.toolUseId, (item) => ({
+        ...item,
+        input: event.input,
+        command: event.command ?? item.command,
+      }));
     case 'tool.result':
       return step(event.toolUseId, (item) => ({
         ...item,
@@ -87,6 +112,8 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
             command: event.command,
             category: event.category,
             input: event.input,
+            effect: event.effect,
+            draftId: draftIdOf(event.input),
             status: 'pending',
             expiresAt: event.expiresAt,
             answeredAt: null,
@@ -124,7 +151,54 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
         ],
       };
     case 'plan.proposed':
-      return { ...message, plan: event.plan };
+      return { ...message, plan: event.plan, structuredPlan: event.structured ?? message.structuredPlan };
+    case 'turn.starting':
+    case 'engine.warning':
+    case 'tool.blocked':
+    case 'report.refused':
+      return notice({ ...event, at });
+    case 'question.asked':
+      return {
+        ...step(event.toolUseId, (item) => ({ ...item, status: 'waiting' })),
+        questions: [
+          ...message.questions,
+          {
+            id: event.questionId,
+            messageId: message.id,
+            toolUseId: event.toolUseId,
+            questions: event.questions,
+            status: 'pending',
+            answers: null,
+            expiresAt: event.expiresAt,
+            answeredAt: null,
+            createdAt: at,
+          },
+        ],
+      };
+    case 'question.resolved':
+      return {
+        ...message,
+        steps: message.steps.map((item) => {
+          const paused = message.questions.some(
+            (row) => row.id === event.questionId && row.toolUseId === item.toolUseId,
+          );
+          return paused && item.status === 'waiting' ? { ...item, status: 'running' } : item;
+        }),
+        questions: message.questions.map((item) =>
+          item.id === event.questionId
+            ? {
+                ...item,
+                status: item.status === 'pending' ? event.status : item.status,
+                answeredAt: item.answeredAt ?? at,
+              }
+            : item,
+        ),
+      };
+    case 'work.reported':
+      return { ...message, reports: [...message.reports, event.report] };
+    case 'doc.draft':
+    case 'doc.draft.updated':
+      return upsertDraft(event.draft);
     case 'limit':
       return { ...message, limit: event.limit };
     case 'turn.ended':
@@ -144,6 +218,9 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
             : item,
         ),
         approvals: message.approvals.map((item) =>
+          item.status === 'pending' ? { ...item, status: 'stopped', answeredAt: at } : item,
+        ),
+        questions: message.questions.map((item) =>
           item.status === 'pending' ? { ...item, status: 'stopped', answeredAt: at } : item,
         ),
       };
@@ -190,6 +267,70 @@ export function applyChatChanged(client: QueryClient, ws: string, chatId: string
 
 export const pendingApprovals = (chat: ChatFullDto): ChatApprovalDto[] =>
   chat.messages.flatMap((message) => message.approvals.filter((item) => item.status === 'pending'));
+
+export const pendingQuestions = (chat: ChatFullDto): ChatQuestionDto[] =>
+  chat.messages.flatMap((message) => message.questions.filter((item) => item.status === 'pending'));
+
+/** The draft a paused `save_doc` would save, so the approval reads as Save. */
+export const draftOfApproval = (message: ChatMessageDto, approval: ChatApprovalDto): ChatDocDraftDto | null =>
+  message.docDrafts.find((draft) => draft.id === approval.draftId) ?? null;
+
+export type HonestStateKind =
+  'ok' | 'offline' | 'revoked' | 'claude_missing' | 'too_old' | 'signed_out' | 'limit' | 'unreadable';
+
+/**
+ * The panel's honest state (§7, D53, review M9), one rule so no state is a dead end. `recheck` is an action that can clear it: `useRecheckEngine`. `openInVsCode` is the fallback. `composer` says whether a new turn could start. `warning` is D53's newer-version line, which stops nothing.
+ * Signed out only clears through a re-check made after the failure, since `init` cannot show it (S1 Q8). A limit clears by itself at `resetsAt`; with no `resetsAt`, nothing says when, so a send is allowed and may fail again.
+ */
+export function honestStateOf(
+  chat: Pick<ChatDto, 'deviceOnline' | 'deviceRevoked'>,
+  last: Pick<ChatMessageDto, 'failure' | 'endedAt' | 'limit'> | null,
+  engine: EngineStatus | null,
+  nowMs: number,
+): {
+  kind: HonestStateKind;
+  recheck: boolean;
+  openInVsCode: boolean;
+  composer: boolean;
+  approvalsAnswerable: boolean;
+  resetsAt: number | null;
+  warning: EngineStatus['warning'];
+} {
+  const warning = engine?.warning ?? null;
+  const state = (
+    kind: HonestStateKind,
+    extra: { recheck?: boolean; openInVsCode?: boolean; composer?: boolean; resetsAt?: number | null } = {},
+  ) => ({
+    kind,
+    recheck: extra.recheck ?? false,
+    openInVsCode: extra.openInVsCode ?? false,
+    composer: extra.composer ?? false,
+    approvalsAnswerable: chat.deviceOnline && !chat.deviceRevoked,
+    resetsAt: extra.resetsAt ?? null,
+    warning,
+  });
+  if (chat.deviceRevoked) return state('revoked');
+  if (!chat.deviceOnline) return state('offline');
+  if (engine && !engine.found) return state('claude_missing', { recheck: true });
+  if (engine && !engine.canRun) return state('too_old', { recheck: true, openInVsCode: true });
+  if (engine?.signedIn === false) return state('signed_out', { recheck: true });
+  const checkedAfter =
+    engine && last?.endedAt ? Date.parse(engine.checkedAt) >= Date.parse(last.endedAt) : false;
+  if (last?.failure === 'signed_out' && !(checkedAfter && engine?.signedIn === true)) {
+    return state('signed_out', { recheck: true });
+  }
+  if (last?.failure === 'unreadable_event') {
+    return state('unreadable', { openInVsCode: true, composer: true });
+  }
+  if (last?.failure === 'rate_limited') {
+    const resetsAtSeconds = last.limit?.resetsAt ?? null;
+    const resetsAt = resetsAtSeconds === null ? null : resetsAtSeconds * 1000;
+    if (resetsAt === null || nowMs < resetsAt) {
+      return state('limit', { recheck: true, composer: resetsAt === null, resetsAt });
+    }
+  }
+  return state('ok', { composer: true });
+}
 
 export const runningMessage = (chat: ChatFullDto): ChatMessageDto | null =>
   chat.messages.find((message) => message.status === 'running') ?? null;

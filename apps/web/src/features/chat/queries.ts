@@ -6,7 +6,7 @@
  * The route is read for the project. A refused write throws `HubError`, whose `code` and localised `message` the panel shows: `hub.chats.turn_running`, `hub.chats.approval_answered`, `hub.devices.offline`.
  */
 import type {
-  ApprovalDecision,
+  AnswerApprovalInput,
   ChatDiff,
   ChatDto,
   ChatFullDto,
@@ -19,6 +19,7 @@ import type {
   SendChatMessageInput,
   SuggestionInput,
   UpdateChatInput,
+  WorkReport,
 } from '@hub/contracts';
 import { suggestedPrompts } from '@hub/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -104,13 +105,57 @@ export function useRetryTurn(id: string) {
   });
 }
 
-/** Allow once or Deny. The first answer wins across devices; a late one gets `hub.chats.approval_answered`, and the chat is reread either way. */
+/**
+ * Allow once or Deny, and Save or Redraft on a draft: `doc` holds the owner's edit and flag answers, `note` what to redraft. The first answer wins across devices; a late one gets `hub.chats.approval_answered`, and the chat is reread either way.
+ * With the device gone it throws `hub.chats.approval_device_offline`, and a Save with a flag open throws `hub.docs.draft_flags_open` and stays pending.
+ */
 export function useAnswerApproval(id: string) {
   const { base, reread } = useChatBase();
   return useMutation({
-    mutationFn: ({ approval, decision }: { approval: string; decision: ApprovalDecision }) =>
-      post<void>(`${base}/${id}/approvals/${approval}`, { decision }),
+    mutationFn: ({ approval, ...answer }: AnswerApprovalInput & { approval: string }) =>
+      post<void>(`${base}/${id}/approvals/${approval}`, answer),
     onSettled: () => reread(id),
+  });
+}
+
+/** A question's answer, on the approval path (§7.2). `answers` is by question text. No answers declines it. */
+export function useAnswerQuestion(id: string) {
+  const { base, reread } = useChatBase();
+  return useMutation({
+    mutationFn: ({
+      question,
+      answers,
+      note,
+    }: {
+      question: string;
+      answers?: Record<string, string>;
+      note?: string;
+    }) =>
+      post<void>(
+        `${base}/${id}/approvals/${question}`,
+        answers ? { decision: 'allow', answers } : { decision: 'deny', ...(note ? { note } : {}) },
+      ),
+    onSettled: () => reread(id),
+  });
+}
+
+/** Check again (review M9): asks the device, past its cache, and the honest state follows from the answer. Sign-in can only clear through this. */
+export function useRecheckEngine(device: string | null) {
+  const { ws, base } = useChatBase();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => get<EngineStatus>(`${base}/engine`, { device: device ?? '', fresh: 'true' }),
+    onSuccess: (engine) => client.setQueryData(chatKeys.engine(ws, device ?? 'none'), engine),
+  });
+}
+
+/** A card's work reports, newest first: each check with its real runs. The sheet reads the card's primary action from the latest (§7.2, review M11). */
+export function useWorkReports(cardKey: string | null) {
+  const { ws } = useRoute();
+  return useQuery({
+    queryKey: chatKeys.reports(ws, cardKey ?? 'none'),
+    enabled: cardKey !== null,
+    queryFn: () => get<WorkReport[]>(`workspaces/${ws}/cards/${cardKey ?? ''}/work-reports`),
   });
 }
 
