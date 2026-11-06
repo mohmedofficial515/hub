@@ -45,7 +45,7 @@ import {
   useT,
 } from '@/components/kit';
 import { NewCardDialog } from '@/components/shell/new-card-dialog';
-import { usePageRoom } from '@/components/workbench/layout';
+import { usePageRoom } from '@/components/workbench/page-room';
 import {
   type Column,
   columnsOf,

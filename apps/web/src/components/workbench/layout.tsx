@@ -28,16 +28,7 @@ import {
   X,
 } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { CardSheet, focusSheetTitle } from '@/components/cards/card-sheet';
 import {
@@ -76,6 +67,7 @@ import { DesktopSidebar } from '@/components/shell/sidebar';
 import { QuietPrimary } from '@/components/ui/button';
 
 import { Composer, Menu, useModeKeys } from './composer';
+import { PageRoom } from './page-room';
 import { DoNext, EmptyChat, EngineNotice, HistoryList, RunsList, VsCodeDialog } from './panels';
 import { Resizer } from './resizer';
 import {
@@ -155,10 +147,6 @@ const useWindowWidth = () =>
     () => document.getElementById('hub-root')?.clientWidth ?? window.innerWidth,
     () => 1440,
   );
-
-/** A page reads this to fit the room beside the panel. Tasks shows its List in place of the Board under 520 px, as a prop of the moment and not a change of the owner's chosen view (D54). */
-const PageRoom = createContext<{ boardTight: boolean }>({ boardTight: false });
-export const usePageRoom = () => useContext(PageRoom);
 
 const usageShare = (utilization: number) => Math.round(utilization <= 1 ? utilization * 100 : utilization);
 

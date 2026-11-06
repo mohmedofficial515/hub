@@ -203,7 +203,6 @@ export {
 } from '@/features/session/session';
 
 // The sheet's parts other pages reuse
-export { CardSheet } from '@/components/cards/card-sheet';
 export {
   ActionPanel,
   Checklist,
