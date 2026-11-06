@@ -27,7 +27,18 @@ function runNode(args, { cwd, input, env, showOutput = false } = {}) {
   });
 }
 
-export async function connectMainMachine({ root, apiUrl, env = process.env, say, run = runNode, system }) {
+/**
+ * `env` holds `.env`'s secrets and goes only to the pairing script. The bridge and whatever it starts later get `bridgeEnv`, which has none of them.
+ */
+export async function connectMainMachine({
+  root,
+  apiUrl,
+  env = process.env,
+  bridgeEnv = process.env,
+  say,
+  run = runNode,
+  system,
+}) {
   if (env.HUB_SKIP_CONNECT === '1') {
     say('Claude Code: skipped, because HUB_SKIP_CONNECT is set.');
     return { status: 'skipped' };
@@ -40,7 +51,7 @@ export async function connectMainMachine({ root, apiUrl, env = process.env, say,
   const { realSystem } = await import(pathToFileURL(join(packages, 'bridge', 'lib', 'system.mjs')).href);
   const machine = system ?? realSystem();
 
-  const stateAnswer = await run([bridge, 'state', '--url', apiUrl], { env });
+  const stateAnswer = await run([bridge, 'state', '--url', apiUrl], { env: bridgeEnv });
   if (stateAnswer.status !== 0) {
     say(`Claude Code: could not check this machine (${stateAnswer.stderr.trim()}).`);
     return { status: 'failed' };
@@ -80,7 +91,7 @@ export async function connectMainMachine({ root, apiUrl, env = process.env, say,
       packages,
       ...(credentials ? ['--credentials-stdin'] : []),
     ],
-    { env, showOutput: true, ...(credentials ? { input: credentials } : {}) },
+    { env: bridgeEnv, showOutput: true, ...(credentials ? { input: credentials } : {}) },
   );
   if (connected.status !== 0) {
     say('Claude Code: connecting did not finish. Settings › Devices shows what is missing.');

@@ -91,6 +91,7 @@ export default async function globalSetup() {
   const shared: Shared = {
     token: made.token,
     labRoot: stackHolder.stack.labRoot,
+    apiEnv: stackHolder.stack.scriptEnv,
     owner: { id: ownerMe.id, email: OWNER.email, name: OWNER.name, token: made.token },
     people,
   };

@@ -14,7 +14,7 @@ const root = resolve(import.meta.dirname, '..', '..', '..');
 function recorder(state, { pairStatus = 0, connectStatus = 0 } = {}) {
   const calls = [];
   const run = async (args, options = {}) => {
-    calls.push({ args, input: options.input, cwd: options.cwd });
+    calls.push({ args, input: options.input, cwd: options.cwd, env: options.env });
     if (args.includes('state')) return { status: 0, stdout: JSON.stringify(state), stderr: '' };
     if (args.some((part) => String(part).includes('pair-main-machine'))) {
       return { status: pairStatus, stdout: JSON.stringify({ credential: CREDENTIAL }), stderr: '' };
@@ -32,7 +32,8 @@ async function go(state, options) {
   const answer = await connectMainMachine({
     root,
     apiUrl: 'http://localhost:7310',
-    env: { ...(options?.env ?? {}) },
+    env: { HUB_SECRET_KEY: 'from-dotenv', ...(options?.env ?? {}) },
+    bridgeEnv: { PATH: 'plain' },
     say: (line) => lines.push(line),
     run,
     system,
@@ -53,6 +54,15 @@ describe('connectMainMachine', () => {
     expect(connect.input).toContain(CREDENTIAL);
     expect(connect.args.join(' ')).not.toContain(CREDENTIAL);
     expect(lines.join('\n')).not.toContain(CREDENTIAL);
+  });
+
+  it('only the pairing script sees .env: the bridge, and all it will ever start, does not', async () => {
+    const { calls } = await go({ paired: false, complete: false });
+    const pair = calls.find((call) => call.args.some((part) => String(part).includes('pair-main-machine')));
+    expect(pair.env.HUB_SECRET_KEY).toBe('from-dotenv');
+    for (const call of calls.filter((item) => item !== pair)) {
+      expect(call.env.HUB_SECRET_KEY).toBeUndefined();
+    }
   });
 
   it('later runs: nothing changes and it says so, and it starts the bridge when that is down', async () => {

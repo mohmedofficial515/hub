@@ -6,6 +6,8 @@
 import { spawn } from 'node:child_process';
 import { homedir, hostname, platform } from 'node:os';
 
+const PIPE_GRACE_MS = 2_000;
+
 export function childEnv(env) {
   const clean = {};
   for (const [key, value] of Object.entries(env)) {
@@ -34,7 +36,6 @@ export function realSystem() {
         const finish = (status) => {
           if (settled) return;
           settled = true;
-          clearTimeout(timer);
           resolve({ status, stdout, stderr });
         };
         const child = spawn(command, args, {
@@ -45,7 +46,15 @@ export function realSystem() {
           windowsVerbatimArguments: options.verbatim === true,
           stdio: ['pipe', 'pipe', 'pipe'],
         });
-        const timer = setTimeout(() => child.kill(), options.timeoutMs ?? 60_000);
+        // Never wait on a pipe alone: a grandchild can hold it open long after the program has gone.
+        const timer = setTimeout(() => {
+          child.kill();
+          finish(124);
+        }, options.timeoutMs ?? 60_000);
+        child.on('exit', (code) => {
+          clearTimeout(timer);
+          setTimeout(() => finish(code ?? 1), PIPE_GRACE_MS).unref();
+        });
         child.stdout.on('data', (chunk) => (stdout += chunk));
         child.stderr.on('data', (chunk) => (stderr += chunk));
         child.on('error', () => finish(127));

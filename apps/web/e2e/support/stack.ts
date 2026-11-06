@@ -36,6 +36,8 @@ export interface RunningStack {
   redis: StartedRedisContainer;
   processes: ChildProcess[];
   labRoot: string;
+  /** What a script on this stack needs, as `pnpm start:local` has from `.env`. Throwaway values. */
+  scriptEnv: Record<string, string>;
 }
 
 function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv) {
@@ -210,7 +212,16 @@ export async function startStack(): Promise<RunningStack> {
   await waitFor(`${API_URL}/api/v1/health/ready`, 'API', apiLog);
   await waitFor(WEB_URL, 'web', webLog);
   await waitFor(`http://127.0.0.1:${LAB_PORT}/lab/frame-hub.html`, 'lab', labLog);
-  return { postgres, redis, processes, labRoot };
+  const scriptEnv = {
+    NODE_ENV: 'development',
+    DATABASE_URL: String(apiEnv['DATABASE_URL']),
+    REDIS_URL: String(apiEnv['REDIS_URL']),
+    HUB_SECRET_KEY: String(apiEnv['HUB_SECRET_KEY']),
+    HUB_JWT_SECRET: String(apiEnv['HUB_JWT_SECRET']),
+    HUB_OWNER_EMAIL: OWNER.email,
+    HUB_PUBLIC_URL: WEB_URL,
+  };
+  return { postgres, redis, processes, labRoot, scriptEnv };
 }
 
 export async function stopStack(stack: RunningStack) {

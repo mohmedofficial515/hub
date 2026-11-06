@@ -4,7 +4,8 @@
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-const DIR = resolve(__dirname, '../../test-results/e2e-state');
+// `E2E_RESULTS` keeps two runs at once, on their own ports, from overwriting each other's sessions.
+const DIR = resolve(process.env['E2E_RESULTS'] ?? resolve(__dirname, '../../test-results'), 'e2e-state');
 export const SHARED_FILE = join(DIR, 'shared.json');
 export const storageFile = (who: string) => join(DIR, `${who}.storage.json`);
 
@@ -20,6 +21,8 @@ export interface Shared {
   /** The owner's MCP token: what Claude Code would present. */
   token: string;
   labRoot: string;
+  /** For a script that runs on this stack (`connect.spec.ts`). */
+  apiEnv: Record<string, string>;
   owner: Person;
   people: Record<string, Person>;
 }

@@ -9,7 +9,7 @@ import { WEB_URL } from './support/ports';
 
 export default defineConfig({
   testDir: './specs',
-  outputDir: '../test-results/e2e',
+  outputDir: process.env['E2E_RESULTS'] ? `${process.env['E2E_RESULTS']}/e2e` : '../test-results/e2e',
   globalSetup: './support/global-setup.ts',
   globalTeardown: './support/global-teardown.ts',
   workers: 1,
