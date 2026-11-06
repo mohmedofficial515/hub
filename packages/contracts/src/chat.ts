@@ -299,6 +299,10 @@ export const chatDocDraftSchema = z.object({
   status: z.enum(DOC_DRAFT_STATUSES),
   /** A refusal's error code, such as `hub.docs.stale_base` or `hub.docs.draft_flags_open`. */
   refusedCode: z.string().nullable(),
+  /**
+   * The file as it stood when a stale save was refused, so the owner can see what moved under the draft. `version` is null when the file is gone. Filtered and capped. Null unless `refusedCode` is `hub.docs.stale_base`.
+   */
+  conflict: z.object({ version: z.string().nullable(), text: z.string() }).nullable(),
   savedVersion: z.string().nullable(),
   revisionId: z.string().nullable(),
   createdAt: z.string(),

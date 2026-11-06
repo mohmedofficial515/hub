@@ -34503,6 +34503,23 @@
                         "type": "string",
                         "nullable": true
                       },
+                      "conflict": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "text"
+                        ],
+                        "nullable": true
+                      },
                       "savedVersion": {
                         "type": "string",
                         "nullable": true
@@ -34532,6 +34549,7 @@
                       "claims",
                       "status",
                       "refusedCode",
+                      "conflict",
                       "savedVersion",
                       "revisionId",
                       "createdAt",

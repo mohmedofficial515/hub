@@ -54,6 +54,7 @@ model ChatMessage {
   stages         Json           @default("[]")
   plan           String?
   structuredPlan Json?          @map("structured_plan")
+  engineFacts    Json?          @map("engine_facts")
   reports        Json           @default("[]")
   notices        Json           @default("[]")
   changedFiles   Json           @default("[]") @map("changed_files")
@@ -144,6 +145,7 @@ model DocDraft {
   claims       Json         @default("[]")
   status       String       @default("open")
   refusedCode  String?      @map("refused_code")
+  conflict     Json?
   savedVersion String?      @map("saved_version")
   revisionId   String?      @map("revision_id") @db.Uuid
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)

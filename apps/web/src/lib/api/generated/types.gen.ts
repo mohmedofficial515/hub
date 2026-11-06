@@ -5662,6 +5662,10 @@ export type ChatFullDto = {
             }>;
             status: 'open' | 'saved' | 'refused' | 'dropped';
             refusedCode: string | null;
+            conflict: {
+                version: string | null;
+                text: string;
+            } | null;
             savedVersion: string | null;
             revisionId: string | null;
             createdAt: string;

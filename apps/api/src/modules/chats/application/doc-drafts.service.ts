@@ -5,6 +5,7 @@
 import {
   type AnswerApprovalInput,
   applyClaimAnswers,
+  capText,
   CHAT_LIMITS,
   type ChatDocDraftDto,
   type ClaimAnswer,
@@ -22,6 +23,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { z } from 'zod';
 
 import { APP_CONFIG, type AppConfig } from '@/config/config.module';
+import { Prisma } from '@/generated/prisma/client';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { AuditService } from '@/modules/audit';
 import { DocsWriteService } from '@/modules/docs';
@@ -48,6 +50,7 @@ interface DraftRow {
   claims: unknown;
   status: string;
   refusedCode: string | null;
+  conflict: unknown;
   savedVersion: string | null;
   revisionId: string | null;
   createdAt: Date;
@@ -69,6 +72,7 @@ export function toDraftDto(row: DraftRow): ChatDocDraftDto {
     claims: row.claims as DocClaim[],
     status: row.status as DocDraftStatus,
     refusedCode: row.refusedCode,
+    conflict: (row.conflict ?? null) as ChatDocDraftDto['conflict'],
     savedVersion: row.savedVersion,
     revisionId: row.revisionId,
     createdAt: row.createdAt.toISOString(),
@@ -179,7 +183,7 @@ export class DocDraftsService {
     for (const row of rows) {
       const written = await this.txHost.tx.docDraft.update({
         where: { id: row.id, workspaceId: actor.workspaceId },
-        data: { status: 'dropped' },
+        data: { status: 'dropped', conflict: Prisma.DbNull },
       });
       await this.turns.post(chatId, { kind: 'doc.draft.updated', draft: toDraftDto(written) });
     }
@@ -269,6 +273,7 @@ export class DocDraftsService {
         status: 'saved',
         claims,
         refusedCode: null,
+        conflict: Prisma.DbNull,
         savedVersion: saved.hash,
         revisionId: saved.revisionId,
         docKey: saved.key,
@@ -304,12 +309,29 @@ export class DocDraftsService {
   }
 
   private async refuse(actor: MemberActor, row: DraftRow, code: string): Promise<void> {
+    const conflict = code === 'hub.docs.stale_base' ? await this.conflictOf(actor, row) : null;
     const written = await this.txHost.tx.docDraft.update({
       where: { id: row.id, workspaceId: actor.workspaceId },
-      data: { status: 'refused', refusedCode: code },
+      data: { status: 'refused', refusedCode: code, conflict: conflict ?? Prisma.DbNull },
     });
     if (row.chatId)
       await this.turns.post(row.chatId, { kind: 'doc.draft.updated', draft: toDraftDto(written) });
+  }
+
+  /** What is in the file now, read at the refusal. Null when it cannot be read, as with its device offline: the refusal itself still stands. */
+  private async conflictOf(
+    actor: MemberActor,
+    row: DraftRow,
+  ): Promise<{ version: string | null; text: string } | null> {
+    try {
+      const now = await this.docs.current(actor, {
+        ...(row.docKey ? { key: row.docKey } : { source: row.source ?? '', path: row.path ?? '' }),
+      });
+      const text = capText(redactSecrets(now.text ?? ''), CHAT_LIMITS.draftChars).text;
+      return { version: now.hash, text };
+    } catch {
+      return null;
+    }
   }
 
   private async draftOf(actor: MemberActor, id: string): Promise<DraftRow> {

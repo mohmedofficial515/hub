@@ -2,11 +2,13 @@
  * @file Structured results (docs/16 §7.2, D50 to D53) over real credentials and a real MCP client, with a scripted device: what the server verifies, what it refuses, and what it moves.
  * @description The scripted device speaks the bridge's frames, so each step exists because a device said so. The MCP client sets `_meta`'s tool use id as Claude Code does, which is how a call proves it belongs to a panel turn. `chats-real-binary.e2e-spec.ts` runs the same flows with the real binary.
  */
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { CHAT_TRUNCATED_MARK } from '@hub/contracts';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { INestApplication } from '@nestjs/common';
@@ -15,7 +17,7 @@ import { WebSocket } from 'ws';
 
 import { ChatsService } from '@/modules/chats';
 import { BridgeHub } from '@/modules/devices';
-import { DocsIndexerService } from '@/modules/docs';
+import { DocsIndexerService, DocsWriteService } from '@/modules/docs';
 
 import { anAccount, aToken, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
 import { aProject } from '../setup/card-harness';
@@ -227,6 +229,7 @@ describe('structured results', () => {
           id: string;
           status: string;
           refusedCode: string | null;
+          conflict: { version: string | null; text: string } | null;
           draft: string;
           baseText: string | null;
           duplicates: { key: string; url: string; path: string }[];
@@ -1163,6 +1166,102 @@ describe('structured results', () => {
       expect(readFileSync(join(docs, 'limits.md'), 'utf8')).toContain('Someone else');
       expect(await draftOn(chatId)).toMatchObject({ status: 'refused', refusedCode: 'hub.docs.stale_base' });
       device.end(id);
+    });
+
+    describe('a stale save shows what moved (docs/16 "§7.2 as built")', () => {
+      async function staleDraft(moved: string | null) {
+        await aDocsSource();
+        const { chatId, id } = await aDraft();
+        const draft = await draftOn(chatId);
+        expect(draft.conflict).toBeNull();
+        await savePaused(id, draft.id);
+        await until(async () => (await last(chatId)).approvals.length === 1);
+        const flag = draft.claims.find((claim) => claim.status === 'unverified')!;
+        await browser
+          .post(`${base()}/${chatId}/approvals/${APPROVAL_ID}`, {
+            decision: 'allow',
+            doc: { claims: [{ id: flag.id, answer: 'confirm' }] },
+          })
+          .expect(204);
+        if (moved === null) rmSync(join(docs, 'limits.md'));
+        else writeFileSync(join(docs, 'limits.md'), moved);
+        const answer = await call('save_doc', { draft: draft.id }, 'save-1');
+        expect(answer.text).toContain('hub.docs.stale_base');
+        return { chatId, id };
+      }
+
+      it('holds the file’s current text and version, read at the refusal', async () => {
+        const moved = '---\ntitle: x\n---\n# Rate limits\n\nSomeone else changed this.\n';
+        const { chatId, id } = await staleDraft(moved);
+        const { conflict, refusedCode } = await draftOn(chatId);
+        expect(refusedCode).toBe('hub.docs.stale_base');
+        expect(conflict?.text).toContain('Someone else changed this.');
+        expect(conflict?.text).not.toContain('title: x');
+        expect(conflict?.version).toBe(createHash('sha256').update(moved).digest('hex'));
+        device.end(id);
+      });
+
+      it('caps a huge file', async () => {
+        const { chatId, id } = await staleDraft(`# Rate limits\n\n${'x'.repeat(250_000)}\n`);
+        const { conflict } = await draftOn(chatId);
+        expect(conflict!.text.length).toBeLessThan(201_000);
+        expect(conflict!.text.endsWith(CHAT_TRUNCATED_MARK)).toBe(true);
+        device.end(id);
+      });
+
+      // A file already holding a secret is refused earlier, for that reason. This is one that gains it between the save's check and the read here.
+      it('never stores a secret the file holds at the read', async () => {
+        const docsWrite = app.get(DocsWriteService, { strict: false });
+        const real = docsWrite.current.bind(docsWrite);
+        const read = jest.spyOn(docsWrite, 'current');
+        read.mockImplementation(async (...args) => {
+          const now = await real(...args);
+          return now.text?.includes('Moved') ? { ...now, text: `${now.text}\n${SECRET}\n` } : now;
+        });
+        try {
+          const { chatId, id } = await staleDraft('# Rate limits\n\nMoved.\n');
+          const { conflict } = await draftOn(chatId);
+          expect(conflict?.text).toContain('Moved.');
+          expect(conflict?.text).not.toContain(SECRET);
+          const stored = await prisma().docDraft.findFirstOrThrow({ where: { workspaceId, chatId } });
+          expect(JSON.stringify(stored.conflict)).not.toContain(SECRET);
+          device.end(id);
+        } finally {
+          read.mockRestore();
+        }
+      });
+
+      it('a file that is gone has no version and no text', async () => {
+        const { chatId, id } = await staleDraft(null);
+        expect((await draftOn(chatId)).conflict).toEqual({ version: null, text: '' });
+        device.end(id);
+      });
+
+      it('a redraft clears it, on the old draft and the new one', async () => {
+        const { chatId, id } = await staleDraft('# Rate limits\n\nMoved.\n');
+        const stale = await draftOn(chatId);
+        const key = await keyOf('limits.md');
+        const version = /Version: (\w+)/.exec((await call('get_doc', { key })).text)?.[1];
+        aToolStep(id, 'redraft-1', 'mcp__hub__propose_doc');
+        const redrafted = await call(
+          'propose_doc',
+          {
+            doc: key,
+            title: 'Rate limits',
+            reason: 'Again',
+            baseVersion: version,
+            draft: '# Rate limits\n\nAgain.\n',
+            claims: [],
+          },
+          'redraft-1',
+        );
+        expect(redrafted.isError).toBe(false);
+        const rows = await prisma().docDraft.findMany({ where: { workspaceId, chatId } });
+        expect(rows).toHaveLength(2);
+        expect(rows.find((row) => row.id === stale.id)).toMatchObject({ status: 'dropped', conflict: null });
+        expect(rows.find((row) => row.id !== stale.id)).toMatchObject({ status: 'open', conflict: null });
+        device.end(id);
+      });
     });
 
     it('outside the panel the draft has no chat, and the owner’s answers come with the call', async () => {
