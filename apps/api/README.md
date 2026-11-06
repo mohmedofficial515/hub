@@ -175,7 +175,12 @@ Prompts are in `packages/contracts/src/mcp/prompts.ts`, resources in `hub-mcp-se
 
 ```ts
 await bridgeHub.request(deviceId, 'health.check'); // answers its one `result`, or throws hub.devices.offline, .timeout, .refused
-await bridgeHub.request(deviceId, 'turn.start', args, { timeoutMs: null, onEvent: (event) => { /* every `event` frame, in order */ } });
+await bridgeHub.request(deviceId, 'turn.start', args, {
+  timeoutMs: null,
+  onEvent: (event) => {
+    /* every `event` frame, in order */
+  },
+});
 ```
 
 Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a folder off its allowlist. A device credential reaches only `/mcp`, `/bridge` and `DELETE /bridge/self`

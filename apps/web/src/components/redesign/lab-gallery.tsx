@@ -14,6 +14,7 @@ import {
   cn,
   EmptyState,
   ErrorState,
+  fill,
   fmt,
   focusRing,
   LoadingRegion,
@@ -551,7 +552,7 @@ function VersionNotes({ card }: { card: RedesignCard }) {
             focusRing,
           )}
         >
-          {fmt(t.gallery.openCard, { key: card.key })}
+          {fill(t.gallery.openCard, { key: <Ltr mono>{card.key}</Ltr> })}
         </AppLink>
       </p>
       {meta.length > 0 && (
