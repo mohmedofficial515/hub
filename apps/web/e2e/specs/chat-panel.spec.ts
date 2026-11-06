@@ -8,6 +8,7 @@ import { join } from 'node:path';
 
 import type { Page } from '@playwright/test';
 
+import { audit } from '../support/audit';
 import { hold, text, tool } from '../support/fake-model';
 import { type Locale, view, word, words } from '../support/hub';
 import { expect, scriptedEngineAvailable, test } from '../support/scripted-engine';
@@ -197,6 +198,46 @@ test.describe('chat panel, on the engine', () => {
       .toBe('in_review');
     // The sheet stays open, and its evidence follows the report.
     await expect(sheet(page).locator('[data-wb-evidence]')).toBeVisible(LONG);
+  });
+
+  test('an approval, a claimed check and a turn line pass AA in light and dark, with no overflow', async ({
+    page,
+    engine,
+    owner,
+    locale,
+    ws,
+  }) => {
+    const task = await newTask(owner, `Contrast ${locale} ${Date.now()}`);
+    await owner.post(`workspaces/${ws}/tasks/${task.key}/claim`);
+    await owner.post(`workspaces/${ws}/tasks/${task.key}/start`);
+    await open(page, locale, ws, 'tasks', `card=${task.key}`);
+    engine.script(
+      tool('mcp__hub__report_work', {
+        card: task.key,
+        summary: 'Did the work.',
+        checks: [{ name: 'never ran', command: 'echo never', outcome: 'passed' }],
+        notChecked: ['Nothing on a phone.'],
+      }),
+      tool('Bash', { command: 'git push origin main', description: 'push' }),
+      text('Pushed it and the words are long enough to show. '),
+    );
+    await say(page, `report ${task.key}`);
+    await expect(panel(page).locator('[data-wb-approval="pending"]')).toBeVisible(LONG);
+    await expect(panel(page).locator('[data-wb-check="claimed"]')).toBeVisible();
+    for (const dark of [false, true]) {
+      await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
+      const result = await audit(page);
+      expect(result.fails).toEqual([]);
+      expect(result.overflow).toBeLessThanOrEqual(0);
+    }
+    await page.waitForTimeout(450);
+    await panel(page).locator('[data-wb-allow]').click();
+    await expect(panel(page).locator('[data-wb-turn]')).toHaveAttribute('data-wb-turn', 'done', LONG);
+    await panel(page).locator('[data-wb-turn-line]').click();
+    for (const dark of [false, true]) {
+      await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
+      expect((await audit(page)).fails).toEqual([]);
+    }
   });
 
   test('a claimed check stays claimed, and the task stays where it is', async ({
