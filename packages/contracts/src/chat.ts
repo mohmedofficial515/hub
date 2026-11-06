@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 
+import { cardKeySchema } from './cards';
 import { absolutePath } from './projects';
 
 export const CHAT_MODES = ['ask', 'plan', 'execute'] as const;
@@ -27,6 +28,10 @@ export const CHAT_LIMITS = {
   changedFiles: 300,
   diffBytes: 200_000,
   contextChars: 20_000,
+  draftChars: 200_000,
+  reportChecks: 50,
+  reportText: 2_000,
+  questionsPerCall: 8,
 } as const;
 
 /** The stored text ends with this when the rest was cut. */
@@ -59,6 +64,260 @@ export function stageFitsProtocol(report: Pick<StageReport, 'protocol' | 'stage'
   return (CHAT_PROTOCOLS[report.protocol] as readonly string[]).includes(report.stage);
 }
 
+export const changedFileSchema = z.object({
+  path: z.string().max(1000),
+  /** `tool`: a Write or Edit step named it. `git`: the folder's Git state moved during the turn. `claimed`: only Claude said so, in a report, and no bridge fact backs it. */
+  source: z.enum(['tool', 'git', 'claimed']),
+  status: z.string().max(4).optional(),
+  additions: z.number().int().optional(),
+  deletions: z.number().int().optional(),
+});
+export type ChangedFile = z.infer<typeof changedFileSchema>;
+
+// ── Structured results (§7.2, D50, D52) ─────────────────────────────────────────────────────────────
+// Models are unreliable narrators, so the server keeps what it verified apart from what was claimed. The fields below are what the panel renders.
+
+export const CHECK_OUTCOMES = ['passed', 'failed', 'skipped'] as const;
+export type CheckOutcome = (typeof CHECK_OUTCOMES)[number];
+
+/** `report_work`'s input. `verified`, `basis` and `runs` are the server's, so they are not here. A model usually cannot see a step's id, so a `command` alone is enough for the server to find its runs. */
+export const reportWorkSchema = z.object({
+  card: cardKeySchema,
+  summary: z.string().trim().min(1).max(CHAT_LIMITS.reportText),
+  checks: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(200),
+        command: z.string().max(CHAT_LIMITS.commandChars).optional(),
+        stepId: z.string().max(100).optional(),
+        outcome: z.enum(CHECK_OUTCOMES),
+        note: z.string().max(CHAT_LIMITS.reportText).optional(),
+      }),
+    )
+    .max(CHAT_LIMITS.reportChecks),
+  changedFiles: z.array(z.string().max(1000)).max(CHAT_LIMITS.changedFiles).optional(),
+  notChecked: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks),
+});
+export type ReportWorkInput = z.infer<typeof reportWorkSchema>;
+
+/**
+ * Why a check is or is not verified. `matched`: a real step with this exact command succeeded. `outside_panel`: no steps exist to check against, so it stays claimed. `no_command`: nothing to match. `no_matching_step`: no step ran this command.
+ * `step_mismatch`: the named step ran something else. `not_finished`: its run has no result. `outcome_differs`: reported failed or skipped while its last real run succeeded.
+ */
+export const CHECK_BASES = [
+  'matched',
+  'outside_panel',
+  'no_command',
+  'no_matching_step',
+  'step_mismatch',
+  'not_finished',
+  'outcome_differs',
+] as const;
+export type CheckBasis = (typeof CHECK_BASES)[number];
+
+/** One real run of a check's command, oldest first. A failure stays here after a later pass (review M3). `excerpt` is the end of its real output, filtered. */
+export const checkRunSchema = z.object({
+  stepId: z.string(),
+  status: z.enum(['passed', 'failed', 'cut_off', 'running']),
+  startedAt: z.string(),
+  endedAt: z.string().nullable(),
+  excerpt: z.string().optional(),
+});
+export type CheckRun = z.infer<typeof checkRunSchema>;
+
+export const reportedCheckSchema = z.object({
+  name: z.string(),
+  command: z.string().nullable(),
+  /** The real step the verdict rests on, set by the server: the last run, or the one named. */
+  stepId: z.string().nullable(),
+  outcome: z.enum(CHECK_OUTCOMES),
+  note: z.string().nullable(),
+  verified: z.boolean(),
+  basis: z.enum(CHECK_BASES),
+  runs: z.array(checkRunSchema),
+});
+export type ReportedCheck = z.infer<typeof reportedCheckSchema>;
+
+/** Why a task did or did not move (D52). Only `all_verified` moves it. */
+export const REPORT_MOVE_REASONS = [
+  'all_verified',
+  'no_checks',
+  'check_not_passed',
+  'check_not_verified',
+  'check_dropped',
+  'outside_panel',
+  'not_a_task',
+  'wrong_status',
+  'not_permitted',
+] as const;
+export type ReportMoveReason = (typeof REPORT_MOVE_REASONS)[number];
+
+export const workReportSchema = z.object({
+  id: z.string(),
+  cardKey: z.string(),
+  origin: z.enum(['panel', 'outside_panel']),
+  chatId: z.string().nullable(),
+  messageId: z.string().nullable(),
+  summary: z.string(),
+  checks: z.array(reportedCheckSchema),
+  changedFiles: z.array(changedFileSchema),
+  /** `bridge`: the device's own facts. `claimed`: the bridge had none, so these are Claude's words. */
+  filesFrom: z.enum(['bridge', 'claimed', 'none']),
+  notChecked: z.array(z.string()),
+  /** Checks an earlier report in this chat named and this one left out. Any of them stops the move. */
+  droppedChecks: z.array(z.string()),
+  counts: z.object({
+    total: z.number().int(),
+    passed: z.number().int(),
+    failed: z.number().int(),
+    skipped: z.number().int(),
+    verified: z.number().int(),
+    /** Real runs that failed, across every check, including ones a later run fixed. */
+    failedRuns: z.number().int(),
+  }),
+  move: z.object({
+    moved: z.boolean(),
+    reason: z.enum(REPORT_MOVE_REASONS),
+    from: z.string().nullable(),
+    to: z.string().nullable(),
+  }),
+  reportedAt: z.string(),
+});
+export type WorkReport = z.infer<typeof workReportSchema>;
+
+export const proposedPlanSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  steps: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(500),
+        role: z.string().max(40).optional(),
+        why: z.string().max(CHAT_LIMITS.reportText).optional(),
+      }),
+    )
+    .min(1)
+    .max(50),
+  checks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
+  risks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
+});
+export type ProposedPlan = z.infer<typeof proposedPlanSchema>;
+
+/** One question of `AskUserQuestion`, in Hub's own shape: the mapper is what knows the engine's. */
+export const chatQuestionItemSchema = z.object({
+  text: z.string().max(2_000),
+  header: z.string().max(100).optional(),
+  multiSelect: z.boolean(),
+  options: z
+    .array(z.object({ label: z.string().max(200), description: z.string().max(1_000).optional() }))
+    .max(20),
+});
+export type ChatQuestionItem = z.infer<typeof chatQuestionItemSchema>;
+export const QUESTION_STATUSES = ['pending', 'answered', 'declined', 'timed_out', 'stopped'] as const;
+export type QuestionStatus = (typeof QUESTION_STATUSES)[number];
+
+export const CLAIM_STATUSES = ['verified', 'unverified'] as const;
+/** The owner's answer to a flag. `confirm`: true, keep it as fact. `remove`: take it out. `keep_flagged`: save it, marked as not verified in the text. */
+export const CLAIM_ANSWERS = ['confirm', 'remove', 'keep_flagged'] as const;
+export type ClaimAnswer = (typeof CLAIM_ANSWERS)[number];
+/** The line an unverified claim wears in a saved document (`keep_flagged`). */
+export const UNVERIFIED_MARK = '> Unverified: ';
+
+/** `propose_doc`'s input. Duplicates are the server's, so Claude cannot pass any. An unverified claim's `text` must appear in `draft` word for word, so the owner's answer can act on it. */
+export const proposeDocSchema = z.object({
+  doc: cardKeySchema.optional(),
+  /** A new file: the docs source and path it would go to. */
+  source: z.string().max(100).optional(),
+  path: z.string().max(500).optional(),
+  title: z.string().trim().min(1).max(200),
+  reason: z.string().trim().min(1).max(CHAT_LIMITS.reportText),
+  /** The `Version:` of the text this draft was written from. */
+  baseVersion: z.string().max(100).optional(),
+  draft: z.string().min(1).max(CHAT_LIMITS.draftChars),
+  claims: z
+    .array(
+      z.object({
+        text: z.string().trim().min(1).max(CHAT_LIMITS.reportText),
+        status: z.enum(CLAIM_STATUSES),
+        source: z.string().max(500).optional(),
+      }),
+    )
+    .max(100),
+});
+export type ProposeDocInput = z.infer<typeof proposeDocSchema>;
+
+export const docClaimSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  status: z.enum(CLAIM_STATUSES),
+  source: z.string().nullable(),
+  /** Null while unanswered. A verified claim needs no answer. */
+  answer: z.enum(CLAIM_ANSWERS).nullable(),
+});
+export type DocClaim = z.infer<typeof docClaimSchema>;
+
+/** A real document that looks like this draft, found by the server. `url` opens it in Hub. */
+export const docDuplicateSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  source: z.string(),
+  path: z.string(),
+  url: z.string(),
+  /** A line of what overlaps, from the search index. */
+  overlap: z.string().nullable(),
+});
+export type DocDuplicate = z.infer<typeof docDuplicateSchema>;
+
+export const DOC_DRAFT_STATUSES = ['open', 'saved', 'refused', 'dropped'] as const;
+export type DocDraftStatus = (typeof DOC_DRAFT_STATUSES)[number];
+
+export const chatDocDraftSchema = z.object({
+  id: z.string(),
+  /** Null when this is a new document. */
+  docKey: z.string().nullable(),
+  source: z.string().nullable(),
+  path: z.string().nullable(),
+  title: z.string(),
+  reason: z.string(),
+  baseVersion: z.string().nullable(),
+  /** The current text the draft is compared with. Null for a new document. */
+  baseText: z.string().nullable(),
+  draft: z.string(),
+  duplicates: z.array(docDuplicateSchema),
+  claims: z.array(docClaimSchema),
+  status: z.enum(DOC_DRAFT_STATUSES),
+  /** A refusal's error code, such as `hub.docs.stale_base` or `hub.docs.draft_flags_open`. */
+  refusedCode: z.string().nullable(),
+  savedVersion: z.string().nullable(),
+  revisionId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type ChatDocDraftDto = z.infer<typeof chatDocDraftSchema>;
+
+/** Why a process started for this turn. `mode`, `model` and `effort` are restarts (§7.2), and all of these take about ten seconds (S1 Q2). */
+export const START_REASONS = ['new', 'resume', 'mode', 'model', 'effort', 'folder'] as const;
+export type StartReason = (typeof START_REASONS)[number];
+
+const engineWarningFields = {
+  code: z.literal('newer_than_tested'),
+  version: z.string().max(40),
+  testedMax: z.string().max(40),
+};
+
+const toolBlockedFields = {
+  toolUseId: z.string().max(100),
+  name: z.string().max(200),
+  /** The exact command or the tool's main input, filtered. */
+  command: z.string().max(CHAT_LIMITS.commandChars),
+  mode: z.enum(['ask', 'plan']),
+};
+
+const reportRefusedFields = {
+  cardKey: z.string().max(40),
+  /** The checks reported as passed whose real step failed. */
+  checks: z.array(z.object({ name: z.string(), stepId: z.string() })),
+};
+
 // ── The stable turn events ─────────────────────────────────────────────────────────────────────────
 
 /** How a turn ended. */
@@ -78,6 +337,8 @@ export const TURN_FAILURES = [
   'folder_missing',
   'device_offline',
   'cut_off',
+  /** The engine sent something the bridge cannot read, so the turn was stopped (D53). The panel offers Open in VS Code. */
+  'unreadable_event',
   'unknown',
 ] as const;
 export type TurnFailure = (typeof TURN_FAILURES)[number];
@@ -102,6 +363,25 @@ export const APPROVAL_CATEGORIES = [
   'other',
 ] as const;
 export type ApprovalCategory = (typeof APPROVAL_CATEGORIES)[number];
+/**
+ * The approval's effect line (§7.2): one fixed sentence per D41 category, never model text. The bridge holds its own copy and a test holds the two together. The web shows `categories.<category>`, its translated twin.
+ */
+export const APPROVAL_EFFECTS: Readonly<Record<ApprovalCategory, string>> = {
+  delete: 'Deletes files',
+  move: 'Moves or overwrites files',
+  commit: 'Changes Git history',
+  push: 'Pushes to a remote',
+  deploy: 'Deploys or reaches another machine',
+  branch: 'Creates or switches a branch',
+  worktree: 'Creates a worktree',
+  docker: 'Runs Docker',
+  hub_project: 'Changes the project, including its allowed folders',
+  hub_doc: 'Writes a document',
+  hub_sensitive: 'A sensitive Hub action',
+  other: 'A command you have not allowed',
+};
+
+const anyJson = z.unknown();
 
 const usageSchema = z.object({
   inputTokens: z.number().optional(),
@@ -111,16 +391,6 @@ const usageSchema = z.object({
 });
 export type TurnUsage = z.infer<typeof usageSchema>;
 
-export const changedFileSchema = z.object({
-  path: z.string().max(1000),
-  /** `tool`: a Write or Edit step named it. `git`: the folder's Git state moved during the turn. */
-  source: z.enum(['tool', 'git']),
-  status: z.string().max(4).optional(),
-  additions: z.number().int().optional(),
-  deletions: z.number().int().optional(),
-});
-export type ChangedFile = z.infer<typeof changedFileSchema>;
-
 const limitSchema = z.object({
   status: z.string().max(40),
   limitType: z.string().max(40).optional(),
@@ -128,8 +398,6 @@ const limitSchema = z.object({
   utilization: z.number().optional(),
 });
 export type TurnLimit = z.infer<typeof limitSchema>;
-
-const anyJson = z.unknown();
 
 export const turnEventSchema = z.discriminatedUnion('kind', [
   /** First in a turn. Model and version come from the engine; `branch` from Git, when there is one. */
@@ -179,6 +447,8 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     command: z.string(),
     category: z.enum(APPROVAL_CATEGORIES),
     input: anyJson,
+    /** The deterministic effect line (`APPROVAL_EFFECTS`), from the bridge. */
+    effect: z.string().max(200),
     expiresAt: z.string().max(40),
   }),
   z.object({
@@ -194,8 +464,40 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     state: z.enum(STAGE_STATES),
     note: z.string().max(500).optional(),
   }),
-  /** Plan mode's proposed plan, as the engine's `ExitPlanMode` carried it. */
-  z.object({ kind: z.literal('plan.proposed'), plan: z.string() }),
+  /** A proposed plan. `plan` is always there as text. `structured` is there when `propose_plan` was used; from the engine's `ExitPlanMode` or a reply, there is only the text. */
+  z.object({
+    kind: z.literal('plan.proposed'),
+    plan: z.string(),
+    structured: proposedPlanSchema.optional(),
+  }),
+  /** A process is starting for this turn, which takes about ten seconds. */
+  z.object({ kind: z.literal('turn.starting'), reason: z.enum(START_REASONS) }),
+  /** D53: this Claude Code is newer than the one Hub tested. It runs, and the rules stay active. */
+  z.object({ kind: z.literal('engine.warning'), ...engineWarningFields }),
+  /** Ask or Plan refused a tool. The panel offers to switch to Execute. */
+  z.object({ kind: z.literal('tool.blocked'), ...toolBlockedFields }),
+  /** `AskUserQuestion`. Answered through the approval route, with `answers`. `questionId` is that route's id. */
+  z.object({
+    kind: z.literal('question.asked'),
+    questionId: z.string().max(100),
+    toolUseId: z.string().max(100),
+    questions: z.array(chatQuestionItemSchema).max(CHAT_LIMITS.questionsPerCall),
+    expiresAt: z.string().max(40),
+  }),
+  z.object({
+    kind: z.literal('question.resolved'),
+    questionId: z.string().max(100),
+    status: z.enum(['answered', 'declined', 'timed_out', 'stopped']),
+    answers: z.record(z.string(), z.string()).optional(),
+  }),
+  /** `report_work`'s evidence, as stored on the card. */
+  z.object({ kind: z.literal('work.reported'), report: workReportSchema }),
+  /** A report that said a failed step passed. Nothing was stored on the card. */
+  z.object({ kind: z.literal('report.refused'), ...reportRefusedFields }),
+  /** `propose_doc`: the draft, the server's duplicates and the flagged claims. */
+  z.object({ kind: z.literal('doc.draft'), draft: chatDocDraftSchema }),
+  /** The draft changed: flags answered, saved, or refused. A refused save never shows as sent. */
+  z.object({ kind: z.literal('doc.draft.updated'), draft: chatDocDraftSchema }),
   z.object({ kind: z.literal('limit'), limit: limitSchema }),
   /** The last event of a turn: only what the engine reported. */
   z.object({
@@ -249,6 +551,12 @@ export const engineStatusSchema = z.object({
   inRange: z.boolean(),
   testedRange: z.object({ min: z.string(), max: z.string() }),
   message: z.string().max(500).nullable(),
+  /** False only when there is no copy, or every copy is below the minimum (D53). */
+  canRun: z.boolean(),
+  /** Set when the copy in use is newer than the tested one. It runs, and the panel shows this (D53). */
+  warning: z.object(engineWarningFields).nullable(),
+  /** When the device answered, for "checked at". */
+  checkedAt: z.string().max(40),
   signedIn: z.boolean().nullable(),
   effortSupported: z.boolean(),
   modelSupported: z.boolean(),
@@ -293,7 +601,25 @@ export const sendChatMessageSchema = z.object({
 });
 export type SendChatMessageInput = z.infer<typeof sendChatMessageSchema>;
 
-export const answerApprovalSchema = z.object({ decision: z.enum(APPROVAL_DECISIONS) });
+/**
+ * The answer to an approval or a question. `note` goes to Claude with a deny, such as what to redraft. `answers` answers a question, by its text; a multi-select joins its labels with commas, as the engine expects.
+ * `doc` goes with Allow on a `save_doc` that names a draft: the owner's edited text and flag answers, which are what gets saved.
+ */
+export const answerApprovalSchema = z.object({
+  decision: z.enum(APPROVAL_DECISIONS),
+  note: z.string().trim().max(CHAT_LIMITS.reportText).optional(),
+  answers: z.record(z.string().max(2_000), z.string().max(CHAT_LIMITS.reportText)).optional(),
+  doc: z
+    .object({
+      content: z.string().max(CHAT_LIMITS.draftChars).optional(),
+      claims: z
+        .array(z.object({ id: z.string().max(40), answer: z.enum(CLAIM_ANSWERS) }))
+        .max(100)
+        .optional(),
+    })
+    .optional(),
+});
+export type AnswerApprovalInput = z.infer<typeof answerApprovalSchema>;
 export const retryChatSchema = z.object(turnOptions);
 export const updateChatSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
@@ -308,7 +634,8 @@ export const branchChatSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
 });
 export const chatDiffQuerySchema = z.object({ path: z.string().min(1).max(1000) });
-export const engineQuerySchema = z.object({ device: z.uuid() });
+/** `fresh=true` is the re-check action (review M9): it asks the device again, past the bridge's cache. */
+export const engineQuerySchema = z.object({ device: z.uuid(), fresh: z.enum(['true', 'false']).optional() });
 export const chatListQuerySchema = z.object({
   deleted: z.enum(['true', 'false']).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
@@ -370,12 +697,37 @@ export const chatApprovalSchema = z.object({
   command: z.string(),
   category: z.enum(APPROVAL_CATEGORIES),
   input: anyJson,
+  effect: z.string(),
   status: z.enum(APPROVAL_STATUSES),
+  /** The draft this `save_doc` would save, so the panel can show Save instead of Allow. */
+  draftId: z.string().nullable(),
   expiresAt: z.string(),
   answeredAt: z.string().nullable(),
   createdAt: z.string(),
 });
 export type ChatApprovalDto = z.infer<typeof chatApprovalSchema>;
+
+export const chatQuestionSchema = z.object({
+  id: z.string(),
+  messageId: z.string(),
+  toolUseId: z.string(),
+  questions: z.array(chatQuestionItemSchema),
+  status: z.enum(QUESTION_STATUSES),
+  answers: z.record(z.string(), z.string()).nullable(),
+  expiresAt: z.string(),
+  answeredAt: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type ChatQuestionDto = z.infer<typeof chatQuestionSchema>;
+
+/** Lines on the turn that are not steps: a restart, a version warning, a refused tool, a refused report. */
+export const chatNoticeSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('turn.starting'), reason: z.enum(START_REASONS), at: z.string() }),
+  z.object({ kind: z.literal('engine.warning'), ...engineWarningFields, at: z.string() }),
+  z.object({ kind: z.literal('tool.blocked'), ...toolBlockedFields, at: z.string() }),
+  z.object({ kind: z.literal('report.refused'), ...reportRefusedFields, at: z.string() }),
+]);
+export type ChatNotice = z.infer<typeof chatNoticeSchema>;
 
 export const chatStageSchema = z.object({
   protocol: z.enum(['work', 'doc']),
@@ -404,9 +756,15 @@ export const chatMessageSchema = z.object({
   limit: limitSchema.nullable(),
   stages: z.array(chatStageSchema),
   plan: z.string().nullable(),
+  /** `propose_plan`'s plan. Null when only the text exists. */
+  structuredPlan: proposedPlanSchema.nullable(),
   changedFiles: z.array(changedFileSchema),
   steps: z.array(chatStepSchema),
   approvals: z.array(chatApprovalSchema),
+  questions: z.array(chatQuestionSchema),
+  reports: z.array(workReportSchema),
+  docDrafts: z.array(chatDocDraftSchema),
+  notices: z.array(chatNoticeSchema),
   createdAt: z.string(),
   endedAt: z.string().nullable(),
 });
