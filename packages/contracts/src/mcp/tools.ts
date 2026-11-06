@@ -58,7 +58,7 @@ import {
   verifyNeedSchema,
 } from '../cards';
 import { auditQuerySchema } from '../cards/read-models';
-import { chatModelSchema, promptTemplateInputSchema, stageReportSchema, updateChatSchema } from '../chat';
+import { promptTemplateInputSchema, stageReportSchema, updateChatSchema } from '../chat';
 import { fixDeviceSchema } from '../devices';
 import { saveDocSchema } from '../knowledge';
 import type { PermissionAction } from '../permissions';
@@ -847,8 +847,8 @@ const TOOL_TABLE = {
   },
   update_chat: {
     description:
-      'Rename or pin a panel chat, or set the mode, model and effort its next turn uses. It starts nothing.',
-    input: updateChatSchema.extend({ chat: z.string().uuid(), model: chatModelSchema.nullable().optional() }),
+      "Rename or pin a panel chat. Its mode is the owner's to set, so an agent cannot widen what a chat may do.",
+    input: updateChatSchema.pick({ title: true, pinned: true }).extend({ chat: z.string().uuid() }),
     actions: ['chat.manage'],
     routes: ['PATCH /workspaces/:ws/chats/:id'],
   },

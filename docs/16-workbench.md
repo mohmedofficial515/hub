@@ -171,7 +171,7 @@ No final UI yet. The API and hooks are in `apps/api/README.md` § Chats and `app
 - **The permission tool, `--resume` and stream-json input work together.** That was the one combination S1 left unproven. Tested in `chats-real-binary.e2e-spec.ts`.
 - **A tool on the `deny` list disappears.** The model gets `No such tool available`, and it never reaches the permission tool.
 - **Rules cannot make Ask and Plan read only on their own.** A tool of another MCP server the owner allows ran in Ask. So those modes also get a `PreToolUse` hook (`bin/hub-read-only-guard.mjs`) that refuses every MCP tool except Hub's reads. It cannot tell a read from a write on another server, so other servers are off in those modes. Shells are off too, for the same reason.
-- **`ExitPlanMode` reaches the permission tool**, and its input may not hold the plan. The bridge records `input.plan` when it is there, and otherwise tells the model to write the plan in its reply.
+- **`ExitPlanMode` reaches the permission tool**, and its input may not hold the plan. In the real haiku smoke the model first wrote the plan to `~/.claude/plans/…` with Write, which Plan mode denies, then gave it in its reply. The bridge records the plan from `input.plan`, or from that refused Write, and tells the model to put it in the reply.
 - **Hub's MCP tools are deferred**, so they are not in the request's tool list, and they still run by name.
 - A folder's short 8.3 spelling is not "inside the folder" for `acceptEdits`, so a Write there pauses. It pauses safely, and it only shows in temp paths.
 

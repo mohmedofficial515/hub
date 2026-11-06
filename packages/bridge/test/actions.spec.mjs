@@ -182,6 +182,18 @@ describe('health', () => {
     expect(JSON.stringify(system.calls)).not.toContain('.credentials');
   });
 
+  it('a version newer than the chat engine was tested on is a warning, with no fix', async () => {
+    const system = fakeSystem();
+    system.claudeVersion = '2.1.999';
+    const { data } = await dispatch({ action: 'health.check', args: {} }, contextFor(system), noEmit);
+    expect(data.find((check) => check.id === 'claude_version')).toMatchObject({
+      ok: false,
+      level: 'warn',
+      detail: '2.1.999',
+      fix: null,
+    });
+  });
+
   it('offers Fix only for what Hub can fix', async () => {
     const system = fakeSystem();
     const { data } = await dispatch({ action: 'health.check', args: {} }, contextFor(system), noEmit);

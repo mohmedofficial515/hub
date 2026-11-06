@@ -3,7 +3,15 @@
  * @description No model call. Sign-in is `claude auth status`, and only its `loggedIn` is read: the bridge never opens a credential file (docs/16 §4). Rows carry versions and paths, and the
  * sentences are the page's, by `id`. A copy of Claude Code older than S1 C3's version is reported with the command that updates it, and Hub does not run that command.
  */
-import { CLAUDE_MIN_VERSION, compareVersions, meetsMinimum, resolveClaude, updateHint } from './claude.mjs';
+import {
+  CLAUDE_MAX_VERSION,
+  CLAUDE_MIN_VERSION,
+  compareVersions,
+  inTestedRange,
+  meetsMinimum,
+  resolveClaude,
+  updateHint,
+} from './claude.mjs';
 import { installMcpServer, installPlugin, pluginIsInstalled, userServerIsRight } from './install.mjs';
 import { isLoginStartRegistered, registerLoginStart } from './login-start.mjs';
 import { hubPaths } from './paths.mjs';
@@ -38,10 +46,17 @@ export async function runChecks(system, url) {
     }),
   );
   if (best) {
+    const tested = inTestedRange(best.version, system.env);
     checks.push(
-      row('claude_version', meetsMinimum(best.version), best.version, {
-        hint: meetsMinimum(best.version) ? null : updateHint(best.path),
-      }),
+      meetsMinimum(best.version) && !tested
+        ? // Newer than the chat engine has been tested on: the rest of Hub works, and the panel says so.
+          row('claude_version', false, best.version, {
+            level: 'warn',
+            hint: `Hub's chat panel is tested up to ${CLAUDE_MAX_VERSION}. Open in VS Code still works.`,
+          })
+        : row('claude_version', meetsMinimum(best.version), best.version, {
+            hint: meetsMinimum(best.version) ? null : updateHint(best.path),
+          }),
     );
     const onPath = claude.onPath;
     const pathIsOlder = onPath && compareVersions(onPath.version, CLAUDE_MIN_VERSION) < 0;

@@ -148,6 +148,16 @@ export function createEventMapper() {
           state.planSent = true;
           out.push({ kind: 'plan.proposed', plan: part.input.plan });
         }
+        // Seen with the real model in Plan mode: it writes the plan to a plan file, which this mode refuses, so this is where the plan is.
+        if (
+          part.name === 'Write' &&
+          /[\\/]\.claude[\\/]plans[\\/]/.test(part.input?.file_path ?? '') &&
+          typeof part.input?.content === 'string' &&
+          !state.planSent
+        ) {
+          state.planSent = true;
+          out.push({ kind: 'plan.proposed', plan: part.input.content });
+        }
         if (isStageTool(part.name)) {
           const stage = stageFromInput(part.input);
           if (stage) out.push(stage);

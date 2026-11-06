@@ -6,6 +6,7 @@
  */
 import {
   capText,
+  type ChangedFile,
   CHAT_LIMITS,
   CHAT_TRUNCATED_MARK,
   type ChatChanged,
@@ -352,7 +353,7 @@ export class TurnRecorder {
       where: { workspaceId, messageId, status: { in: ['running', 'waiting'] } },
       data: { status: 'cut_off', endedAt: now },
     });
-    const files = (event.changedFiles ?? []).slice(0, CHAT_LIMITS.changedFiles);
+    const files = redactDeep((event.changedFiles ?? []).slice(0, CHAT_LIMITS.changedFiles)) as ChangedFile[];
     const message = event.message ? redactSecrets(event.message) : null;
     await this.tx.chatMessage.update({
       where: { id: messageId, workspaceId },

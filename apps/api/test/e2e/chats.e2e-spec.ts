@@ -889,6 +889,20 @@ describe('chats', () => {
       await client.close();
     });
 
+    it('update_chat cannot widen a chat: its mode is the owner’s', async () => {
+      const chatId = await aChat({ mode: 'ask' });
+      const client = await aClient();
+      await client.callTool({
+        name: 'update_chat',
+        arguments: { chat: chatId, mode: 'execute', title: 'Renamed' },
+      });
+      expect((await getChat(chatId)) as unknown as { mode: string; title: string }).toMatchObject({
+        mode: 'ask',
+        title: 'Renamed',
+      });
+      await client.close();
+    });
+
     it('report_stage refuses a stage of another protocol', async () => {
       const client = await aClient();
       const fine = await client.callTool({

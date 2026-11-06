@@ -158,6 +158,21 @@ describe('the event mapper', () => {
     });
   });
 
+  it('takes the plan from ExitPlanMode, or from the plan file Plan mode refuses to write', () => {
+    const say = (name, input) => ({
+      type: 'assistant',
+      message: { id: 'p', content: [{ type: 'tool_use', id: name, name, input }] },
+    });
+    const plans = (...raws) => run(...raws).events.filter((event) => event.kind === 'plan.proposed');
+    expect(plans(say('ExitPlanMode', { plan: 'A' }))[0].plan).toBe('A');
+    const file = 'C:\\Users\\x\\.claude\\plans\\some-plan.md';
+    expect(plans(say('Write', { file_path: file, content: 'B' }))[0].plan).toBe('B');
+    expect(plans(say('Write', { file_path: 'C:\\repo\\a.md', content: 'C' }))).toEqual([]);
+    expect(
+      plans(say('Write', { file_path: file, content: 'B' }), say('ExitPlanMode', { plan: 'A' })),
+    ).toHaveLength(1);
+  });
+
   it('never reports cost or num_turns: they are not per-turn facts (S1)', () => {
     const { result } = run({
       type: 'result',

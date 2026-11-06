@@ -772,26 +772,6 @@ describeReal('chats with the real binary', () => {
     expect(planned.approvals).toEqual([]);
     expect(`${planned.plan ?? ''}${planned.content}`).toMatch(/README/i);
     expect(existsSync(join(folder, 'README.md'))).toBe(false);
-    writeFileSync(
-      join(scratch, 'smoke-report.json'),
-      JSON.stringify(
-        (await getChat(chatId)).messages.map((message) => [
-          message.role,
-          message.status,
-          message.model,
-          message.usage,
-          message.steps.map((step) => [step.name, step.status, step.input, step.output?.slice(0, 200)]),
-          message.plan,
-          message.content.slice(0, 200),
-        ]),
-        null,
-        1,
-      ),
-    );
-    writeFileSync(
-      join(process.cwd(), '.tmp', 'smoke-report.json'),
-      readFileSync(join(scratch, 'smoke-report.json')),
-    );
     expect(sum(settingsFile)).toBe(before);
   });
 });
