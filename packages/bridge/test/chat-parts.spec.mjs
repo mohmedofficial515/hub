@@ -16,13 +16,20 @@ import { join } from 'node:path';
 
 import {
   APPROVAL_EFFECTS as CONTRACT_EFFECTS,
+  ENGINE_FACT_LIMITS as CONTRACT_LIMITS,
   MCP_TOOLS,
   TURN_EVENT_KINDS,
+  turnEventSchema,
   turnEventSchema,
 } from '@hub/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { createEventMapper, isStageTool, questionsFromInput } from '../lib/claude-events.mjs';
+import {
+  createEventMapper,
+  ENGINE_FACT_LIMITS,
+  isStageTool,
+  questionsFromInput,
+} from '../lib/claude-events.mjs';
 import { docHandlers } from '../lib/doc-files.mjs';
 import { changedFiles, diffOf } from '../lib/git-facts.mjs';
 import { createLog, LOG_LIMIT_BYTES, MAX_LINE_CHARS } from '../lib/log.mjs';
@@ -119,6 +126,51 @@ describe('structured results in the mapper', () => {
 
   it("the bridge's effect lines are the contract's, for every category", () => {
     expect(APPROVAL_EFFECTS).toEqual(CONTRACT_EFFECTS);
+  });
+});
+
+describe('engine facts on turn.session', () => {
+  const session = (extra) =>
+    createEventMapper().map({ type: 'system', subtype: 'init', session_id: 's', ...extra }).events[0];
+
+  it('carries skills and server names, and never a status', () => {
+    const event = session({
+      skills: ['hub:work', 'other'],
+      mcp_servers: [
+        { name: 'hub', status: 'connected', source: 'user' },
+        { name: 'other', status: 'pending' },
+      ],
+    });
+    expect(event.skills).toEqual(['hub:work', 'other']);
+    expect(event.mcpServers).toEqual(['hub', 'other']);
+    expect(JSON.stringify(event)).not.toContain('pending');
+  });
+
+  it('leaves out what the engine did not report, instead of saying none', () => {
+    const event = session({});
+    expect(event).not.toHaveProperty('skills');
+    expect(event).not.toHaveProperty('mcpServers');
+  });
+
+  it('skips what is not a name', () => {
+    const event = session({
+      skills: ['ok', 7, null, ''],
+      mcp_servers: [{ status: 'x' }, null, { name: 'hub' }],
+    });
+    expect(event.skills).toEqual(['ok']);
+    expect(event.mcpServers).toEqual(['hub']);
+  });
+
+  it('caps what it passes, and the contract accepts the largest', () => {
+    const name = 'x'.repeat(5_000);
+    const event = session({
+      skills: Array.from({ length: 2_000 }, () => name),
+      mcp_servers: Array.from({ length: 2_000 }, () => ({ name })),
+    });
+    expect(event.skills).toHaveLength(CONTRACT_LIMITS.skills);
+    expect(event.mcpServers).toHaveLength(CONTRACT_LIMITS.mcpServers);
+    expect(ENGINE_FACT_LIMITS).toEqual(CONTRACT_LIMITS);
+    expect(turnEventSchema.safeParse(event).success).toBe(true);
   });
 });
 

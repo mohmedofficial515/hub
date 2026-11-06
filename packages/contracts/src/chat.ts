@@ -415,6 +415,13 @@ const limitSchema = z.object({
 });
 export type TurnLimit = z.infer<typeof limitSchema>;
 
+/** The bridge restates these (`claude-events.mjs`): one name too long must never lose the whole `turn.session`. */
+export const ENGINE_FACT_LIMITS = { skills: 500, mcpServers: 100, nameChars: 200 } as const;
+
+/** What the engine loaded for a turn. Null when it did not say. */
+export const engineFactsSchema = z.object({ skills: z.array(z.string()), mcpServers: z.array(z.string()) });
+export type EngineFacts = z.infer<typeof engineFactsSchema>;
+
 export const turnEventSchema = z.discriminatedUnion('kind', [
   /** First in a turn. Model and version come from the engine; `branch` from Git, when there is one. */
   z.object({
@@ -425,6 +432,12 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     resumed: z.boolean().optional(),
     branch: z.string().max(300).optional(),
     effortApplied: z.string().max(10).optional(),
+    /** Names only, as `init` reports them, for the slash menu and the chat's facts. */
+    skills: z.array(z.string().max(ENGINE_FACT_LIMITS.nameChars)).max(ENGINE_FACT_LIMITS.skills).optional(),
+    mcpServers: z
+      .array(z.string().max(ENGINE_FACT_LIMITS.nameChars))
+      .max(ENGINE_FACT_LIMITS.mcpServers)
+      .optional(),
   }),
   /** Waiting on the model, or thinking, or a retry. Thinking text is not reported, so only the state shows. */
   z.object({
@@ -581,6 +594,12 @@ export const engineStatusSchema = z.object({
   live: z.number().int(),
 });
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
+
+/**
+ * The plugin's commands a person can type, for the slash menu. A spec holds this to `packages/team-pack/plugin/skills`: `guide` is background reading and not listed, and a command with no skill behind it must not appear.
+ */
+export const HUB_SKILLS = ['/hub:ask', '/hub:doc', '/hub:plan', '/hub:work'] as const;
+export type HubSkill = (typeof HUB_SKILLS)[number];
 
 // ── Requests ───────────────────────────────────────────────────────────────────────────────────────
 
@@ -814,6 +833,7 @@ export const chatMessageSchema = z.object({
   plan: z.string().nullable(),
   /** `propose_plan`'s plan. Null when only the text exists. */
   structuredPlan: proposedPlanSchema.nullable(),
+  engineFacts: engineFactsSchema.nullable(),
   changedFiles: z.array(changedFileSchema),
   steps: z.array(chatStepSchema),
   approvals: z.array(chatApprovalSchema),

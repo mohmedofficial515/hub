@@ -1004,6 +1004,38 @@ describe('chats', () => {
       await client.close();
     });
 
+    it('the engine’s skills and servers land on the turn, and a turn with none stays null', async () => {
+      const { chatId, turn } = await aTurn();
+      device.say(turn.id, {
+        kind: 'turn.session',
+        sessionId: SESSION,
+        skills: ['hub:work'],
+        mcpServers: ['hub', SECRET],
+      });
+      device.end(turn.id);
+      const facts = await until(async () => {
+        const chat = (await getChat(chatId)) as unknown as {
+          messages: { engineFacts: { skills: string[]; mcpServers: string[] } | null }[];
+        };
+        return chat.messages.at(-1)?.engineFacts;
+      });
+      expect(facts.skills).toEqual(['hub:work']);
+      expect(facts.mcpServers[0]).toBe('hub');
+      expect(JSON.stringify(facts)).not.toContain(SECRET);
+      await until(async () => !(await getChat(chatId)).running);
+
+      const second = await browser.post(`${base()}/${chatId}/messages`, { text: 'again' }).expect(202);
+      const id = second.body.data.messageId as string;
+      await until(() => device.of('turn.start').length > 1);
+      device.say(device.turn().id, { kind: 'turn.session', sessionId: SESSION });
+      device.end(device.turn().id);
+      const row = await until(async () => {
+        const stored = await prisma().chatMessage.findFirst({ where: { workspaceId, id } });
+        return stored?.status === 'done' ? stored : null;
+      });
+      expect(row.engineFacts).toBeNull();
+    });
+
     it('a token cannot send to VS Code: the route is web only', async () => {
       const { token } = await aToken(prisma(), userId, 'mcp');
       await api()

@@ -14,6 +14,18 @@ const SHELL_TOOLS = new Set(['Bash', 'PowerShell']);
 const WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'Bash', 'PowerShell']);
 const PLAN_FILE = /[\\/]\.claude[\\/]plans[\\/]/;
 const READ_ONLY_MODES = new Set(['ask', 'plan']);
+/** `ENGINE_FACT_LIMITS` in `@hub/contracts`, and a test holds them together. */
+export const ENGINE_FACT_LIMITS = { skills: 500, mcpServers: 100, nameChars: 200 };
+
+/** Names only: a server's status is a moment's fact, and `init` reads `pending` for one that connects later (S1 Q6). */
+function namesOf(list, limit, nameOf) {
+  if (!Array.isArray(list)) return undefined;
+  return list
+    .map(nameOf)
+    .filter((name) => typeof name === 'string' && name !== '')
+    .slice(0, limit)
+    .map((name) => name.slice(0, ENGINE_FACT_LIMITS.nameChars));
+}
 
 function textOfResult(content) {
   if (typeof content === 'string') return content;
@@ -324,6 +336,12 @@ export function createEventMapper(options = {}) {
             state.sessionId = raw.session_id ?? state.sessionId;
             state.model = raw.model ?? state.model;
             state.claudeVersion = raw.claude_code_version ?? state.claudeVersion;
+            const skills = namesOf(raw.skills, ENGINE_FACT_LIMITS.skills, (skill) => skill);
+            const mcpServers = namesOf(
+              raw.mcp_servers,
+              ENGINE_FACT_LIMITS.mcpServers,
+              (server) => server?.name,
+            );
             return {
               events: raw.session_id
                 ? [
@@ -332,6 +350,8 @@ export function createEventMapper(options = {}) {
                       sessionId: raw.session_id,
                       ...(raw.model ? { model: raw.model } : {}),
                       ...(raw.claude_code_version ? { claudeVersion: raw.claude_code_version } : {}),
+                      ...(skills ? { skills } : {}),
+                      ...(mcpServers ? { mcpServers } : {}),
                     },
                   ]
                 : [],

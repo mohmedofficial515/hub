@@ -225,14 +225,19 @@ export class TurnRecorder {
           where: { id: chatId, workspaceId },
           data: { sessionId: event.sessionId, ...(event.branch ? { branch: event.branch } : {}) },
         });
+        const facts =
+          event.skills || event.mcpServers
+            ? redactDeep({ skills: event.skills ?? [], mcpServers: event.mcpServers ?? [] })
+            : null;
         await this.tx.chatMessage.update({
           where: { id: messageId, workspaceId },
           data: {
             ...(event.model ? { model: event.model } : {}),
             ...(event.claudeVersion ? { claudeVersion: event.claudeVersion } : {}),
+            ...(facts ? { engineFacts: facts } : {}),
           },
         });
-        return event;
+        return facts ? { ...event, ...facts } : event;
       }
       case 'tool.started': {
         if (this.steps >= CHAT_LIMITS.stepsPerTurn) return event;

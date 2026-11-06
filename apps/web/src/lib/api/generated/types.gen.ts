@@ -5529,6 +5529,10 @@ export type ChatFullDto = {
             checks?: Array<string>;
             risks?: Array<string>;
         } | null;
+        engineFacts: {
+            skills: Array<string>;
+            mcpServers: Array<string>;
+        } | null;
         changedFiles: Array<{
             path: string;
             source: 'tool' | 'git' | 'claimed';

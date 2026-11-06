@@ -1,6 +1,9 @@
 /**
  * @file The chat contract's pure parts: the stream redactor, the caps, the prompt prefix, the suggestions and the event schema.
  */
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -10,6 +13,7 @@ import {
   chatToMarkdown,
   contextPrefix,
   historyPrefix,
+  HUB_SKILLS,
   stageFitsProtocol,
   suggestedPrompts,
   TURN_EVENT_KINDS,
@@ -285,6 +289,17 @@ describe('turn events', () => {
   it('a stage must belong to its protocol', () => {
     expect(stageFitsProtocol({ protocol: 'work', stage: 'verify' })).toBe(true);
     expect(stageFitsProtocol({ protocol: 'doc', stage: 'verify' })).toBe(false);
+  });
+});
+
+describe('HUB_SKILLS', () => {
+  it('lists exactly what the plugin really offers a person to type', () => {
+    const root = resolve(__dirname, '../../team-pack/plugin/skills');
+    const invocable = readdirSync(root)
+      .filter((name) => /^user-invocable: true\r?$/m.test(readFileSync(join(root, name, 'SKILL.md'), 'utf8')))
+      .map((name) => `/hub:${name}`);
+    expect([...HUB_SKILLS].sort()).toEqual(invocable.sort());
+    expect(invocable).not.toContain('/hub:guide');
   });
 });
 

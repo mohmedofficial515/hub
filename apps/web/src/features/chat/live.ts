@@ -62,6 +62,10 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
         ...message,
         model: event.model ?? message.model,
         claudeVersion: event.claudeVersion ?? message.claudeVersion,
+        engineFacts:
+          event.skills || event.mcpServers
+            ? { skills: event.skills ?? [], mcpServers: event.mcpServers ?? [] }
+            : message.engineFacts,
       };
     case 'tool.started':
       if (message.steps.some((item) => item.toolUseId === event.toolUseId)) return message;

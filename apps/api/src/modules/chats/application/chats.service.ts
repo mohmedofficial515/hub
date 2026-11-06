@@ -190,6 +190,7 @@ export class ChatsService implements OnApplicationBootstrap {
         stages: message.stages as ChatMessageDto['stages'],
         plan: message.plan,
         structuredPlan: (message.structuredPlan as ChatMessageDto['structuredPlan']) ?? null,
+        engineFacts: (message.engineFacts as ChatMessageDto['engineFacts']) ?? null,
         reports: message.reports as unknown as WorkReport[],
         notices: message.notices as unknown as ChatNotice[],
         docDrafts: drafts.get(message.id) ?? [],

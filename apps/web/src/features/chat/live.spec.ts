@@ -47,6 +47,7 @@ const message: ChatMessageDto = {
   stages: [],
   plan: null,
   structuredPlan: null,
+  engineFacts: null,
   changedFiles: [],
   steps: [],
   approvals: [],
@@ -109,6 +110,14 @@ describe('reduceChat', () => {
     expect(copy.messages[0]?.content).toBe('one two');
     expect(copy).toMatchObject({ sessionId: 's1', branch: 'main', lastSeq: 8 });
     expect(copy.messages[0]?.model).toBe('haiku');
+  });
+
+  it('takes the engine’s skills and servers from the session, and says nothing when it did not', () => {
+    const copy = play({ kind: 'turn.session', sessionId: 's1', skills: ['hub:work'], mcpServers: ['hub'] });
+    expect(copy.messages[0]?.engineFacts).toEqual({ skills: ['hub:work'], mcpServers: ['hub'] });
+    const onlyServers = play({ kind: 'turn.session', sessionId: 's1', mcpServers: ['hub'] });
+    expect(onlyServers.messages[0]?.engineFacts).toEqual({ skills: [], mcpServers: ['hub'] });
+    expect(play({ kind: 'turn.session', sessionId: 's1' }).messages[0]?.engineFacts).toBeNull();
   });
 
   it('an old event changes nothing: it is already in what was read', () => {
@@ -231,6 +240,7 @@ describe('structured results in the cache', () => {
     claims: [],
     status: 'open' as const,
     refusedCode: null,
+    conflict: null,
     savedVersion: null,
     revisionId: null,
     createdAt: 'x',

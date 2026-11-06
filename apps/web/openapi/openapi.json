@@ -33803,6 +33803,28 @@
                   ],
                   "nullable": true
                 },
+                "engineFacts": {
+                  "type": "object",
+                  "properties": {
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "mcpServers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "skills",
+                    "mcpServers"
+                  ],
+                  "nullable": true
+                },
                 "changedFiles": {
                   "type": "array",
                   "items": {
@@ -34738,6 +34760,7 @@
                 "stages",
                 "plan",
                 "structuredPlan",
+                "engineFacts",
                 "changedFiles",
                 "steps",
                 "approvals",
