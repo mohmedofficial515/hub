@@ -48,3 +48,4 @@ Hub is the owner's workbench, and the owner spends all day in it. The panel lets
 | v3-conversation-desk | The conversation is the page. The work comes to it, on a stage it controls | review |
 | v4-edge-strip-pro | v1 extended with docs/16 §7.1: three depths of detail, strong tooltips, both protocols. Independent review scored 6.2 with 5 blockers | review |
 | v5-edge-strip-final | The version to approve. v4 with its review fixed: one focal point with a card open, structured results from §7.2 with verified against claimed, and tooltips that behave | review |
+| v6-edge-strip-port | v5 with its review fixed and D54's rule: the page's fate follows the page. Ported directly under D55 | approved |
