@@ -61,7 +61,7 @@ const FAKE_KEY = 'not-a-real-key';
 const DEFAULT_ALLOW = ['Bash(echo *)', 'Bash(node *)', 'Bash(git status)', 'Bash(git log *)'];
 
 export interface ScriptedEngineOptions {
-  /** The device's name in Hub. */
+  /** The device's name in Hub, when this is the worker's first on this project. */
   readonly name?: string;
   /** The isolated `settings.json`'s allow rules. */
   readonly allow?: readonly string[];
@@ -122,14 +122,78 @@ function killTree(pid: number): void {
   }
 }
 
+/** The bridges a test started and has not stopped. */
+export function recordedBridges(): number[] {
+  if (!existsSync(BRIDGE_PIDS_FILE)) return [];
+  return readFileSync(BRIDGE_PIDS_FILE, 'utf8')
+    .split('\n')
+    .map(Number)
+    .filter((pid) => pid > 0);
+}
+
+function forgetBridge(pid: number): void {
+  const left = recordedBridges().filter((known) => known !== pid);
+  writeFileSync(BRIDGE_PIDS_FILE, left.map((known) => `${known}\n`).join(''));
+}
+
+/** A number alone proves nothing, as an ended process's number gets reused. Only this repository's own bridge counts, which the owner's, running from `~/.hub`, is not. */
+function isThisRepositorysBridge(pid: number): boolean {
+  const answer =
+    process.platform === 'win32'
+      ? spawnSync(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-NonInteractive',
+            '-Command',
+            `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}').CommandLine`,
+          ],
+          { encoding: 'utf8', windowsHide: true },
+        )
+      : spawnSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8' });
+  return answer.stdout.includes(BRIDGE_BIN);
+}
+
 /** For the run's teardown: a worker that died skipped its fixture's, and a bridge left running retries for ever. */
 export function stopLeftoverBridges(): void {
-  if (!existsSync(BRIDGE_PIDS_FILE)) return;
-  for (const line of readFileSync(BRIDGE_PIDS_FILE, 'utf8').split('\n')) {
-    const pid = Number(line);
-    if (pid > 0) killTree(pid);
+  for (const pid of recordedBridges()) {
+    if (isThisRepositorysBridge(pid)) killTree(pid);
   }
   rmSync(BRIDGE_PIDS_FILE, { force: true });
+}
+
+interface Paired {
+  readonly deviceId: string;
+  readonly credential: string;
+}
+
+const paired = new Map<string, Paired>();
+
+/** Pairing is limited to 10 a minute, and a test takes less than six seconds. So a worker keeps one device per project, and each test gets a new home for it. A worker that restarts pairs again, and waits out the limit if it must. */
+async function pairedDevice(rest: Rest, name: string): Promise<Paired> {
+  const known = paired.get(rest.ws);
+  if (known) return known;
+  const started = await pairingStart(rest, name);
+  await rest.post(`pairing/${started.userCode}/approve`);
+  const device = await rest.post<Paired>('pairing/poll', { deviceCode: started.deviceCode });
+  paired.set(rest.ws, device);
+  return device;
+}
+
+async function pairingStart(rest: Rest, name: string): Promise<{ deviceCode: string; userCode: string }> {
+  for (;;) {
+    const answer = await rest.context.post('/api/v1/pairing/start', {
+      data: { name, platform: process.platform },
+      headers: { 'X-Requested-With': 'hub' },
+    });
+    const body = (await answer.json()) as {
+      data: { deviceCode: string; userCode: string };
+      error?: { details?: { retryAfterSec?: number } };
+    };
+    if (answer.ok()) return body.data;
+    if (answer.status() !== 429) throw new Error(`pairing/start: ${answer.status()}`);
+    await new Promise((done) => setTimeout(done, ((body.error?.details?.retryAfterSec ?? 5) + 1) * 1000));
+  }
 }
 
 /** A repository with one commit, and a bare `origin` beside it so a push has somewhere real to go. */
@@ -183,15 +247,7 @@ export async function startScriptedEngine(
   };
   await setFolders([...project.repoPaths, folder]);
 
-  const started = await rest.post<{ deviceCode: string; userCode: string }>('pairing/start', {
-    name: options.name ?? 'Scripted',
-    platform: process.platform,
-  });
-  await rest.post(`pairing/${started.userCode}/approve`);
-  const claimed = await rest.post<{ deviceId: string; credential: string }>('pairing/poll', {
-    deviceCode: started.deviceCode,
-  });
-  const { deviceId, credential } = claimed;
+  const { deviceId, credential } = await pairedDevice(rest, options.name ?? 'Scripted');
 
   writeFileSync(join(hubRoot, 'device.json'), JSON.stringify({ url: API_URL, deviceId, credential }));
   writeFileSync(
@@ -267,7 +323,10 @@ export async function startScriptedEngine(
   }
 
   async function goOffline(): Promise<void> {
-    if (child?.pid) killTree(child.pid);
+    if (child?.pid) {
+      killTree(child.pid);
+      forgetBridge(child.pid);
+    }
     child = null;
     await until(async () => !(await isOnline()), 'the device to go offline');
   }
@@ -289,12 +348,9 @@ export async function startScriptedEngine(
       model.rejectAll(false);
     },
     async close() {
-      if (child?.pid) killTree(child.pid);
-      child = null;
+      // Offline for certain: the next test's bridge must not read this one's socket as its own.
+      await goOffline().catch(() => undefined);
       await model.close();
-      await rest.context
-        .delete(`/api/v1/me/devices/${deviceId}`, { headers: { 'X-Requested-With': 'hub' } })
-        .catch(() => undefined);
       await setFolders(project.repoPaths).catch(() => undefined);
       // The link first, so removing the folder never reaches the real extension.
       rmSync(extensionLink, { recursive: true, force: true });
