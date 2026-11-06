@@ -1,6 +1,7 @@
 /**
  * @file The chat engine's small parts: the raw event mapper, the D41 lists against Hub's tool table, the log's bound, Git's facts and writing a doc on this device.
  */
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   existsSync,
@@ -27,6 +28,7 @@ import {
   executeSettings,
   HUB_ASK_TOOLS,
   HUB_READ_TOOLS,
+  isReadOnlyMcpTool,
   readOnlySettings,
 } from '../lib/permissions.mjs';
 import { aFolder, fakeSystem } from './helpers.mjs';
@@ -253,6 +255,40 @@ describe('the D41 lists', () => {
     expect(categoryOf('mcp__hub__save_doc', {})).toBe('hub_doc');
     expect(categoryOf('mcp__hub__delete_card', {})).toBe('hub_sensitive');
     expect(describeCall('Bash', { command: 'rm -rf "a b"' })).toBe('rm -rf "a b"');
+  });
+});
+
+describe('the read-only guard', () => {
+  it('lets only Hub read tools and the permission tool through', () => {
+    expect(isReadOnlyMcpTool('mcp__hub__get_doc')).toBe(true);
+    expect(isReadOnlyMcpTool('mcp__hubperm__approve')).toBe(true);
+    expect(isReadOnlyMcpTool('mcp__hub__update_project')).toBe(false);
+    expect(isReadOnlyMcpTool('mcp__hub__create_task')).toBe(false);
+    expect(isReadOnlyMcpTool('mcp__other__change')).toBe(false);
+    expect(isReadOnlyMcpTool('mcp__other__get_doc')).toBe(false);
+  });
+
+  it('is on the read-only settings when asked for', () => {
+    const { hooks } = readOnlySettings('guard');
+    expect(hooks.PreToolUse[0]).toEqual({
+      matcher: 'mcp__.*',
+      hooks: [{ type: 'command', command: 'guard' }],
+    });
+  });
+
+  const run = (input) =>
+    spawnSync(process.execPath, [join(import.meta.dirname, '..', 'bin', 'hub-read-only-guard.mjs')], {
+      input,
+      encoding: 'utf8',
+    });
+
+  it('refuses another server’s tool, allows a read, and refuses what it cannot read', () => {
+    const refused = run(JSON.stringify({ tool_name: 'mcp__other__change' }));
+    expect(JSON.parse(refused.stdout).hookSpecificOutput.permissionDecision).toBe('deny');
+    const allowed = run(JSON.stringify({ tool_name: 'mcp__hub__get_doc' }));
+    expect(allowed.status).toBe(0);
+    expect(allowed.stdout).toBe('');
+    expect(run('not json').status).toBe(2);
   });
 });
 

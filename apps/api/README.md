@@ -186,6 +186,22 @@ await bridgeHub.request(deviceId, 'turn.start', args, {
 Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a folder off its allowlist. A device credential reaches only `/mcp`, `/bridge` and `DELETE /bridge/self`
 (`deviceTokenMayCall`). A new action is a line in `BRIDGE_ACTIONS` and in `packages/bridge/lib/protocol.mjs`, a handler in `packages/bridge/lib/actions.mjs`, and a test.
 
+## Chats
+
+`modules/chats` (`docs/16` §7, "Slice 3 engine as built"). The API runs nothing: a turn is `bridgeHub.request(deviceId, 'turn.start', args, { timeoutMs: null, onEvent })`, and `TurnRecorder` writes what comes back. Three rules to keep:
+
+- **Everything stored passes the secret filter first.** What the owner sends is refused with `assertNoSecrets`. What the engine produces is cleaned with `redactSecrets` and `redactDeep`, and streamed text with `createStreamRedactor`, since a secret can be split across pieces. All of them are in `@hub/contracts`.
+- **`chat.run` and `chat.answer` are web only.** A token or an agent cannot start a chat or answer an approval, so a chat cannot approve itself.
+- **Raw Claude Code events stop at `packages/bridge/lib/claude-events.mjs`.** A new engine fact is a new `TurnEvent` in `packages/contracts/src/chat.ts`, a line in the mapper, and a case in `TurnRecorder` and `apps/web/src/features/chat/live.ts`.
+
+`RealtimePublisher.publishTransient` carries the stream: it skips the replay buffer, so a long reply cannot push card events out of it. `chat.changed` is the durable nudge, and `GET chats/:id` is the catch-up.
+
+`E2E_REAL_CLAUDE=1 pnpm test:e2e chats-real-binary` runs the real bridge and binary in an isolated home with a scripted model, and costs no usage. Run it before widening `CLAUDE_MAX_VERSION`.
+
+## Writing docs
+
+`DocsWriteService` is `save_doc` (`docs/16` §10): a stale base is refused, the earlier text becomes a `doc_revisions` row, and the file is written atomically, by the API or, when the source has `config.deviceId`, by the bridge. It commits nothing.
+
 ## Sources and local path mode
 
 `SourceRunnerService` (`@/modules/system`) is the one way to run a `local_path` source: `open` then `finish`, or `POST /sources/{id}/run`.

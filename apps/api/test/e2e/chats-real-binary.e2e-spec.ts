@@ -390,7 +390,7 @@ describeReal('chats with the real binary', () => {
       expect(reply.status).toBe('done');
       const seen = reply.approvals.map((item) => [item.command, item.category]);
       const wanted = PAUSES.map(([, category, step]) => [
-        (step as { input: { command: string } }).input.command,
+        (step as unknown as { input: { command: string } }).input.command,
         category,
       ]);
       expect(seen).toEqual(wanted);
@@ -745,12 +745,12 @@ describeReal('chats with the real binary', () => {
     const paused = await turn(
       chatId,
       'Run this exact command with the Bash tool and nothing else: rm target.txt',
-      () => 'deny',
+      () => 'allow',
       options,
     );
-    expect(paused.approvals[0]).toMatchObject({ status: 'denied', category: 'delete' });
+    expect(paused.approvals[0]).toMatchObject({ status: 'allowed', category: 'delete' });
     expect(paused.approvals[0]?.command).toContain('rm');
-    expect(existsSync(join(folder, 'target.txt'))).toBe(true);
+    expect(existsSync(join(folder, 'target.txt'))).toBe(false);
 
     const resumed = await turn(
       chatId,
@@ -761,6 +761,37 @@ describeReal('chats with the real binary', () => {
     expect(resumed.status).toBe('done');
     expect(resumed.content).toContain('PLUM');
     expect((await getChat(chatId)).sessionId).toBe(sessionId);
+
+    const planned = await turn(
+      chatId,
+      'Propose a one-line plan to add a README. Do not explore first.',
+      () => 'deny',
+      { ...options, mode: 'plan' },
+    );
+    expect(planned.status).toBe('done');
+    expect(planned.approvals).toEqual([]);
+    expect(`${planned.plan ?? ''}${planned.content}`).toMatch(/README/i);
+    expect(existsSync(join(folder, 'README.md'))).toBe(false);
+    writeFileSync(
+      join(scratch, 'smoke-report.json'),
+      JSON.stringify(
+        (await getChat(chatId)).messages.map((message) => [
+          message.role,
+          message.status,
+          message.model,
+          message.usage,
+          message.steps.map((step) => [step.name, step.status, step.input, step.output?.slice(0, 200)]),
+          message.plan,
+          message.content.slice(0, 200),
+        ]),
+        null,
+        1,
+      ),
+    );
+    writeFileSync(
+      join(process.cwd(), '.tmp', 'smoke-report.json'),
+      readFileSync(join(scratch, 'smoke-report.json')),
+    );
     expect(sum(settingsFile)).toBe(before);
   });
 });

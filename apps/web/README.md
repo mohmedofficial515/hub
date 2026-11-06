@@ -214,6 +214,26 @@ Known limits, stated so nobody hunts for them:
 - Decisions, Needs, Handoffs, Redesign and Tasks on the sidebar come from `cards?awaiting=me` and `tasks/ready`, Inbox from `inbox/count`, and the rest from `GET /counters`.
 - Each tab holds one stream. Over plain HTTP/1.1 a browser allows 6 connections per origin, so a seventh Hub tab on `http://localhost` would wait. HTTP/2 behind Caddy removes the limit (D33 defers Caddy).
 
+## The chat panel's engine
+
+`features/chat/` (`docs/16` §7) holds everything the panel needs, so the port is only UI. `LiveProvider` already routes `chat.event` and `chat.changed` into these caches, so **`useChat(id)` is live with no code of yours**, and the reread on reconnect is the catch-up.
+
+| Hook                                                                                | Does                                                                                                |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `useChats({ deleted })`, `useChat(id)`                                              | history by project, pinned first; one chat with messages, steps and approvals                       |
+| `useCreateChat()`                                                                   | `{ device, folder, mode, model, effort, title }`                                                    |
+| `useSendMessage(id)`                                                                | `{ text, context: { page, card, attachments }, mode, model, effort }`                               |
+| `useStopTurn(id)`, `useRetryTurn(id)`                                               | stop at any time; send the last message again                                                       |
+| `useAnswerApproval(id)`                                                             | `{ approval, decision: 'allow' \| 'deny' }`. The first answer wins                                  |
+| `useUpdateChat(id)`                                                                 | rename, pin, or set the next turn's mode, model, effort                                             |
+| `useBranchChat(id)`, `useDeleteChat(id)`, `useRestoreChat(id)`, `useExportChat(id)` | as named                                                                                            |
+| `useEngine(device)`                                                                 | found, version, tested range, sign-in, `effortSupported`: what the selectors and honest states read |
+| `useChatDiff(id, path)`                                                             | one changed file's diff, read only                                                                  |
+| `usePromptTemplates()`, `useSavePromptTemplate()`, `useDeletePromptTemplate()`      | per project                                                                                         |
+| `useSuggestions({ page, card, roles, memberId })`                                   | words are `suggestions.<id>` in the `chat` namespace, with `{key}`                                  |
+
+`live.ts` also has `pendingApprovals(chat)`, `runningMessage(chat)` and `checklistOf(message)`, the live checklist of `/hub:work` and `/hub:doc`. Place a step in the reply's text by its `textOffset`. Branch on `message.failure` for the honest states, whose words are `failures.<code>`. A refused write throws `HubError`: `hub.chats.turn_running`, `hub.chats.approval_answered`, `hub.devices.offline`.
+
 ## i18n
 
 Every visible string is in both languages. `useT(kitMessages)` is card vocabulary (`types status actions done roles sheet`): never repeat it. `useT<Messages>('<view>')` is your page. Both return the namespace as an object. Use `fmt` and `fill` for `{name}`

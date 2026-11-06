@@ -173,6 +173,7 @@ describe('starting a turn', () => {
       expect(args[args.indexOf('--permission-mode') + 1]).toBe(permissionMode);
       const settings = JSON.parse(readFileSync(args[args.indexOf('--settings') + 1], 'utf8'));
       expect(settings.permissions[rule].length).toBeGreaterThan(0);
+      if (mode !== 'execute') expect(settings.hooks.PreToolUse[0].matcher).toBe('mcp__.*');
       child.say(RESULT);
       await answer;
     }

@@ -132,7 +132,7 @@ bin/hub.mjs                          hub-team-pack init | doctor | link <slug> |
 bin/validate-plugin.mjs              claude plugin validate --strict, when the CLI is there
 lib/commands.mjs                     the commands, with everything from outside arriving as one `system` object
 plugin/.claude-plugin/plugin.json    name: hub
-plugin/skills/{ask,plan,work}/SKILL.md
+plugin/skills/{ask,plan,guide,work,doc}/SKILL.md
 plugin/hooks/hooks.json              session-start, mark-summary, session-end, session-end-send, lib
 plugin/CLAUDE.md.snippet
 ```

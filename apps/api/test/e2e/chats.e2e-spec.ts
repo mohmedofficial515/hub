@@ -626,7 +626,6 @@ describe('chats', () => {
         input: { command: `curl -H ${SECRET}` },
       });
       device.say(turn.id, {
-        kind: 'approval.requested',
         ...APPROVAL,
         command: `curl -H ${SECRET}`,
         input: { command: `curl -H ${SECRET}` },

@@ -13,3 +13,5 @@ Answer my question using Hub as the only source.
 4. If Hub does not answer it, say so clearly and offer to open a decision with `hub.request_decision`.
 
 Question: $ARGUMENTS
+
+Never send a secret, token or password to Hub, in any field.

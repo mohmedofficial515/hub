@@ -162,6 +162,35 @@ The owner asked for more detail, strong info tooltips, and a panel that is smart
 
 **Flexibility.** Pin a chat. Branch from a message into a new chat. Export a chat as Markdown. Retry a turn. Stop at any time. Templates for frequent prompts, saved per project. Panel width, default mode and the tooltip level (full or compact) are remembered per device.
 
+### Slice 3 engine as built (2026-11-06)
+
+No final UI yet. The API and hooks are in `apps/api/README.md` § Chats and `apps/web/README.md` § The chat panel's engine.
+
+**Corrections to S1, from the real binary with a scripted model:**
+
+- **The permission tool, `--resume` and stream-json input work together.** That was the one combination S1 left unproven. Tested in `chats-real-binary.e2e-spec.ts`.
+- **A tool on the `deny` list disappears.** The model gets `No such tool available`, and it never reaches the permission tool.
+- **Rules cannot make Ask and Plan read only on their own.** A tool of another MCP server the owner allows ran in Ask. So those modes also get a `PreToolUse` hook (`bin/hub-read-only-guard.mjs`) that refuses every MCP tool except Hub's reads. It cannot tell a read from a write on another server, so other servers are off in those modes. Shells are off too, for the same reason.
+- **`ExitPlanMode` reaches the permission tool**, and its input may not hold the plan. The bridge records `input.plan` when it is there, and otherwise tells the model to write the plan in its reply.
+- **Hub's MCP tools are deferred**, so they are not in the request's tool list, and they still run by name.
+- A folder's short 8.3 spelling is not "inside the folder" for `acceptEdits`, so a Write there pauses. It pauses safely, and it only shows in temp paths.
+
+**Choices the plan left open, none of which changes a decision:**
+
+- **Starting chats through MCP: no.** `chat.run` and `chat.answer` are web only and session only, as Link is. An agent starting agents would get round the queue's limits, and one reaching `answer` could approve itself. Slice 5's queue is how an agent run gets scheduled. Reading and tidying chats do have tools.
+- **Hub's tools in Execute.** `mcp__hub` is allowed, so `/hub:work` can write evidence without a prompt on each call. The table's `destructive` tools pause, which covers D46's `update_project`, and so do `save_doc` and `restore_doc_revision`. A test holds the bridge's lists to the table. The lists live in the bridge, so a taken-over Hub session cannot widen them.
+- **D41's list grew a little past S1's start:** `mv` and `Move-Item`, as S1 found them unguarded, and `git revert`, `git stash`, `git restore`, `git tag`, `rsync`, `scp`, `ssh`, `gh`, `kubectl`, `vercel`, `netlify`, publish commands and `sudo`.
+- **A dropped socket stops the turn.** Nobody could answer an approval or see the reply, so the bridge stops and the API marks it `interrupted`. A restart of the API does the same.
+- **The approval window is 30 minutes**, owned by the bridge, then denied. `HUB_BRIDGE_APPROVAL_TIMEOUT_MS` changes it. The engine's own idle limit is set 10 minutes above it.
+- **The tested range is exactly 2.1.318**, as S1 asked (§13). An extension update outside it stops the panel with a clear message until the suite has run on it. `HUB_CLAUDE_MAX_VERSION` on the bridge tries a newer one knowingly.
+- **Branching copies words, not the session.** The first turn in a branch is told the earlier words as a prefix, up to 20,000 characters.
+- **An approval's "device"** in the audit row is the device running the turn. The row's ip and user agent say which browser answered, since a browser has no paired identity.
+- **Streaming secrets.** Up to the last three words of streamed text wait for the next piece or the next tool, so a secret split across pieces is caught. Stored text can be shown a moment late, and never holds the value. A file that holds a secret cannot be saved over with `save_doc`, because its old text would become a stored revision. The owner removes the value by hand.
+- **New tables** beyond §4: `chat_steps`, `chat_approvals`, `chat_prompt_templates`, `doc_revisions`.
+- **`/hub:work`** took the `work` skill's name, so the plugin's background guide is now the `guide` skill.
+
+**Event schema** (`TurnEvent` in `packages/contracts/src/chat.ts`): `turn.session`, `turn.status`, `text.delta`, `tool.started`, `tool.input`, `tool.result`, `approval.requested`, `approval.resolved`, `stage`, `plan.proposed`, `limit`, `turn.ended`.
+
 ## 8. Slice 4: send to VS Code
 
 A button on any card and in the panel: **Open in VS Code**.

@@ -240,8 +240,15 @@ export function executeSettings() {
 }
 
 /** Ask and Plan. Deny beats any allow rule the owner holds, so read only stays true. Shells are denied whole: a rule cannot tell a read from a write. */
-export function readOnlySettings() {
+export function readOnlySettings(guardCommand) {
   return {
+    ...(guardCommand
+      ? {
+          hooks: {
+            PreToolUse: [{ matcher: 'mcp__.*', hooks: [{ type: 'command', command: guardCommand }] }],
+          },
+        }
+      : {}),
     permissions: {
       allow: HUB_READ_TOOLS.map((tool) => `mcp__${HUB_SERVER}__${tool}`),
       deny: [
@@ -255,6 +262,13 @@ export function readOnlySettings() {
       ],
     },
   };
+}
+
+/** What `hub-read-only-guard` lets through in Ask and Plan: Hub's read tools, and the permission tool itself. */
+export function isReadOnlyMcpTool(name) {
+  if (name === 'mcp__hubperm__approve') return true;
+  const [, server, tool] = /^mcp__(.+?)__(.+)$/.exec(name) ?? [];
+  return server === HUB_SERVER && HUB_READ_TOOLS.includes(tool);
 }
 
 export const MODE_FLAGS = {

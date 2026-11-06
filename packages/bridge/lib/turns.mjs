@@ -23,6 +23,9 @@ export const CHAT_MODES = ['ask', 'plan', 'execute'];
 export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 const MODEL = /^[a-z0-9][a-z0-9.\-[\]]{0,63}$/i;
 const APPROVAL_SHIM = fileURLToPath(new URL('../bin/hub-approval-shim.mjs', import.meta.url));
+const READ_ONLY_GUARD = fileURLToPath(new URL('../bin/hub-read-only-guard.mjs', import.meta.url));
+/** A hook's command may run in cmd or in bash, and forward slashes mean the same in both. */
+const slashes = (path) => path.replaceAll('\\', '/');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const IDLE_MS = 10 * 60_000;
@@ -245,7 +248,9 @@ function createManager(context) {
       chatDir,
       MODE_FLAGS[mode].readOnly ? 'settings-read-only.json' : 'settings-execute.json',
     );
-    const settings = MODE_FLAGS[mode].readOnly ? readOnlySettings() : executeSettings();
+    const settings = MODE_FLAGS[mode].readOnly
+      ? readOnlySettings(`"${slashes(system.nodePath)}" "${slashes(READ_ONLY_GUARD)}"`)
+      : executeSettings();
     writeFileSync(file, `${JSON.stringify(settings, null, 2)}\n`);
     return file;
   }

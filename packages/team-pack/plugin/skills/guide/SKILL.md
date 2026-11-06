@@ -12,17 +12,19 @@ Every chat acts on one project: the tool's `project` argument, else the folder's
 
 ## When to call what
 
-| Situation                                              | Call                                                                                  |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Session starts                                         | `/hub:start`, or `hub.whats_new`                                                      |
-| Choosing work                                          | `/hub:next`, or `hub.list_tasks` then `hub.claim_task`                                |
-| You start editing code for a task                      | `hub.start_task`                                                                      |
-| A business rule, limit, name or flow is unclear        | `hub.search_docs`, `hub.get_doc`; still unclear: `hub.request_decision`. Never guess. |
-| A token, account, contract, value or access is missing | `hub.create_need`: describe it, never paste the value                                 |
-| Your change affects another team                       | `hub.create_handoff` with a ready prompt                                              |
-| You see work for later                                 | `hub.create_task`, or `followUps` of `log_session`                                    |
-| Something worth thinking about                         | `hub.create_idea`; `/hub:plan` to write a plan                                        |
-| You stop: task done, end of day, context nearly full   | `/hub:done`: `hub.log_session`, then `hub.submit_task`                                |
+| Situation                                              | Call                                                                                               |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| Session starts                                         | `/hub:start`, or `hub.whats_new`                                                                   |
+| Choosing work                                          | `/hub:next`, or `hub.list_tasks` then `hub.claim_task`                                             |
+| You start editing code for a task                      | `hub.start_task`                                                                                   |
+| A business rule, limit, name or flow is unclear        | `hub.search_docs`, `hub.get_doc`; still unclear: `hub.request_decision`. Never guess.              |
+| A token, account, contract, value or access is missing | `hub.create_need`: describe it, never paste the value                                              |
+| Your change affects another team                       | `hub.create_handoff` with a ready prompt                                                           |
+| You see work for later                                 | `hub.create_task`, or `followUps` of `log_session`                                                 |
+| Something worth thinking about                         | `hub.create_idea`; `/hub:plan` to write a plan                                                     |
+| Writing or changing a document                         | `/hub:doc`: search the docs first, then `hub.save_doc`. Never write a second one on the same topic |
+| Doing one task from start to finish                    | `/hub:work <key>`                                                                                  |
+| You stop: task done, end of day, context nearly full   | `/hub:done`: `hub.log_session`, then `hub.submit_task`                                             |
 
 ## Sensitive tools
 

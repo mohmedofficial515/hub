@@ -51,7 +51,7 @@ describe('save_doc', () => {
     port = (app.getHttpServer() as { address(): AddressInfo }).address().port;
   });
 
-  async function aSource(name: string, config: Record<string, unknown>): Promise<string> {
+  async function aSource(name: string, config: object): Promise<string> {
     const source = await prisma().source.create({
       data: { workspaceId, kind: 'local_path', name, config },
     });
