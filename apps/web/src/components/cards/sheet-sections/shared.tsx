@@ -2,7 +2,7 @@
 
 /**
  * @file shared.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/shared.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/shared.tsx. Contract: apps/web/README.md.
  */
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 

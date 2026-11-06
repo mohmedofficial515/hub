@@ -2,7 +2,7 @@
 
 /**
  * @file markdown.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/markdown.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/markdown.tsx. Contract: apps/web/README.md.
  */
 import { Check } from 'lucide-react';
 import { marked, type Token, type Tokens } from 'marked';

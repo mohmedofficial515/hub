@@ -2,7 +2,7 @@
 
 /**
  * @file avatar.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/avatar.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/avatar.tsx. Contract: apps/web/README.md.
  */
 import { Bot, Cpu } from 'lucide-react';
 

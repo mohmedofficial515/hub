@@ -2,7 +2,7 @@
 
 /**
  * @file redesign.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/redesign.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/redesign.tsx. Contract: apps/web/README.md.
  */
 import { ExternalLink, FileText, GitCompareArrows, Image as ImageIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';

@@ -2,7 +2,7 @@
 
 /**
  * @file button.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/button.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/button.tsx. Contract: apps/web/README.md.
  */
 import { Loader2 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';

@@ -2,7 +2,7 @@
 
 /**
  * @file change.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/change.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/change.tsx. Contract: apps/web/README.md.
  */
 import { ExternalLink } from 'lucide-react';
 

@@ -2,7 +2,7 @@
 
 /**
  * @file copy-button.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/copy-button.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/copy-button.tsx. Contract: apps/web/README.md.
  */
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';

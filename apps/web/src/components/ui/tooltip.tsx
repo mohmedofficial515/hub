@@ -2,7 +2,7 @@
 
 /**
  * @file tooltip.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/tooltip.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/tooltip.tsx. Contract: apps/web/README.md.
  */
 import { Tooltip as RadixTooltip } from 'radix-ui';
 import type { ReactNode } from 'react';

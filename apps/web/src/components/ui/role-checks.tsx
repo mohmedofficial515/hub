@@ -2,7 +2,7 @@
 
 /**
  * @file role-checks.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/role-checks.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/role-checks.tsx. Contract: apps/web/README.md.
  */
 import type { ReactNode } from 'react';
 

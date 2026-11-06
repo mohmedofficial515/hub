@@ -2,7 +2,7 @@
 
 /**
  * @file shell.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/shell.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/shell.tsx. Contract: apps/web/README.md.
  */
 import { MotionConfig } from 'framer-motion';
 import { Direction, Tooltip as RadixTooltip } from 'radix-ui';

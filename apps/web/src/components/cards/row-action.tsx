@@ -2,7 +2,7 @@
 
 /**
  * @file row-action.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/row-action.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/row-action.tsx. Contract: apps/web/README.md.
  */
 import { focusRing } from '@/components/cards/meta';
 import { fmt } from '@/components/common/text';

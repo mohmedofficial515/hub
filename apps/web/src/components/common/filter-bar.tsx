@@ -2,7 +2,7 @@
 
 /**
  * @file filter-bar.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/filter-bar.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/filter-bar.tsx. Contract: apps/web/README.md.
  */
 import { Search, SlidersHorizontal, UserRoundCheck, X } from 'lucide-react';
 import { type ReactNode, type RefObject, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';

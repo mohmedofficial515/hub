@@ -2,7 +2,7 @@
 
 /**
  * @file shortcuts-dialog.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/shortcuts-dialog.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/shortcuts-dialog.tsx. Contract: apps/web/README.md.
  */
 import { useId } from 'react';
 

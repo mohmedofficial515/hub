@@ -2,7 +2,7 @@
 
 /**
  * @file need.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/need.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/need.tsx. Contract: apps/web/README.md.
  */
 import { Check, Signpost } from 'lucide-react';
 import { useId, useState } from 'react';

@@ -2,7 +2,7 @@
 
 /**
  * @file task.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/sheet-sections/task.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/task.tsx. Contract: apps/web/README.md.
  */
 import { ExternalLink, FileText, Plus } from 'lucide-react';
 import { useId, useState } from 'react';

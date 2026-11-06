@@ -2,7 +2,7 @@
 
 /**
  * @file ocellus.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/ocellus.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/ocellus.tsx. Contract: apps/web/README.md.
  */
 import { cn } from '@/lib/utils';
 

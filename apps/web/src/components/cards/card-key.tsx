@@ -2,7 +2,7 @@
 
 /**
  * @file card-key.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/card-key.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/card-key.tsx. Contract: apps/web/README.md.
  */
 import { StatusBadge, TypeDot } from '@/components/cards/badges';
 import { focusRing } from '@/components/cards/meta';

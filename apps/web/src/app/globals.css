@@ -1,5 +1,5 @@
 /**
- * Night Peacock: the approved design's tokens (F:/Goteav/redesign/hub/today/v5-peacock-app/tokens.css, docs/15 D31).
+ * Night Peacock: the approved design's tokens (apps/lab/hub/today/v5-peacock-app/tokens.css, docs/15 D31).
  * Built from the lab's Hub base and that file. Hex lives only here; TSX uses token classes (ESLint hub/no-raw-palette).
  */
 @import 'tailwindcss';

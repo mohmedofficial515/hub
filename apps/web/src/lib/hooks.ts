@@ -2,7 +2,7 @@
 
 /**
  * @file hooks.ts
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/hooks.ts. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/hooks.ts. Contract: apps/web/README.md.
  */
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 

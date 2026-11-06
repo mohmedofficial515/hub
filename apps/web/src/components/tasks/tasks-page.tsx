@@ -2,7 +2,7 @@
 
 /**
  * @file tasks-page.tsx
- * @description Ported from v5 `pages/tasks/page.tsx`. The board or the list, and the Deleted view at `?view=deleted`. Reasons: `F:/Goteav/redesign/hub/today/v5-peacock-app/pages/tasks/NOTES.md`.
+ * @description Ported from v5 `pages/tasks/page.tsx`. The board or the list, and the Deleted view at `?view=deleted`. Reasons: `apps/lab/hub/today/v5-peacock-app/pages/tasks/NOTES.md`.
  */
 import { seesAllReadyWork } from '@hub/contracts';
 import { Kanban, List, Plus, SearchX, SquareCheck } from 'lucide-react';

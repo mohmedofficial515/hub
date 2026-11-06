@@ -1,7 +1,7 @@
 /**
  * @file utils.ts
  * @description `cn()`: tailwind-merge that knows Hub's named sizes, so `text-caption text-muted-foreground` keeps both.
- * Ported from F:/Goteav/redesign/shared/ui/hub-cn.ts.
+ * Ported from apps/lab/shared/ui/hub-cn.ts.
  */
 import { type ClassValue, clsx } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';

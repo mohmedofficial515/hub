@@ -2,7 +2,7 @@
 
 /**
  * @file relative-time.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/relative-time.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/relative-time.tsx. Contract: apps/web/README.md.
  */
 import { absolute, DAY, nowMs, rel, shortDate } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';

@@ -2,7 +2,7 @@
 
 /**
  * @file states.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/states.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/states.tsx. Contract: apps/web/README.md.
  */
 import { type LucideIcon, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';

@@ -2,7 +2,7 @@
 
 /**
  * @file command-palette.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/shell/command-palette.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/command-palette.tsx. Contract: apps/web/README.md.
  */
 import { CircleDot, Copy, FilePlus2, Keyboard, Languages, Replace, Search, SunMoon } from 'lucide-react';
 import { Dialog } from 'radix-ui';

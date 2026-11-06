@@ -1,6 +1,6 @@
 /**
  * @file tabs-class.ts
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/tabs-class.ts. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/tabs-class.ts. Contract: apps/web/README.md.
  */
 import { focusRing } from '@/components/cards/meta';
 

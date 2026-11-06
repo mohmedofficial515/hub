@@ -2,7 +2,7 @@
 
 /**
  * @file card-row.tsx
- * @description Ported from F:/Goteav/redesign/hub/today/v5-peacock-app/kit/card-row.tsx. Contract: apps/web/README.md.
+ * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/card-row.tsx. Contract: apps/web/README.md.
  */
 import type { ComponentProps, ReactNode } from 'react';
 
