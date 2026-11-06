@@ -22,7 +22,7 @@ Hub becomes the place the owner works from, not only where they record work:
 | D36 | **Solo owner.** Members and roles are the owner's personas. Design for one person on several devices. |
 | D37 | **One source of knowledge.** Hub on the main machine holds the knowledge. Other devices connect to it and keep no copies. |
 | D38 | **Chat engine:** the official Claude Code on the owner's own device, on the owner's own subscription sign-in. Hub never reads, stores or relays Claude credentials. D06 stands: the Hub server makes no model calls. |
-| D39 | **The lab moves into Hub** as `apps/lab`, and appears inside Hub's shell, merged with the Redesign page. |
+| D39 | **The lab moves into Hub** as `apps/lab`, and appears as a page of Hub, reached from the Redesign page. Amended 2026-11-06 by the owner: it opens in a new tab with no sidebar or header, and keeps the lab's own interface. |
 | D40 | **Agent queue with schedules** on the main machine, with limits. A missed run starts when the machine is back. |
 | D41 | **Default agent permission:** read and edit inside the project folder freely. Pause for approval on delete, commit, push, deploy, creating a branch or worktree, and `docker`. **Owner's choice on C1:** the owner's 259 global allow rules stay loaded, so a command they allow and this list does not name runs without asking; any other unknown command pauses. |
 | D44 | **Folder trust (owner's choice on C2):** when the owner presses Link on a folder, Hub writes that folder's trust acceptance into `~/.claude.json`, so no trust dialog appears. Only on that explicit press, only for that folder, atomically, keeping every other key, with a backup. If the file's shape is not as expected, Hub changes nothing and says to accept the dialog once. This file is internal to Claude Code and can change with updates. |
@@ -97,7 +97,7 @@ The first-release flow keeps working as a fallback until this ships.
 
 1. **Before moving:** confirm no other session is working in `F:/Goteav/redesign`. It is not a Git repository, so back it up first.
 2. Move it to `apps/lab`, without `node_modules`. Commit the versions and screenshots to the private repo (about 140 MB). Keep the `@web/*` and `@dash/*` aliases, pointing at the sibling projects by env.
-3. **Same interface and features:** gallery, side-by-side compare, device sizes, AR and EN, light and dark, status and notes. The gallery moves into Hub's shell as tabs on the Redesign page. Each version still renders in its own iframe, because the projects' stylesheets collide.
+3. **Same interface and features:** gallery, side-by-side compare, device sizes, AR and EN, light and dark, status and notes. The gallery is Hub's own page at `/<locale>/<ws>/gallery`, opened in a new tab from Redesign. Each version still renders in its own iframe, because the projects' stylesheets collide.
 4. `start:local` runs the lab and Hub proxies it at `/lab`, so it needs no separate command.
 5. Set `LAB_ROOT` to the new folder. **Existing redesign cards must keep their keys:** prove on a copy of the database that a rescan creates no duplicates.
 6. Update `redesign-director`, `redesign-porter` and `redesign-workflow`, which are global files outside the repo, to the new path. Show the owner the diff first.
@@ -108,7 +108,7 @@ The first-release flow keeps working as a fallback until this ships.
 - **Serving.** `pnpm start:local` runs the lab's dev server on 127.0.0.1:7320 (`LAB_PORT`), with its log, and stops it on Ctrl+C. `next.config.ts` rewrites `/lab` to it (`HUB_LAB_ORIGIN`, fixed at build). Rewrites also carry the HMR WebSocket. A Next rewrite turns `?import&raw` into `?import=&raw=`, so the lab puts the bare flags back before Vite reads them.
 - **Guards.** `middleware.ts` answers 404 to any `..`, backslash, NUL or dot-folder in the path, however often it was encoded, and 401 or a redirect to sign-in without a session. Vite's `server.fs.allow` lists the lab, the two `src` trees and the packages they load. Nothing else of Hub or the sibling projects is reachable. A version runs on Hub's origin, so it is trusted code, as the owner's own designs are.
 - **A broken version.** The lab compiles on demand, so one version failing shows its error in its own frame only. `pnpm lab:check` names broken versions, and `start:local` runs it once in the background. If the lab stops, Hub stays up and Redesign says so.
-- **The page.** Redesign has two views: Review (as before) and Gallery (`?view=gallery`). Links that used to leave Hub open the gallery. The lab's own gallery stays at `/lab/` for agents that drive a browser.
+- **The page.** The first build put the gallery in Hub's shell as a tab of Redesign, in Hub's design system. The owner preferred the lab's own interface, stable and familiar, so since 2026-11-06 it is the view `gallery`: a new tab with no sidebar or header, dark, left to right and in English in every locale (`features/redesign/lab-words.ts`), in the lab's shape (`apps/lab/lab/src/shell`). It stays part of Hub: the shell still mounts the live stream, the card's sheet, the palette, the keys, the toasts and the session around it, so statuses change live and the owner's verdict opens over the frame. Every link to a version opens it in a new tab. The old `redesign?view=gallery` redirects there. The lab's own gallery stays at `/lab/` for agents that drive a browser.
 - **Scanner.** `LAB_ROOT` defaults to `apps/lab`. `externalKey` was always relative, so only `source.config.path` and the stored `lab_url` held the old place: `pnpm lab:repoint` moves both.
 - **Commits.** Approve and reject write the README and commit nothing, so `apps/lab` shows those files in `git status` until the owner commits them.
 
@@ -120,7 +120,7 @@ Owner-run, after checking the gallery. The old folder stays until a separate req
 2. Copy edits made in the old folder since the move. `robocopy F:\Goteav\redesign F:\Goteav\hub\apps\lab /E /XO /FFT /XD node_modules dist .vite /XF pnpm-lock.yaml /L` lists files newer in the old folder, and copies nothing. If it names `package.json`, `tsconfig.json`, `vite.config.ts` or `lab\src\`, merge those by hand, because the new copies were changed on purpose. Run it without `/L` to copy, then `git status apps/lab` shows what changed. It does not copy deletions.
 3. In `.env`, delete the `LAB_ROOT` and `LAB_URL` lines.
 4. `pnpm start:local`, then in a second terminal `pnpm lab:repoint --rescan`. It must print `created 0, updated 0`, unless step 2 changed a README, which then counts as updated.
-5. Check: Redesign › Gallery in `ar` and `en`; Settings › System shows the lab as running; `SELECT count(*), count(DISTINCT external_key) FROM cards WHERE type = 'redesign'` gives two equal numbers.
+5. Check: Redesign › Open the lab in `ar` and `en`; Settings › System shows the lab as running; `SELECT count(*), count(DISTINCT external_key) FROM cards WHERE type = 'redesign'` gives two equal numbers.
 6. Apply the diff to the global files (§6 item 6), and commit `apps/lab` if step 2 changed it.
 
 **To go back:** restore `LAB_ROOT` in `.env` and run `pnpm lab:repoint`. That puts the source back, and scanning from there changes no card.

@@ -72,7 +72,6 @@ describe('togglePicked', () => {
 describe('versionQuery', () => {
   it('opens a version in the gallery, on Hub', () => {
     expect(versionQuery({ app: 'web', page: 'wallet', version: 'v2' })).toEqual({
-      view: 'gallery',
       app: 'web',
       page: 'wallet',
       a: 'v2',

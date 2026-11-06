@@ -1,7 +1,7 @@
 # Goteav Redesign Lab
 
-Sandbox for redesigning pages of the public site and the dashboard. See [PLAN.md](PLAN.md). It lives in Hub as `apps/lab`: Hub's Redesign page shows it
-as its Gallery view, and Hub serves it at `/lab` (`docs/16-workbench.md` §6).
+Sandbox for redesigning pages of the public site and the dashboard. See [PLAN.md](PLAN.md). It lives in Hub as `apps/lab`: Hub's Redesign page opens it
+in a new tab as the `gallery` page, and Hub serves its frames at `/lab` (`docs/16-workbench.md` §6).
 
 ## Layout
 

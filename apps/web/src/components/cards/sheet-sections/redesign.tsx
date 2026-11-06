@@ -163,7 +163,7 @@ export function RedesignSection({ card, action, cancelAction, perform }: Section
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           <a
-            href={hrefFor('redesign', { card: null, query: versionQuery(r) })}
+            href={hrefFor('gallery', { card: null, query: versionQuery(r) })}
             target="_blank"
             rel="noreferrer"
             className={linkClass}

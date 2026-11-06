@@ -208,7 +208,7 @@ function Pane({
           </label>
           {r && (
             <a
-              href={hrefFor('redesign', { card: null, query: versionQuery(r) })}
+              href={hrefFor('gallery', { card: null, query: versionQuery(r) })}
               target="_blank"
               rel="noreferrer"
               aria-label={`${t.openInLab}: ${r.version}`}

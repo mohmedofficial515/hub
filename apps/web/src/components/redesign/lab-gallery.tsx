@@ -2,11 +2,24 @@
 
 /**
  * @file lab-gallery.tsx
- * @description The lab's gallery as a view of the Redesign page (docs/16 §6, D39): every page and version, side-by-side compare, device sizes, language,
- * theme, status and notes, in Hub's design system. Its state is the address, as it was in the lab. The verdict stays in the card's sheet, one click away.
+ * @description The lab as Hub's own full page (docs/16 §6, as the owner changed it on 2026-11-06): it opens in a tab of its own at `/<locale>/<ws>/gallery`, with
+ * no sidebar or header, and looks the way the lab always did (`apps/lab/lab/src/shell`). Everything under it is Hub: the data and statuses are the cards', the
+ * live stream updates them, and a card's sheet, the palette and the owner's verdict open over it from the shell. Its state is the address.
  */
-import { Columns2, ExternalLink, Globe, LayoutDashboard, NotebookText, Palette, Radar } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import {
+  ArrowLeft,
+  Columns2,
+  ExternalLink,
+  Globe,
+  LayoutDashboard,
+  Moon,
+  NotebookText,
+  Palette,
+  Radar,
+  Square,
+  Sun,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
 import {
   AppLink,
@@ -14,21 +27,17 @@ import {
   cn,
   EmptyState,
   ErrorState,
-  fill,
-  fmt,
   focusRing,
   LoadingRegion,
   Ltr,
   MarkdownView,
-  plural,
+  openCard,
   type RedesignCard,
-  Segmented,
-  Select,
   setQuery,
   Skeleton,
-  StatusBadge,
   useLocale,
   useRoute,
+  useSession,
   useT,
 } from '@/components/kit';
 import {
@@ -36,7 +45,6 @@ import {
   compareTarget,
   frameSrc,
   GALLERY_APPS,
-  GALLERY_WIDTHS,
   type GalleryApp,
   type GalleryPage,
   galleryQuery,
@@ -47,12 +55,13 @@ import {
   TOKENS_PAGE,
   TOKENS_VERSION,
 } from '@/features/redesign/gallery';
+import { LAB_LANGS, LAB_WIDTHS, LAB_WORDS } from '@/features/redesign/lab-words';
 import { type LabPage, useLabPages, useVersionFiles } from '@/features/redesign/queries';
 import { isHubError } from '@/lib/api/errors';
 import type { RedesignMessages } from '@/lib/i18n/page-dicts';
 import { useTheme } from '@/lib/theme';
 
-import { LabPane } from './lab-stage';
+import { LabPane, LabStatus } from './lab-stage';
 
 const APP_ICONS: Record<GalleryApp, typeof Globe> = { web: Globe, dashboard: LayoutDashboard, hub: Radar };
 
@@ -63,6 +72,22 @@ const toGalleryPage = (page: LabPage, cards: readonly RedesignCard[]): GalleryPa
   renderable: page.renderable,
   versions: cards.map((card) => card.redesign.version),
 });
+
+/**
+ * The lab's frame. `dark` brings Hub's dark tokens to everything inside, in either theme of Hub, and `dir` keeps the frame's geometry in Arabic too. A frame's own
+ * language and theme are set inside it, from the toolbar.
+ */
+function LabFrame({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      data-lab-gallery
+      dir="ltr"
+      className={cn('dark lab-frame flex h-dvh flex-col bg-lab-canvas text-lab-text', className)}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function LabGallery() {
   const t = useT<RedesignMessages>('redesign');
@@ -97,33 +122,33 @@ export function LabGallery() {
 
   if (query.isPending) {
     return (
-      <div className="px-4 md:px-6">
+      <LabFrame className="p-6">
         <LoadingRegion label={t.loading}>
           <Skeleton className="h-96 w-full" />
         </LoadingRegion>
-      </div>
+      </LabFrame>
     );
   }
   if (query.isError) {
     const error = query.error;
     return (
-      <div className="px-4 md:px-6">
+      <LabFrame className="p-6">
         <ErrorState
           thing={t.errorThing}
           code={isHubError(error) ? error.code : 'hub.redesign.lab_unavailable'}
           requestId={isHubError(error) ? error.requestId : undefined}
           onRetry={() => void query.refetch()}
         />
-      </div>
+      </LabFrame>
     );
   }
   if (pages.length === 0) {
     return (
-      <div className="px-4 md:px-6">
+      <LabFrame className="p-6">
         <EmptyState size="page" icon={Palette} title={t.emptyTitle}>
           {t.emptyBody}
         </EmptyState>
-      </div>
+      </LabFrame>
     );
   }
 
@@ -135,16 +160,13 @@ export function LabGallery() {
   const noted = [...new Set([state.a, state.b])].filter((id): id is string => !!id && id !== LIVE);
 
   return (
-    <div
-      data-lab-gallery
-      className="flex min-h-0 flex-col border-t border-border lg:h-[calc(100dvh-(--spacing(38)))] lg:flex-row"
-    >
-      <Navigator state={state} pages={pages} go={go} />
+    <LabFrame className="overflow-y-auto lg:flex-row lg:overflow-hidden">
+      <Sidebar state={state} pages={pages} go={go} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Toolbar state={state} page={galleryPage} go={go} />
+        <Toolbar state={state} page={galleryPage} card={state.b ? undefined : cardOf(state.a)} go={go} />
         <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
           {ready && state.app && state.page && state.a ? (
-            <div className="flex min-w-0 flex-1 flex-col gap-px bg-border md:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col divide-white/10 md:flex-row md:divide-x">
               <LabPane
                 state={state}
                 app={state.app}
@@ -177,23 +199,16 @@ export function LabGallery() {
           )}
         </div>
       </div>
-    </div>
+    </LabFrame>
   );
 }
 
 function Welcome({ pageCount, versionCount }: { pageCount: number; versionCount: number }) {
-  const t = useT<RedesignMessages>('redesign');
-  const locale = useLocale();
   return (
-    <div className="grid min-h-64 flex-1 place-items-center bg-muted p-8 text-center">
-      <div className="flex max-w-md flex-col gap-1">
-        <p className="text-title-sm font-semibold text-foreground">{t.gallery.welcomeTitle}</p>
-        <p className="text-body-sm text-muted-foreground">
-          {fmt(t.gallery.welcomeBody, {
-            pages: plural(pageCount, locale, t.gallery.pages),
-            versions: plural(versionCount, locale, t.versions),
-          })}
-        </p>
+    <div className="grid min-h-64 flex-1 place-items-center p-8 text-center">
+      <div className="max-w-md space-y-2">
+        <p className="text-lg font-semibold">{LAB_WORDS.title}</p>
+        <p className="text-sm text-lab-dim">{LAB_WORDS.welcome(pageCount, versionCount)}</p>
       </div>
     </div>
   );
@@ -201,18 +216,22 @@ function Welcome({ pageCount, versionCount }: { pageCount: number; versionCount:
 
 // ── The list of everything ───────────────────────────────────────────────────────────────────────
 
-function itemClass(active: boolean, indent = false) {
-  return cn(
-    'flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 text-start text-body-sm transition-colors duration-120 lg:min-h-8',
-    indent && 'ps-4',
-    active
-      ? 'bg-accent font-semibold text-foreground'
-      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-    focusRing,
-  );
-}
+const BackToHub = ({ className }: { className?: string }) => (
+  <AppLink
+    view="redesign"
+    aria-label={LAB_WORDS.backToHub}
+    title={LAB_WORDS.backToHub}
+    className={cn(
+      'inline-flex size-11 shrink-0 items-center justify-center rounded-md text-lab-dim transition-colors hover:bg-white/10 hover:text-lab-text lg:size-8',
+      focusRing,
+      className,
+    )}
+  >
+    <ArrowLeft aria-hidden className="size-4" />
+  </AppLink>
+);
 
-function Navigator({
+function Sidebar({
   state,
   pages,
   go,
@@ -221,7 +240,7 @@ function Navigator({
   pages: { page: LabPage; cards: RedesignCard[] }[];
   go: (patch: Partial<GalleryState>) => void;
 }) {
-  const t = useT<RedesignMessages>('redesign');
+  const project = useSession().workspace?.name;
   const isActive = (app: string, page: string, version: string) =>
     state.app === app && state.page === page && state.a === version;
   const link = (app: GalleryApp, page: string, version: string) =>
@@ -236,21 +255,21 @@ function Navigator({
 
   return (
     <>
-      <div className="border-b border-border p-3 lg:hidden">
-        <label className="flex flex-col gap-1 text-body-sm font-medium text-foreground">
-          {t.gallery.pick}
-          <Select value={value} onChange={(e) => pick(e.target.value)} className="w-full">
-            <option value="">{t.gallery.pickPrompt}</option>
-            <optgroup label={t.gallery.tokens}>
+      <div className="flex items-end gap-2 border-b border-white/10 bg-lab-panel p-3 lg:hidden">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-lab-dim">
+          {LAB_WORDS.pick}
+          <LabSelect value={value} onChange={pick} label={LAB_WORDS.pick} className="w-full">
+            <option value="">{LAB_WORDS.pickPrompt}</option>
+            <optgroup label={LAB_WORDS.tokens}>
               {GALLERY_APPS.map((app) => (
                 <option key={app} value={`${app}|${TOKENS_PAGE}|${TOKENS_VERSION}`}>
-                  {t.apps[app]}
+                  {LAB_WORDS.apps[app]}
                 </option>
               ))}
             </optgroup>
             {pages.map(({ page, cards }) => (
               <optgroup key={`${page.app}/${page.page}`} label={`${page.app}/${page.page}`}>
-                {page.liveUrl && <option value={`${page.app}|${page.page}|${LIVE}`}>{t.gallery.live}</option>}
+                {page.liveUrl && <option value={`${page.app}|${page.page}|${LIVE}`}>{LAB_WORDS.live}</option>}
                 {cards.map((card) => (
                   <option key={card.key} value={`${page.app}|${page.page}|${card.redesign.version}`}>
                     {card.redesign.version}
@@ -258,28 +277,35 @@ function Navigator({
                 ))}
               </optgroup>
             ))}
-          </Select>
+          </LabSelect>
         </label>
+        <BackToHub />
       </div>
 
       <nav
-        aria-label={t.gallery.navLabel}
-        className="hidden w-72 shrink-0 flex-col gap-4 overflow-y-auto border-e border-border p-3 lg:flex"
+        aria-label={LAB_WORDS.navLabel}
+        className="hidden h-full w-64 shrink-0 flex-col overflow-y-auto border-e border-white/10 bg-lab-panel text-sm lg:flex"
       >
-        <Section
-          title={t.gallery.tokens}
-          icon={<Palette aria-hidden className="size-3.5" strokeWidth={1.75} />}
-        >
+        <div className="flex items-start justify-between gap-2 px-4 pt-5 pb-4">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold tracking-lab text-lab-faint uppercase">
+              {project ?? 'Goteav'}
+            </p>
+            <p className="text-base font-semibold text-lab-text">{LAB_WORDS.title}</p>
+          </div>
+          <BackToHub />
+        </div>
+
+        <Section title={LAB_WORDS.tokens}>
           {GALLERY_APPS.map((app) => (
-            <AppLink
+            <Item
               key={app}
-              view="redesign"
               query={link(app, TOKENS_PAGE, TOKENS_VERSION)}
-              aria-current={isActive(app, TOKENS_PAGE, TOKENS_VERSION) ? 'page' : undefined}
-              className={itemClass(isActive(app, TOKENS_PAGE, TOKENS_VERSION))}
+              active={isActive(app, TOKENS_PAGE, TOKENS_VERSION)}
             >
-              {t.apps[app]}
-            </AppLink>
+              <Palette aria-hidden className="size-3.5 text-lab-faint" />
+              {LAB_WORDS.apps[app]}
+            </Item>
           ))}
         </Section>
 
@@ -287,48 +313,30 @@ function Navigator({
           const Icon = APP_ICONS[app];
           const ofApp = pages.filter((p) => p.page.app === app);
           return (
-            <Section
-              key={app}
-              title={t.apps[app]}
-              icon={<Icon aria-hidden className="size-3.5" strokeWidth={1.75} />}
-            >
-              {ofApp.length === 0 && (
-                <p className="px-2.5 text-body-sm text-muted-foreground">{t.gallery.noPages}</p>
-              )}
+            <Section key={app} title={LAB_WORDS.apps[app]} icon={<Icon aria-hidden className="size-3.5" />}>
+              {ofApp.length === 0 && <p className="px-3 py-1 text-xs text-lab-faint">{LAB_WORDS.noPages}</p>}
               {ofApp.map(({ page, cards }) => (
-                <div key={page.page} className="flex flex-col gap-0.5">
-                  <p
-                    className="truncate px-2.5 py-1 text-body-sm font-medium text-foreground"
-                    title={page.title}
-                  >
-                    <Ltr mono>{page.page}</Ltr>
+                <div key={page.page} className="mb-2">
+                  <p className="truncate px-3 py-1 font-medium text-lab-soft" title={page.title}>
+                    {page.page}
                   </p>
                   {page.liveUrl && (
-                    <AppLink
-                      view="redesign"
-                      query={link(app, page.page, LIVE)}
-                      aria-current={isActive(app, page.page, LIVE) ? 'page' : undefined}
-                      className={itemClass(isActive(app, page.page, LIVE), true)}
-                    >
-                      {t.gallery.live}
-                    </AppLink>
+                    <Item indent query={link(app, page.page, LIVE)} active={isActive(app, page.page, LIVE)}>
+                      <span aria-hidden className="size-1.5 rounded-full bg-lab-live" /> {LAB_WORDS.live}
+                    </Item>
                   )}
                   {cards.map((card) => {
                     const version = card.redesign.version;
-                    const active = isActive(app, page.page, version);
                     return (
-                      <AppLink
+                      <Item
                         key={card.key}
-                        view="redesign"
+                        indent
                         query={link(app, page.page, version)}
-                        aria-current={active ? 'page' : undefined}
-                        className={itemClass(active, true)}
+                        active={isActive(app, page.page, version)}
                       >
-                        <Ltr mono className="min-w-0 flex-1 truncate">
-                          {version}
-                        </Ltr>
-                        <StatusBadge status={card.status} />
-                      </AppLink>
+                        <span className="min-w-0 flex-1 truncate">{version}</span>
+                        <LabStatus status={card.status} />
+                      </Item>
                     );
                   })}
                 </div>
@@ -341,10 +349,10 @@ function Navigator({
   );
 }
 
-function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-1">
-      <h2 className="flex items-center gap-1.5 px-2.5 text-caption font-semibold text-muted-foreground">
+    <section className="border-t border-white/5 px-2 py-3">
+      <h2 className="mb-1 flex items-center gap-1.5 px-3 text-lab-label font-semibold tracking-wider text-lab-faint uppercase">
         {icon}
         {title}
       </h2>
@@ -353,48 +361,147 @@ function Section({ title, icon, children }: { title: string; icon: ReactNode; ch
   );
 }
 
-// ── The controls ─────────────────────────────────────────────────────────────────────────────────
-
-function Toggle({
-  pressed,
-  onChange,
-  icon,
+function Item({
+  active,
+  indent,
+  query,
   children,
 }: {
-  pressed: boolean;
-  onChange: () => void;
-  icon: ReactNode;
+  active: boolean;
+  indent?: boolean;
+  query: Record<string, string | null>;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLAnchorElement>(null);
+  // The list is long, and a version opened from a link should be in sight.
+  useEffect(() => {
+    if (active) ref.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [active]);
+  return (
+    <AppLink
+      ref={ref}
+      view="gallery"
+      query={query}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-start text-lab-dim transition-colors hover:bg-white/5 hover:text-lab-text',
+        indent && 'ps-5',
+        active && 'bg-white/10 text-lab-strong',
+        focusRing,
+      )}
+    >
+      {children}
+    </AppLink>
+  );
+}
+
+// ── The controls ─────────────────────────────────────────────────────────────────────────────────
+
+function Segmented<T extends string | number>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly { value: T; label: string }[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div role="group" aria-label={label} className="flex rounded-lg bg-white/5 p-0.5">
+      {options.map((option) => (
+        <button
+          key={String(option.value)}
+          type="button"
+          aria-pressed={option.value === value}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'min-h-11 rounded-md px-2.5 py-1 text-xs transition-colors md:min-h-0',
+            option.value === value ? 'bg-white/15 text-lab-strong' : 'text-lab-dim hover:text-lab-text',
+            focusRing,
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const iconButton = 'inline-flex size-11 items-center justify-center rounded-md transition-colors md:size-7';
+
+function Toggle({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title: string;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
-      aria-pressed={pressed}
-      onClick={onChange}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
+      onClick={onClick}
       className={cn(
-        'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-body-sm font-medium whitespace-nowrap transition-colors duration-120 md:h-8',
-        pressed
-          ? 'border-foreground bg-foreground text-background'
-          : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground',
+        iconButton,
+        active ? 'bg-white/15 text-lab-strong' : 'text-lab-dim hover:bg-white/10 hover:text-lab-text',
         focusRing,
       )}
     >
-      {icon}
       {children}
     </button>
+  );
+}
+
+function LabSelect({
+  label,
+  value,
+  onChange,
+  className,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={cn(
+        'min-h-11 max-w-48 rounded-md border border-white/10 bg-lab-canvas px-2 py-1 text-xs text-lab-soft md:min-h-0',
+        focusRing,
+        className,
+      )}
+    >
+      {children}
+    </select>
   );
 }
 
 function Toolbar({
   state,
   page,
+  card,
   go,
 }: {
   state: GalleryState;
   page: GalleryPage | undefined;
+  /** The version on show. None in a compare, where each side names its own. */
+  card: RedesignCard | undefined;
   go: (patch: Partial<GalleryState>) => void;
 }) {
-  const t = useT<RedesignMessages>('redesign');
+  const { isOwner } = useSession();
   const isTokens = state.page === TOKENS_PAGE;
   const choices = choicesOf(page);
   const comparing = state.b !== null;
@@ -404,106 +511,134 @@ function Toolbar({
       ? frameSrc(state.app, state.page, state.a, state)
       : null;
   const versionSelect = (label: string, value: string | null, onChange: (next: string) => void) => (
-    <Select
-      aria-label={label}
-      dir="ltr"
-      value={value ?? ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="max-w-48 font-mono md:h-8"
-    >
+    <LabSelect label={label} value={value ?? ''} onChange={onChange}>
       {choices.map((choice) => (
         <option key={choice} value={choice}>
           {choice}
         </option>
       ))}
-    </Select>
+    </LabSelect>
   );
 
   return (
     <div
       role="toolbar"
-      aria-label={t.gallery.toolbar}
-      className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-card px-3 py-2"
+      aria-label={LAB_WORDS.toolbar}
+      className="flex flex-wrap items-center gap-3 border-b border-white/10 bg-lab-panel px-4 py-2.5 text-sm text-lab-soft"
     >
-      <p className="me-auto min-w-0 truncate text-body font-medium text-foreground">
-        {state.app ? (
-          <Ltr mono>{`${state.app} / ${isTokens ? t.gallery.tokens : state.page}`}</Ltr>
-        ) : (
-          t.gallery.pickPrompt
+      <p className="me-auto flex min-w-0 items-center gap-2 font-medium text-lab-text">
+        <span className="truncate">
+          {state.app
+            ? `${state.app} / ${isTokens ? LAB_WORDS.tokens.toLowerCase() : state.page}`
+            : LAB_WORDS.pickPrompt}
+        </span>
+        {card && (
+          <AppLink
+            card={card.key}
+            aria-label={LAB_WORDS.openCard(card.key)}
+            title={LAB_WORDS.openCard(card.key)}
+            className={cn(
+              'shrink-0 rounded-sm text-xs font-normal text-lab-dim hover:text-lab-text',
+              focusRing,
+            )}
+          >
+            <Ltr mono>{card.key}</Ltr>
+          </AppLink>
         )}
       </p>
+
+      {/* The verdict stays the sheet's, with its confirmation: this only opens it on the right action. */}
+      {isOwner && card?.status === 'review' && (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={(e) => openCard(card.key, { action: 'approve', opener: e.currentTarget })}
+            data-status="approved"
+            className={cn(
+              'lab-status min-h-11 rounded-md px-2.5 py-1 text-xs transition-opacity hover:opacity-80 md:min-h-0',
+              focusRing,
+            )}
+          >
+            {LAB_WORDS.approve}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => openCard(card.key, { action: 'request_changes', opener: e.currentTarget })}
+            className={cn(
+              'min-h-11 rounded-md px-2.5 py-1 text-xs text-lab-dim transition-colors hover:bg-white/10 hover:text-lab-text md:min-h-0',
+              focusRing,
+            )}
+          >
+            {LAB_WORDS.requestChanges}
+          </button>
+        </div>
+      )}
 
       {canCompare && (
         <div className="flex flex-wrap items-center gap-2">
           <Toggle
-            pressed={comparing}
-            onChange={() => go({ b: comparing ? null : compareTarget(choices, state.a) })}
-            icon={<Columns2 aria-hidden className="size-4" strokeWidth={1.75} />}
+            active={comparing}
+            onClick={() => go({ b: comparing ? null : compareTarget(choices, state.a) })}
+            title={LAB_WORDS.compare}
           >
-            {t.gallery.compare}
+            {comparing ? (
+              <Columns2 aria-hidden className="size-4" />
+            ) : (
+              <Square aria-hidden className="size-4" />
+            )}
           </Toggle>
           {comparing && (
             <>
-              {versionSelect(t.compare.versionA, state.a, (a) => go({ a }))}
-              <span aria-hidden className="text-body-sm text-muted-foreground">
-                {t.gallery.vs}
+              {versionSelect(LAB_WORDS.versionA, state.a, (a) => go({ a }))}
+              <span aria-hidden className="text-lab-faint">
+                {LAB_WORDS.vs}
               </span>
-              {versionSelect(t.compare.versionB, state.b, (b) => go({ b }))}
+              {versionSelect(LAB_WORDS.versionB, state.b, (b) => go({ b }))}
             </>
           )}
         </div>
       )}
 
       {state.page && !isTokens && (
-        <Select
-          aria-label={t.gallery.scenario}
-          dir="ltr"
+        <LabSelect
+          label={LAB_WORDS.scenario}
           value={state.scenario}
-          onChange={(e) => go({ scenario: e.target.value })}
-          className="max-w-40 font-mono md:h-8"
+          onChange={(scenario) => go({ scenario })}
         >
           {SCENARIOS.map((scenario) => (
             <option key={scenario} value={scenario}>
               {scenario}
             </option>
           ))}
-        </Select>
+        </LabSelect>
       )}
 
       <Segmented
-        label={t.compare.device}
-        value={String(state.width)}
-        options={GALLERY_WIDTHS.map((width) => ({
-          value: String(width),
-          label: t.gallery.widths[String(width) as keyof typeof t.gallery.widths],
-        }))}
-        onChange={(w) => go({ width: w === 'fill' ? 'fill' : (Number(w) as 390 | 768 | 1440) })}
+        label={LAB_WORDS.device}
+        value={state.width}
+        options={LAB_WIDTHS}
+        onChange={(width) => go({ width })}
       />
       <Segmented
-        label={t.compare.lang}
+        label={LAB_WORDS.language}
         value={state.lang}
-        options={[
-          { value: 'ar', label: t.compare.arabic },
-          { value: 'en', label: t.compare.english },
-        ]}
+        options={LAB_LANGS}
         onChange={(lang) => go({ lang })}
       />
-      <Segmented
-        label={t.compare.theme}
-        value={state.theme}
-        options={[
-          { value: 'light', label: t.compare.light },
-          { value: 'dark', label: t.compare.dark },
-        ]}
-        onChange={(theme) => go({ theme })}
-      />
+      <Toggle
+        active={state.theme === 'dark'}
+        onClick={() => go({ theme: state.theme === 'dark' ? 'light' : 'dark' })}
+        title={LAB_WORDS.theme}
+      >
+        {state.theme === 'dark' ? (
+          <Moon aria-hidden className="size-4" />
+        ) : (
+          <Sun aria-hidden className="size-4" />
+        )}
+      </Toggle>
       {!isTokens && (
-        <Toggle
-          pressed={state.notes}
-          onChange={() => go({ notes: !state.notes })}
-          icon={<NotebookText aria-hidden className="size-4" strokeWidth={1.75} />}
-        >
-          {t.compare.notes}
+        <Toggle active={state.notes} onClick={() => go({ notes: !state.notes })} title={LAB_WORDS.notes}>
+          <NotebookText aria-hidden className="size-4" />
         </Toggle>
       )}
       {popout && (
@@ -511,13 +646,11 @@ function Toolbar({
           href={popout}
           target="_blank"
           rel="noreferrer"
-          className={cn(
-            'inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-2.5 text-body-sm font-medium text-muted-foreground transition-colors duration-120 hover:bg-accent hover:text-foreground md:h-8',
-            focusRing,
-          )}
+          aria-label={LAB_WORDS.popout}
+          title={LAB_WORDS.popout}
+          className={cn(iconButton, 'text-lab-dim hover:bg-white/10 hover:text-lab-text', focusRing)}
         >
-          {t.gallery.popout}
-          <ExternalLink aria-hidden className="size-4 rtl:-scale-x-100" strokeWidth={1.75} />
+          <ExternalLink aria-hidden className="size-4" />
         </a>
       )}
     </div>
@@ -532,39 +665,34 @@ function metaText(value: unknown): string {
 }
 
 function VersionNotes({ card }: { card: RedesignCard }) {
-  const t = useT<RedesignMessages>('redesign');
   const files = useVersionFiles(card.key, true);
   const front = card.redesign.frontMatter ?? {};
   const meta = META_KEYS.map((key) => [key, metaText(front[key])] as const).filter(([, value]) => value);
   return (
     <article className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-body-lg font-semibold text-foreground">
+        <h3 className="font-semibold text-lab-strong">
           <Bidi>{card.redesign.concept}</Bidi>
         </h3>
-        <StatusBadge status={card.status} />
+        <LabStatus status={card.status} />
       </div>
       <p>
         <AppLink
           card={card.key}
           className={cn(
-            'hit-44 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
+            'rounded-sm text-xs font-medium text-lab-link underline-offset-4 hover:underline',
             focusRing,
           )}
         >
-          {fill(t.gallery.openCard, { key: <Ltr mono>{card.key}</Ltr> })}
+          {LAB_WORDS.openCard(card.key)}
         </AppLink>
       </p>
       {meta.length > 0 && (
-        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-body-sm">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
           {meta.map(([key, value]) => (
             <div key={key} className="contents">
-              <dt className="text-muted-foreground">
-                <Ltr mono>{key}</Ltr>
-              </dt>
-              <dd className="min-w-0 break-words text-foreground">
-                <Ltr mono>{value}</Ltr>
-              </dd>
+              <dt className="text-lab-faint">{key}</dt>
+              <dd className="min-w-0 break-words text-lab-soft">{value}</dd>
             </div>
           ))}
         </dl>
@@ -574,25 +702,24 @@ function VersionNotes({ card }: { card: RedesignCard }) {
       ) : files.data?.markdown ? (
         <MarkdownView source={files.data.markdown} dir="auto" />
       ) : (
-        <p className="text-body-sm text-muted-foreground">{t.gallery.noNotes}</p>
+        <p className="text-xs text-lab-faint">{LAB_WORDS.noNotes}</p>
       )}
     </article>
   );
 }
 
 function Notes({ cards, brief }: { cards: RedesignCard[]; brief: string | undefined }) {
-  const t = useT<RedesignMessages>('redesign');
   return (
     <aside
-      aria-label={t.compare.notes}
-      className="flex shrink-0 flex-col gap-8 border-t border-border bg-card p-4 xl:w-96 xl:overflow-y-auto xl:border-s xl:border-t-0"
+      aria-label={LAB_WORDS.notes}
+      className="flex shrink-0 flex-col gap-8 border-t border-white/10 bg-lab-panel p-5 text-sm text-lab-soft xl:w-96 xl:overflow-y-auto xl:border-s xl:border-t-0"
     >
       {cards.map((card) => (
         <VersionNotes key={card.key} card={card} />
       ))}
       {brief && (
-        <article className="flex flex-col gap-3 border-t border-border pt-4">
-          <h3 className="text-caption font-semibold text-muted-foreground">{t.gallery.brief}</h3>
+        <article className="flex flex-col gap-2 border-t border-white/10 pt-5">
+          <h3 className="text-xs font-semibold tracking-wider text-lab-faint uppercase">{LAB_WORDS.brief}</h3>
           <MarkdownView source={brief} dir="auto" />
         </article>
       )}

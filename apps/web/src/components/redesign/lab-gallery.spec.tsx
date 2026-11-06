@@ -1,5 +1,5 @@
 /**
- * @file The gallery view of the Redesign page: its tabs, what a version shows, and the honest states.
+ * @file The lab's own page: how Redesign opens it, what a version shows, what stays Hub's, and the honest states.
  */
 import { screen, waitFor } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
@@ -7,19 +7,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
+import { LabGallery } from './lab-gallery';
 import { RedesignPage } from './redesign-page';
 
 const page = (
   <Tooltip.Provider>
-    <RedesignPage />
+    <LabGallery />
   </Tooltip.Provider>
 );
 
-const search = { value: 'view=gallery' };
+const search = { value: '' };
+const path = { value: '/en/goteav/gallery' };
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(search.value),
-  usePathname: () => '/en/goteav/redesign',
+  usePathname: () => path.value,
 }));
 
 class FakeResizeObserver {
@@ -95,36 +97,48 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('RedesignPage, gallery view', () => {
-  it('offers both views, on the gallery here', async () => {
-    search.value = 'view=gallery';
+describe('Redesign and the lab', () => {
+  it('Redesign opens the lab in a new tab, and has no gallery of its own', async () => {
+    search.value = '';
+    path.value = '/en/goteav/redesign';
     stub();
-    renderWithApp(page, { locale: 'en' });
-    expect(await screen.findByRole('button', { name: 'Review' })).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.getByRole('button', { name: 'Gallery' })).toHaveAttribute('aria-pressed', 'true');
+    renderWithApp(
+      <Tooltip.Provider>
+        <RedesignPage />
+      </Tooltip.Provider>,
+      { locale: 'en' },
+    );
+    const link = await screen.findByRole('link', { name: 'Open the lab' });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('href')).toMatch(/\/gallery$/);
+    expect(screen.queryByRole('navigation', { name: 'Lab pages and versions' })).toBeNull();
+    path.value = '/en/goteav/gallery';
   });
+});
 
+describe('LabGallery', () => {
   it('with nothing picked, says what the lab holds', async () => {
-    search.value = 'view=gallery';
+    search.value = '';
     stub();
     renderWithApp(page, { locale: 'en' });
-    expect(await screen.findByText(/1 page, 2 versions/)).toBeInTheDocument();
+    expect(await screen.findByText(/1 page · 2 versions/)).toBeInTheDocument();
     expect(frame()).toBeNull();
   });
 
   it('lists tokens, the running page and each version with its status', async () => {
-    search.value = 'view=gallery';
+    search.value = '';
     stub();
     renderWithApp(page, { locale: 'en' });
     const nav = await screen.findByRole('navigation', { name: 'Lab pages and versions' });
     expect(nav).toHaveTextContent('Tokens');
-    expect(nav).toHaveTextContent('Live page');
+    expect(nav).toHaveTextContent('live');
     expect(nav).toHaveTextContent('v2-flight-path');
-    expect(nav).toHaveTextContent('In review');
+    expect(nav).toHaveTextContent('review');
+    expect(nav.closest('[data-lab-gallery]')).toHaveAttribute('dir', 'ltr');
   });
 
   it('shows a version with a page in its own frame, same origin, at the mode in the address', async () => {
-    search.value = 'view=gallery&app=web&page=wallet&a=v2-flight-path&w=390&lang=ar&theme=dark';
+    search.value = 'app=web&page=wallet&a=v2-flight-path&w=390&lang=ar&theme=dark';
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
     stub();
     renderWithApp(page, { locale: 'en' });
@@ -140,7 +154,7 @@ describe('RedesignPage, gallery view', () => {
   });
 
   it('shows a baseline as its pictures, the one named for the mode', async () => {
-    search.value = 'view=gallery&app=web&page=wallet&a=v1-baseline&w=1440&lang=en&theme=light';
+    search.value = 'app=web&page=wallet&a=v1-baseline&w=1440&lang=en&theme=light';
     stub();
     renderWithApp(page, { locale: 'en' });
     expect(await screen.findByRole('img', { name: /v1-baseline/ })).toHaveAttribute('src', '/shot.png');
@@ -148,7 +162,7 @@ describe('RedesignPage, gallery view', () => {
   });
 
   it('compares two versions, each in its own pane, and offers the running page', async () => {
-    search.value = 'view=gallery&app=web&page=wallet&a=v2-flight-path&b=live&w=768';
+    search.value = 'app=web&page=wallet&a=v2-flight-path&b=live&w=768';
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
     stub();
     renderWithApp(page, { locale: 'en' });
@@ -156,27 +170,36 @@ describe('RedesignPage, gallery view', () => {
     const sources = [...document.querySelectorAll('iframe')].map((f) => f.getAttribute('src'));
     expect(sources[0]).toMatch(/^\/lab\/frame-web\.html/);
     expect(sources[1]).toBe('http://localhost:6002/ar/account/wallet');
-    expect(screen.getByRole('button', { name: 'Compare' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Side-by-side' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('notes hold status, front-matter, the README, the brief, and the way to the verdict', async () => {
-    search.value = 'view=gallery&app=web&page=wallet&a=v2-flight-path&notes=1';
+    search.value = 'app=web&page=wallet&a=v2-flight-path&notes=1';
     vi.stubGlobal('ResizeObserver', FakeResizeObserver);
     stub();
     renderWithApp(page, { locale: 'en' });
-    const notes = await screen.findByRole('complementary', { name: 'Notes' });
+    const notes = await screen.findByRole('complementary', { name: 'Status & notes' });
     expect(await screen.findByText('The notes of this version.')).toBeInTheDocument();
-    expect(notes).toHaveTextContent('In review');
+    expect(notes).toHaveTextContent('review');
     expect(notes).toHaveTextContent('2026-10-27');
     expect(notes).toHaveTextContent('The brief.');
-    expect(screen.getByRole('link', { name: /Open GTV-2/ })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /Open GTV-2/ })[0]).toHaveAttribute(
       'href',
       expect.stringContaining('card=GTV-2'),
     );
   });
 
+  it('the owner reaches the verdict from the toolbar, through the sheet', async () => {
+    search.value = 'app=web&page=wallet&a=v2-flight-path';
+    vi.stubGlobal('ResizeObserver', FakeResizeObserver);
+    stub();
+    renderWithApp(page, { locale: 'en' });
+    expect(await screen.findByRole('button', { name: 'Approve' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Request changes' })).toBeInTheDocument();
+  });
+
   it('a lab that is down is a state of the stage, and the page stands', async () => {
-    search.value = 'view=gallery&app=web&page=wallet&a=v2-flight-path';
+    search.value = 'app=web&page=wallet&a=v2-flight-path';
     stub(false);
     renderWithApp(page, { locale: 'en' });
     expect(await screen.findByText('The lab is not running')).toBeInTheDocument();
@@ -185,7 +208,7 @@ describe('RedesignPage, gallery view', () => {
   });
 
   it('a project with no lab has the honest empty state', async () => {
-    search.value = 'view=gallery';
+    search.value = '';
     stub(true, []);
     renderWithApp(page, { locale: 'en' });
     expect(await screen.findByText('No lab pages yet')).toBeInTheDocument();

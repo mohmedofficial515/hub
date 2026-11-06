@@ -62,7 +62,6 @@ describe('readGallery', () => {
     const query = new URLSearchParams();
     for (const [name, value] of Object.entries(galleryQuery(state))) if (value) query.set(name, value);
     expect(readGallery(query, fallback)).toEqual(state);
-    expect(query.get('view')).toBe('gallery');
   });
 });
 

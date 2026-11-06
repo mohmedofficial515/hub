@@ -128,6 +128,7 @@ function useGlobalKeys(actions: {
 export function Shell({ children }: { children: ReactNode }) {
   const t = useT(messages);
   const locale = useLocale();
+  const { view } = useRoute();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
@@ -175,20 +176,27 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               {t.skip}
             </a>
-            <div className="flex min-h-dvh">
-              <DesktopSidebar onShortcuts={openHelp} />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <Header
-                  onOpenNav={() => setNavOpen(true)}
-                  onOpenPalette={openPalette}
-                  onNewCard={() => openNew()}
-                  onShortcuts={openHelp}
-                />
-                <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-                  {children}
-                </main>
+            {view === 'gallery' ? (
+              // The lab has the whole window. Everything below still serves it: the sheet, the palette, the keys, the toasts.
+              <main id="main" tabIndex={-1} className="outline-none">
+                {children}
+              </main>
+            ) : (
+              <div className="flex min-h-dvh">
+                <DesktopSidebar onShortcuts={openHelp} />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <Header
+                    onOpenNav={() => setNavOpen(true)}
+                    onOpenPalette={openPalette}
+                    onNewCard={() => openNew()}
+                    onShortcuts={openHelp}
+                  />
+                  <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
+            )}
             {/* Overlays portal into #hub-root to keep its tokens, so a deep-linked sheet waits for the root to exist. */}
             {rootReady && (
               <>

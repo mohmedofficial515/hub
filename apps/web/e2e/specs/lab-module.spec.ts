@@ -1,5 +1,5 @@
 /**
- * @file The lab as a module of Hub (docs/16 §6): the gallery in Redesign, each version in its own frame at `/lab`, a broken version alone in its frame, and
+ * @file The lab as a module of Hub (docs/16 §6): its own page in a new tab, each version in its own frame at `/lab`, a broken version alone in its frame, and
  * the proxy keeping to the lab's own files. Runs on the stack's temp lab, so nothing touches `apps/lab`.
  */
 import {
@@ -14,8 +14,9 @@ import { WEB_URL } from '../support/ports';
 import { shared } from '../support/state';
 
 const VERSION = 'app=hub&page=frames&a=v2-good';
+const LAB = { nav: 'Lab pages and versions', notes: 'Status & notes' };
 const gallery = (locale: Locale, ws: string, query = '') =>
-  view(locale, ws, 'redesign', `view=gallery&lang=en&theme=light&w=1440${query ? `&${query}` : ''}`);
+  view(locale, ws, 'gallery', `lang=en&theme=light&w=1440${query ? `&${query}` : ''}`);
 
 const framed = (page: Page, version: string): FrameLocator =>
   page.frameLocator(`iframe[data-lab-frame="hub/frames/${version}"]`);
@@ -58,18 +59,29 @@ test.describe('lab module', () => {
     await ensureLab(owner, ws);
   });
 
-  test('Review and Gallery are one page with one sidebar item', async ({ page, locale, ws }) => {
+  test('Redesign opens the lab in a new tab, without the shell, and an old address still lands there', async ({
+    page,
+    locale,
+    ws,
+  }) => {
     const t = words(locale, 'redesign');
     await page.goto(view(locale, ws, 'redesign'));
-    await page.getByRole('button', { name: word(t, 'views.gallery'), exact: true }).click();
-    await expect(page).toHaveURL(/view=gallery/);
-    await expect(page.getByRole('navigation', { name: word(t, 'gallery.navLabel') })).toContainText(
-      'v2-good',
-    );
-    await page.getByRole('button', { name: word(t, 'views.review'), exact: true }).click();
-    await expect(page).not.toHaveURL(/view=gallery/);
-    await expect(page.locator('a[href*="redesign"]').first()).toBeVisible();
+    const [tab] = await Promise.all([
+      page.context().waitForEvent('page'),
+      page.getByRole('link', { name: word(t, 'openGallery'), exact: true }).click(),
+    ]);
+    await expect(tab).toHaveURL(/\/gallery/);
+    await expect(tab.getByRole('navigation', { name: LAB.nav })).toContainText('v2-good');
+    await expect(tab.locator('[data-lab-gallery]')).toHaveAttribute('dir', 'ltr');
+    // No sidebar and no header: the lab's list is the only navigation there is.
+    await expect(tab.getByRole('navigation')).toHaveCount(1);
+    await expect(tab.getByRole('banner')).toHaveCount(0);
+    await tab.close();
+
     await expect(page.locator('a[href^="http://localhost:6200"]')).toHaveCount(0);
+    await page.goto(view(locale, ws, 'redesign', 'view=gallery&app=hub&page=frames&a=v2-good'));
+    await expect(page).toHaveURL(/\/gallery\?.*a=v2-good/);
+    await expect(page).not.toHaveURL(/view=gallery/);
   });
 
   test('a version renders in its own frame, and the toolbar drives size, language and theme', async ({
@@ -77,20 +89,19 @@ test.describe('lab module', () => {
     locale,
     ws,
   }) => {
-    const t = words(locale, 'redesign');
     await page.goto(gallery(locale, ws, VERSION));
     const frame = framed(page, 'v2-good');
     await expect(frame.getByTestId('fixture')).toHaveText('Frame works: en');
     await expect(frame.locator('html')).toHaveAttribute('dir', 'ltr');
 
-    await page.getByRole('button', { name: word(t, 'compare.arabic'), exact: true }).click();
+    await page.getByRole('button', { name: 'AR · RTL', exact: true }).click();
     await expect(frame.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(frame.getByTestId('fixture')).toHaveText('Frame works: ar');
 
-    await page.getByRole('button', { name: word(t, 'compare.dark'), exact: true }).click();
+    await page.getByRole('button', { name: 'Theme', exact: true }).click();
     await expect(frame.locator('html')).toHaveClass(/dark/);
 
-    await page.getByRole('button', { name: word(t, 'gallery.widths.390'), exact: true }).click();
+    await page.getByRole('button', { name: 'Mobile', exact: true }).click();
     const element = page.locator('iframe[data-lab-frame="hub/frames/v2-good"]');
     await expect(element).toHaveCSS('width', '390px');
     await expect(page).toHaveURL(/w=390/);
@@ -113,9 +124,8 @@ test.describe('lab module', () => {
     await expect(broken.locator('pre, vite-error-overlay').first()).toBeAttached({ timeout: 20_000 });
     await expect(broken.getByTestId('fixture')).toHaveCount(0);
 
-    const t = words(locale, 'redesign');
-    await expect(page.getByRole('navigation', { name: word(t, 'gallery.navLabel') })).toBeVisible();
-    await page.getByRole('button', { name: word(t, 'gallery.compare'), exact: true }).click();
+    await expect(page.getByRole('navigation', { name: LAB.nav })).toBeVisible();
+    await page.getByRole('button', { name: 'Side-by-side', exact: true }).click();
     await expect(page.locator('iframe')).toHaveCount(1);
     await expect(framed(page, 'v2-good').getByTestId('fixture')).toHaveText('Frame works: en');
   });
@@ -125,9 +135,8 @@ test.describe('lab module', () => {
     locale,
     ws,
   }) => {
-    const t = words(locale, 'redesign');
     await page.goto(gallery(locale, ws, `${VERSION}&notes=1`));
-    const notes = page.getByRole('complementary', { name: word(t, 'compare.notes') });
+    const notes = page.getByRole('complementary', { name: LAB.notes });
     await expect(notes).toContainText('The notes of the good version');
     await expect(notes).toContainText('2026-10-27');
     await expect(notes).toContainText('The brief of this page');

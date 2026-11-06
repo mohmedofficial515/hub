@@ -532,7 +532,7 @@ export function TimelinePage() {
                                 )}
                                 {card.type === 'redesign' && (
                                   <a
-                                    href={hrefFor('redesign', {
+                                    href={hrefFor('gallery', {
                                       card: null,
                                       query: versionQuery(card.redesign),
                                     })}

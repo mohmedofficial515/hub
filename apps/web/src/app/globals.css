@@ -10,6 +10,19 @@
 @custom-variant ltr (&:is([dir=ltr] *));
 
 @theme inline {
+  --color-lab-canvas: var(--lab-canvas);
+  --color-lab-panel: var(--lab-panel);
+  --color-lab-strong: var(--lab-strong);
+  --color-lab-text: var(--lab-text);
+  --color-lab-soft: var(--lab-soft);
+  --color-lab-dim: var(--lab-dim);
+  --color-lab-faint: var(--lab-faint);
+  --color-lab-live: var(--lab-live);
+  --color-lab-link: var(--lab-link);
+  --text-lab-micro: 10px;
+  --text-lab-label: 11px;
+  --tracking-lab: 0.2em;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -461,4 +474,66 @@ a,
     direction: ltr;
     unicode-bidi: isolate;
   }
+}
+
+/*
+ * The lab's own frame (`components/redesign/lab-gallery.tsx`, docs/16 §6): the look it always had, in either theme of Hub. It sits after `.dark` and carries Hub's dark
+ * tokens to the kit's parts inside it, in the same greys.
+ */
+.lab-frame {
+  --lab-canvas: #18181b;
+  --lab-panel: #09090b;
+  --lab-strong: #fafafa;
+  --lab-text: #f4f4f5;
+  --lab-soft: #d4d4d8;
+  --lab-dim: #a1a1aa;
+  --lab-faint: #71717a;
+  --lab-live: #34d399;
+  --lab-link: #7dd3fc;
+  --background: var(--lab-canvas);
+  --foreground: var(--lab-text);
+  --card: var(--lab-panel);
+  --card-foreground: var(--lab-text);
+  --muted: #27272a;
+  --muted-foreground: var(--lab-dim);
+  color-scheme: dark;
+}
+
+/* The frame is the whole window and scrolls inside itself, so the page keeps no room for a scrollbar. */
+html:has(.lab-frame) {
+  scrollbar-gutter: auto;
+  overflow: hidden;
+}
+
+.lab-stage {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.06) 1px, transparent 0);
+  background-size: 16px 16px;
+}
+
+.lab-status {
+  --lab-tone: 113 113 122;
+  --lab-ink: #d4d4d8;
+  background: rgb(var(--lab-tone) / 0.15);
+  color: var(--lab-ink);
+  box-shadow: inset 0 0 0 1px rgb(var(--lab-tone) / 0.3);
+}
+.lab-status[data-status='review'] {
+  --lab-tone: 245 158 11;
+  --lab-ink: #fcd34d;
+}
+.lab-status[data-status='approved'] {
+  --lab-tone: 16 185 129;
+  --lab-ink: #6ee7b7;
+}
+.lab-status[data-status='rejected'] {
+  --lab-tone: 244 63 94;
+  --lab-ink: #fda4af;
+}
+.lab-status[data-status='ported'] {
+  --lab-tone: 14 165 233;
+  --lab-ink: #7dd3fc;
+}
+.lab-status[data-status='reference'] {
+  --lab-tone: 139 92 246;
+  --lab-ink: #c4b5fd;
 }

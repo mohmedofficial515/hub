@@ -1,6 +1,6 @@
 /**
  * @file gallery.ts
- * @description The lab's gallery with no React: its state in the address, the frame of a version, what a pane shows, and how a device fits the stage
+ * @description The lab's page with no React: its state in the address, the frame of a version, what a pane shows, and how a device fits the stage
  * (docs/16 §6). Same rules as the gallery that came with the lab (`apps/lab/lab/src/shell`), with its hash route moved to Hub's query string.
  */
 export const LAB_BASE = '/lab';
@@ -73,10 +73,9 @@ export function readGallery(
   };
 }
 
-/** The address of a state, as the query of the Redesign page. `null` removes a parameter. */
+/** The address of a state, as the query of the `gallery` view. `null` removes a parameter. */
 export function galleryQuery(state: GalleryState): Record<string, string | null> {
   return {
-    view: 'gallery',
     app: state.app,
     page: state.page,
     a: state.a,
@@ -89,9 +88,8 @@ export function galleryQuery(state: GalleryState): Record<string, string | null>
   };
 }
 
-/** Where a version opens, from any page of Hub. */
+/** Where a version opens, from any page of Hub: `hrefFor('gallery', { card: null, query: versionQuery(r) })`, in a new tab. */
 export const versionQuery = (r: { app: string; page: string; version: string }) => ({
-  view: 'gallery',
   app: r.app,
   page: r.page,
   a: r.version,
