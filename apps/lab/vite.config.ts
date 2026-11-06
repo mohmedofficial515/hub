@@ -109,6 +109,8 @@ function watchVersions(): Plugin {
 
 export default defineConfig({
   root: path.resolve(ROOT, 'lab'),
+  // One bundle folder per port: two labs sharing one overwrite each other's packages, and frames fail to load.
+  cacheDir: path.join(ROOT, 'node_modules', `.vite-${PORT}`),
   // Hub serves the lab on its own origin at this path, so every address the lab writes carries it.
   base: '/lab/',
   // The gallery routes by hash and the frames are named files, so an unknown path is simply not found.
@@ -122,6 +124,10 @@ export default defineConfig({
     },
     // Real ui files resolve react from their own node_modules; force one copy.
     dedupe: ['react', 'react-dom'],
+  },
+  optimizeDeps: {
+    // Every version up front. Found one at a time, a new package makes the server swap its bundle while a frame is loading, and that import fails.
+    entries: ['*.html', '../web/*/*/page.tsx', '../dashboard/*/*/page.tsx', '../hub/*/*/page.tsx'],
   },
   server: {
     host: '127.0.0.1',

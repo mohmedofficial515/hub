@@ -7,6 +7,29 @@ import { TokensPreview } from './tokens-preview';
 
 const cache = new Map<string, ComponentType>();
 
+/**
+ * The dev server may be swapping pre-bundled packages when a version first loads, and that import fails once. Reload one time. A version that really
+ * does not compile fails again, and its error shows in this frame.
+ */
+function retryOnce(key: string, load: () => Promise<{ default: ComponentType }>) {
+  const mark = `lab-retried:${key}`;
+  return load().then(
+    (module) => {
+      sessionStorage.removeItem(mark);
+      return module;
+    },
+    (error: unknown) => {
+      if (sessionStorage.getItem(mark)) {
+        sessionStorage.removeItem(mark);
+        throw error;
+      }
+      sessionStorage.setItem(mark, '1');
+      location.reload();
+      return new Promise<never>(() => {});
+    },
+  );
+}
+
 function resolve(app: App, page: string, version: string): ComponentType | null {
   if (page === '_tokens') return TokensPreview;
   const key = `${page}/${version}`;
@@ -14,7 +37,7 @@ function resolve(app: App, page: string, version: string): ComponentType | null 
   if (hit) return hit;
   const load = findVersion(app, page, version)?.load;
   if (!load) return null;
-  const Lazy = lazy(load);
+  const Lazy = lazy(() => retryOnce(key, load));
   cache.set(key, Lazy);
   return Lazy;
 }
