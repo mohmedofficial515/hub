@@ -1,5 +1,5 @@
 /**
- * @file The page matrix of apps/web/README.md § Tests: 390, 768, 1440 × light, dark, on every page in its language, measured: no horizontal overflow and
+ * @file The page matrix of apps/web/README.md § Tests: 390, 768, 1280, 1440 × light, dark × the chat panel open and closed, on every page in its language, measured: no horizontal overflow and
  * no AA failure on rendered text, once the page's content has arrived (never a fixed delay). Slow, so it runs on request: `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix`.
  * `E2E_MATRIX_PAGES=redesign,releases` narrows it. Results go to `test-results/matrix.jsonl`.
  */
@@ -15,7 +15,8 @@ const OUT = resolve(__dirname, '../../test-results/matrix.jsonl');
 const ALL = ['today', 'inbox', 'planning', 'timeline', 'tasks', 'decisions', 'needs', 'handoffs', 'redesign'];
 const MORE = ['releases', 'docs', 'ask', 'onboarding', 'members', 'settings'];
 const PAGES = process.env['E2E_MATRIX_PAGES']?.split(',') ?? [...ALL, ...MORE];
-const SIZES = [390, 768, 1440];
+const SIZES = [390, 768, 1280, 1440];
+const PANEL = [true, false];
 const THEMES = ['light', 'dark'] as const;
 
 /** Content has arrived: the title is there, no skeleton is left, and the network has been quiet. The stream does not count. */
@@ -174,22 +175,28 @@ test.describe('page matrix', () => {
 
   for (const name of PAGES) {
     test(`matrix ${name}`, async ({ page, locale, ws }) => {
-      test.setTimeout(240_000);
+      test.setTimeout(600_000);
       mkdirSync(dirname(OUT), { recursive: true });
       const problems: string[] = [];
       for (const theme of THEMES) {
         await page.emulateMedia({ colorScheme: theme });
         for (const width of SIZES) {
-          await page.setViewportSize({ width, height: 900 });
-          await page.goto(view(locale, ws, name));
-          await contentArrived(page);
-          await page.evaluate((dark) => {
-            document.documentElement.classList.toggle('dark', dark);
-          }, theme === 'dark');
-          const result = await audit(page);
-          appendFileSync(OUT, `${JSON.stringify({ name, locale, theme, width, ...result })}\n`);
-          if (result.overflow > 0 || result.fails.length > 0 || result.nodes === 0) {
-            problems.push(`${width} ${theme}: ${JSON.stringify(result)}`);
+          for (const panel of PANEL) {
+            await page.setViewportSize({ width, height: 900 });
+            await page.goto(view(locale, ws, name));
+            await page.evaluate((open) => {
+              localStorage.setItem('hub-panel:open', JSON.stringify(open));
+            }, panel);
+            await page.reload();
+            await contentArrived(page);
+            await page.evaluate((dark) => {
+              document.documentElement.classList.toggle('dark', dark);
+            }, theme === 'dark');
+            const result = await audit(page);
+            appendFileSync(OUT, `${JSON.stringify({ name, locale, theme, width, panel, ...result })}\n`);
+            if (result.overflow > 0 || result.fails.length > 0 || result.nodes === 0) {
+              problems.push(`${width} ${theme} panel ${panel}: ${JSON.stringify(result)}`);
+            }
           }
         }
       }

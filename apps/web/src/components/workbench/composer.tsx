@@ -511,9 +511,10 @@ export function Suggestions({ className }: { className?: string | undefined }) {
   const panel = t.panel;
   const ctx = useWorkContext();
   const { roles, me } = useSession();
+  const subject = ctx.card ?? ctx.docCard;
   const list = suggestedPrompts({
     page: ctx.view,
-    card: ctx.card ? { ...toActionable(ctx.card), key: ctx.card.key } : null,
+    card: subject ? { ...toActionable(subject), key: subject.key } : null,
     roles,
     memberId: me.id,
   }).slice(0, 3);
@@ -769,7 +770,8 @@ export function Composer({
   const [focused, setFocused] = useState(false);
   const chat = wb.chat;
   const busy = chatIsBusy(chat?.status);
-  const blocked = engineBlocks(wb.engine);
+  const off0 = engineBlocks(wb.engine);
+  const blocked = off0 || !wb.ready;
   const slashOpen = text.startsWith('/') && !text.includes(' ') && !slashClosed && !blocked;
   // The slash starts the menu and is not part of the search, so `/review` finds `/code-review`.
   // Hub's own, from the plugin, then what the engine reported for this folder on the last turn. Before a first turn there is nothing else to name.
@@ -938,7 +940,7 @@ export function Composer({
               aria-activedescendant={slashOpen && flat.length ? `${id}-opt-${selected}` : undefined}
               aria-autocomplete="list"
               placeholder={
-                blocked ? fmt(t.engine[wb.engine as 'offline'].title, { device }) : t.composer.placeholder
+                off0 ? fmt(t.engine[wb.engine as 'offline'].title, { device }) : t.composer.placeholder
               }
               onFocus={(e) => {
                 // Bubbling here would open the tooltip over what is being typed. Its text is the hint this field already describes itself with.

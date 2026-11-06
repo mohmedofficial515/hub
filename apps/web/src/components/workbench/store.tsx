@@ -559,6 +559,8 @@ export interface Wb extends Local {
   waiting: { id: string; title: string; count: number }[];
   pending: number;
   roles: readonly string[];
+  /** The device and folder are known. Until then a send has nowhere to go. */
+  ready: boolean;
 }
 
 const Ctx = createContext<Wb | null>(null);
@@ -737,6 +739,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     waiting,
     pending,
     roles: session.me.roles,
+    ready: devicesQuery.isSuccess && project.isSuccess,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -761,6 +764,7 @@ export function useWorkContext() {
     cardKey: card?.key ?? null,
     card,
     doc,
+    docCard: docCard ?? null,
     targetLabel: card ? card.key : (nav[route.view] ?? ''),
   };
 }

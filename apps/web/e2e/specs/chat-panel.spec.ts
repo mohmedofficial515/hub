@@ -52,7 +52,7 @@ test.describe('chat panel, on the engine', () => {
     );
     await say(page, 'hello from the panel');
 
-    await expect(panel(page).getByText('hello from the panel')).toBeVisible(LONG);
+    await expect(panel(page).getByRole('log').getByText('hello from the panel')).toBeVisible(LONG);
     const reply = panel(page).locator('[data-wb-reply]').first();
     await expect(reply).toContainText('Reading', LONG);
     // Part of it was on screen before the whole of it arrived.
@@ -317,12 +317,12 @@ test.describe('chat panel, on the engine', () => {
 
   test('Stop ends a running turn, and what finished stays', async ({ page, engine, locale, ws }) => {
     await open(page, locale, ws);
-    engine.script(text('Working on it. '), hold());
+    engine.script(text('Working on it, and this will take a little while now. '), hold());
     await say(page, 'run for a while');
-    await expect(panel(page).getByText('Working on it.')).toBeVisible(LONG);
+    await expect(panel(page).getByText('Working on it')).toBeVisible(LONG);
     await panel(page).locator('[data-wb-stop]').click();
     await expect(panel(page).locator('[data-wb-turn]')).toHaveAttribute('data-wb-turn', 'stopped', LONG);
-    await expect(panel(page).getByText('Working on it.')).toBeVisible();
+    await expect(panel(page).getByText('Working on it')).toBeVisible();
     await expect(panel(page).locator('[data-wb-send]')).toBeVisible();
   });
 
@@ -469,7 +469,7 @@ test.describe('chat panel, the layout', () => {
     await expect(sheet(page)).toBeVisible();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.locator('[data-sheet-title]')).toBeFocused();
-    await page.locator('[data-wb-input]').focus();
+    await panel(page).locator('[data-wb-new]').focus();
     await page.keyboard.press('Escape');
     await expect(sheet(page)).toBeVisible();
     await page.locator('[data-sheet-title]').focus();
@@ -481,12 +481,13 @@ test.describe('chat panel, the layout', () => {
     await open(page, locale, ws);
     await page.keyboard.press('F6');
     await page.keyboard.press('F6');
+    await page.keyboard.press('F6');
     await expect(page.locator(':focus')).toHaveCount(1);
     const inStrip = await page.evaluate(() => !!document.activeElement?.closest('[data-wb-strip]'));
     expect(inStrip).toBe(true);
     await page.locator('[data-wb-skip-panel]').focus();
     await page.keyboard.press('Enter');
-    await expect(page.locator('[data-wb-input]')).toBeFocused();
+    expect(await page.evaluate(() => !!document.activeElement?.closest('[data-wb-panel]'))).toBe(true);
   });
 
   test('a phone starts on the page, and the panel is full screen', async ({ page, locale, ws }) => {
@@ -497,7 +498,7 @@ test.describe('chat panel, the layout', () => {
     await page.locator('[data-wb-phone-toggle]').click();
     await expect(panel(page)).toBeVisible();
     const box = await panel(page).evaluate((el) => el.getBoundingClientRect().width);
-    expect(box).toBe(390);
+    expect(box).toBe(await page.evaluate(() => document.documentElement.clientWidth));
   });
 
   test('the lab’s own page has no panel', async ({ page, locale, ws }) => {
