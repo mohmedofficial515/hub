@@ -126,6 +126,16 @@ async function started(world, extra) {
   return { answer, child };
 }
 
+/** A turn that needs a new process, so the old child's history does not satisfy the wait. */
+async function restarted(world, extra) {
+  const before = world.children.length;
+  const answer = world.begin(extra);
+  await until(() => world.children.length > before && world.children.at(-1).written.length > 0);
+  const child = world.children.at(-1);
+  child.say(INIT);
+  return { answer, child };
+}
+
 const answerApproval = (world, approvalId, decision) =>
   dispatch({ action: 'turn.answer', args: { chatId: CHAT, approvalId, decision } }, world.context, () => {});
 
@@ -243,25 +253,57 @@ describe('starting a turn', () => {
 });
 
 describe('the version range and the missing binary', () => {
-  it('a version outside the range is a clear failure, and nothing runs', async () => {
+  it('below the minimum is a clear failure, and nothing runs (D53)', async () => {
     const world = aWorld();
-    world.system.claudeVersion = '2.1.400';
+    world.system.claudeVersion = '2.1.300';
     const answer = await world.begin();
     expect(answer).toMatchObject({ ok: true, data: { status: 'failed' } });
     const [ended] = world.of('turn.ended');
     expect(ended.failure).toBe('version_out_of_range');
-    expect(ended.message).toContain('2.1.400');
+    expect(ended.message).toContain('2.1.300');
     expect(ended.message).toContain('Open in VS Code');
     expect(world.spawned).toEqual([]);
   });
 
-  it('the owner can knowingly try a newer one', async () => {
-    const world = aWorld({ HUB_CLAUDE_MAX_VERSION: '2.1.400' });
+  it('above the tested one runs, with a visible warning, and the rules stay on (D53)', async () => {
+    const world = aWorld();
     world.system.claudeVersion = '2.1.400';
     const { answer, child } = await started(world);
     child.say(RESULT);
     await answer;
     expect(world.spawned).toHaveLength(1);
+    const { args } = world.spawned[0];
+    expect(args).toContain('--permission-prompt-tool');
+    expect(args).toContain('--settings');
+    expect(world.of('engine.warning')).toEqual([
+      { kind: 'engine.warning', code: 'newer_than_tested', version: '2.1.400', testedMax: '2.1.318' },
+    ]);
+    const status = await dispatch({ action: 'engine.status', args: {} }, world.context, () => {});
+    expect(status.data).toMatchObject({
+      canRun: true,
+      inRange: false,
+      version: '2.1.400',
+      warning: { code: 'newer_than_tested', version: '2.1.400', testedMax: '2.1.318' },
+    });
+    expect(status.data.message).toContain('newer than');
+  });
+
+  it('declaring a newer version tested takes the warning away', async () => {
+    const world = aWorld({ HUB_CLAUDE_MAX_VERSION: '2.1.400' });
+    world.system.claudeVersion = '2.1.400';
+    const { answer, child } = await started(world);
+    child.say(RESULT);
+    await answer;
+    expect(world.of('engine.warning')).toEqual([]);
+  });
+
+  it('a fresh engine status asks the device again, past the cache (the re-check action)', async () => {
+    const world = aWorld();
+    const ask = (args) => dispatch({ action: 'engine.status', args }, world.context, () => {});
+    expect((await ask({})).data.version).toBe('2.1.318');
+    world.system.claudeVersion = '2.1.400';
+    expect((await ask({})).data.version).toBe('2.1.318');
+    expect((await ask({ fresh: true })).data.version).toBe('2.1.400');
   });
 
   it('no binary says so', async () => {
@@ -284,6 +326,255 @@ describe('the version range and the missing binary', () => {
       testedRange: { min: '2.1.318' },
     });
     expect(JSON.stringify(world.system.calls)).not.toContain('.credentials');
+  });
+});
+
+describe('an unreadable event (D53)', () => {
+  it('a line that is not JSON stops the turn, says so, and the process goes', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.stdout.emit('data', 'this is not an event\n');
+    const done = await answer;
+    expect(done.data.status).toBe('failed');
+    const [ended] = world.of('turn.ended');
+    expect(ended).toMatchObject({ status: 'failed', failure: 'unreadable_event' });
+    expect(ended.message).toContain('Open in VS Code');
+    expect(world.system.killed).toEqual([child.pid]);
+    expect(turnManager(world.context).liveChats()).toEqual([]);
+  });
+
+  it('a known event without what it must hold stops the turn, and a pending approval is denied', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say(toolStart('t1'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = askAsShim(world, 'Bash', { command: 'rm x' }, 't1');
+    await until(() => world.of('approval.requested').length === 1);
+    child.say({ type: 'assistant', message: {} });
+    await answer;
+    expect(world.of('turn.ended')[0].failure).toBe('unreadable_event');
+    expect((await asked).behavior).toBe('deny');
+  });
+
+  it('an event type the mapper does not know is ignored, since new ones appear with no harm', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say({ type: 'brand_new_thing', anything: 1 });
+    child.say(RESULT);
+    await answer;
+    expect(world.of('turn.ended')[0].status).toBe('done');
+  });
+});
+
+describe('the approval effect line', () => {
+  it('is fixed by the category, whatever the model said', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say(toolStart('t1'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = askAsShim(
+      world,
+      'Bash',
+      { command: 'git push origin main', description: 'Totally safe' },
+      't1',
+    );
+    await until(() => world.of('approval.requested').length === 1);
+    const [request] = world.of('approval.requested');
+    expect(request).toMatchObject({ category: 'push', effect: 'Pushes to a remote' });
+    await answerApproval(world, request.approvalId, 'deny');
+    expect((await asked).message).toBe('The owner denied this.');
+    child.say(RESULT);
+    await answer;
+  });
+
+  it("a deny with a note carries the owner's words back to Claude", async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say(toolStart('t1', 'mcp__hub__save_doc'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = askAsShim(world, 'mcp__hub__save_doc', { draft: 'x' }, 't1');
+    await until(() => world.of('approval.requested').length === 1);
+    const [request] = world.of('approval.requested');
+    await dispatch(
+      {
+        action: 'turn.answer',
+        args: { chatId: CHAT, approvalId: request.approvalId, decision: 'deny', note: 'Shorter' },
+      },
+      world.context,
+      () => {},
+    );
+    expect((await asked).message).toContain('Shorter');
+    child.say(RESULT);
+    await answer;
+  });
+});
+
+describe('questions', () => {
+  const QUESTION = {
+    questions: [
+      {
+        question: 'Which one?',
+        header: 'Pick',
+        multiSelect: false,
+        options: [{ label: 'A', description: 'First' }, { label: 'B' }],
+      },
+    ],
+  };
+
+  it('become a question event, and the answer goes back the way the engine expects', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    await until(() => world.of('question.asked').length === 1);
+    const [event] = world.of('question.asked');
+    expect(event.questions).toEqual([
+      {
+        text: 'Which one?',
+        header: 'Pick',
+        multiSelect: false,
+        options: [{ label: 'A', description: 'First' }, { label: 'B' }],
+      },
+    ]);
+    expect(world.of('approval.requested')).toEqual([]);
+    const answered = await dispatch(
+      {
+        action: 'turn.answer',
+        args: {
+          chatId: CHAT,
+          approvalId: event.questionId,
+          decision: 'allow',
+          answers: { 'Which one?': 'B' },
+        },
+      },
+      world.context,
+      () => {},
+    );
+    expect(answered.data.accepted).toBe(true);
+    expect(await asked).toEqual({
+      behavior: 'allow',
+      updatedInput: { ...QUESTION, answers: { 'Which one?': 'B' } },
+    });
+    expect(world.of('question.resolved')).toEqual([
+      expect.objectContaining({ status: 'answered', answers: { 'Which one?': 'B' } }),
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('work in Ask and Plan too, since they run nothing', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'plan' });
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    await until(() => world.of('question.asked').length === 1);
+    await dispatch(
+      {
+        action: 'turn.answer',
+        args: { chatId: CHAT, approvalId: world.of('question.asked')[0].questionId, decision: 'deny' },
+      },
+      world.context,
+      () => {},
+    );
+    expect((await asked).behavior).toBe('deny');
+    expect(world.of('question.resolved')[0].status).toBe('declined');
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('a question nobody answers ends on the same clock as an approval', async () => {
+    const world = aWorld({ HUB_BRIDGE_APPROVAL_TIMEOUT_MS: '30' });
+    const { answer, child } = await started(world);
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = await askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    expect(asked.behavior).toBe('deny');
+    expect(world.of('question.resolved')[0].status).toBe('timed_out');
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('a question whose shape is unknown is refused, and the model asks in words', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world);
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    expect((await askAsShim(world, 'AskUserQuestion', { nope: true }, 'q1')).behavior).toBe('deny');
+    child.say(RESULT);
+    await answer;
+  });
+});
+
+describe('the Starting line', () => {
+  it('a new chat and a mode change each say a process is starting, and why. The same mode says nothing', async () => {
+    const world = aWorld();
+    const first = await started(world);
+    first.child.say(RESULT);
+    await first.answer;
+    expect(world.of('turn.starting').map((event) => event.reason)).toEqual(['new']);
+
+    const same = world.begin();
+    await until(() => first.child.written.length === 2);
+    first.child.say(RESULT);
+    await same;
+    expect(world.of('turn.starting')).toHaveLength(1);
+
+    const second = await restarted(world, { mode: 'plan', sessionId: SESSION });
+    expect(world.of('turn.starting').map((event) => event.reason)).toEqual(['new', 'mode']);
+    second.child.say(RESULT);
+    await second.answer;
+  });
+
+  it('a model change is named, and a closed process is a resume', async () => {
+    const world = aWorld();
+    const first = await started(world, { model: 'haiku' });
+    first.child.say(RESULT);
+    await first.answer;
+    const second = await restarted(world, { model: 'sonnet', sessionId: SESSION });
+    expect(world.of('turn.starting').at(-1).reason).toBe('model');
+    second.child.say(RESULT);
+    await second.answer;
+    await turnManager(world.context).close(CHAT);
+    const third = await restarted(world, { model: 'sonnet', sessionId: SESSION });
+    expect(world.of('turn.starting').at(-1).reason).toBe('resume');
+    third.child.say(RESULT);
+    await third.answer;
+  });
+
+  it("every mode gets the same system prompt, since the engine keeps the first launch's for good", async () => {
+    const prompts = [];
+    for (const mode of ['plan', 'execute', 'ask']) {
+      const world = aWorld();
+      const turn = await started(world, { mode });
+      const { args } = world.spawned[0];
+      prompts.push(args[args.indexOf('--append-system-prompt') + 1]);
+      turn.child.say(RESULT);
+      await turn.answer;
+    }
+    expect(prompts[0]).toContain('propose_plan');
+    expect(new Set(prompts).size).toBe(1);
+  });
+});
+
+describe('a report asks what the turn changed', () => {
+  it('answers the facts so far, and nothing once no turn runs', async () => {
+    const world = aWorld();
+    const ask = () => dispatch({ action: 'turn.files', args: { chatId: CHAT } }, world.context, () => {});
+    expect((await ask()).data).toEqual({ available: false, files: [] });
+    const { answer, child } = await started(world);
+    child.say({
+      type: 'assistant',
+      message: {
+        id: 'm',
+        content: [{ type: 'tool_use', id: 't', name: 'Write', input: { file_path: `${world.folder}/a.md` } }],
+      },
+    });
+    await until(() => world.of('tool.input').length === 1);
+    expect((await ask()).data).toEqual({ available: true, files: [{ path: 'a.md', source: 'tool' }] });
+    child.say(RESULT);
+    await answer;
   });
 });
 

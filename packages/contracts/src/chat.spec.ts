@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  APPROVAL_EFFECTS,
   capText,
   CHAT_TRUNCATED_MARK,
   chatToMarkdown,
@@ -13,6 +14,7 @@ import {
   suggestedPrompts,
   TURN_EVENT_KINDS,
   turnEventSchema,
+  turnPrompt,
 } from './index';
 import { createStreamRedactor, findSecret, redactDeep, redactSecrets } from './secret-patterns';
 
@@ -147,7 +149,46 @@ describe('suggestedPrompts', () => {
       detail: { specialty: 'backend' },
     };
     const [first] = suggestedPrompts({ page: 'tasks', card: task, roles, memberId: 'me' });
-    expect(first).toEqual({ id: 'work_card', key: 'T-1', skill: 'hub:work' });
+    expect(first).toEqual({
+      id: 'work_card',
+      key: 'T-1',
+      skill: 'hub:work',
+      mode: 'execute',
+      onPress: 'run',
+    });
+  });
+
+  it('a suggestion says whether it runs, and only a read-only one or a stated skill does (D51)', () => {
+    const task = {
+      ...base,
+      key: 'T-1',
+      type: 'task' as const,
+      status: 'ready',
+      detail: { specialty: 'backend' },
+    };
+    const all = suggestedPrompts({ page: 'tasks', card: task, roles, memberId: 'me' });
+    for (const item of all) {
+      if (item.onPress === 'run' && item.mode === 'execute') expect(item.skill).toBeDefined();
+    }
+    expect(suggestedPrompts({ page: 'planning', card: null, roles, memberId: 'me' })[0]).toMatchObject({
+      id: 'plan_topic',
+      onPress: 'fill',
+    });
+  });
+
+  it('review needs Execute, since Ask cannot run a check, and only fills the composer (review M10)', () => {
+    const task = {
+      ...base,
+      key: 'T-4',
+      type: 'task' as const,
+      status: 'in_review',
+      assigneeId: 'me',
+      detail: { specialty: 'backend' },
+    };
+    const review = suggestedPrompts({ page: 'tasks', card: task, roles: ['owner'], memberId: 'me' }).find(
+      (item) => item.id === 'review_card',
+    );
+    expect(review).toMatchObject({ mode: 'execute', onPress: 'fill' });
   });
 
   it('a doc offers the document protocol', () => {
@@ -175,6 +216,13 @@ describe('suggestedPrompts', () => {
   });
 });
 
+describe('turnPrompt', () => {
+  it('puts the context first, and after a slash command, so the command stays one', () => {
+    expect(turnPrompt('[ctx]\n\n', '', 'hello')).toBe('[ctx]\n\nhello');
+    expect(turnPrompt('[ctx]\n\n', '', '/hub:work T-1')).toBe('/hub:work T-1\n\n[ctx]');
+  });
+});
+
 describe('turn events', () => {
   it('has the small stable list, and refuses a raw shape', () => {
     expect(TURN_EVENT_KINDS).toEqual(
@@ -188,6 +236,45 @@ describe('turn events', () => {
     );
     expect(turnEventSchema.safeParse({ kind: 'stream_event', event: {} }).success).toBe(false);
     expect(turnEventSchema.safeParse({ kind: 'text.delta', text: 'a' }).success).toBe(true);
+  });
+
+  it('has the structured results, and a plan may be words alone', () => {
+    expect(TURN_EVENT_KINDS).toEqual(
+      expect.arrayContaining([
+        'turn.starting',
+        'engine.warning',
+        'tool.blocked',
+        'question.asked',
+        'question.resolved',
+        'work.reported',
+        'report.refused',
+        'doc.draft',
+        'doc.draft.updated',
+      ]),
+    );
+    expect(turnEventSchema.safeParse({ kind: 'plan.proposed', plan: 'words' }).success).toBe(true);
+    expect(
+      turnEventSchema.safeParse({
+        kind: 'plan.proposed',
+        plan: 'words',
+        structured: { title: 'T', steps: [{ title: 'S' }] },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('an approval carries its effect line', () => {
+    const base = {
+      kind: 'approval.requested',
+      approvalId: 'a',
+      toolUseId: 't',
+      toolName: 'Bash',
+      command: 'x',
+      category: 'push',
+      input: {},
+      expiresAt: 'x',
+    };
+    expect(turnEventSchema.safeParse(base).success).toBe(false);
+    expect(turnEventSchema.safeParse({ ...base, effect: APPROVAL_EFFECTS.push }).success).toBe(true);
   });
 
   it('a stage must belong to its protocol', () => {

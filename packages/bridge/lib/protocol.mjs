@@ -13,6 +13,7 @@ export const BRIDGE_ACTIONS = [
   'turn.start',
   'turn.answer',
   'turn.stop',
+  'turn.files',
   'chat.close',
   'chat.diff',
   'engine.status',

@@ -5,6 +5,7 @@ export * from './actor';
 export * from './capture';
 export * from './cards';
 export * from './chat';
+export * from './chat-results';
 export * from './chat-suggestions';
 export * from './devices';
 export * from './errors';

@@ -58,9 +58,16 @@ import {
   verifyNeedSchema,
 } from '../cards';
 import { auditQuerySchema } from '../cards/read-models';
-import { promptTemplateInputSchema, stageReportSchema, updateChatSchema } from '../chat';
+import {
+  promptTemplateInputSchema,
+  proposeDocSchema,
+  proposedPlanSchema,
+  reportWorkSchema,
+  saveDocToolSchema,
+  stageReportSchema,
+  updateChatSchema,
+} from '../chat';
 import { fixDeviceSchema } from '../devices';
-import { saveDocSchema } from '../knowledge';
 import type { PermissionAction } from '../permissions';
 import {
   createProjectSchema,
@@ -169,8 +176,8 @@ const TOOL_TABLE = {
   },
   save_doc: {
     description:
-      'Write a Markdown document to its file, through Hub, from any device. Pass key, or source and path for a new file, with baseHash from the Version line of get_doc. The earlier text is kept as a revision, a save based on an older version is refused, and it warns about similar documents. Search first (search_docs), so nothing is written twice. It commits nothing.',
-    input: saveDocSchema,
+      'Write a Markdown document to its file, through Hub, from any device. After propose_doc, pass `draft`: what is saved is that draft with the answers to its flags, and it refuses while a flag is unanswered. Otherwise pass key, or source and path for a new file, with content and baseHash from the Version line of get_doc. The earlier text is kept as a revision, a save based on an older version is refused, and it warns about similar documents. Search first (search_docs), so nothing is written twice. It commits nothing.',
+    input: saveDocToolSchema,
     actions: ['docs.write'],
     routes: ['POST /workspaces/:ws/docs/save'],
     destructive: true,
@@ -888,6 +895,33 @@ const TOOL_TABLE = {
     description:
       'Say which stage of /hub:work or /hub:doc you are in, so the panel shows a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.',
     input: stageReportSchema,
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  report_work: {
+    description:
+      "Write a task's work report on its card as evidence: what changed, each check with its exact command and outcome, and what was not checked. Hub checks each claim against the real steps of this chat: a check is verified only if a step really ran that exact command and succeeded, and saying a failed step passed is refused. Copy each command word for word, and report every check, failed ones too. If every check is verified the task moves to In review by itself. It never completes a task. In a chat outside the panel, checks stay claimed and the task does not move.",
+    input: reportWorkSchema,
+    actions: ['card.report_work'],
+  },
+  list_work_reports: {
+    description:
+      "A card's work reports, newest first: each check with its real runs, what is verified and what is only claimed.",
+    input: z.object({ key: cardKeySchema }),
+    actions: ['card.read'],
+    readOnly: true,
+  },
+  propose_plan: {
+    description:
+      'Propose a plan in structured form, so the panel shows its steps, checks and risks and offers Run this plan. It stores the plan on this turn and changes nothing else. Outside a panel, show the answer to the user in your reply. To save a plan as a card, use create_plan once the user agrees.',
+    input: proposedPlanSchema,
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+  propose_doc: {
+    description:
+      "Propose a document's new text before saving it. Give `doc` for an existing one (with baseVersion, the Version line of get_doc), or `source` and `path` for a new file. List each claim you checked as `verified` with its source, and each one you could not check as `unverified`: its text must appear in the draft word for word. Hub finds real duplicates itself and answers with them and a draft id. In the panel the owner sees a diff and answers each flag. Then call save_doc with `draft`; it refuses while a flag is unanswered.",
+    input: proposeDocSchema,
     actions: ['chat.read'],
     readOnly: true,
   },

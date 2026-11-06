@@ -49,15 +49,30 @@ describe('/hub:work', () => {
     }
   });
 
-  it('writes evidence on the card and never completes the task', () => {
-    expect(text).toContain('hub.comment');
-    for (const part of ['What changed', 'Files', 'Checks run', 'Not checked']) expect(text).toContain(part);
+  it('reports through report_work, with no Markdown comment, and never completes the task', () => {
+    expect(text).toContain('hub.report_work');
+    expect(text).not.toContain('hub.comment');
+    for (const part of ['summary', 'checks', 'changedFiles', 'notChecked']) expect(text).toContain(part);
     expect(text).toContain('Never call `hub.complete_task`');
   });
 
-  it('stops at a failed check, and shows real output', () => {
+  it("says out loud that it starts the task, and that the move is Hub's (review B2, D52)", () => {
+    expect(text).toContain('What this does to the card');
+    expect(text).toContain('Starting the task now');
+    expect(text).toContain('Hub moves the task to In review by itself');
+    expect(text).toContain('Outside the panel it never moves');
+  });
+
+  it('stops at a failed check, asks, and a fix keeps the failure', () => {
     expect(text).toContain('A failed check stops here');
     expect(text).toContain('Never report a check you did not run');
+    expect(text).toContain('AskUserQuestion');
+    expect(text).toContain('the failure stays in the history');
+    expect(text.indexOf('A failed check stops here')).toBeLessThan(text.indexOf('(`report`)'));
+  });
+
+  it('runs each check word for word, since Hub matches the command', () => {
+    expect(text).toContain('word for word');
   });
 });
 
@@ -72,11 +87,13 @@ describe('/hub:doc', () => {
     expect(text).toContain('Never start a new document before searching');
   });
 
-  it('saves on approval with the version it read, and invents nothing', () => {
-    expect(text).toContain('hub.save_doc');
-    expect(text).toContain('baseHash');
+  it('proposes with flagged claims, saves through the draft, and invents nothing', () => {
+    expect(text).toContain('hub.propose_doc');
+    expect(text.indexOf('hub.propose_doc')).toBeLessThan(text.indexOf('hub.save_doc'));
+    expect(text).toContain('baseVersion');
     expect(text).toContain('Nothing invented');
-    expect(text).toContain('Unverified');
-    expect(text).toContain('Only when I agree');
+    expect(text).toContain('unverified');
+    expect(text).toContain('`draft` id');
+    expect(text).toContain('refuses while a flag has no answer');
   });
 });

@@ -42,6 +42,8 @@ const MATRIX = {
   'card.delete': OWNER_PM_CREATOR,
   'card.restore': OWNER_PM_CREATOR,
   'card.comment': EVERYONE,
+  // Evidence on a card (docs/16 §7.2). What it may move is judged by the report itself (D52).
+  'card.report_work': EVERYONE,
   'card.comment_edit': ['C', 'C', 'C', 'C', 'C', 'C', 'C'],
   'card.comment_redact': OWNER_PM,
   'card.link': EVERYONE,

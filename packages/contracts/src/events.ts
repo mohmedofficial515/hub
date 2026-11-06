@@ -40,6 +40,7 @@ export const EVENT_KINDS = [
   'plan_steps_changed',
   'idea_to_plan',
   'plan_to_tasks',
+  'work_reported',
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

@@ -14,14 +14,20 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
-import { MCP_TOOLS, TURN_EVENT_KINDS, turnEventSchema } from '@hub/contracts';
+import {
+  APPROVAL_EFFECTS as CONTRACT_EFFECTS,
+  MCP_TOOLS,
+  TURN_EVENT_KINDS,
+  turnEventSchema,
+} from '@hub/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { createEventMapper, isStageTool } from '../lib/claude-events.mjs';
+import { createEventMapper, isStageTool, questionsFromInput } from '../lib/claude-events.mjs';
 import { docHandlers } from '../lib/doc-files.mjs';
 import { changedFiles, diffOf } from '../lib/git-facts.mjs';
 import { createLog, LOG_LIMIT_BYTES, MAX_LINE_CHARS } from '../lib/log.mjs';
 import {
+  APPROVAL_EFFECTS,
   askRules,
   categoryOf,
   describeCall,
@@ -32,6 +38,89 @@ import {
   readOnlySettings,
 } from '../lib/permissions.mjs';
 import { aFolder, fakeSystem } from './helpers.mjs';
+
+describe('structured results in the mapper', () => {
+  const assistant = (id, name, input) => ({
+    type: 'assistant',
+    message: { id: `m-${id}`, content: [{ type: 'tool_use', id, name, input }] },
+  });
+  const failed = (id, content) => ({
+    type: 'user',
+    message: { content: [{ type: 'tool_result', tool_use_id: id, is_error: true, content }] },
+  });
+  const events = (mode, ...raws) => {
+    const mapper = createEventMapper({ mode });
+    return raws.flatMap((raw) => mapper.map(raw).events);
+  };
+
+  it('tool.input gives the shell command, for Bash and PowerShell only', () => {
+    const out = events(
+      'execute',
+      assistant('a', 'Bash', { command: 'pnpm test', description: 'x' }),
+      assistant('b', 'PowerShell', { command: 'Get-Date' }),
+      assistant('c', 'Read', { command: 'not a shell', file_path: 'x' }),
+    ).filter((event) => event.kind === 'tool.input');
+    expect(out.map((event) => event.command)).toEqual(['pnpm test', 'Get-Date', undefined]);
+  });
+
+  it('Ask and Plan say what they refused, however it was refused', () => {
+    for (const [mode, reason] of [
+      ['ask', 'No such tool available: Bash'],
+      ['plan', 'This chat is in plan mode, which is read only.'],
+    ]) {
+      const blocked = events(
+        mode,
+        assistant('a', 'Bash', { command: 'pnpm test' }),
+        failed('a', reason),
+      ).filter((event) => event.kind === 'tool.blocked');
+      expect(blocked).toEqual([
+        { kind: 'tool.blocked', toolUseId: 'a', name: 'Bash', command: 'pnpm test', mode },
+      ]);
+      expect(turnEventSchema.safeParse(blocked[0]).success).toBe(true);
+    }
+    const other = events('ask', assistant('b', 'mcp__other__change', {}), failed('b', 'read only'));
+    expect(other.filter((event) => event.kind === 'tool.blocked')).toHaveLength(1);
+  });
+
+  it('a failed read is not a refusal, Execute has no refusals, and the plan file is on purpose', () => {
+    const none = [
+      ...events('ask', assistant('a', 'Read', { file_path: 'x' }), failed('a', 'not found')),
+      ...events('ask', assistant('b', 'mcp__hub__get_card', {}), failed('b', 'not found')),
+      ...events('execute', assistant('c', 'Bash', { command: 'false' }), failed('c', 'Exit code 1')),
+      ...events(
+        'plan',
+        assistant('d', 'Write', { file_path: 'C:/u/.claude/plans/x.md', content: 'p' }),
+        failed('d', 'denied'),
+      ),
+    ];
+    expect(none.filter((event) => event.kind === 'tool.blocked')).toEqual([]);
+  });
+
+  it('reads a question, and answers null for a shape it does not know', () => {
+    expect(questionsFromInput({ questions: [{ question: 'Q?', options: [{ label: 'A' }] }] })).toEqual([
+      { text: 'Q?', multiSelect: false, options: [{ label: 'A' }] },
+    ]);
+    expect(questionsFromInput({})).toBeNull();
+    expect(questionsFromInput({ questions: [{ nope: 1 }] })).toBeNull();
+  });
+
+  it('mapLine: known events with their shape pass, and the rest name what is wrong', () => {
+    const mapper = createEventMapper();
+    expect(mapper.mapLine('{"type":"brand_new"}').unreadable).toBeUndefined();
+    expect(mapper.mapLine('{"type":"assistant","message":{"content":[]}}').unreadable).toBeUndefined();
+    expect(mapper.mapLine('not json').unreadable).toBeTruthy();
+    expect(mapper.mapLine('[1,2]').unreadable).toBeUndefined();
+    expect(mapper.mapLine('3').unreadable).toBeTruthy();
+    expect(mapper.mapLine('{"type":"assistant"}').unreadable).toBeTruthy();
+    expect(mapper.mapLine('{"type":"user"}').unreadable).toBeTruthy();
+    expect(mapper.mapLine('{"type":"stream_event"}').unreadable).toBeTruthy();
+    expect(mapper.mapLine('{"type":"result"}').unreadable).toBeTruthy();
+  });
+
+  it("the bridge's effect lines are the contract's, for every category", () => {
+    expect(APPROVAL_EFFECTS).toEqual(CONTRACT_EFFECTS);
+  });
+});
 
 describe('the event mapper', () => {
   const run = (...raws) => {

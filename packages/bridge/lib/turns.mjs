@@ -11,11 +11,30 @@ import { createServer } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CLAUDE_MAX_VERSION, CLAUDE_MIN_VERSION, inTestedRange, resolveClaude } from './claude.mjs';
-import { createEventMapper } from './claude-events.mjs';
+import {
+  aboveTested,
+  inTestedRange,
+  meetsMinimum,
+  minimumVersion,
+  resolveClaude,
+  testedMax,
+} from './claude.mjs';
+import {
+  createEventMapper,
+  isQuestionTool,
+  questionAnswerInput,
+  questionsFromInput,
+} from './claude-events.mjs';
 import { branchOf, changedFiles, diffOf, snapshot } from './git-facts.mjs';
 import { hubPaths } from './paths.mjs';
-import { categoryOf, describeCall, executeSettings, MODE_FLAGS, readOnlySettings } from './permissions.mjs';
+import {
+  APPROVAL_EFFECTS,
+  categoryOf,
+  describeCall,
+  executeSettings,
+  MODE_FLAGS,
+  readOnlySettings,
+} from './permissions.mjs';
 import { Refusal } from './protocol.mjs';
 import { childEnv } from './system.mjs';
 
@@ -41,6 +60,13 @@ const CHANGED_FILES_LIMIT = 300;
 const DIFF_LIMIT = 200_000;
 const MAX_STDOUT_BUFFER = 64_000_000;
 const OK_ENV_FOR_CLAUDE = new Set(['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY']);
+const UNREADABLE_MESSAGE =
+  'Claude Code sent something Hub cannot read, so this turn was stopped. Nothing more will run in it. Open in VS Code to carry on there.';
+/**
+ * The panel's system prompt (docs/16 §7.2): the structured plan first, and the reply stays the fallback. Every mode gets the same words, because the engine records the first launch's prompt and reuses it on every resume, whatever a later launch passes, so a chat that began in Execute could never learn this on moving to Plan.
+ */
+const PANEL_PROMPT =
+  "You are in a Hub panel chat. In Plan mode, when your plan is ready, call the hub server's propose_plan tool with its title, steps, checks and risks, and do not use ExitPlanMode for it. If that tool is not available, write the whole plan in your reply. Then stop and wait for the owner.";
 
 /** docs/16 §13's one switch: the owner, or a test, may hand the binary an API key or a stand-in model through the bridge's own environment. */
 function extraEnv(env) {
@@ -60,6 +86,16 @@ const number = (value, fallback) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
+
+/** Why this turn needs a process. Only a live process that changed names what changed: a closed one is simply resumed. */
+function startReason(previous, options) {
+  if (!previous) return options.sessionId ? 'resume' : 'new';
+  if (previous.mode !== options.mode) return 'mode';
+  if (previous.model !== options.model) return 'model';
+  if (previous.effort !== options.effort) return 'effort';
+  if (previous.folder !== options.folder) return 'folder';
+  return 'resume';
+}
 
 function pipePath(system) {
   const name = `hub-bridge-${randomUUID()}`;
@@ -164,6 +200,7 @@ function createManager(context) {
       return refuse('This does not match a tool call in the stream, so it is refused.');
     }
     if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
+    if (isQuestionTool(toolName)) return askOwner(turn, message, reply, socket, refuse);
     if (MODE_FLAGS[proc.options.mode].readOnly) {
       if (toolName === 'ExitPlanMode') {
         if (typeof input?.plan === 'string' && !proc.mapper.state.planSent) {
@@ -195,6 +232,7 @@ function createManager(context) {
       timer: null,
       input,
     };
+    const category = categoryOf(toolName, input);
     pending.timer = setTimeout(() => {
       pending.settle('timed_out', {
         behavior: 'deny',
@@ -211,24 +249,82 @@ function createManager(context) {
       toolUseId,
       toolName,
       command: describeCall(toolName, input),
-      category: categoryOf(toolName, input),
+      category,
       input: input ?? {},
+      effect: APPROVAL_EFFECTS[category],
       expiresAt: new Date(Date.now() + window).toISOString(),
     });
     return undefined;
   }
 
-  /** The newest copy inside the tested range, with a clear message when there is none (docs/16 §13). */
+  /** `AskUserQuestion`: the same wait and the same route as an approval, and it never runs anything, so every mode has it (docs/16 §7.2). */
+  function askOwner(turn, message, reply, socket, refuse) {
+    const { input, toolUseId } = message;
+    const questions = questionsFromInput(input);
+    if (!questions) return refuse('Hub could not read this question, so ask it in your reply.');
+    const questionId = randomUUID();
+    const window = approvalWindow();
+    const pending = {
+      approvalId: questionId,
+      kind: 'question',
+      turn,
+      settled: false,
+      settle(status, answer, answers) {
+        if (pending.settled) return false;
+        pending.settled = true;
+        clearTimeout(pending.timer);
+        turn.approvals.delete(questionId);
+        turn.emit('question.resolved', {
+          kind: 'question.resolved',
+          questionId,
+          status,
+          ...(answers ? { answers } : {}),
+        });
+        reply(answer);
+        return true;
+      },
+      timer: null,
+      input,
+    };
+    pending.timer = setTimeout(() => {
+      pending.settle('timed_out', { behavior: 'deny', message: 'Nobody answered in time.' });
+    }, window);
+    pending.timer.unref?.();
+    turn.approvals.set(questionId, pending);
+    socket.on('close', () => pending.settle('stopped', { behavior: 'deny', message: 'The call ended.' }));
+    turn.emit('question.asked', {
+      kind: 'question.asked',
+      questionId,
+      toolUseId,
+      questions,
+      expiresAt: new Date(Date.now() + window).toISOString(),
+    });
+    return undefined;
+  }
+
+  /**
+   * The newest copy inside the tested range, and otherwise the newest above the minimum, which runs with a warning (D53). Below the minimum is refused, with a clear message (docs/16 §13).
+   */
   async function engine() {
     if (engineCache && Date.now() - engineCache.at < ENGINE_CACHE_MS) return engineCache.value;
+    const { env } = system;
     const found = await resolveClaude(system);
-    const best = found.copies.find((copy) => inTestedRange(copy.version, system.env));
+    const best =
+      found.copies.find((copy) => inTestedRange(copy.version, env)) ??
+      found.copies.find((copy) => meetsMinimum(copy.version, env));
     let message = null;
     if (!best) {
       message =
         found.copies.length === 0
           ? 'Claude Code was not found on this device.'
-          : `Claude Code ${found.copies.map((copy) => copy.version).join(', ')} is outside the versions Hub has tested (${CLAUDE_MIN_VERSION} to ${CLAUDE_MAX_VERSION}). Use Open in VS Code until Hub is updated.`;
+          : `Claude Code ${found.copies.map((copy) => copy.version).join(', ')} is older than the minimum Hub needs (${minimumVersion(env)}). Update it, or use Open in VS Code.`;
+    }
+    const warning =
+      best && aboveTested(best.version, env)
+        ? { code: 'newer_than_tested', version: best.version, testedMax: testedMax(env) }
+        : null;
+    if (warning) {
+      message = `Claude Code ${warning.version} is newer than the version Hub tested (${warning.testedMax}). It runs and the permission rules stay active, but a change in its behaviour may show up here first.`;
     }
     let effortSupported = false;
     let modelSupported = false;
@@ -237,7 +333,14 @@ function createManager(context) {
       effortSupported = help.stdout.includes('--effort');
       modelSupported = help.stdout.includes('--model');
     }
-    const value = { best: best ?? null, copies: found.copies, message, effortSupported, modelSupported };
+    const value = {
+      best: best ?? null,
+      copies: found.copies,
+      message,
+      warning,
+      effortSupported,
+      modelSupported,
+    };
     engineCache = { at: Date.now(), value };
     return value;
   }
@@ -293,6 +396,7 @@ function createManager(context) {
     if (options.model) args.push('--model', options.model);
     if (options.effort && engineInfo.effortSupported) args.push('--effort', options.effort);
     if (options.sessionId) args.push('--resume', options.sessionId);
+    args.push('--append-system-prompt', PANEL_PROMPT);
     return args;
   }
 
@@ -382,16 +486,28 @@ function createManager(context) {
     proc.idleTimer.unref?.();
   }
 
+  /** D53: what the engine sent cannot be read, so going on would mean guessing. The turn stops and says so, and the process goes. */
+  function stopUnreadable(proc, turn) {
+    if (turn.finishing) return;
+    turn.finishing = true;
+    endTurn(proc, turn, {
+      status: 'failed',
+      failure: 'unreadable_event',
+      message: UNREADABLE_MESSAGE,
+      durationMs: Date.now() - turn.startedAt,
+    });
+    if (chats.get(proc.chatId) === proc) chats.delete(proc.chatId);
+    void killTree(proc);
+  }
+
   function onLine(proc, line) {
-    let raw;
-    try {
-      raw = JSON.parse(line);
-    } catch {
-      return;
-    }
-    const { events, result } = proc.mapper.map(raw);
+    const { events, result, unreadable } = proc.mapper.mapLine(line);
     const { turn } = proc;
     if (!turn) return;
+    if (unreadable) {
+      stopUnreadable(proc, turn);
+      return;
+    }
     for (const event of events) {
       if (event.kind === 'turn.session') {
         if (turn.sessionSent) continue;
@@ -433,7 +549,7 @@ function createManager(context) {
       key,
       options: { ...options },
       processKey: processKey(options),
-      mapper: createEventMapper(),
+      mapper: createEventMapper({ mode: options.mode }),
       mcpFile,
       turn: null,
       exited: false,
@@ -529,6 +645,7 @@ function createManager(context) {
       send('turn.ended', { kind: 'turn.ended', status: 'failed', failure, message: info.message });
       return { status: 'failed' };
     }
+    if (info.warning) send('engine.warning', { kind: 'engine.warning', ...info.warning });
     await startServer();
     // Before the process exists, so nothing it says can arrive ahead of the turn.
     const before = await snapshot(system, options.folder).catch(() => null);
@@ -540,6 +657,7 @@ function createManager(context) {
       !proc.exited &&
       proc.processKey === processKey(options) &&
       (!options.sessionId || proc.options.sessionId === options.sessionId);
+    const previous = proc && !reusable ? proc.options : null;
     if (proc && !reusable) {
       chats.delete(chatId);
       closeIdle(proc);
@@ -547,6 +665,7 @@ function createManager(context) {
     }
     let resumed = false;
     if (!proc) {
+      send('turn.starting', { kind: 'turn.starting', reason: startReason(previous, options) });
       makeRoom();
       sweepChatDir();
       resumed = Boolean(options.sessionId);
@@ -588,15 +707,57 @@ function createManager(context) {
   }
 
   function answer(args) {
-    const { chatId, approvalId, decision } = args;
+    const { chatId, approvalId, decision, note, answers } = args;
     if (!['allow', 'deny'].includes(decision)) throw new Refusal('bad_arguments');
+    if (note !== undefined && typeof note !== 'string') throw new Refusal('bad_arguments');
     const pending = chats.get(chatId)?.turn?.approvals.get(approvalId);
     if (!pending) return { accepted: false };
+    if (pending.kind === 'question') return { accepted: answerQuestion(pending, decision, note, answers) };
     const accepted =
       decision === 'allow'
         ? pending.settle('allowed', { behavior: 'allow', updatedInput: pending.input ?? {} })
-        : pending.settle('denied', { behavior: 'deny', message: 'The owner denied this.' });
+        : pending.settle('denied', {
+            behavior: 'deny',
+            message: note ? `The owner denied this, and said: ${note}` : 'The owner denied this.',
+          });
     return { accepted };
+  }
+
+  function answerQuestion(pending, decision, note, answers) {
+    if (decision === 'deny') {
+      return pending.settle('declined', {
+        behavior: 'deny',
+        message: note ? `The owner did not answer, and said: ${note}` : 'The owner chose not to answer.',
+      });
+    }
+    const fine =
+      answers &&
+      typeof answers === 'object' &&
+      Object.values(answers).every((item) => typeof item === 'string');
+    if (!fine) throw new Refusal('bad_arguments');
+    return pending.settle(
+      'answered',
+      { behavior: 'allow', updatedInput: questionAnswerInput(pending.input, answers) },
+      answers,
+    );
+  }
+
+  /** What this turn has changed so far, from the device's own facts, for a report written before the turn ends. */
+  async function files(chatId) {
+    const proc = chats.get(chatId);
+    const turn = proc?.turn;
+    if (!turn) return { available: false, files: [] };
+    const after = await snapshot(system, proc.options.folder).catch(() => null);
+    return {
+      available: true,
+      files: changedFiles(
+        proc.options.folder,
+        turn.before,
+        after,
+        proc.mapper.state.toolPaths,
+        CHANGED_FILES_LIMIT,
+      ),
+    };
   }
 
   /** Interrupt first, tree-kill last (S1 Q7). Answers once it has been asked; the turn's own end reports the rest. */
@@ -646,7 +807,8 @@ function createManager(context) {
     server = null;
   }
 
-  async function engineStatus() {
+  async function engineStatus(args = {}) {
+    if (args.fresh === true) engineCache = null;
     const info = await engine();
     let signedIn = null;
     if (info.best) {
@@ -660,8 +822,11 @@ function createManager(context) {
     return {
       found: info.copies.length > 0,
       version: info.best?.version ?? info.copies[0]?.version ?? null,
-      inRange: Boolean(info.best),
-      testedRange: { min: CLAUDE_MIN_VERSION, max: CLAUDE_MAX_VERSION },
+      inRange: Boolean(info.best) && !info.warning,
+      canRun: Boolean(info.best),
+      warning: info.warning,
+      checkedAt: new Date().toISOString(),
+      testedRange: { min: minimumVersion(system.env), max: testedMax(system.env) },
       message: info.message,
       signedIn,
       effortSupported: info.effortSupported,
@@ -678,6 +843,7 @@ function createManager(context) {
     close,
     shutdown,
     engineStatus,
+    files,
     liveChats: () => [...chats.keys()],
     forget: () => {
       engineCache = null;
@@ -700,7 +866,8 @@ export const turnHandlers = {
   'turn.start': (args, context, emit) => turnManager(context).start(args, emit),
   'turn.answer': (args, context) => turnManager(context).answer(args),
   'turn.stop': (args, context) => turnManager(context).stop(args.chatId),
+  'turn.files': (args, context) => turnManager(context).files(args.chatId),
   'chat.close': (args, context) => turnManager(context).close(args.chatId),
   'chat.diff': (args, context) => diffOf(context.system, args.folder, args.path, DIFF_LIMIT),
-  'engine.status': (_args, context) => turnManager(context).engineStatus(),
+  'engine.status': (args, context) => turnManager(context).engineStatus(args),
 };

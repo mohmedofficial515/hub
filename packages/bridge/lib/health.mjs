@@ -4,12 +4,12 @@
  * sentences are the page's, by `id`. A copy of Claude Code older than S1 C3's version is reported with the command that updates it, and Hub does not run that command.
  */
 import {
-  CLAUDE_MAX_VERSION,
   CLAUDE_MIN_VERSION,
   compareVersions,
   inTestedRange,
   meetsMinimum,
   resolveClaude,
+  testedMax,
   updateHint,
 } from './claude.mjs';
 import { installMcpServer, installPlugin, pluginIsInstalled, userServerIsRight } from './install.mjs';
@@ -49,10 +49,10 @@ export async function runChecks(system, url) {
     const tested = inTestedRange(best.version, system.env);
     checks.push(
       meetsMinimum(best.version) && !tested
-        ? // Newer than the chat engine has been tested on: the rest of Hub works, and the panel says so.
+        ? // D53: newer than the chat engine has been tested on. It still runs, and the panel says so.
           row('claude_version', false, best.version, {
             level: 'warn',
-            hint: `Hub's chat panel is tested up to ${CLAUDE_MAX_VERSION}. Open in VS Code still works.`,
+            hint: `Hub's chat panel is tested up to ${testedMax(system.env)}. It runs with a warning, and the permission rules stay active.`,
           })
         : row('claude_version', meetsMinimum(best.version), best.version, {
             hint: meetsMinimum(best.version) ? null : updateHint(best.path),

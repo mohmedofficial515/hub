@@ -1,6 +1,6 @@
 ---
 name: doc
-description: Develop a project document with no duplicates and nothing invented, saved through Hub with its earlier text kept. Use to improve a doc, document a task, or find gaps between the docs and the cards and code.
+description: Develop a project document with no duplicates and nothing invented, proposed as a draft with its claims flagged, then saved through Hub with its earlier text kept. Use to improve a doc, document a task, or find gaps between the docs and the cards and code.
 user-invocable: true
 argument-hint: '<improve DOC-KEY | document CARD-KEY | gaps | topic>'
 ---
@@ -15,29 +15,33 @@ At the start and end of each stage below, call `hub.report_stage` with `protocol
 
 `hub.search_docs` with several wordings, then `hub.get_doc` for each likely match. Note each one's `Version:` line. Never start a new document before searching.
 
-For "gaps": compare what cards (`hub.list_cards`) and the code mention against what the docs cover, and answer with a list of what is missing and where each point was mentioned. Save nothing unless I then ask.
+For "gaps": compare what cards (`hub.list_cards`) and the code mention against what the docs cover, and answer with a list of what is missing, where each point was mentioned, and what you did not read. Save nothing unless I then ask.
 
 ## 2. Propose (`propose`)
 
-Say: update an existing document or write a new one, which, and why. A new one must not repeat an existing one. Wait for my answer unless I already said which.
+Decide: update an existing document, or write a new one. A new one must not repeat an existing one. Unless I already said which, ask me with `AskUserQuestion` and wait.
 
 ## 3. Draft (`draft`)
 
-Write the text. Show it as a diff against the current text, or in full if it is new.
+Write the whole text, then call `hub.propose_doc`:
 
-**Nothing invented.** Check each claim against the project: the code, cards or an existing document. A claim you cannot verify is flagged, like this: `> Unverified: <the claim>, and what would settle it`. It is never written as fact.
+- `doc` and `baseVersion` from the `Version:` line for an existing document, or `source` and `path` for a new one.
+- `title`, and `reason`: one line on why.
+- `draft`: the whole new text.
+- `claims`: **Nothing invented.** Check each factual claim against the project: the code, cards or an existing document. List what you checked as `verified`, with its `source`. A claim you cannot verify is `unverified`: its `text` must appear in the draft word for word, and it is never presented as settled.
+
+Hub answers with real similar documents, each with its link. Tell me about them. If one covers this topic, stop and ask before going on.
 
 ## 4. Save (`save`)
 
-Only when I agree, call `hub.save_doc`:
+Call `hub.save_doc` with the `draft` id it gave you.
 
-- An existing document: `key`, the whole new `content`, and `baseHash` from the `Version:` line you read.
-- A new one: `source`, `path` and `content`.
-- `reason`: one line on why.
+- **In the panel** it pauses. I see a diff, answer each flag, may edit the text, and press Save. What I chose is what gets saved. If I refuse with a note, redraft with `hub.propose_doc`, keeping my answers where the claim's words did not change.
+- **Anywhere else**, show me the draft and each flag, wait for my answer, then pass it in `answers`: `confirm`, `remove` or `keep_flagged` for each flag's id.
 
-`save_doc` keeps the earlier text as a revision and commits nothing. In the panel it pauses for my approval.
+`save_doc` refuses while a flag has no answer, and if the version moved. If the version moved, read the document again, redo the draft and ask again. Never overwrite what you did not see. A refused save was not saved: say so.
 
-If it refuses because the version moved, read the document again, redo the diff against the new text, and ask again. Never overwrite what you did not see. If it warns that a similar document exists, show me that warning.
+It keeps the earlier text as a revision and commits nothing.
 
 ## 5. Link (`link`)
 

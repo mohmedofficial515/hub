@@ -6,6 +6,7 @@
 import { z } from 'zod';
 
 import { cardKeySchema } from './cards';
+import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
 
 export const CHAT_MODES = ['ask', 'plan', 'execute'] as const;
@@ -101,8 +102,8 @@ export const reportWorkSchema = z.object({
 export type ReportWorkInput = z.infer<typeof reportWorkSchema>;
 
 /**
- * Why a check is or is not verified. `matched`: a real step with this exact command succeeded. `outside_panel`: no steps exist to check against, so it stays claimed. `no_command`: nothing to match. `no_matching_step`: no step ran this command.
- * `step_mismatch`: the named step ran something else. `not_finished`: its run has no result. `outcome_differs`: reported failed or skipped while its last real run succeeded.
+ * What a check's claim rests on. `matched`: the claim agrees with the last real run of this exact command. `outside_panel`: no steps exist to check against, so it stays claimed. `no_command`: nothing to match. `no_matching_step`: no step ran this command.
+ * `step_mismatch`: the named step ran something else. `not_finished`: its run has no result. `outcome_differs`: reported failed or skipped while its last real run succeeded. Only `passed` with `matched` is `verified`.
  */
 export const CHECK_BASES = [
   'matched',
@@ -244,6 +245,17 @@ export const proposeDocSchema = z.object({
     .max(100),
 });
 export type ProposeDocInput = z.infer<typeof proposeDocSchema>;
+
+/**
+ * `save_doc` as Claude calls it. With `draft`, the text and version are the draft's, and `content` is not needed. `answers` holds the owner's words about each flag, and counts only outside a panel chat: in one, the owner answers through the panel.
+ */
+export const saveDocToolSchema = saveDocSchema.partial({ content: true }).extend({
+  draft: z.uuid().optional(),
+  answers: z
+    .array(z.object({ id: z.string().max(40), answer: z.enum(CLAIM_ANSWERS) }))
+    .max(100)
+    .optional(),
+});
 
 export const docClaimSchema = z.object({
   id: z.string(),
@@ -429,6 +441,8 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     toolUseId: z.string().max(100),
     name: z.string().max(200),
     input: anyJson,
+    /** The shell command this step runs, when it runs one. The mapper is the one place that knows which tools those are. */
+    command: z.string().optional(),
     parentToolUseId: z.string().max(100).optional(),
   }),
   z.object({
@@ -680,6 +694,8 @@ export const chatStepSchema = z.object({
   name: z.string(),
   status: z.enum(['running', 'waiting', 'done', 'error', 'cut_off']),
   input: anyJson,
+  /** The shell command, when this step runs one. What a report's check is matched against. */
+  command: z.string().nullable(),
   output: z.string().nullable(),
   decision: z.string().nullable(),
   /** Where this step falls in the reply's text, so the panel can place it. */
@@ -813,6 +829,11 @@ export function contextPrefix(context: PromptContext): string {
     if (item.kind === 'file') lines.push(`Attached file: ${item.path} (read it from the folder)`);
   }
   return `[Hub context]\n${lines.join('\n')}\n[/Hub context]\n\n`;
+}
+
+/** What the engine reads. A slash command must come first or it is not a command, so the prefix follows it, and the skill reads it as part of its arguments. */
+export function turnPrompt(prefix: string, history: string, text: string): string {
+  return text.startsWith('/') ? `${text}\n\n${prefix}${history}`.trimEnd() : `${prefix}${history}${text}`;
 }
 
 /** A branched chat has no engine session of its own yet, so its first turn is told what came before, in plain words. */

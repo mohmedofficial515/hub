@@ -48,7 +48,6 @@ export interface SuggestionInput {
 
 const MAX = 4;
 const START_VERBS = ['claim', 'start', 'resume'];
-const REVIEW_VERBS = ['approve', 'request_changes', 'verify'];
 
 function forCard(card: NonNullable<SuggestionInput['card']>, input: SuggestionInput): ChatSuggestion[] {
   const { key } = card;
@@ -72,7 +71,7 @@ function forCard(card: NonNullable<SuggestionInput['card']>, input: SuggestionIn
     list.push({ id: 'work_card', key, skill: 'hub:work', mode: 'execute', onPress: 'run' });
   }
   // Ask has no terminal, so a review that runs the checks needs Execute, and it waits for the owner to send it (review M10).
-  if (card.type === 'task' && REVIEW_VERBS.some((verb) => verbs.has(verb))) {
+  if (card.type === 'task' && card.status === 'in_review' && verbs.has('complete')) {
     list.push({ id: 'review_card', key, mode: 'execute', onPress: 'fill' });
   }
   if (card.type === 'doc') {

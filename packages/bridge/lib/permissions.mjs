@@ -129,7 +129,10 @@ export const HUB_READ_TOOLS = [
   'get_chat',
   'export_chat',
   'list_prompt_templates',
+  'list_work_reports',
   'report_stage',
+  'propose_plan',
+  'propose_doc',
 ];
 
 /**
@@ -222,6 +225,7 @@ export const HUB_OTHER_TOOLS = [
   'update_chat',
   'restore_chat',
   'save_prompt_template',
+  'report_work',
 ];
 
 const HUB_SERVER = 'hub';
@@ -300,6 +304,24 @@ export function categoryOf(toolName, input) {
   for (const [pattern, category] of COMMAND_CATEGORIES) if (pattern.test(command)) return category;
   return 'other';
 }
+
+/**
+ * The approval's effect line (docs/16 §7.2): one fixed sentence per D41 category, never model text. `@hub/contracts` (`APPROVAL_EFFECTS`) is the source, and a test holds the two together.
+ */
+export const APPROVAL_EFFECTS = {
+  delete: 'Deletes files',
+  move: 'Moves or overwrites files',
+  commit: 'Changes Git history',
+  push: 'Pushes to a remote',
+  deploy: 'Deploys or reaches another machine',
+  branch: 'Creates or switches a branch',
+  worktree: 'Creates a worktree',
+  docker: 'Runs Docker',
+  hub_project: 'Changes the project, including its allowed folders',
+  hub_doc: 'Writes a document',
+  hub_sensitive: 'A sensitive Hub action',
+  other: 'A command you have not allowed',
+};
 
 /** The one line the owner reads: the exact command, or the tool's main input. */
 export function describeCall(toolName, input) {

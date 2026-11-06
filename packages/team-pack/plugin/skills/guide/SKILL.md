@@ -22,7 +22,7 @@ Every chat acts on one project: the tool's `project` argument, else the folder's
 | Your change affects another team                       | `hub.create_handoff` with a ready prompt                                                           |
 | You see work for later                                 | `hub.create_task`, or `followUps` of `log_session`                                                 |
 | Something worth thinking about                         | `hub.create_idea`; `/hub:plan` to write a plan                                                     |
-| Writing or changing a document                         | `/hub:doc`: search the docs first, then `hub.save_doc`. Never write a second one on the same topic |
+| Writing or changing a document                         | `/hub:doc`: search first, `hub.propose_doc`, then `hub.save_doc`. Never a second one on one topic  |
 | Doing one task from start to finish                    | `/hub:work <key>`                                                                                  |
 | You stop: task done, end of day, context nearly full   | `/hub:done`: `hub.log_session`, then `hub.submit_task`                                             |
 

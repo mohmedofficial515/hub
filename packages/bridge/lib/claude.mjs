@@ -94,13 +94,28 @@ export async function resolveClaude(system) {
   };
 }
 
-export function inTestedRange(version, env = {}) {
-  const max = parseVersion(env.HUB_CLAUDE_MAX_VERSION) ?? CLAUDE_MAX_VERSION;
-  return compareVersions(version, CLAUDE_MIN_VERSION) >= 0 && compareVersions(version, max) <= 0;
+/** The newest tested version. `HUB_CLAUDE_MAX_VERSION` moves it, so the owner can declare a newer one tested. */
+export function testedMax(env = {}) {
+  return parseVersion(env.HUB_CLAUDE_MAX_VERSION) ?? CLAUDE_MAX_VERSION;
 }
 
-export function meetsMinimum(version) {
-  return compareVersions(version, CLAUDE_MIN_VERSION) >= 0;
+/** `HUB_CLAUDE_MIN_VERSION` can only raise the floor, which is how the refusal is tested with a real binary. */
+export function minimumVersion(env = {}) {
+  const asked = parseVersion(env.HUB_CLAUDE_MIN_VERSION);
+  return asked && compareVersions(asked, CLAUDE_MIN_VERSION) > 0 ? asked : CLAUDE_MIN_VERSION;
+}
+
+export function inTestedRange(version, env = {}) {
+  return meetsMinimum(version, env) && compareVersions(version, testedMax(env)) <= 0;
+}
+
+export function meetsMinimum(version, env = {}) {
+  return compareVersions(version, minimumVersion(env)) >= 0;
+}
+
+/** D53: newer than the tested one runs with a warning, and below the minimum is refused. */
+export function aboveTested(version, env = {}) {
+  return compareVersions(version, testedMax(env)) > 0;
 }
 
 /** The command that updates a copy, by where it lives. Shown to the owner, never run by Hub. */
