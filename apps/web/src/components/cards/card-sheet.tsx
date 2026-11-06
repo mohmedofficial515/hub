@@ -447,7 +447,7 @@ function Evidence({ cardKey }: { cardKey: string }) {
       </h3>
       {reports.map((report) => (
         <div key={report.id} data-wb-evidence-row className="flex min-w-0 flex-col gap-2">
-          <Tip k="evidence.check" align="start">
+          <Tip k="evidence:check" align="start">
             <button
               type="button"
               data-wb-evidence-toggle

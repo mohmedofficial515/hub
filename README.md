@@ -7,6 +7,8 @@ no model calls.
 The plan and product documentation are in [`docs/`](docs/README.md). The scope of this release is
 [`docs/15-first-release.md`](docs/15-first-release.md), which wins over the other documents.
 
+The workbench release is [`docs/16-workbench.md`](docs/16-workbench.md). On every project page, a side panel holds a Claude Code chat that runs the official binary on your own device through the bridge, and any card or chat can go to VS Code with its prompt written in and unsent.
+
 ## Quick start
 
 Needs Node 22, pnpm 10 and Docker running. Hub runs on this machine over plain `http://localhost` (web 7300, API 7310).

@@ -144,6 +144,10 @@ Purpose: pick or create a workspace. Who: members of ≥ 2 workspaces, or users 
 
 ---
 
+### The chat panel (docs/16 §7)
+
+On every project page except the lab's own `gallery`: page, card sheet, grip, panel and a 52 px strip, side by side. A phone has no strip: a button in the header, and the panel and sheet are full screen. `Ctrl+/` closes and reopens. `F6` moves between page, sheet, panel and strip. A second skip link goes to the panel. The sheet is a plain region on every page, with no scrim and no Tab trap. See docs/16 "Panel as built".
+
 ## 4. `/[ws]/today`
 
 Purpose: the member's start page: what waits for me, what is ready for my roles, what changed since

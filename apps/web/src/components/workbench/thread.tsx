@@ -214,7 +214,7 @@ function CodeBlock({ title, text, tone }: { title: string; text: string; tone?: 
         >
           {title}
         </span>
-        <Tip k="tools.copy">
+        <Tip k="tools:copy">
           <IconButton
             label={fmt(t.pro.step.copy, { what: title })}
             title={undefined}
@@ -276,7 +276,7 @@ function StepRow({ call, chatId }: { call: ToolCall; chatId: string }) {
   }, [reveal, call.id, chatId]);
   return (
     <li ref={row} data-wb-step-id={call.id} className="flex min-w-0 flex-col">
-      <Tip k="tools.step" side="top" align="start">
+      <Tip k="tools:step" side="top" align="start">
         <button
           type="button"
           data-wb-step
@@ -353,7 +353,7 @@ function ToolFold({ calls, chatId }: { calls: ToolCall[]; chatId: string }) {
   const shown = open || (failed && !foldedByHand);
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <Tip k="tools.fold" align="start">
+      <Tip k="tools:fold" align="start">
         <button
           type="button"
           aria-expanded={shown}
@@ -420,7 +420,7 @@ function FileRow({ file, chatId }: { file: ChangedFile; chatId: string }) {
   return (
     <li className="flex min-w-0 flex-col gap-1">
       <div className="flex min-w-0 items-center gap-1">
-        <Tip k="turn.file" align="start">
+        <Tip k="turn:file" align="start">
           <button
             type="button"
             data-wb-file
@@ -452,7 +452,7 @@ function FileRow({ file, chatId }: { file: ChangedFile; chatId: string }) {
           </button>
         </Tip>
         {open && (
-          <Tip k="turn.fileLarge">
+          <Tip k="turn:fileLarge">
             <IconButton
               label={fmt(t.pro.diff.large, { path: file.path })}
               title={undefined}
@@ -521,7 +521,7 @@ function TurnMenu({
   const busy = chatIsBusy(chat.status);
   return (
     <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'} modal={false}>
-      <Tip k={kind === 'turn' ? 'turn.menu' : 'user.menu'}>
+      <Tip k={kind === 'turn' ? 'turn:menu' : 'user:menu'}>
         <DropdownMenu.Trigger asChild>
           <IconButton
             label={p.menu}
@@ -630,7 +630,7 @@ function TurnLine({
       className="group flex min-w-0 flex-col gap-1.5"
     >
       <div className="flex min-w-0 items-center gap-1">
-        <Tip k="turn.line" align="start">
+        <Tip k="turn:line" align="start">
           <button
             type="button"
             data-wb-turn-line
@@ -656,7 +656,7 @@ function TurnLine({
           </button>
         </Tip>
         {canRetry && (
-          <Tip k="turn.retry" off={busy ? 'turnBusy' : null} label={p.retry}>
+          <Tip k="turn:retry" off={busy ? 'turnBusy' : null} label={p.retry}>
             <Button
               size="sm"
               variant="ghost"
@@ -860,7 +860,7 @@ export function ApprovalPrompt({
             </code>
           </div>
           {!answered && (
-            <Tip k="approval.copy" side="top" align="end">
+            <Tip k="approval:copy" side="top" align="end">
               <IconButton
                 label={a.copy}
                 title={undefined}
@@ -978,7 +978,7 @@ function LiveCard({ cardKey }: { cardKey: string }) {
   if (!card) return null;
   const action = actionsFor(card, roles, me.id)[0];
   return (
-    <Tip k="next.open" align="start">
+    <Tip k="next:open" align="start">
       <div data-wb-created className="overflow-hidden rounded-lg border border-border">
         <CardRow
           cardKey={card.key}
@@ -1009,7 +1009,7 @@ function LiveCard({ cardKey }: { cardKey: string }) {
 /** A card key that opens the card. */
 export function KeyLink({ k }: { k: string }) {
   return (
-    <Tip k="next.open">
+    <Tip k="next:open">
       <span className="inline-flex">
         <CardKey k={k} link className="hit-44 text-body-sm" />
       </span>

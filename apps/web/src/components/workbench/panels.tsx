@@ -210,7 +210,7 @@ export function EngineNotice({
             </p>
           )}
           {'command' in e && e.command && (
-            <Tip k="tools.copy">
+            <Tip k="tools:copy">
               <div>
                 <CommandBlock value={e.command} copyLabel={t.approval.copy} />
               </div>
@@ -254,7 +254,7 @@ export function EngineNotice({
           </Tip>
         )}
         {(action === 'old' || action === 'vscode' || warning) && (
-          <Tip k="sheet.vscode">
+          <Tip k="sheet:vscode">
             <Button
               size="sm"
               variant={action === 'vscode' ? 'outline' : 'ghost'}
@@ -331,7 +331,7 @@ export function DoNext({
   return (
     <section aria-labelledby="wb-next" data-wb-next className={cn('flex flex-col gap-2', className)}>
       <div className="flex flex-wrap items-baseline gap-x-2">
-        <Tip k="next.title" align="start">
+        <Tip k="next:title" align="start">
           <h3
             id="wb-next"
             tabIndex={0}
@@ -357,7 +357,7 @@ export function DoNext({
               <div className="flex min-w-0 items-start gap-2">
                 <TypeIcon type={item.type} size="sm" className="mt-1" />
                 <div className="min-w-0 flex-1">
-                  <Tip k="next.open" align="start">
+                  <Tip k="next:open" align="start">
                     <button
                       type="button"
                       onClick={() => openCard(item.key)}
@@ -378,7 +378,7 @@ export function DoNext({
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                <Tip k="next.explain" off={off} vars={{ device: wb.deviceName }} label={t.next.explain}>
+                <Tip k="next:explain" off={off} vars={{ device: wb.deviceName }} label={t.next.explain}>
                   <Button size="sm" disabled={!!off} onClick={() => ask('explain', item.key)}>
                     {t.next.explain}
                   </Button>
@@ -388,7 +388,7 @@ export function DoNext({
           ))}
         </ul>
       )}
-      <span className="sr-only">{tipWords.items['next.title'].what}</span>
+      <span className="sr-only">{tipWords.items['next:title'].what}</span>
     </section>
   );
 }
@@ -426,7 +426,7 @@ export function RunsList({
                 <span className="min-w-0 flex-1 text-body font-medium text-foreground">
                   <Bidi>{w.title}</Bidi>
                 </span>
-                <Tip k="runs.answer">
+                <Tip k="runs:answer">
                   <Button size="sm" data-wb-run-answer onClick={() => revealApproval(w.id)}>
                     {r.answer}
                   </Button>
@@ -456,7 +456,7 @@ export function RunsList({
                 <span className="min-w-0 flex-1 text-body font-medium text-foreground">
                   <Bidi>{c.title}</Bidi>
                 </span>
-                <Tip k="runs.open">
+                <Tip k="runs:open">
                   <Button size="sm" variant="ghost" onClick={() => onOpenChat(c.id)}>
                     {r.openChat}
                   </Button>
@@ -510,7 +510,7 @@ export function HistoryList({
           className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
           strokeWidth={1.75}
         />
-        <Tip k="history.search" align="start">
+        <Tip k="history:search" align="start">
           <TextInput
             dir="auto"
             data-wb-history-search
@@ -535,7 +535,7 @@ export function HistoryList({
             ];
             return (
               <li key={chat.id} className="group relative flex min-w-0 items-center gap-1">
-                <Tip k="history.row" align="start" facts={facts}>
+                <Tip k="history:row" align="start" facts={facts}>
                   <button
                     type="button"
                     aria-current={active ? 'true' : undefined}
@@ -560,7 +560,7 @@ export function HistoryList({
                             className="size-3 shrink-0 text-muted-foreground"
                             strokeWidth={2}
                           />
-                          <span className="sr-only">{tipWords.items['history.pinned'].what}</span>
+                          <span className="sr-only">{tipWords.items['history:pinned'].what}</span>
                         </>
                       )}
                       <span className="truncate">
@@ -580,7 +580,7 @@ export function HistoryList({
                     </span>
                   </button>
                 </Tip>
-                <Tip k="history.more">
+                <Tip k="history:more">
                   <span className="inline-flex">
                     <RowMenu
                       label={t.more}
@@ -786,7 +786,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
     >
       <span className="me-1 text-body-sm text-muted-foreground">{t.claudeBar.label}</span>
       {isTask && !panelOffers && (
-        <Tip k="sheet.do" off={doOff} vars={{ device }} label={t.pro.sheet.do}>
+        <Tip k="sheet:do" off={doOff} vars={{ device }} label={t.pro.sheet.do}>
           <Button
             size="sm"
             variant="ghost"
@@ -801,7 +801,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
       )}
       {(isTask || isDoc) && !panelOffers && (
         <Tip
-          k="doc.document"
+          k="doc:document"
           off={engineOff}
           vars={{ device }}
           label={isDoc ? t.pro.docBar.improve : t.pro.sheet.document}
@@ -819,7 +819,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
         </Tip>
       )}
       {!panelOffers && (
-        <Tip k="sheet.explain" off={engineOff} vars={{ device }} label={t.claudeBar.explain}>
+        <Tip k="sheet:explain" off={engineOff} vars={{ device }} label={t.claudeBar.explain}>
           <Button
             size="sm"
             variant="ghost"
@@ -832,7 +832,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
         </Tip>
       )}
       {!panelOffers && (
-        <Tip k="sheet.plan" off={engineOff} vars={{ device }} label={t.claudeBar.plan}>
+        <Tip k="sheet:plan" off={engineOff} vars={{ device }} label={t.claudeBar.plan}>
           <Button
             size="sm"
             variant="ghost"
@@ -845,7 +845,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
         </Tip>
       )}
       {card?.type === 'redesign' && (
-        <Tip k="sheet.redesign" off={engineOff} vars={{ device }} label={t.claudeBar.redesign}>
+        <Tip k="sheet:redesign" off={engineOff} vars={{ device }} label={t.claudeBar.redesign}>
           <Button
             size="sm"
             variant="ghost"
@@ -857,7 +857,7 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
           </Button>
         </Tip>
       )}
-      <Tip k="sheet.vscode" facts={noBridge ? [[tipWords.facts.device, device]] : undefined}>
+      <Tip k="sheet:vscode" facts={noBridge ? [[tipWords.facts.device, device]] : undefined}>
         <Button size="sm" variant="ghost" data-wb-vscode onClick={() => setVscode(true)}>
           <Code2 aria-hidden className="size-3.5" strokeWidth={1.75} />
           <span className="max-md:sr-only">{t.vscode.short}</span>

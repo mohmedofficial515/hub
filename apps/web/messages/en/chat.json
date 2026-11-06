@@ -215,8 +215,8 @@
     "answerFlags": "Answer each flag before saving: {count} left",
     "refused": "Not saved",
     "refusedCodes": {
-      "hub.docs.stale_base": "This document changed after the draft was written, so nothing was saved.",
-      "hub.docs.draft_flags_open": "A flag has no answer yet, so nothing was saved."
+      "stale_base": "This document changed after the draft was written, so nothing was saved.",
+      "draft_flags_open": "A flag has no answer yet, so nothing was saved."
     },
     "saved": "Saved. The earlier text is kept as a revision, and nothing is committed."
   },
@@ -723,7 +723,6 @@
         "asText": "This plan arrived as text in the reply, so it has no separate steps.",
         "run": "Run this plan",
         "aside": "Leave it",
-        "scheduled": "Scheduled.",
         "asided": "You left it here.",
         "promptText": "Carry out this plan, step by step, and run its checks."
       },
@@ -1130,31 +1129,31 @@
       "lastSeen": "Last seen"
     },
     "items": {
-      "strip.toggle": {
+      "strip:toggle": {
         "what": "Opens and closes the panel from any page, even while you type.",
         "detail": "The strip stays after closing, so an approval never goes out of sight."
       },
-      "strip.chat": {
+      "strip:chat": {
         "what": "Shows the open chat: the last reply and anything in it waiting for you.",
         "then": "If it is already showing, the panel closes."
       },
-      "strip.history": {
+      "strip:history": {
         "what": "All your chats by project, pinned ones first.",
         "then": "If it is already showing, the panel closes."
       },
-      "strip.runs": {
+      "strip:runs": {
         "what": "What waits for you, what is running now, and what to do next.",
         "then": "If it is already showing, the panel closes."
       },
-      "strip.pending": {
+      "strip:pending": {
         "what": "Approvals and questions waiting for you in any chat. Claude will not finish that step until you answer.",
         "then": "Opens the oldest chat that is waiting, scrolls to the approval and puts focus on it."
       },
-      "strip.bridge": {
+      "strip:bridge": {
         "what": "The bridge runs Claude on your device.",
         "needs": "The device being on and paired with Hub."
       },
-      "strip.usage": {
+      "strip:usage": {
         "what": "How much of your plan’s limit is used, as Claude reports it.",
         "detail": "At the limit the queue pauses until it resets, then continues, oldest first."
       },
@@ -1162,54 +1161,54 @@
         "what": "Changes the panel’s width, and this device remembers it.",
         "detail": "Arrow keys move in steps, Home and End go to the limits, Enter resets."
       },
-      "head.title": {
+      "head:title": {
         "what": "This chat’s facts. Press to see all of them under the title."
       },
-      "head.new": {
+      "head:new": {
         "what": "Starts an empty chat in your default mode.",
         "then": "The current chat stays in History, and a turn running in it carries on."
       },
-      "head.menu": {
+      "head:menu": {
         "what": "Pin, export, open in VS Code, follow the chat, and panel settings."
       },
-      "head.close": {
+      "head:close": {
         "what": "Shrinks the panel into the strip. The chat and any running turn are not affected."
       },
-      "head.help": {
+      "head:help": {
         "what": "Makes each tap explain a control instead of pressing it.",
         "then": "Tap Done and taps work as usual again.",
         "detail": "A long press explains any button without this mode."
       },
-      "ctx.auto": {
+      "ctx:auto": {
         "what": "What \"this\" means in your message. Press to send the next message without it.",
         "detail": "Claude receives only the key and reads the rest through Hub, so the card is not copied into the chat."
       },
-      "ctx.leave": {
+      "ctx:leave": {
         "what": "Sends the next message without this context.",
         "then": "The context comes back after sending."
       },
-      "ctx.back": {
+      "ctx:back": {
         "what": "Puts the open card or doc back into the next message."
       },
-      "ctx.attached": {
+      "ctx:attached": {
         "what": "Goes with the next message only, then the tray is clear."
       },
-      "ctx.detach": {
+      "ctx:detach": {
         "what": "Takes it out of the next message."
       },
-      "ctx.followOffer": {
+      "ctx:followOffer": {
         "what": "Claude read card {key}. Opening it here would move the page aside, so it did not open by itself.",
         "then": "Opens it beside the chat."
       },
-      "attach.aside": {
+      "attach:aside": {
         "what": "Adds a card, a doc or a file to the next message, or inserts a saved template.",
         "detail": "Files come from the chosen folder only."
       },
-      "ctx.followOn": {
+      "ctx:followOn": {
         "what": "Claude opened this card because Follow the chat is on. It never takes focus from you.",
         "then": "Press to turn following off. This device remembers your choice."
       },
-      "ctx.followOff": {
+      "ctx:followOff": {
         "what": "Off: cards do not open by themselves.",
         "then": "Press to follow the chat. This device remembers your choice."
       },
@@ -1233,17 +1232,17 @@
         "what": "Stops this turn now.",
         "then": "What finished stays, and nothing else starts. You can retry afterwards."
       },
-      "mode.ask": {
+      "mode:ask": {
         "what": "Ask: reads files and Hub only, and answers.",
         "detail": "No terminal, and no tools from other servers, so it cannot run tests or change anything.",
         "then": "If it needs something refused, it says what and offers to switch. Changing mode restarts Claude, about 10 seconds on your next message."
       },
-      "mode.plan": {
+      "mode:plan": {
         "what": "Plan: reads files and Hub only, writes a plan, and changes nothing.",
         "detail": "No terminal, and no tools from other servers.",
         "then": "The turn ends in a plan with steps, checks and a button to run it. Changing mode restarts Claude, about 10 seconds."
       },
-      "mode.execute": {
+      "mode:execute": {
         "what": "Execute: reads and edits freely inside the folder, and runs commands.",
         "then": "It pauses for you on delete, commit, push, deploy, a new branch and docker. Changing mode restarts Claude, about 10 seconds.",
         "detail": "Your Claude Code rules stay loaded, so a command you always allow does not pause."
@@ -1261,172 +1260,172 @@
         "what": "A suggestion from where you are now.",
         "then": "Puts the text in the box. Nothing runs until you send it."
       },
-      "next.title": {
+      "next:title": {
         "what": "Ranked from card state, with no AI: overdue first, then what blocks others, then priority."
       },
-      "next.explain": {
+      "next:explain": {
         "what": "Explains the decision and what each option means. It does not decide for you."
       },
-      "next.open": {
+      "next:open": {
         "what": "Opens the card beside the chat."
       },
-      "tools.fold": {
+      "tools:fold": {
         "what": "The steps Claude took in this turn.",
         "then": "Opens the list, and each step opens to its exact input and result."
       },
-      "tools.step": {
+      "tools:step": {
         "what": "Opens what went into this step and what came out, exactly, and who allowed it."
       },
-      "tools.copy": {
+      "tools:copy": {
         "what": "Copies the text exactly as it is."
       },
-      "turn.line": {
+      "turn:line": {
         "what": "How this turn ended.",
         "then": "Opens its mode, model, usage and changed files, only as the engine reported them."
       },
-      "turn.menu": {
+      "turn:menu": {
         "what": "Retry, branch from here, and copy the reply."
       },
-      "turn.retry": {
+      "turn:retry": {
         "what": "Sends the same request again.",
         "then": "What the last attempt changed in the files stays as it is."
       },
-      "turn.file": {
+      "turn:file": {
         "what": "Shows what changed in this file.",
         "then": "Opens the diff here, with added and removed lines marked by sign and colour."
       },
-      "turn.fileLarge": {
+      "turn:fileLarge": {
         "what": "Opens the diff in a wider window."
       },
-      "user.menu": {
+      "user:menu": {
         "what": "Branch from this message, or copy it."
       },
-      "facts.copy": {
+      "facts:copy": {
         "what": "Copies the session id, to find it again from Claude Code."
       },
-      "approval.copy": {
+      "approval:copy": {
         "what": "Copies the command exactly as it would run, to inspect or run it yourself."
       },
       "stage": {
         "what": "A stage of the work steps. Understand reads, Plan writes the steps, Execute edits, Verify runs the checks, Report writes to the card.",
         "detail": "A failed check stops at Verify, which is what fails a stage."
       },
-      "plan.run": {
+      "plan:run": {
         "what": "Puts this plan in the box, in Execute. Nothing runs until you send it.",
         "then": "After you send, Claude restarts, about 10 seconds, then the checklist starts."
       },
-      "plan.aside": {
+      "plan:aside": {
         "what": "Leaves the plan in the chat without running it. You can come back to it."
       },
-      "report.open": {
+      "report:open": {
         "what": "Opens the card this report landed on, with its actions."
       },
-      "draft.save": {
+      "draft:save": {
         "what": "Approves saving to the file on the main machine.",
         "then": "The earlier text stays as a revision you can restore. No Git commit.",
         "needs": "The file not having changed since the draft started. If it has, the save is refused and nothing is written."
       },
-      "draft.discard": {
+      "draft:discard": {
         "what": "Leaves the doc as it is. Nothing is saved."
       },
-      "flag.confirm": {
+      "flag:confirm": {
         "what": "You confirm this claim is true.",
         "then": "It is written plainly on save."
       },
-      "flag.leave": {
+      "flag:leave": {
         "what": "Takes the claim out of the draft.",
         "then": "It is not written into the doc."
       },
-      "flag.keep": {
+      "flag:keep": {
         "what": "Keeps the claim, marked as not verified.",
         "then": "It is written on its own line with that mark, so anyone reading the doc sees it."
       },
-      "draft.update": {
+      "draft:update": {
         "what": "Drops this draft and writes on the existing doc, with no new file.",
         "then": "A new draft as a diff against its text. Nothing is saved until you approve."
       },
-      "saved.restore": {
+      "saved:restore": {
         "what": "Brings back the earlier revision’s text.",
         "then": "The current text stays as a revision too, so you can undo the restore."
       },
-      "saved.open": {
+      "saved:open": {
         "what": "Opens the doc on the Docs page behind the panel."
       },
-      "blocked.switch": {
+      "blocked:switch": {
         "what": "Switches to Execute and sends the request again.",
         "then": "Claude restarts, about 10 seconds, then works inside the folder and pauses on sensitive commands."
       },
-      "runs.answer": {
+      "runs:answer": {
         "what": "Opens the chat at the approval this run paused on.",
         "then": "The folder stays held until you answer."
       },
-      "runs.open": {
+      "runs:open": {
         "what": "Opens this run’s chat so you can see what happened."
       },
-      "runs.state": {
+      "runs:state": {
         "what": "Waiting, running, in line, scheduled, finished or cut off. The reason is under the title."
       },
-      "runs.card": {
+      "runs:card": {
         "what": "Opens the card this run is working on."
       },
-      "history.search": {
+      "history:search": {
         "what": "Searches chat titles."
       },
-      "history.row": {
+      "history:row": {
         "what": "Opens this chat.",
         "then": "A turn running in the current chat carries on."
       },
-      "history.more": {
+      "history:more": {
         "what": "Pin or delete. A delete can be undone."
       },
-      "history.pinned": {
+      "history:pinned": {
         "what": "Pinned to the top of its project."
       },
-      "sheet.explain": {
+      "sheet:explain": {
         "what": "Explains this card and what is around it, and changes nothing.",
         "then": "Starts a new chat in Ask."
       },
-      "sheet.plan": {
+      "sheet:plan": {
         "what": "Writes a plan for this card, and changes nothing.",
         "then": "The turn ends in a plan with a button to run it."
       },
-      "sheet.redesign": {
+      "sheet:redesign": {
         "what": "Starts a brief in the lab, then directions for you to choose from.",
         "then": "Nothing real changes until you approve a version."
       },
-      "sheet.do": {
+      "sheet:do": {
         "what": "Does the task in fixed steps: Understand, Plan, Execute, Verify, Report.",
         "then": "Runs as soon as you press, in Execute. The card moves to In progress, then to In review only if every check is verified against a real step."
       },
-      "sheet.vscode": {
+      "sheet:vscode": {
         "what": "Opens VS Code with the request written into Claude.",
         "then": "It is not sent: you press Enter there. That starts a new chat, not this one.",
         "needs": "A bridge on this device. Without one, it only copies the text."
       },
-      "evidence.chat": {
+      "evidence:chat": {
         "what": "Opens the chat that wrote this report."
       },
-      "evidence.check": {
+      "evidence:check": {
         "what": "Shows this check’s output as it came, and each time it ran.",
         "detail": "Hub saw the command run and succeed. It does not judge whether it is the right check."
       },
-      "doc.improve": {
+      "doc:improve": {
         "what": "Proposes an update to this doc from the code and the cards.",
         "then": "Search, then a proposal, then a draft as a diff. Nothing is written until you approve."
       },
-      "doc.document": {
+      "doc:document": {
         "what": "Writes what the open card achieved into the docs.",
         "then": "It searches first, and warns you about a similar doc rather than repeating it.",
         "needs": "A task card open beside the page."
       },
-      "doc.gaps": {
+      "doc:gaps": {
         "what": "Compares what cards and code mention with what the docs say.",
         "then": "You get a list of what is missing and out of date, with what was not checked. It writes nothing."
       },
-      "doc.revisions": {
+      "doc:revisions": {
         "what": "The saved versions of this doc. Any of them can be restored."
       },
-      "doc.restore": {
+      "doc:restore": {
         "what": "Brings back this revision’s text.",
         "then": "The current text stays as a revision, so you can undo."
       }

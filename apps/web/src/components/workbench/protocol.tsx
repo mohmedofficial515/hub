@@ -339,7 +339,7 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
       {!aside ? (
         <div className="flex flex-wrap gap-1.5">
           <Tip
-            k="plan.run"
+            k="plan:run"
             off={off}
             vars={{ device, time: clockOf(wb.resetsAt ? new Date(wb.resetsAt).toISOString() : null, locale) }}
             label={p.run}
@@ -354,7 +354,7 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
               {p.run}
             </Button>
           </Tip>
-          <Tip k="plan.aside">
+          <Tip k="plan:aside">
             <Button variant="ghost" data-wb-plan-aside onClick={() => setPlanAside(item.id)}>
               {p.aside}
             </Button>
@@ -421,7 +421,7 @@ function CheckRow({
   const bases = r.basis as Record<string, string | undefined>;
   return (
     <li data-wb-check={standing} data-wb-check-basis={check.basis} className="flex min-w-0 flex-col gap-1">
-      <Tip k="evidence.check" align="start" side="bottom">
+      <Tip k="evidence:check" align="start" side="bottom">
         <button
           type="button"
           aria-expanded={open}
@@ -768,7 +768,7 @@ export function ReportCard({ report }: { report: Report }) {
       {/* The card itself is open beside this one, so a link to it would do nothing visible (review's table). */}
       {cardKey !== report.cardKey && (
         <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2.5">
-          <Tip k="report.open">
+          <Tip k="report:open">
             <Button size="sm" data-wb-report-open onClick={() => openCard(report.cardKey)}>
               <ArrowUpRight aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
               {fmt(r.open, { key: report.cardKey })}
@@ -1190,7 +1190,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
             </p>
             {open && !f.answer && (
               <div className="flex flex-wrap gap-1.5">
-                <Tip k="flag.confirm">
+                <Tip k="flag:confirm">
                   <Button
                     size="sm"
                     data-wb-flag-confirm
@@ -1199,7 +1199,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
                     {d.confirm}
                   </Button>
                 </Tip>
-                <Tip k="flag.leave">
+                <Tip k="flag:leave">
                   <Button
                     size="sm"
                     data-wb-flag-leave
@@ -1208,7 +1208,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
                     {d.leave}
                   </Button>
                 </Tip>
-                <Tip k="flag.keep">
+                <Tip k="flag:keep">
                   <Button
                     size="sm"
                     data-wb-flag-keep
@@ -1272,7 +1272,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
         <>
           <div className="flex flex-wrap items-center gap-1.5">
             {hasDuplicates && (
-              <Tip k="draft.update" off={off} vars={{ device }} label={d.updateExisting}>
+              <Tip k="draft:update" off={off} vars={{ device }} label={d.updateExisting}>
                 <Button
                   variant="primary"
                   data-wb-draft-update
@@ -1291,7 +1291,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
               </Tip>
             )}
             <Tip
-              k="draft.save"
+              k="draft:save"
               off={unanswered ? 'flagsOpen' : (off ?? (save ? null : 'noSave'))}
               vars={{ device }}
               label={saveLabel}
@@ -1307,7 +1307,7 @@ export function DraftCard({ chatId, item }: { chatId: string; item: Extract<Item
                 {saveLabel}
               </Button>
             </Tip>
-            <Tip k="draft.discard">
+            <Tip k="draft:discard">
               <Button
                 variant="ghost"
                 data-wb-draft-discard
@@ -1375,7 +1375,7 @@ export function SavedCard({ item }: { item: Extract<Item, { kind: 'saved' }> }) 
       </p>
       <p className="text-body-sm text-muted-foreground">{s.git}</p>
       <div className="flex flex-wrap gap-1.5">
-        <Tip k="saved.open">
+        <Tip k="saved:open">
           <Button size="sm" data-wb-saved-open onClick={() => navigate('docs', { query: { doc } })}>
             <FileText aria-hidden className="size-3.5" strokeWidth={1.75} />
             {s.open}
@@ -1392,7 +1392,7 @@ export function SavedCard({ item }: { item: Extract<Item, { kind: 'saved' }> }) 
           </p>
         ) : (
           draft.revisionId && (
-            <Tip k="saved.restore">
+            <Tip k="saved:restore">
               <Button
                 size="sm"
                 variant="ghost"
@@ -1453,7 +1453,7 @@ export function Blocked({ chatId, item }: { chatId: string; item: Extract<Item, 
         </code>
       </p>
       {!used && (
-        <Tip k="blocked.switch" off={off} vars={{ device }} label={b.switch}>
+        <Tip k="blocked:switch" off={off} vars={{ device }} label={b.switch}>
           <Button
             size="sm"
             data-wb-switch

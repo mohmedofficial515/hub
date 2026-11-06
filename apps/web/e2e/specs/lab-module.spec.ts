@@ -144,7 +144,7 @@ test.describe('lab module', () => {
     await expect(page).toHaveURL(/card=/);
     const kit = words(locale, 'kit');
     await expect(
-      page.getByRole('dialog').getByRole('button', { name: word(kit, 'actions.approve') }),
+      page.locator('[data-card-sheet]').getByRole('button', { name: word(kit, 'actions.approve') }),
     ).toBeVisible();
   });
 

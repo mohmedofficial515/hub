@@ -154,7 +154,7 @@ export function ModeSwitch() {
       {MODES.map((mode, i) => {
         const active = wb.mode === mode;
         return (
-          <Tip key={mode} k={`mode.${mode}` as 'mode.ask'} keys={[`Alt ${i + 1}`]}>
+          <Tip key={mode} k={`mode.${mode}` as 'mode:ask'} keys={[`Alt ${i + 1}`]}>
             <button
               type="button"
               data-wb-mode={mode}
@@ -404,7 +404,7 @@ export function ContextTray() {
       className="wb-nowrap-row min-w-0 flex-1 gap-1 overflow-hidden"
     >
       <li className="flex min-w-0 shrink" data-wb-chip-auto data-wb-left={left || undefined}>
-        <Tip k={left ? 'ctx.back' : 'ctx.auto'} facts={facts} align="start">
+        <Tip k={left ? 'ctx:back' : 'ctx:auto'} facts={facts} align="start">
           <button
             type="button"
             data-wb-chip-leave
@@ -436,7 +436,7 @@ export function ContextTray() {
       </li>
       {wb.followOffer && wb.followOffer !== ctx.cardKey && (
         <li className="flex shrink-0">
-          <Tip k="ctx.followOffer" vars={{ key: wb.followOffer }}>
+          <Tip k="ctx:followOffer" vars={{ key: wb.followOffer }}>
             <button
               type="button"
               data-wb-follow-offer
@@ -453,7 +453,7 @@ export function ContextTray() {
       )}
       {followedHere && (
         <li className="flex shrink-0">
-          <Tip k="ctx.followOn">
+          <Tip k="ctx:followOn">
             <button
               type="button"
               data-wb-follow-mark
@@ -476,7 +476,7 @@ export function ContextTray() {
         return (
           <li key={a.key} className="flex min-w-0 shrink" data-wb-attachment={a.kind}>
             <Tip
-              k="ctx.detach"
+              k="ctx:detach"
               facts={[
                 [a.kind === 'card' ? f.card : a.kind === 'doc' ? f.doc : t.pro.ctx.file, a.label, true],
               ]}
@@ -637,7 +637,7 @@ function AddMenu({ text, onPick }: { text: string; onPick: (value: string) => vo
         label={t.pro.ctx.add}
         trigger={
           <Tip
-            k={wb.pageAside ? 'attach.aside' : 'attach'}
+            k={wb.pageAside ? 'attach:aside' : 'attach'}
             facts={[[tipWords.facts.project, ctx.projectName]]}
           >
             <IconButton label={t.pro.ctx.add} title={undefined} data-wb-add className="size-11 md:size-7">

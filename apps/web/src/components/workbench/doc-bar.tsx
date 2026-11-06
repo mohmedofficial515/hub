@@ -57,7 +57,7 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
       <span className="px-1.5 text-body-sm text-muted-foreground">{d.label}</span>
       {doc && (
         <Tip
-          k="doc.improve"
+          k="doc:improve"
           off={engineOff}
           vars={{ device }}
           label={d.improve}
@@ -74,7 +74,7 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
         </Tip>
       )}
       <Tip
-        k="doc.document"
+        k="doc:document"
         off={engineOff ?? (isTask ? null : 'notTask')}
         vars={{ device }}
         label={d.document}
@@ -89,7 +89,7 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
           {d.document}
         </Button>
       </Tip>
-      <Tip k="doc.gaps" off={engineOff} vars={{ device }} label={d.gaps}>
+      <Tip k="doc:gaps" off={engineOff} vars={{ device }} label={d.gaps}>
         <Button
           size="sm"
           data-wb-doc-gaps
@@ -106,7 +106,7 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
             align="end"
             label={d.revisions}
             trigger={
-              <Tip k="doc.revisions">
+              <Tip k="doc:revisions">
                 <Button size="sm" variant="ghost" data-wb-doc-revisions className="ms-auto">
                   <History aria-hidden className="size-3.5" strokeWidth={1.75} />
                   {d.revisions}
@@ -154,7 +154,7 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
             ))}
           </Menu>
         ) : (
-          <Tip k="doc.revisions" off="noRevisions" label={d.revisions} wrapClassName="ms-auto">
+          <Tip k="doc:revisions" off="noRevisions" label={d.revisions} wrapClassName="ms-auto">
             <Button size="sm" variant="ghost" disabled>
               <History aria-hidden className="size-3.5" strokeWidth={1.75} />
               {d.revisions}

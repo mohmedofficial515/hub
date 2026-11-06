@@ -59,7 +59,7 @@ test('a release lists what it includes, and its notes name the template', async 
     await claude.call('update_release', { key, generateNotes: true });
 
     await page.goto(view(locale, ws, 'releases', `card=${key}`));
-    const sheet = page.getByRole('dialog');
+    const sheet = page.locator('[data-card-sheet]');
     await expect(sheet.getByText(task.key).first()).toBeVisible();
     await expect(sheet.getByText(word(words(locale, 'kit'), 'sections.release.templateName'))).toBeVisible();
   } finally {

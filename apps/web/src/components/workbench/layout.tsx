@@ -239,11 +239,11 @@ function Strip({
     id: PanelView;
     icon: typeof History;
     label: string;
-    tip: 'strip.chat' | 'strip.history' | 'strip.runs';
+    tip: 'strip:chat' | 'strip:history' | 'strip:runs';
   }[] = [
-    { id: 'chat', icon: MessagesSquare, label: t.chat, tip: 'strip.chat' },
-    { id: 'history', icon: History, label: t.history, tip: 'strip.history' },
-    { id: 'runs', icon: ListChecks, label: t.runs, tip: 'strip.runs' },
+    { id: 'chat', icon: MessagesSquare, label: t.chat, tip: 'strip:chat' },
+    { id: 'history', icon: History, label: t.history, tip: 'strip:history' },
+    { id: 'runs', icon: ListChecks, label: t.runs, tip: 'strip:runs' },
   ];
   const bridgeOk =
     !!wb.device?.online &&
@@ -259,7 +259,7 @@ function Strip({
       style={{ width: STRIP }}
       className="sticky top-0 flex h-dvh shrink-0 flex-col items-center gap-1 border-s border-border bg-(--sidebar) py-2"
     >
-      <Tip k="strip.toggle" side={side} keys={['Ctrl /']}>
+      <Tip k="strip:toggle" side={side} keys={['Ctrl /']}>
         <button
           id="wb-toggle"
           type="button"
@@ -296,7 +296,7 @@ function Strip({
         </Tip>
       ))}
       {pending > 0 && (
-        <Tip k="strip.pending" side={side} facts={waiting ? [[f.chat, waiting.title]] : undefined}>
+        <Tip k="strip:pending" side={side} facts={waiting ? [[f.chat, waiting.title]] : undefined}>
           <button
             type="button"
             data-wb-pending
@@ -321,7 +321,7 @@ function Strip({
         className="mt-auto flex flex-col items-center gap-1"
       >
         {share !== null && (
-          <Tip k="strip.usage" side={side} facts={usage}>
+          <Tip k="strip:usage" side={side} facts={usage}>
             <span
               {...statusRoving.itemProps(0)}
               role="img"
@@ -338,7 +338,7 @@ function Strip({
             </span>
           </Tip>
         )}
-        <Tip k="strip.bridge" side={side} facts={bridge}>
+        <Tip k="strip:bridge" side={side} facts={bridge}>
           <span
             {...statusRoving.itemProps(share === null ? 0 : 1)}
             role="img"
@@ -413,7 +413,7 @@ function ChatFacts({ chat }: { chat: Chat }) {
               <Ltr mono className="min-w-0 truncate text-body-sm text-foreground">
                 {chat.session}
               </Ltr>
-              <Tip k="facts.copy">
+              <Tip k="facts:copy">
                 <IconButton
                   label={t.pro.facts.copy}
                   title={undefined}
@@ -568,7 +568,7 @@ function ChatMenu({
       align="end"
       label={p.label}
       trigger={
-        <Tip k="head.menu" side="bottom">
+        <Tip k="head:menu" side="bottom">
           <IconButton label={p.label} title={undefined} data-wb-chat-menu>
             <MoreHorizontal aria-hidden className="size-4" strokeWidth={1.75} />
           </IconButton>
@@ -725,7 +725,7 @@ function PanelHeader({
   );
   const heading = canFacts ? (
     <Tip
-      k="head.title"
+      k="head:title"
       side="bottom"
       align="start"
       facts={[
@@ -767,7 +767,7 @@ function PanelHeader({
     </div>
   );
   const helpButton = touch && (
-    <Tip k="head.help" side="bottom">
+    <Tip k="head:help" side="bottom">
       <Button
         size="sm"
         variant="ghost"
@@ -782,7 +782,7 @@ function PanelHeader({
     </Tip>
   );
   const newButton = (
-    <Tip k="head.new" side="bottom">
+    <Tip k="head:new" side="bottom">
       <IconButton
         label={t.newChat}
         title={undefined}
@@ -797,7 +797,7 @@ function PanelHeader({
     </Tip>
   );
   const closeButton = (
-    <Tip k="head.close" side="bottom" keys={['Ctrl /']}>
+    <Tip k="head:close" side="bottom" keys={['Ctrl /']}>
       <IconButton
         label={t.close}
         title={undefined}
@@ -1129,7 +1129,7 @@ export function WorkbenchLayout({
 
   const pending = wb.pending;
   const phoneButton = phone && (
-    <Tip k="strip.toggle" side="bottom" keys={['Ctrl /']}>
+    <Tip k="strip:toggle" side="bottom" keys={['Ctrl /']}>
       <button
         type="button"
         id="wb-toggle"

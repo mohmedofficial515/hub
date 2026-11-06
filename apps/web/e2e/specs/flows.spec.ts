@@ -73,7 +73,9 @@ test.describe('critical flows', () => {
     expect(card.assignee?.id).toBe(shared().people['backend']?.id);
 
     await page.goto(view(locale, ws, 'tasks', `card=${key}`));
-    await expect(page.getByRole('dialog').getByText('backend', { exact: false }).first()).toBeVisible();
+    await expect(
+      page.locator('[data-card-sheet]').getByText('backend', { exact: false }).first(),
+    ).toBeVisible();
 
     const events = await owner.get<{ kind: string }[]>(`workspaces/${ws}/cards/${key}/events`);
     expect(events.map((event) => event.kind)).toContain('claimed');
@@ -110,7 +112,7 @@ test.describe('critical flows', () => {
     await page.goto(view(locale, ws, 'decisions'));
     await expect(page.getByText(word(decisions, 'bands.overdue')).first()).toBeVisible();
     await page.goto(view(locale, ws, 'decisions', `card=${key}&action=decide`));
-    const sheet = page.getByRole('dialog');
+    const sheet = page.locator('[data-card-sheet]');
     await sheet.getByRole('radio').nth(1).click();
     await sheet.getByRole('textbox').first().fill('Option B is simpler and costs less to keep.');
     await sheet.getByRole('button', { name: word(kit(locale), 'sheet.decision.save') }).click();
@@ -152,7 +154,7 @@ test.describe('critical flows', () => {
     await owner.post(`workspaces/${ws}/needs/${key}/start`);
 
     await page.goto(view(locale, ws, 'needs', `card=${key}&action=deliver`));
-    const sheet = page.getByRole('dialog');
+    const sheet = page.locator('[data-card-sheet]');
     const need = kit(locale);
     const location = sheet.getByLabel(word(need, 'sheet.need.location'));
     const save = sheet.getByRole('button', { name: word(need, 'sheet.need.saveDeliver') });
@@ -177,7 +179,7 @@ test.describe('critical flows', () => {
 
     const accountant = await member('accountant');
     await accountant.page.goto(view(locale, ws, 'needs', `card=${key}&action=verify`));
-    const theirs = accountant.page.getByRole('dialog');
+    const theirs = accountant.page.locator('[data-card-sheet]');
     await theirs.getByRole('button', { name: word(need, 'sheet.need.saveVerify') }).click();
     await expect
       .poll(async () => (await owner.card<{ status: string }>(key)).status, { timeout: 5000 })
@@ -225,7 +227,7 @@ test.describe('critical flows', () => {
     await page.goto(view(locale, ws, 'redesign'));
     await expect(page.locator(`[data-row="${version.key}"]`).first()).toBeVisible();
     await page.goto(view(locale, ws, 'redesign', `card=${version.key}&action=approve`));
-    const sheet = page.getByRole('dialog');
+    const sheet = page.locator('[data-card-sheet]');
     await sheet.getByRole('button', { name: word(kit(locale), 'sheet.redesign.saveApprove') }).click();
     await expect
       .poll(async () => (await owner.card<{ status: string }>(version.key)).status, { timeout: 5000 })

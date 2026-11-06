@@ -248,6 +248,53 @@ The API is in `apps/api/README.md` § Chats, and the hooks in `apps/web/README.m
 - **New columns:** `doc_drafts.conflict`, `chat_messages.engine_facts` (migration `0005`).
 - **A 401 is retried for minutes (new, not in S1).** With a key that stopped working, 2.1.318 emits `system/api_retry` with `error: "authentication_failed"` and backs off to over 30 s between attempts, so the turn reads `retrying` long before it ends `signed_out`. `CLAUDE_CODE_MAX_RETRIES=0` makes it fail at once, with `assistant.error: "authentication_failed"`. The bridge lets the binary finish, so this is what the owner would see. Only the scripted engine sets the variable, to `1`.
 
+### Panel as built (2026-11-06)
+
+The approved `v6-edge-strip-port` (D55) on the real shell, real API, real bridge and binary. Code: `components/workbench/`, `components/ui/rich-tip.tsx`, `features/chat/thread-items.ts`, `components/cards/card-sheet.tsx`. Words: `messages/{ar,en}/chat.json`, under `panel` and `tips`. How to extend it: `apps/web/README.md` § The chat panel.
+
+**§7.1, item by item.**
+
+| §7.1 | As built |
+|---|---|
+| Info tooltips | `Tip` in the kit: what, then, needs, detail, keys, real values, why off and how to fix. Full and compact, remembered per device. Touch: Explain mode, long press, a tap on a disabled control. Allow and Deny have none, the recorded exception |
+| Each turn | One line that opens: status, failure, model, duration, steps, usage, each only as the engine reported it |
+| Each step | Exact input, result, error, who allowed it |
+| Changed files | Counts, then the real diff from `chat.diff`, read when opened |
+| Chat facts | Project, folder, device, branch, session, mode, model, started, working as, version, MCP servers and skills from `turn.session` |
+| Modes | Ask, Plan, Execute, always in view, `Alt 1` to `Alt 3`. Model and effort follow `engineStatus` |
+| Smart context | `suggestedPrompts` from the page and card, attachments as chips, cards dragged in, Follow the chat, which never makes the page step aside |
+| Do next | `doNext` in contracts, with its reason, in Runs |
+| `/hub:work`, `/hub:doc` | From the sheet's With Claude row, the docs page's bar, suggestions and the slash menu, with the live checklist |
+| Flexibility | Pin, branch, export, retry, stop, templates per project. Width, default mode, tooltip level and Follow per device |
+
+**D54 on real pages.** `#main`, the sheet and the panel are inline-size containers, and `--container-page-*` in `globals.css` holds the page's width at each viewport step with the panel closed. So `lg:@page-lg:grid-cols-12` is exactly `lg:grid-cols-12` with the panel closed, and falls back beside the panel. `usePageWide(px)` is the same for `useMedia`. Tasks reads `usePageRoom().boardTight`, so its List stands in for the Board under 520 px with the URL and the chosen view untouched. `QuietPrimary` takes the place of the design's CSS override: a page's filled button is outline while a card is open, and a dialog puts it back.
+
+**The sheet** is a plain `<section>` on every page, including the lab's own, where it lies over the page. Focus lands on the title, Esc closes only from inside, and with the panel open it stays open after an action. Previous and Next walk the page's own `useKeyboardList` rows, with its filters.
+
+**The lab's own page has no panel.** `gallery` has no sidebar or header (D39 as amended), and the panel stays out with them.
+
+**Runs entry.** Only what is real: chats waiting on the owner, chats with a turn running, and Do next. The queue, Run now and Schedule are slice 5, so they are not shown at all.
+
+**What changed from v6, and why.**
+
+| In v6 | Here | Why |
+|---|---|---|
+| Strip's run icons, Schedule, Run now, pause and cancel | Gone | Slice 5 has no engine. Review L4 and the brief |
+| The usage value at rest | Shown only once a turn has reported a limit | The engine reports it only then |
+| Connected since | Last seen | `DeviceDto` has no connected-since |
+| A question's `variant`, `diff`, `changedOn` | Gone from questions. The stale save's text is on the draft: `conflict`, shown as a diff | The real flow is a refused save, not a question |
+| `stoppedBy` | Derived from the turn's failure | The engine has no such field |
+| Turn detail's mode and effort | Gone | No message stores them |
+| A step's one-word result | Gone | The engine reports none |
+| Links card, Gaps card | Gone | No event carries them. Linking is a step, and a gap report is Claude's reply |
+| Saved's revision names | "The earlier text" | A version here is a hash, which reads as nothing |
+| Personal and folder groups in the slash menu | Hub's, then "From this folder and yours" | `init.skills` gives names with no source, and only after a first turn |
+| File picker with a list | A path the owner types | No bridge action lists a folder |
+| Strip's project groups in History | One list | A chat belongs to the project on screen |
+| A project chip | Gone | Chats belong to the project on screen, so it can never differ |
+| Models fixed at three | The three, plus Default | Default passes no model, which is the real choice |
+| Pending label "approvals" | "answers" | The count holds questions too |
+
 ## 8. Slice 4: send to VS Code
 
 A button on any card and in the panel: **Open in VS Code**.

@@ -258,6 +258,20 @@ From `@hub/contracts`: `lineDiff(base, draft)` for the draft's diff, `applyClaim
 
 **A suggestion's data says what pressing it does (D51).** `onPress: 'fill'` puts the words in the composer. `onPress: 'run'` sends them, in `mode`. When a `run` is in `execute`, show `suggestions.<id>.runs` first, so it never runs in Execute unannounced.
 
+## The chat panel
+
+`components/workbench/` is the approved `v6-edge-strip-port` on the engine above. The shell mounts `WorkbenchProvider` and `WorkbenchLayout` on every view but `gallery`.
+
+- **State.** `store.tsx`: `useWb()` is the chat, device, folder, engine state and pending count, from the hooks, plus what the panel keeps itself. The acts (`send`, `stopTurn`, `answerApproval`, `saveDraft`, ...) are plain functions, so a menu or a key can call them. `useMaybeWb()` is for what also shows on the lab's page.
+- **The thread** is `itemsOf(chat)` in `features/chat/thread-items.ts`, pure and tested. A new event on a message means a line there and a case in `thread.tsx`. `chatStatusOf` and `engineStateOf` say what a chat is doing and which notice shows.
+- **Words** are in `chat.json`: `panel` and `tips`. A test holds the languages together.
+- **The rich tooltip** is in the kit: `<Tip k="send" off="empty" vars={{ device }} facts={[[label, value]]} keys={['Enter']}>`. `k` is a key of `tips.items`, `off` of `tips.off` or `{ why, fix }`. Render inside `TipProvider`.
+- **A page beside the panel.** Layout that reads the viewport is `lg:@page-lg:grid-cols-12`, and in code `usePageWide(1024)`: both are the plain viewport rule with the panel closed, and fold beside it. A dialog is portalled out of the page, so it keeps plain `md:`. `usePageRoom().boardTight` says a Board has no room.
+- **The sheet.** `CardSheet` is a plain `<section>`, not a dialog. Find it in a test with `[data-card-sheet]`. With the panel open it stays open after an action.
+- **`Button variant="primary"`** on a page steps down to outline while a card is open (`QuietPrimary`). Nothing to do.
+
+Layers: strip and panel are in the layout, a phone's panel is 45, its sheet 50. Touch targets follow `pointer: coarse` (`workbench.css`).
+
 ## i18n
 
 Every visible string is in both languages. `useT(kitMessages)` is card vocabulary (`types status actions done roles sheet`): never repeat it. `useT<Messages>('<view>')` is your page. Both return the namespace as an object. Use `fmt` and `fill` for `{name}`
@@ -315,7 +329,7 @@ Changed from the design:
 
 ## Tests
 
-`pnpm test:e2e:web` (root) is Playwright, `e2e/`: flows F1 to F5 of docs/11 and the live-update test of docs/15 §7 in `ar` and `en`, on throwaway containers with a built API and web on 7319 and 7359. It never touches the local database, and approves only in a temp lab. `E2E_SKIP_BUILD=1` reuses the builds. Timings land in `test-results/live-timings.jsonl`. `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix` runs the page matrix below, measured, and `E2E_MATRIX_PAGES` narrows it. The first run needs `pnpm --filter @hub/web exec playwright install chromium`.
+`pnpm test:e2e:web` (root) is Playwright, `e2e/`: the chat panel on the scripted engine (`support/scripted-engine.ts`, `specs/chat-panel.spec.ts`), flows F1 to F5 of docs/11 and the live-update test of docs/15 §7 in `ar` and `en`, on throwaway containers with a built API and web on 7319 and 7359. It never touches the local database, and approves only in a temp lab. `E2E_SKIP_BUILD=1` reuses the builds. Timings land in `test-results/live-timings.jsonl`. `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix` runs the page matrix below, measured, and `E2E_MATRIX_PAGES` narrows it. The first run needs `pnpm --filter @hub/web exec playwright install chromium`.
 
 `src/test/render.tsx`: `renderWithApp(ui, { locale })` uses the real catalogs and a fresh query client. `stubFetch((url) => ({ body: { data } }))` answers from a table, and an unmatched call is the API's 404. Logic first: `*.spec.ts` beside the file. A page: one render test per state. Before handing back:
 

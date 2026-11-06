@@ -9,6 +9,7 @@ import { vi } from 'vitest';
 
 import arAsk from '../../messages/ar/ask.json';
 import arAuth from '../../messages/ar/auth.json';
+import arChat from '../../messages/ar/chat.json';
 import arDecisions from '../../messages/ar/decisions.json';
 import arDocs from '../../messages/ar/docs.json';
 import arHandoffs from '../../messages/ar/handoffs.json';
@@ -25,6 +26,7 @@ import arTasks from '../../messages/ar/tasks.json';
 import arWorkspaces from '../../messages/ar/workspaces.json';
 import enAsk from '../../messages/en/ask.json';
 import enAuth from '../../messages/en/auth.json';
+import enChat from '../../messages/en/chat.json';
 import enDecisions from '../../messages/en/decisions.json';
 import enDocs from '../../messages/en/docs.json';
 import enHandoffs from '../../messages/en/handoffs.json';
@@ -48,6 +50,7 @@ const catalogs = {
     handoffs: arHandoffs,
     needs: arNeeds,
     ask: arAsk,
+    chat: arChat,
     docs: arDocs,
     onboarding: arOnboarding,
     redesign: arRedesign,
@@ -66,6 +69,7 @@ const catalogs = {
     handoffs: enHandoffs,
     needs: enNeeds,
     ask: enAsk,
+    chat: enChat,
     docs: enDocs,
     onboarding: enOnboarding,
     redesign: enRedesign,
