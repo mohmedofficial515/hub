@@ -138,6 +138,7 @@ export const ERROR_CATALOGUE = {
   'hub.devices.timeout': 504,
   'hub.devices.refused': 422,
   'hub.devices.folder_missing': 422,
+  'hub.devices.vscode_missing': 422,
   'hub.devices.pairing_not_found': 404,
   'hub.devices.pairing_closed': 409,
 } as const;

@@ -5440,6 +5440,18 @@ export type CreateChatDto = {
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 };
 
+export type VsCodeOpenDto = {
+    device: string;
+    folder: string;
+    cardKey?: string;
+    chatId?: string;
+};
+
+export type VsCodeOpenResultDto = {
+    sent: true;
+    prompt: string;
+};
+
 export type ChatFullDto = {
     id: string;
     deviceId: string;
@@ -8593,6 +8605,19 @@ export type ChatsControllerEngineResponses = {
 };
 
 export type ChatsControllerEngineResponse = ChatsControllerEngineResponses[keyof ChatsControllerEngineResponses];
+
+export type ChatsControllerVscodeData = {
+    body: VsCodeOpenDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/vscode';
+};
+
+export type ChatsControllerVscodeResponses = {
+    200: VsCodeOpenResultDto;
+};
+
+export type ChatsControllerVscodeResponse = ChatsControllerVscodeResponses[keyof ChatsControllerVscodeResponses];
 
 export type ChatsControllerRemoveData = {
     body?: never;

@@ -1,7 +1,7 @@
 /**
  * @file The closed list and the folder rule, and the Link button's action against a recorded Claude Code and a temp config.
  */
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { dispatch } from '../lib/actions.mjs';
 import { folderKeys } from '../lib/claude-config.mjs';
 import { hubPaths } from '../lib/paths.mjs';
+import { VSCODE_LINK_PREFIX, VSCODE_PROMPT_CHARS } from '../lib/protocol.mjs';
 import { aFolder, CREDENTIAL, fakeSystem, URL } from './helpers.mjs';
 
 function contextFor(system, folders = []) {
@@ -69,6 +70,121 @@ describe('the closed list', () => {
     const system = fakeSystem();
     const answer = await dispatch({ action: 'turn.start', args: ['x'] }, contextFor(system), noEmit);
     expect(answer).toMatchObject({ ok: false, error: { code: 'bad_arguments' } });
+  });
+});
+
+describe('vscode.open (docs/16 §8)', () => {
+  /** A VS Code that exists only as two empty files. `spawnDetached` is the fake's, so nothing ever opens. */
+  function withVsCode(overrides = {}) {
+    const system = fakeSystem(overrides);
+    const exe = join(system.home, 'VS Code', 'Code.exe');
+    mkdirSync(join(system.home, 'VS Code', 'bin'), { recursive: true });
+    writeFileSync(exe, '');
+    writeFileSync(join(system.home, 'VS Code', 'bin', 'code.cmd'), '');
+    system.registryHandler = `"${exe}" --open-url -- "%1"`;
+    const folder = aFolder(system, 'My Project');
+    const send = (args) =>
+      dispatch(
+        { action: 'vscode.open', args: { folder, ...args } },
+        contextFor(system, [{ path: folder, project: 'demo' }]),
+        noEmit,
+      );
+    return { system, exe, folder, send };
+  }
+  const shelled = (detached) => detached.flat().filter((word) => /(^|[\\/])(cmd|code\.cmd)/i.test(word));
+
+  it('runs the real Code.exe: the folder first, then the link, with no shell in between', async () => {
+    const { system, exe, folder, send } = withVsCode();
+    const answer = await send({ prompt: 'Work on GTV-1 in Hub.' });
+    expect(answer).toEqual({ ok: true, data: { sent: true } });
+    expect(system.detached).toEqual([
+      [exe, folder],
+      [exe, '--open-url', '--', `${VSCODE_LINK_PREFIX}Work%20on%20GTV-1%20in%20Hub.`],
+    ]);
+    expect(shelled(system.detached)).toEqual([]);
+  });
+
+  it('says it handed over, and never says opened', async () => {
+    const { send } = withVsCode();
+    const answer = await send({ prompt: 'x' });
+    expect(JSON.stringify(answer)).not.toContain('opened');
+  });
+
+  it('encodes Arabic and an ampersand, so neither can split or end the link', async () => {
+    const { system, send } = withVsCode();
+    const prompt = 'افتح GTV-1 & اقرأ';
+    await send({ prompt });
+    const link = system.detached[1].at(-1);
+    expect(link).toBe(`${VSCODE_LINK_PREFIX}${encodeURIComponent(prompt)}`);
+    expect(link).not.toContain('&');
+    expect(decodeURIComponent(link.slice(VSCODE_LINK_PREFIX.length))).toBe(prompt);
+  });
+
+  it('a prompt cannot name another link or an option: it is only ever encoded into this one', async () => {
+    const { system, send } = withVsCode();
+    await send({ prompt: 'vscode://evil/x --install-extension bad' });
+    const [, second] = system.detached;
+    expect(second).toHaveLength(4);
+    expect(second[3].startsWith(VSCODE_LINK_PREFIX)).toBe(true);
+  });
+
+  it('refuses a folder not on the list, before anything runs', async () => {
+    const { system, send } = withVsCode();
+    const outside = aFolder(system, 'outside');
+    const answer = await send({ folder: outside, prompt: 'x' });
+    expect(answer).toMatchObject({ ok: false, error: { code: 'folder_not_allowed' } });
+    expect(system.detached).toEqual([]);
+  });
+
+  it('refuses a registered folder that is not on this device', async () => {
+    const { system } = withVsCode();
+    const gone = join(system.home, 'gone');
+    const answer = await dispatch(
+      { action: 'vscode.open', args: { folder: gone, prompt: 'x' } },
+      contextFor(system, [{ path: gone, project: 'demo' }]),
+      noEmit,
+    );
+    expect(answer).toMatchObject({ ok: false, error: { code: 'folder_missing' } });
+    expect(system.detached).toEqual([]);
+  });
+
+  it('refuses a prompt that is not a short string, or could not be encoded', async () => {
+    const { system, send } = withVsCode();
+    for (const prompt of [undefined, 7, '', 'x'.repeat(VSCODE_PROMPT_CHARS + 1), '\uD83D']) {
+      const answer = await send({ prompt });
+      expect(answer).toMatchObject({ ok: false, error: { code: 'bad_arguments' } });
+    }
+    expect(system.detached).toEqual([]);
+  });
+
+  it('with no VS Code it says so, and runs nothing', async () => {
+    const { system, send } = withVsCode();
+    system.registryHandler = '"C:\\nowhere\\Code.exe" --open-url -- "%1"';
+    const answer = await send({ prompt: 'x' });
+    expect(answer).toMatchObject({ ok: false, error: { code: 'vscode_missing' } });
+    expect(system.detached).toEqual([]);
+  });
+
+  it('a program that could not start is not reported as sent', async () => {
+    const { send } = withVsCode({ spawnDetached: () => undefined });
+    const answer = await send({ prompt: 'x' });
+    expect(answer).toMatchObject({ ok: false, error: { code: 'vscode_missing' } });
+  });
+
+  it('elsewhere it runs the resolved `code`, with the same arguments', async () => {
+    const system = fakeSystem({ platform: 'linux' });
+    const bin = join(system.home, 'bin');
+    mkdirSync(bin);
+    writeFileSync(join(bin, 'code'), '');
+    system.env.PATH = bin;
+    const folder = aFolder(system);
+    const answer = await dispatch(
+      { action: 'vscode.open', args: { folder, prompt: 'x' } },
+      contextFor(system, [{ path: folder, project: 'demo' }]),
+      noEmit,
+    );
+    expect(answer).toEqual({ ok: true, data: { sent: true } });
+    expect(system.detached.map((call) => call[0])).toEqual([join(bin, 'code'), join(bin, 'code')]);
   });
 });
 

@@ -32,6 +32,9 @@ import {
   type SendChatMessageInput,
   turnPrompt,
   type UpdateChatInput,
+  type VsCodeOpenInput,
+  type VsCodeOpenResult,
+  vscodePrompt,
   type WorkReport,
 } from '@hub/contracts';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
@@ -43,6 +46,7 @@ import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
+import { CardQueryService } from '@/modules/cards';
 import { BridgeHub, DevicesService } from '@/modules/devices';
 import { ProjectsService } from '@/modules/workspaces';
 import { AppException } from '@/shared/errors';
@@ -57,6 +61,7 @@ const ANSWER_TIMEOUT_MS = 30_000;
 const STOP_TIMEOUT_MS = 30_000;
 const ENGINE_TIMEOUT_MS = 60_000;
 const DIFF_TIMEOUT_MS = 40_000;
+const VSCODE_TIMEOUT_MS = 30_000;
 const LIST_LIMIT = 50;
 const MESSAGE_LIMIT = 500;
 const AUDIT_SUMMARY_CHARS = 1_000;
@@ -106,6 +111,7 @@ export class ChatsService implements OnApplicationBootstrap {
     private readonly realtime: RealtimePublisher,
     private readonly turns: TurnRegistry,
     private readonly drafts: DocDraftsService,
+    private readonly cards: CardQueryService,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
@@ -632,6 +638,44 @@ export class ChatsService implements OnApplicationBootstrap {
         timeoutMs: ENGINE_TIMEOUT_MS,
       }),
     );
+  }
+
+  /**
+   * Send to VS Code (docs/16 §8). The prompt is built here from what Hub holds, so the bridge's link carries nothing a caller wrote. `sent` is all anyone can know: the owner still presses Enter, and exit codes only prove the handover (S1 Q10).
+   */
+  async openInVsCode(actor: MemberActor, input: VsCodeOpenInput): Promise<VsCodeOpenResult> {
+    const device = await this.devices.owned(actor.userId, input.device);
+    const project = await this.projects.get(actor);
+    if (!folderIsRegistered(input.folder, project.repoPaths, device.platform)) {
+      throw new AppException('hub.chats.folder_not_allowed');
+    }
+    if (!this.hub.isOnline(input.device)) throw new AppException('hub.devices.offline');
+    if (input.cardKey) await this.cards.readable(actor, { cardKey: input.cardKey });
+    const chat = input.chatId ? await this.owned(actor, input.chatId) : null;
+    const prompt = vscodePrompt({
+      cardKey: input.cardKey,
+      chatTitle: chat ? redactSecrets(chat.title) : undefined,
+      folder: input.folder,
+    });
+    try {
+      await this.hub.request(
+        input.device,
+        'vscode.open',
+        { folder: input.folder, prompt },
+        { timeoutMs: VSCODE_TIMEOUT_MS },
+      );
+    } catch (error) {
+      const reason = (error as { details?: { reason?: string } }).details?.reason;
+      if (reason === 'folder_not_allowed') throw new AppException('hub.chats.folder_not_allowed');
+      throw error;
+    }
+    await this.audit.record(actor, {
+      action: 'chats.vscode',
+      targetType: input.chatId ? 'chat' : 'device',
+      targetId: input.chatId ?? input.device,
+      summary: `Sent ${input.folder} to VS Code on ${device.name}`.slice(0, AUDIT_SUMMARY_CHARS),
+    });
+    return { sent: true, prompt };
   }
 
   // ── Prompt templates, per project ─────────────────────────────────────────────────────────────

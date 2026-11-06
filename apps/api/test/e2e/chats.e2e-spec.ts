@@ -205,6 +205,103 @@ describe('chats', () => {
     });
   }
 
+  describe('send to VS Code (docs/16 §8)', () => {
+    const route = () => `${base()}/vscode`;
+    const send = (extra: Record<string, unknown> = {}) =>
+      browser.post(route(), { device: deviceId, folder: FOLDER, ...extra });
+    const sent = () => device.of('vscode.open');
+
+    beforeEach(() => {
+      device.answers['vscode.open'] = { sent: true };
+    });
+
+    /** The device refuses the way `dispatch` does. */
+    const refusedWith = (code: string) => {
+      device.answers['vscode.open'] = undefined;
+      device.socket.on('message', (data) => {
+        const frame = JSON.parse((data as Buffer).toString()) as ActionFrame;
+        if (frame.action !== 'vscode.open') return;
+        device.socket.send(
+          JSON.stringify({ type: 'result', id: frame.id, ok: false, error: { code, message: code } }),
+        );
+      });
+    };
+
+    it('sends the folder and the prompt the server built, and says sent', async () => {
+      const created = await browser
+        .post(`/workspaces/${slug}/cards`, {
+          type: 'task',
+          title: 'A task',
+          detail: { specialty: 'backend' },
+        })
+        .expect(201);
+      const key = created.body.data.key as string;
+      const answer = await send({ cardKey: key }).expect(200);
+      const prompt = `Work on ${key} in Hub. Read it with hub get_card first.`;
+      expect(answer.body.data).toEqual({ sent: true, prompt });
+      expect(sent().map((frame) => frame.args)).toEqual([{ folder: FOLDER, prompt }]);
+      const audit = await prisma().auditLog.findFirst({ where: { workspaceId, action: 'chats.vscode' } });
+      expect(audit?.summary).toContain('VS Code');
+    });
+
+    it('carries the chat’s title when there is no card', async () => {
+      const chatId = await aChat({ title: 'Refunds & wallets' });
+      const answer = await send({ chatId }).expect(200);
+      expect(answer.body.data.prompt).toContain('Refunds & wallets');
+    });
+
+    it('with neither, the prompt names the folder', async () => {
+      const answer = await send().expect(200);
+      expect(answer.body.data.prompt).toContain(FOLDER);
+    });
+
+    it('a card that is not in this project asks nothing of the device', async () => {
+      const refused = await send({ cardKey: 'NOPE-999' });
+      expect(refused.status).toBe(404);
+      expect(sent()).toEqual([]);
+    });
+
+    it('another member’s chat is not found, so its title cannot be read', async () => {
+      const chatId = await aChat({ title: 'Mine' });
+      await prisma().chat.update({
+        where: { id: chatId },
+        data: { userId: (await anAccount(prisma())).id },
+      });
+      const refused = await send({ chatId }).expect(404);
+      expect(refused.body.error.code).toBe('hub.chats.not_found');
+      expect(sent()).toEqual([]);
+    });
+
+    it('a folder not on the project’s list is the same refusal a new chat gets', async () => {
+      const refused = await send({ folder: 'C:/elsewhere' }).expect(422);
+      expect(refused.body.error.code).toBe('hub.chats.folder_not_allowed');
+      expect(sent()).toEqual([]);
+    });
+
+    it('an offline device is refused', async () => {
+      device.socket.terminate();
+      await until(() => !hub.isOnline(deviceId));
+      const refused = await send().expect(409);
+      expect(refused.body.error.code).toBe('hub.devices.offline');
+    });
+
+    it('someone else’s device is not found', async () => {
+      const refused = await send({ device: '33333333-3333-4333-8333-333333333333' }).expect(404);
+      expect(refused.body.error.code).toBe('hub.devices.not_found');
+    });
+
+    it.each([
+      ['vscode_missing', 422, 'hub.devices.vscode_missing'],
+      ['folder_missing', 422, 'hub.devices.folder_missing'],
+      ['folder_not_allowed', 422, 'hub.chats.folder_not_allowed'],
+    ])('the bridge’s %s reaches the browser in its language', async (code, status, wanted) => {
+      refusedWith(code);
+      const refused = await send().set('Accept-Language', 'ar').expect(status);
+      expect(refused.body.error.code).toBe(wanted);
+      expect(refused.body.error.message).toMatch(/[\u0600-\u06FF]/);
+    });
+  });
+
   async function aChat(extra: Record<string, unknown> = {}): Promise<string> {
     const answer = await browser.post(base(), { device: deviceId, folder: FOLDER, ...extra }).expect(201);
     return answer.body.data.id as string;
@@ -905,6 +1002,16 @@ describe('chats', () => {
         title: 'Renamed',
       });
       await client.close();
+    });
+
+    it('a token cannot send to VS Code: the route is web only', async () => {
+      const { token } = await aToken(prisma(), userId, 'mcp');
+      await api()
+        .post(`/api/v1${base()}/vscode`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ device: deviceId, folder: FOLDER })
+        .expect(403);
+      expect(device.of('vscode.open')).toEqual([]);
     });
 
     it('report_stage refuses a stage of another protocol', async () => {

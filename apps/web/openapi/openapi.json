@@ -7020,6 +7020,38 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/chats/vscode": {
+      "post": {
+        "operationId": "ChatsController_vscode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VsCodeOpenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VsCodeOpenResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send a folder and a short prompt to VS Code on a device. `sent` means handed over: the owner presses Enter there",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/chats/{id}": {
       "get": {
         "operationId": "ChatsController_get",
@@ -33352,6 +33384,52 @@
         "required": [
           "device",
           "folder"
+        ]
+      },
+      "VsCodeOpenDto": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "cardKey": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+          },
+          "chatId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "device",
+          "folder"
+        ]
+      },
+      "VsCodeOpenResultDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "sent",
+          "prompt"
         ]
       },
       "ChatFullDto": {

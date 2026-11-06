@@ -20,6 +20,8 @@ import {
   retryChatSchema,
   sendChatMessageSchema,
   updateChatSchema,
+  vscodeOpenResultSchema,
+  vscodeOpenSchema,
   workReportSchema,
 } from '@hub/contracts';
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
@@ -48,6 +50,8 @@ class BranchChatDto extends createZodDto(branchChatSchema) {}
 class ChatListQueryDto extends createZodDto(chatListQuerySchema) {}
 class ChatDiffQueryDto extends createZodDto(chatDiffQuerySchema) {}
 class EngineQueryDto extends createZodDto(engineQuerySchema) {}
+class VsCodeOpenDto extends createZodDto(vscodeOpenSchema) {}
+class VsCodeOpenResultDto extends createZodDto(vscodeOpenResultSchema) {}
 class PromptTemplateInputDto extends createZodDto(promptTemplateInputSchema) {}
 class ChatRowDto extends createZodDto(chatSchema) {}
 class ChatFullDto extends createZodDto(chatFullSchema) {}
@@ -93,6 +97,19 @@ export class ChatsController {
   @ApiCreatedResponse({ type: ChatRowDto })
   create(@Actor() actor: MemberActor, @Body() body: CreateChatDto): Promise<ChatRowDto> {
     return this.chats.create(actor, body);
+  }
+
+  @Post('vscode')
+  @HttpCode(200)
+  @Permissions('chat.run')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      'Send a folder and a short prompt to VS Code on a device. `sent` means handed over: the owner presses Enter there',
+  })
+  @ApiOkResponse({ type: VsCodeOpenResultDto })
+  vscode(@Actor() actor: MemberActor, @Body() body: VsCodeOpenDto): Promise<VsCodeOpenResultDto> {
+    return this.chats.openInVsCode(actor, body);
   }
 
   @Get(':id')

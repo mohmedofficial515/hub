@@ -29,8 +29,11 @@ export const BRIDGE_REFUSALS = [
   'not_implemented',
   'not_fixable',
   'turn_running',
+  'vscode_missing',
   'failed',
 ];
+export const VSCODE_PROMPT_CHARS = 500;
+export const VSCODE_LINK_PREFIX = 'vscode://anthropic.claude-code/open?prompt=';
 export const HEALTH_FIXES = ['mcp_server', 'plugin', 'login_start'];
 export const HEALTH_CHECK_IDS = [
   'claude_found',

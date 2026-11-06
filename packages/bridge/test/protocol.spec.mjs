@@ -9,6 +9,8 @@ import {
   BRIDGE_SOCKET_PATH,
   HEALTH_CHECK_IDS,
   HEALTH_FIXES,
+  VSCODE_LINK_PREFIX,
+  VSCODE_PROMPT_CHARS,
 } from '@hub/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -23,5 +25,7 @@ describe('the protocol matches the contract', () => {
     expect(protocol.BRIDGE_CLOSE).toEqual(BRIDGE_CLOSE);
     expect(protocol.BRIDGE_PROTOCOL_VERSION).toBe(BRIDGE_PROTOCOL_VERSION);
     expect(protocol.BRIDGE_SOCKET_PATH).toBe(BRIDGE_SOCKET_PATH);
+    expect(protocol.VSCODE_PROMPT_CHARS).toBe(VSCODE_PROMPT_CHARS);
+    expect(protocol.VSCODE_LINK_PREFIX).toBe(VSCODE_LINK_PREFIX);
   });
 });

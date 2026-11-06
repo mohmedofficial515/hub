@@ -59,6 +59,7 @@ const STATUS_WRITE_EVERY_MS = 60_000;
 
 function refusal(code: BridgeRefusal, message: string | undefined): AppException {
   if (code === 'folder_missing') return new AppException('hub.devices.folder_missing');
+  if (code === 'vscode_missing') return new AppException('hub.devices.vscode_missing');
   return new AppException('hub.devices.refused', {
     details: { reason: code, ...(message ? { message } : {}) },
   });

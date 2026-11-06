@@ -15,6 +15,11 @@ import {
   TURN_EVENT_KINDS,
   turnEventSchema,
   turnPrompt,
+  VSCODE_LINK_PREFIX,
+  VSCODE_PROMPT_CHARS,
+  vscodeLink,
+  vscodeOpenSchema,
+  vscodePrompt,
 } from './index';
 import { createStreamRedactor, findSecret, redactDeep, redactSecrets } from './secret-patterns';
 
@@ -280,6 +285,52 @@ describe('turn events', () => {
   it('a stage must belong to its protocol', () => {
     expect(stageFitsProtocol({ protocol: 'work', stage: 'verify' })).toBe(true);
     expect(stageFitsProtocol({ protocol: 'doc', stage: 'verify' })).toBe(false);
+  });
+});
+
+describe('Send to VS Code (docs/16 §8)', () => {
+  const folder = 'C:/work/repo';
+
+  it('carries the card key, so Claude reads the rest through Hub', () => {
+    expect(vscodePrompt({ cardKey: 'GTV-123', chatTitle: 'Ignored', folder })).toBe(
+      'Work on GTV-123 in Hub. Read it with hub get_card first.',
+    );
+  });
+
+  it('carries the chat title when there is no card, on one line', () => {
+    const prompt = vscodePrompt({ chatTitle: ' الدفع\n\n  & refunds ', folder });
+    expect(prompt).toContain('الدفع & refunds');
+    expect(prompt).not.toContain('\n');
+    expect(prompt).not.toContain(folder);
+  });
+
+  it('names the folder when there is neither, including a blank title', () => {
+    expect(vscodePrompt({ folder })).toContain(folder);
+    expect(vscodePrompt({ chatTitle: '   ', folder })).toContain(folder);
+  });
+
+  it('is capped, and a cut never leaves half a character that a link could not encode', () => {
+    for (const padding of ['', 'x']) {
+      const prompt = vscodePrompt({ chatTitle: `${padding}${'😀'.repeat(400)}`, folder });
+      expect(prompt.length).toBeLessThanOrEqual(VSCODE_PROMPT_CHARS);
+      expect(() => vscodeLink(prompt)).not.toThrow();
+    }
+  });
+
+  it('builds the only link there is, with everything encoded', () => {
+    const words = 'افتح GTV-1 & اقرأ?';
+    const link = vscodeLink(words);
+    expect(link).toBe(`vscode://anthropic.claude-code/open?prompt=${encodeURIComponent(words)}`);
+    expect(link.startsWith(VSCODE_LINK_PREFIX)).toBe(true);
+    expect(link.slice(VSCODE_LINK_PREFIX.length)).not.toMatch(/[& ?]/);
+  });
+
+  it('takes a uuid device and an absolute folder, and a card key only in its own shape', () => {
+    const device = '11111111-1111-4111-8111-111111111111';
+    expect(vscodeOpenSchema.safeParse({ device, folder }).success).toBe(true);
+    expect(vscodeOpenSchema.safeParse({ device, folder: 'relative/path' }).success).toBe(false);
+    expect(vscodeOpenSchema.safeParse({ device: 'x', folder }).success).toBe(false);
+    expect(vscodeOpenSchema.safeParse({ device, folder, cardKey: 'not a key' }).success).toBe(false);
   });
 });
 

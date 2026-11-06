@@ -23,7 +23,6 @@ export const BRIDGE_CLOSE = {
 
 /**
  * Everything Hub can ask of a bridge. Nothing here takes a command, and a folder argument must be on the allowlist.
- * `vscode.open` is answered `not_implemented` until Slice 4 fills it (`packages/bridge/lib/actions.mjs`).
  */
 export const BRIDGE_ACTIONS = [
   'health.check',
@@ -51,6 +50,7 @@ export const BRIDGE_REFUSALS = [
   'not_implemented',
   'not_fixable',
   'turn_running',
+  'vscode_missing',
   'failed',
 ] as const;
 export type BridgeRefusal = (typeof BRIDGE_REFUSALS)[number];

@@ -14,6 +14,8 @@ export function childEnv(env) {
   for (const [key, value] of Object.entries(env)) {
     if (key === 'CLAUDE_CONFIG_DIR' || !/^(CLAUDE|ANTHROPIC)/i.test(key)) clean[key] = value;
   }
+  // Inherited from an editor's process, it would make `Code.exe` read a folder as a script.
+  delete clean.ELECTRON_RUN_AS_NODE;
   return clean;
 }
 
@@ -106,6 +108,8 @@ export function realSystem() {
         windowsHide: true,
         env: childEnv(process.env),
       });
+      // A program that cannot start has no `pid`, and an `error` nobody listens to would end the bridge.
+      child.on('error', () => {});
       child.unref();
       return child.pid;
     },

@@ -137,7 +137,7 @@ describe('resolveVsCode', () => {
       env: { PATH: brokenPath },
       run: async () => ({ status: 0, stdout: `(Default) REG_SZ "${exe}" --open-url -- "%1"\n`, stderr: '' }),
     });
-    expect(found).toEqual({ found: true, code: cmd, extension: true });
+    expect(found).toEqual({ found: true, code: cmd, program: exe, extension: true });
   });
 
   it('says not found when the registry has no handler', async () => {

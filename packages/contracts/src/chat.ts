@@ -661,6 +661,42 @@ export const promptTemplateInputSchema = z.object({
 });
 export type PromptTemplateInput = z.infer<typeof promptTemplateInputSchema>;
 
+/**
+ * Open in VS Code (docs/16 §8). Session only, like `chat.run`. The answer's `sent` says the bridge handed it to VS Code, never that it opened (S1 Q10). The owner presses Enter: the link cannot auto-send.
+ */
+export const vscodeOpenSchema = z.object({
+  device: z.uuid(),
+  folder: absolutePath,
+  cardKey: cardKeySchema.optional(),
+  chatId: z.uuid().optional(),
+});
+export type VsCodeOpenInput = z.infer<typeof vscodeOpenSchema>;
+export const vscodeOpenResultSchema = z.object({ sent: z.literal(true), prompt: z.string() });
+export type VsCodeOpenResult = z.infer<typeof vscodeOpenResultSchema>;
+
+/** The bridge restates both of these (`packages/bridge/lib/protocol.mjs`), and a test holds them together. */
+export const VSCODE_PROMPT_CHARS = 500;
+export const VSCODE_LINK_PREFIX = 'vscode://anthropic.claude-code/open?prompt=';
+
+/** The short prompt the link carries. Claude reads the rest through Hub. The client shows this text, and the server builds the same one. */
+export function vscodePrompt(input: {
+  readonly cardKey?: string | undefined;
+  readonly chatTitle?: string | undefined;
+  readonly folder: string;
+}): string {
+  const title = input.chatTitle?.replace(/\s+/g, ' ').trim();
+  let text = `Work in ${input.folder} with Hub. Read what you need through hub.`;
+  if (input.cardKey) text = `Work on ${input.cardKey} in Hub. Read it with hub get_card first.`;
+  else if (title) text = `Continue this Hub chat: ${title}. Read what you need through hub.`;
+  if (text.length <= VSCODE_PROMPT_CHARS) return text;
+  // Half a character cannot be encoded in a link.
+  return text.slice(0, VSCODE_PROMPT_CHARS).replace(/[\uD800-\uDBFF]$/, '');
+}
+
+export function vscodeLink(prompt: string): string {
+  return `${VSCODE_LINK_PREFIX}${encodeURIComponent(prompt)}`;
+}
+
 // ── Answers ────────────────────────────────────────────────────────────────────────────────────────
 
 export const chatSchema = z.object({

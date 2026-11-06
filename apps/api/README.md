@@ -201,6 +201,8 @@ Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a f
 - `DocDraftsService` holds `propose_doc` and the save behind it. `DocsWriteService.current` and `.similar` give it the base and the real duplicates.
 - A new server-made result is a `TurnEvent`, a case in `TurnRecorder.write` and `reduceMessage`, and words in both `chat.json` files.
 
+**Send to VS Code** (`docs/16` §8): `POST chats/vscode` with `{ device, folder, cardKey?, chatId? }` is session only. It checks the device is the member's and online, the folder is on the project's list, and the card exists, then builds the prompt itself with `vscodePrompt` and sends `vscode.open`. It answers `{ sent: true, prompt }`, and `sent` means handed over, never opened. The bridge runs the real program with no shell, and its refusals `vscode_missing`, `folder_missing` and `folder_not_allowed` each reach the browser as a localised error.
+
 `RealtimePublisher.publishTransient` carries the stream: it skips the replay buffer, so a long reply cannot push card events out of it. `chat.changed` is the durable nudge, and `GET chats/:id` is the catch-up.
 
 `E2E_REAL_CLAUDE=1 pnpm test:e2e chats-real-binary` runs the real bridge and binary in an isolated home with a scripted model, and costs no usage. Run it before widening `CLAUDE_MAX_VERSION`.

@@ -19,6 +19,8 @@ import type {
   SendChatMessageInput,
   SuggestionInput,
   UpdateChatInput,
+  VsCodeOpenInput,
+  VsCodeOpenResult,
   WorkReport,
 } from '@hub/contracts';
 import { suggestedPrompts } from '@hub/contracts';
@@ -232,6 +234,16 @@ export function useDeletePromptTemplate() {
   return useMutation({
     mutationFn: (id: string) => del<void>(`workspaces/${ws}/prompt-templates/${id}`),
     onSuccess: () => void client.invalidateQueries({ queryKey: chatKeys.templates(ws) }),
+  });
+}
+
+/**
+ * Open in VS Code (docs/16 §8). `sent` means handed over, never opened, and the owner presses Enter there. Refusals: `hub.devices.offline`, `hub.devices.vscode_missing`, `hub.devices.folder_missing`, `hub.chats.folder_not_allowed`. With no bridge, copy `vscodePrompt(...)` from `@hub/contracts`, the same text the server builds.
+ */
+export function useOpenInVsCode() {
+  const { base } = useChatBase();
+  return useMutation({
+    mutationFn: (input: VsCodeOpenInput) => post<VsCodeOpenResult>(`${base}/vscode`, input),
   });
 }
 

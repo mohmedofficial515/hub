@@ -15,6 +15,7 @@ import { recordLink } from './links.mjs';
 import { claudeConfigFile } from './paths.mjs';
 import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
 import { turnHandlers } from './turns.mjs';
+import { openInVsCode } from './vscode.mjs';
 
 const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'chat.diff', 'vscode.open']);
 
@@ -55,10 +56,7 @@ const handlers = {
   'folder.link': linkFolder,
   ...turnHandlers,
   ...docHandlers,
-  // Slice 4: `code <folder>`, then the vscode:// link, with `resolveVsCode` (docs/16 §8).
-  'vscode.open': async () => {
-    throw new Refusal('not_implemented', 'vscode.open arrives with Send to VS Code');
-  },
+  'vscode.open': openInVsCode,
 };
 
 /** Runs one action frame. `emit` sends an `event` frame for this action. */
