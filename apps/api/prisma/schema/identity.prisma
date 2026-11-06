@@ -18,6 +18,7 @@ model User {
   apiTokens     ApiToken[]
   devices       Device[]
   chats         Chat[]
+  docDrafts     DocDraft[]
   @@map("users")
 }
 

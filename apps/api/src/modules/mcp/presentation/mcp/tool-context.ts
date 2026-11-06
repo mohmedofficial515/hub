@@ -22,7 +22,7 @@ import { RedisClients } from '@/infra/redis/redis.module';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
-import { ChatsService } from '@/modules/chats';
+import { ChatsService, DocDraftsService, WorkReportsService } from '@/modules/chats';
 import { DevicesService } from '@/modules/devices';
 import { BriefsService } from '@/modules/digests';
 import { DocsReadService, DocsWriteService } from '@/modules/docs';
@@ -65,6 +65,8 @@ export class McpDeps {
     readonly docs: DocsReadService,
     readonly docsWrite: DocsWriteService,
     readonly chats: ChatsService,
+    readonly workReports: WorkReportsService,
+    readonly docDrafts: DocDraftsService,
     readonly search: SearchService,
     readonly runner: SourceRunnerService,
     readonly queues: QueueService,
@@ -87,6 +89,8 @@ export class ToolContext {
     readonly principal: Principal,
     private readonly header: string | undefined,
     private readonly argument: string | undefined,
+    /** The id Claude Code gave this tool use, which is how a call proves it came from a panel chat (`TurnRegistry`). A model cannot set it. */
+    readonly toolUseId: string | undefined = undefined,
   ) {}
 
   actor(): Promise<MemberActor> {

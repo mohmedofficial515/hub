@@ -1,6 +1,7 @@
 model Workspace {
   chats           Chat[]
   promptTemplates ChatPromptTemplate[]
+  docDrafts       DocDraft[]
   id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
   slug          String    @unique                       // "goteav" — URL segment
   name          String                                  // "Goteav"

@@ -47,6 +47,13 @@ const HINTS: Readonly<Record<string, string>> = {
   'hub.workspaces.not_found': 'list_projects shows your projects.',
   'hub.workspaces.no_project': 'create_project makes one.',
   'hub.workspaces.closed': 'The project is closed. update_project(status="active") reopens it.',
+  'hub.chats.report_contradicted':
+    'A step you reported as passed really failed. Report it as failed, or fix it, run it again and report again. The failure stays in the history.',
+  'hub.docs.draft_flags_open':
+    'The owner has not answered every flag. In the panel, stop and wait. Elsewhere, ask them and pass their words in `answers`.',
+  'hub.docs.claim_not_in_draft': 'An unverified claim must appear in the draft word for word.',
+  'hub.docs.draft_target_missing':
+    'Give `doc` for an existing document, or `source` and `path` for a new file.',
 };
 
 /** The arch test reads this, so a row of the tool table cannot lack a handler. */
@@ -112,7 +119,13 @@ export class HubMcpServerFactory {
   ): Promise<ToolResult> {
     try {
       assertNoSecrets(input);
-      const context = new ToolContext(this.deps, principal, header, input['project'] as string | undefined);
+      const context = new ToolContext(
+        this.deps,
+        principal,
+        header,
+        input['project'] as string | undefined,
+        toolCallId,
+      );
       const handler = HANDLERS[tool.name] as ToolHandler<McpToolName>;
       const work = () => handler(context, input);
       const limit = LONG_OUTPUT.has(tool.name) ? LONG_OUTPUT_LIMIT : OUTPUT_LIMIT;

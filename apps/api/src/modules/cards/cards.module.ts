@@ -18,6 +18,7 @@ import {
   CardUnblockAction,
 } from './application/actions/card-lifecycle.actions';
 import { CardLinkAction } from './application/actions/card-link.action';
+import { CardReportWorkAction } from './application/actions/card-report.action';
 import { CardWatchAction } from './application/actions/card-watch.action';
 import { CardService } from './application/card.service';
 import { CardActionRegistry } from './application/card-action.registry';
@@ -52,6 +53,7 @@ import { TimelineController } from './presentation/http/timeline.controller';
     CardCommentEditAction,
     CardCommentRedactAction,
     CardLinkAction,
+    CardReportWorkAction,
     CardWatchAction,
   ],
   exports: [

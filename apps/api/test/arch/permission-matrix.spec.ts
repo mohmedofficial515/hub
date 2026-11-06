@@ -228,6 +228,7 @@ describe('permission matrix', () => {
       ['Release: edit included / notes / mark released', ['release.edit', 'release.release']],
       ['Delete / restore card (D28)', ['card.delete', 'card.restore']],
       ['Comment', ['card.comment']],
+      ['Report work (docs/16 §7.2)', ['card.report_work']],
       ['Edit own comment (15 min)', ['card.comment_edit']],
       ['Redact comment', ['card.comment_redact']],
       ['Link / unlink', ['card.link']],

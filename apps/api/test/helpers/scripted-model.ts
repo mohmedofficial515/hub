@@ -10,6 +10,7 @@ export type ModelStep =
 
 interface ModelRequest {
   tools?: { name: string }[];
+  system?: unknown;
   messages?: { role: string; content: string | { type: string; content?: unknown; text?: string }[] }[];
 }
 
@@ -21,6 +22,8 @@ export interface ScriptedModel {
   readonly offered: () => string[];
   /** The conversation of the last request that used a step, as text, to prove what was resumed. */
   readonly lastConversation: () => string;
+  /** The system prompt of the last request that used a step. */
+  readonly lastSystem: () => string;
   readonly requests: () => number;
   /** What each tool answered, in order. */
   readonly toolResults: () => string[];
@@ -97,6 +100,7 @@ export async function startScriptedModel(...initial: ModelStep[]): Promise<Scrip
   const offered = new Set<string>();
   const results: string[] = [];
   let conversation = '';
+  let system = '';
   let requests = 0;
   const server: Server = createServer((request, response) => {
     let raw = '';
@@ -118,6 +122,7 @@ export async function startScriptedModel(...initial: ModelStep[]): Promise<Scrip
       requests += 1;
       for (const item of body.tools) offered.add(item.name);
       conversation = JSON.stringify(body.messages ?? []);
+      system = JSON.stringify(body.system ?? '');
       const last = body.messages?.at(-1)?.content;
       if (Array.isArray(last)) {
         for (const part of last) {
@@ -136,6 +141,7 @@ export async function startScriptedModel(...initial: ModelStep[]): Promise<Scrip
     script: (...more) => steps.push(...more),
     offered: () => [...offered],
     lastConversation: () => conversation,
+    lastSystem: () => system,
     requests: () => requests,
     toolResults: () => results,
     close: () =>

@@ -26,6 +26,7 @@ import request from 'supertest';
 
 import { ChatsService } from '@/modules/chats';
 import { BridgeHub } from '@/modules/devices';
+import { DocsIndexerService } from '@/modules/docs';
 
 import { anAccount, Browser, join as joinProject, PASSWORD } from '../helpers/auth';
 import { type ModelStep, type ScriptedModel, startScriptedModel } from '../helpers/scripted-model';
@@ -36,6 +37,7 @@ import { maintenanceClients } from '../setup/per-test-setup';
 const ROOT = resolve(__dirname, '../../../..');
 const BRIDGE_BIN = join(ROOT, 'packages/bridge/bin/hub-bridge.mjs');
 const HELPER_BIN = join(ROOT, 'packages/bridge/bin/hub-mcp-headers.mjs');
+const TEAM_PACK = join(ROOT, 'packages/team-pack');
 const REAL_EXTENSIONS = join(homedir(), '.vscode', 'extensions');
 const SECRET = `ghp_${'r'.repeat(40)}`;
 
@@ -232,10 +234,41 @@ describeReal('chats with the real binary', () => {
     usage: { outputTokens?: number } | null;
     durationMs: number | null;
     plan: string | null;
+    structuredPlan: { title: string; steps: { title: string }[] } | null;
+    notices: ({ kind: string } & Record<string, unknown>)[];
+    questions: {
+      id: string;
+      status: string;
+      answers: Record<string, string> | null;
+      questions: { text: string }[];
+    }[];
+    reports: {
+      origin: string;
+      filesFrom: string;
+      checks: { name: string; verified: boolean; basis: string; runs: { status: string }[] }[];
+      changedFiles: { path: string; source: string }[];
+      counts: { total: number; verified: number; failedRuns: number };
+      move: { moved: boolean; reason: string };
+    }[];
+    docDrafts: {
+      id: string;
+      status: string;
+      refusedCode: string | null;
+      duplicates: { path: string; url: string }[];
+      claims: { id: string; status: string; text: string; answer: string | null }[];
+    }[];
     stages: { stage: string; state: string }[];
     changedFiles: { path: string; source: string; additions?: number; deletions?: number }[];
     steps: { name: string; status: string; input: unknown; output: string | null; decision: string | null }[];
-    approvals: { id: string; status: string; command: string; category: string; toolName: string }[];
+    approvals: {
+      id: string;
+      status: string;
+      command: string;
+      category: string;
+      toolName: string;
+      effect: string;
+      draftId: string | null;
+    }[];
   }
 
   const getChat = async (chatId: string) =>
@@ -701,6 +734,489 @@ describeReal('chats with the real binary', () => {
       const refused = await browser.post(`${base()}/${chatId}/messages`, { text: 'again' }).expect(404);
       expect(refused.body.error.code).toBe('hub.devices.not_found');
       expect(existsSync(join(home, '.hub'))).toBe(true);
+    });
+  });
+
+  describe('structured results (docs/16 §7.2)', () => {
+    /** A real claude in this isolated home, with the isolated config: the same one the bridge finds, in a chat outside the panel. */
+    function claudeHere(home: string): { path: string; env: NodeJS.ProcessEnv } {
+      const extensions = join(home, '.vscode', 'extensions');
+      const [extension] = readdirSync(extensions);
+      const clean: NodeJS.ProcessEnv = {};
+      for (const [key, value] of Object.entries(process.env)) {
+        if (!/^(CLAUDE|ANTHROPIC)/i.test(key)) clean[key] = value;
+      }
+      return {
+        path: join(extensions, extension!, 'resources', 'native-binary', 'claude.exe'),
+        env: {
+          ...clean,
+          HOME: home,
+          USERPROFILE: home,
+          CLAUDE_CONFIG_DIR: join(home, 'claude-config'),
+          ANTHROPIC_BASE_URL: model.url,
+          ANTHROPIC_API_KEY: 'not-a-real-key',
+        },
+      };
+    }
+
+    /** The real plugin, installed the way the bridge does, in this isolated home only. */
+    function installPlugin(home: string): void {
+      const { path, env } = claudeHere(home);
+      execFileSync(path, ['plugin', 'marketplace', 'add', TEAM_PACK], { cwd: home, env, stdio: 'ignore' });
+      execFileSync(path, ['plugin', 'install', 'hub@hub', '--scope', 'user'], {
+        cwd: home,
+        env,
+        stdio: 'ignore',
+      });
+    }
+
+    const hubTool = (name: string, input: Record<string, unknown>): ModelStep => ({
+      tool: `mcp__hub__${name}`,
+      input,
+    });
+    const stage = (protocol: string, name: string, state = 'done') =>
+      hubTool('report_stage', { protocol, stage: name, state });
+
+    async function aStartedTask(deviceChat: string, title = 'Do the thing'): Promise<string> {
+      const created = await browser.post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title,
+        detail: { specialty: 'backend' },
+      });
+      expect(created.status).toBe(201);
+      const key = created.body.data.key as string;
+      await browser.post(`/workspaces/${slug}/tasks/${key}/claim`, {}).expect(200);
+      await browser.post(`/workspaces/${slug}/tasks/${key}/start`, {}).expect(200);
+      expect(deviceChat).toBeTruthy();
+      return key;
+    }
+
+    const statusOf = async (key: string) =>
+      (await prisma().card.findFirstOrThrow({ where: { workspaceId, key } })).status;
+
+    it('report_work: a real step verifies, a real failure is refused, and all verified moves the task', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder);
+      const key = await aStartedTask(chatId);
+      const good = 'node --version';
+      const bad = 'node -e "process.exit(3)"';
+      model.script(
+        { tool: 'Write', input: { file_path: join(folder, 'made.md'), content: 'one\n' } },
+        bash(good),
+        bash(bad),
+        hubTool('report_work', {
+          card: key,
+          summary: 'Claims a failure passed',
+          checks: [{ name: 'Fails', command: bad, outcome: 'passed' }],
+          notChecked: [],
+        }),
+        hubTool('report_work', {
+          card: key,
+          summary: 'Tells the truth',
+          checks: [
+            { name: 'Version', command: good, outcome: 'passed' },
+            { name: 'Fails', command: bad, outcome: 'failed' },
+          ],
+          notChecked: ['Nothing else'],
+        }),
+        { text: 'Stopped at Verify. ' },
+      );
+      const reply = await turn(chatId, 'report');
+      expect(reply.status).toBe('done');
+      const refused = reply.steps.find((step) => step.output?.includes('report_contradicted'));
+      expect(refused?.status).toBe('error');
+      expect(reply.notices.some((notice) => notice.kind === 'report.refused')).toBe(true);
+      expect(reply.reports).toHaveLength(1);
+      const [report] = reply.reports;
+      expect(report).toMatchObject({ origin: 'panel', filesFrom: 'bridge' });
+      expect(report?.checks.map((check) => [check.name, check.verified, check.basis])).toEqual([
+        ['Version', true, 'matched'],
+        ['Fails', false, 'matched'],
+      ]);
+      expect(report?.changedFiles.map((file) => file.path)).toEqual(['made.md']);
+      expect(report?.move).toMatchObject({ moved: false, reason: 'check_not_passed' });
+      expect(await statusOf(key)).toBe('in_progress');
+
+      model.script(
+        hubTool('report_work', {
+          card: key,
+          summary: 'Passes now',
+          checks: [
+            { name: 'Version', command: good, outcome: 'passed' },
+            { name: 'Fails', command: 'node -e "process.exit(0)"', outcome: 'passed' },
+          ],
+          notChecked: [],
+        }),
+      );
+      const dropped = await turn(chatId, 'report again');
+      expect(dropped.reports[0]?.move).toMatchObject({ moved: false, reason: 'check_not_verified' });
+      expect(await statusOf(key)).toBe('in_progress');
+
+      model.script(
+        bash(bad.replace('exit(3)', 'exit(0)')),
+        hubTool('report_work', {
+          card: key,
+          summary: 'Passes now',
+          checks: [
+            { name: 'Version', command: good, outcome: 'passed' },
+            { name: 'Fails', command: bad.replace('exit(3)', 'exit(0)'), outcome: 'passed' },
+          ],
+          notChecked: [],
+        }),
+      );
+      const moved = await turn(chatId, 'fixed');
+      expect(moved.reports[0]?.move).toMatchObject({ moved: true, reason: 'all_verified' });
+      expect(await statusOf(key)).toBe('in_review');
+    });
+
+    it('re-running a failed check through the real binary keeps the failure', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder);
+      const key = await aStartedTask(chatId);
+      const check = 'node check.js';
+      writeFileSync(join(folder, 'check.js'), 'process.exit(1);');
+      model.script(
+        bash(check),
+        { tool: 'Write', input: { file_path: join(folder, 'check.js'), content: 'process.exit(0);' } },
+        bash(check),
+        hubTool('report_work', {
+          card: key,
+          summary: 'Fixed it',
+          checks: [{ name: 'The check', command: check, outcome: 'passed' }],
+          notChecked: [],
+        }),
+      );
+      const reply = await turn(chatId, 'go');
+      const [report] = reply.reports;
+      expect(report?.checks[0]?.runs.map((run) => run.status)).toEqual(['failed', 'passed']);
+      expect(report?.counts).toMatchObject({ total: 1, verified: 1, failedRuns: 1 });
+      expect(report?.move.moved).toBe(true);
+    });
+
+    it('a chat outside the panel stays claimed and never moves', async () => {
+      const { home } = await aDevice();
+      const folder = await aRepo();
+      const created = await browser.post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title: 'From VS Code',
+        detail: { specialty: 'backend' },
+      });
+      const key = created.body.data.key as string;
+      await browser.post(`/workspaces/${slug}/tasks/${key}/claim`, {}).expect(200);
+      await browser.post(`/workspaces/${slug}/tasks/${key}/start`, {}).expect(200);
+      model.script(
+        bash('node --version'),
+        hubTool('report_work', {
+          card: key,
+          summary: 'From elsewhere',
+          checks: [{ name: 'Version', command: 'node --version', outcome: 'passed' }],
+          notChecked: [],
+        }),
+      );
+      const { path, env } = claudeHere(home);
+      const child = spawn(
+        path,
+        ['-p', 'go', '--permission-mode', 'acceptEdits', '--allowedTools', 'mcp__hub'],
+        {
+          cwd: folder,
+          env,
+          stdio: 'ignore',
+          windowsHide: true,
+        },
+      );
+      await new Promise((done) => child.on('exit', done));
+      const stored = await browser.get(`/workspaces/${slug}/cards/${key}/work-reports`).expect(200);
+      expect(stored.body.data[0]).toMatchObject({
+        origin: 'outside_panel',
+        move: { moved: false, reason: 'outside_panel' },
+      });
+      expect(stored.body.data[0].checks[0]).toMatchObject({ verified: false, basis: 'outside_panel' });
+      expect(await statusOf(key)).toBe('in_progress');
+    });
+
+    it('a real /hub:work session through the panel: the skill loads, stages show, evidence lands and the task moves', async () => {
+      const { deviceId, home } = await aDevice();
+      installPlugin(home);
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder);
+      const created = await browser.post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title: 'Through the skill',
+        detail: { specialty: 'backend' },
+      });
+      const key = created.body.data.key as string;
+      await browser.post(`/workspaces/${slug}/tasks/${key}/claim`, {}).expect(200);
+      const check = 'node --version';
+      model.script(
+        stage('work', 'understand'),
+        hubTool('get_card', { key }),
+        stage('work', 'plan'),
+        hubTool('start_task', { key }),
+        stage('work', 'execute'),
+        { tool: 'Write', input: { file_path: join(folder, 'done.md'), content: 'done\n' } },
+        stage('work', 'verify'),
+        bash(check),
+        stage('work', 'report'),
+        hubTool('report_work', {
+          card: key,
+          summary: 'Added done.md',
+          checks: [{ name: 'Version', command: check, outcome: 'passed' }],
+          notChecked: ['Nothing'],
+        }),
+        { text: 'Reported, and it moved to In review. ' },
+      );
+      const reply = await turn(chatId, `/hub:work ${key}`);
+      expect(reply.status).toBe('done');
+      expect(model.lastConversation()).toContain('What this does to the card');
+      expect(model.lastConversation()).toContain(key);
+      expect(reply.stages.map((item) => item.stage)).toEqual([
+        'understand',
+        'plan',
+        'execute',
+        'verify',
+        'report',
+      ]);
+      expect(reply.reports[0]).toMatchObject({ origin: 'panel', filesFrom: 'bridge' });
+      expect(reply.reports[0]?.checks[0]).toMatchObject({ verified: true });
+      expect(reply.reports[0]?.changedFiles.map((file) => file.path)).toEqual(['done.md']);
+      expect(reply.reports[0]?.move).toMatchObject({ moved: true, reason: 'all_verified' });
+      expect(await statusOf(key)).toBe('in_review');
+      const card = await prisma().card.findFirstOrThrow({ where: { workspaceId, key } });
+      expect(card.status).not.toBe('done');
+      expect(await prisma().cardComment.count({ where: { workspaceId, cardId: card.id } })).toBe(0);
+    });
+
+    it('a real /hub:doc session through the panel: draft, duplicates, flags blocked, then Save with the owner’s answers, then link', async () => {
+      const { deviceId, home } = await aDevice();
+      installPlugin(home);
+      const folder = await aRepo();
+      const docs = join(scratch, 'docs-source');
+      mkdirSync(docs);
+      writeFileSync(join(docs, 'limits.md'), '# Rate limits\n\nThe limit is 40 a minute.\n');
+      writeFileSync(join(docs, 'rates.md'), '# Rate limits for partners\n\nPartners get more.\n');
+      const source = await prisma().source.create({
+        data: {
+          workspaceId,
+          name: 'docs',
+          kind: 'local_path',
+          config: { path: docs, purpose: 'docs', include: ['**/*.md'] },
+        },
+      });
+      const indexer = app.get(DocsIndexerService, { strict: false });
+      const row = {
+        id: source.id,
+        name: 'docs',
+        workspaceId,
+        config: { path: docs, purpose: 'docs' },
+      } as never;
+      await indexer.indexOne(row, 'limits.md', readFileSync(join(docs, 'limits.md')));
+      await indexer.indexOne(row, 'rates.md', readFileSync(join(docs, 'rates.md')));
+      const detail = await prisma().docDetail.findFirstOrThrow({ where: { path: 'limits.md' } });
+      const docCard = await prisma().card.findFirstOrThrow({ where: { workspaceId, id: detail.cardId } });
+      const version = createHash('sha256')
+        .update(readFileSync(join(docs, 'limits.md')))
+        .digest('hex');
+      const task = await browser.post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title: 'Linked from the doc',
+        detail: { specialty: 'backend' },
+      });
+      const taskKey = task.body.data.key as string;
+      const chatId = await aChat(deviceId, folder);
+      const flag = 'The limit may rise to 60.';
+      await browser
+        .post(`${base()}/${chatId}/messages`, { text: `/hub:doc improve ${docCard.key}` })
+        .expect(202);
+      model.script(
+        stage('doc', 'search'),
+        hubTool('search_docs', { q: 'rate limits' }),
+        stage('doc', 'propose'),
+        stage('doc', 'draft'),
+        hubTool('propose_doc', {
+          doc: docCard.key,
+          title: 'Rate limits',
+          reason: 'A new limit',
+          baseVersion: version,
+          draft: `# Rate limits\n\nThe limit is 40 a minute.\n${flag}\n`,
+          claims: [
+            { text: 'The limit is 40 a minute.', status: 'verified', source: 'limits.md' },
+            { text: flag, status: 'unverified' },
+          ],
+        }),
+      );
+      const waitDraft = await until(async () => {
+        const last = (await getChat(chatId)).messages.at(-1)!;
+        return last.docDrafts[0] ?? null;
+      });
+      model.script(stage('doc', 'save'));
+      // The draft is known only now, so the rest of the script follows it.
+      model.script(hubTool('save_doc', { draft: waitDraft.id }));
+      const paused = await until(async () => {
+        const last = (await getChat(chatId)).messages.at(-1)!;
+        return last.approvals[0] ?? null;
+      });
+      expect(paused).toMatchObject({
+        category: 'hub_doc',
+        effect: 'Writes a document',
+        draftId: waitDraft.id,
+      });
+      expect(waitDraft.duplicates.map((doc) => doc.path)).toEqual(['rates.md']);
+
+      const blocked = await browser
+        .post(`${base()}/${chatId}/approvals/${paused.id}`, { decision: 'allow' })
+        .expect(409);
+      expect(blocked.body.error.code).toBe('hub.docs.draft_flags_open');
+      expect(readFileSync(join(docs, 'limits.md'), 'utf8')).not.toContain(flag);
+
+      model.script(
+        stage('doc', 'link'),
+        hubTool('link_cards', { from: docCard.key, to: taskKey, kind: 'relates' }),
+        {
+          text: 'Saved and linked. ',
+        },
+      );
+      const claim = waitDraft.claims.find((item) => item.status === 'unverified')!;
+      await browser
+        .post(`${base()}/${chatId}/approvals/${paused.id}`, {
+          decision: 'allow',
+          doc: { claims: [{ id: claim.id, answer: 'keep_flagged' }] },
+        })
+        .expect(204);
+      const reply = await until(async () => {
+        const last = (await getChat(chatId)).messages.at(-1)!;
+        return last.status !== 'running' ? last : null;
+      });
+      expect(reply.status).toBe('done');
+      expect(model.lastConversation()).toContain('Nothing invented');
+      expect(reply.stages.map((item) => item.stage)).toEqual(['search', 'propose', 'draft', 'save', 'link']);
+      expect(reply.docDrafts[0]).toMatchObject({ status: 'saved', refusedCode: null });
+      expect(readFileSync(join(docs, 'limits.md'), 'utf8')).toContain(`> Unverified: ${flag}`);
+      expect(await prisma().docRevision.count({ where: { workspaceId } })).toBe(1);
+    });
+
+    it('AskUserQuestion becomes a question, and the answer reaches the model, in Plan too', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder, 'plan');
+      const question = 'Which storage?';
+      model.script({
+        tool: 'AskUserQuestion',
+        input: {
+          questions: [
+            {
+              question,
+              header: 'Storage',
+              multiSelect: false,
+              options: [
+                { label: 'Postgres', description: 'Already here' },
+                { label: 'Redis', description: 'Faster' },
+              ],
+            },
+          ],
+        },
+      });
+      await browser.post(`${base()}/${chatId}/messages`, { text: 'ask me' }).expect(202);
+      const asked = await until(async () => (await getChat(chatId)).messages.at(-1)!.questions[0] ?? null);
+      expect(asked.questions[0]?.text).toBe(question);
+      await browser
+        .post(`${base()}/${chatId}/approvals/${asked.id}`, {
+          decision: 'allow',
+          answers: { [question]: 'Redis' },
+        })
+        .expect(204);
+      const reply = await until(async () => {
+        const last = (await getChat(chatId)).messages.at(-1)!;
+        return last.status !== 'running' ? last : null;
+      });
+      expect(reply.status).toBe('done');
+      expect(reply.questions[0]).toMatchObject({ status: 'answered', answers: { [question]: 'Redis' } });
+      expect(model.toolResults().join(' ')).toContain('Redis');
+      expect(reply.approvals).toEqual([]);
+    });
+
+    it('Plan mode: its system prompt asks for propose_plan, the plan lands structured, and a mode change shows Starting', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder);
+      model.script({ text: 'First turn in Execute. ' });
+      const first = await turn(chatId, 'hello');
+      expect(
+        first.notices.filter((notice) => notice.kind === 'turn.starting').map((item) => item.reason),
+      ).toEqual(['new']);
+
+      model.script(
+        hubTool('propose_plan', {
+          title: 'Add a README',
+          steps: [{ title: 'Write it', role: 'backend' }],
+          checks: ['node --version'],
+        }),
+        { text: 'Proposed. ' },
+      );
+      const planned = await turn(chatId, 'plan it', () => 'deny', { mode: 'plan' });
+      expect(planned.notices.find((notice) => notice.kind === 'turn.starting')?.reason).toBe('mode');
+      // The engine records the first launch's prompt and reuses it, so a chat that began in Execute has it too.
+      expect(model.lastSystem()).toContain('propose_plan');
+      expect(planned.structuredPlan).toMatchObject({ title: 'Add a README' });
+      expect(planned.plan).toContain('1. Write it (backend)');
+    });
+
+    it('Ask says what it refused, for every way of refusing it', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder, 'ask');
+      model.script(
+        bash('node --version'),
+        { tool: 'Write', input: { file_path: join(folder, 'made.md'), content: 'x' } },
+        hubTool('create_idea', { title: 'Nope' }),
+        { tool: 'Read', input: { file_path: join(folder, 'other.txt') } },
+      );
+      const reply = await turn(chatId, 'look');
+      const blocked = reply.notices.filter((notice) => notice.kind === 'tool.blocked');
+      expect(blocked.map((notice) => notice['name'])).toEqual(['Bash', 'Write', 'mcp__hub__create_idea']);
+      expect(blocked[0]).toMatchObject({ command: 'node --version', mode: 'ask' });
+    });
+
+    it('an approval carries the deterministic effect line', async () => {
+      const { deviceId } = await aDevice();
+      const folder = await aRepo();
+      const chatId = await aChat(deviceId, folder);
+      model.script({ tool: 'Bash', input: { command: 'rm target.txt', description: 'Totally harmless' } });
+      const reply = await turn(chatId, 'delete');
+      expect(reply.approvals[0]).toMatchObject({ category: 'delete', effect: 'Deletes files' });
+    });
+
+    it('D53: newer than tested warns and runs with the rules on; below the minimum refuses, and nothing runs', async () => {
+      const newer = await aDevice({ env: { HUB_CLAUDE_MAX_VERSION: '2.1.300' } });
+      const folder = await aRepo();
+      const chatId = await aChat(newer.deviceId, folder);
+      model.script(bash('rm target.txt'));
+      const reply = await turn(chatId, 'delete');
+      expect(reply.status).toBe('done');
+      expect(reply.notices.find((notice) => notice.kind === 'engine.warning')).toMatchObject({
+        testedMax: '2.1.300',
+      });
+      expect(reply.approvals[0]?.category).toBe('delete');
+      expect(existsSync(join(folder, 'target.txt'))).toBe(true);
+      const engine = await browser.get(`${base()}/engine?device=${newer.deviceId}&fresh=true`).expect(200);
+      expect(engine.body.data).toMatchObject({
+        canRun: true,
+        inRange: false,
+        signedIn: expect.anything() as unknown,
+      });
+      expect(engine.body.data.warning).toMatchObject({ code: 'newer_than_tested' });
+    });
+
+    it('D53: below the minimum refuses with a clear message', async () => {
+      const older = await aDevice({ env: { HUB_CLAUDE_MIN_VERSION: '9.9.9' } });
+      const folder = await aRepo();
+      const chatId = await aChat(older.deviceId, folder);
+      const before = model.requests();
+      const reply = await turn(chatId, 'hello');
+      expect(reply).toMatchObject({ status: 'failed', failure: 'version_out_of_range' });
+      expect(reply.failureMessage).toContain('Open in VS Code');
+      expect(model.requests()).toBe(before);
     });
   });
 

@@ -86,6 +86,57 @@ export class DocsWriteService {
     return { ...saved, similar };
   }
 
+  /** A document's current text and version, or nulls for a file that does not exist yet. */
+  async current(
+    actor: Actor,
+    target: { key?: string; source?: string; path?: string },
+  ): Promise<{
+    key: string | null;
+    source: string;
+    path: string;
+    cardId: string | null;
+    hash: string | null;
+    text: string | null;
+  }> {
+    const place = await this.placeOf(actor, { ...target, content: '' });
+    const file = await this.readFile(place.source, place.path);
+    const card = place.cardId
+      ? await this.txHost.tx.card.findFirst({
+          where: { id: place.cardId, workspaceId: actor.workspaceId },
+          select: { key: true },
+        })
+      : null;
+    return {
+      key: card?.key ?? null,
+      source: place.source.name,
+      path: place.path,
+      cardId: place.cardId,
+      hash: file.hash,
+      text: file.text === null ? null : splitFrontMatter(file.text).body,
+    };
+  }
+
+  /** Real documents whose text matches these words, other than this one, each with a line of what overlaps. */
+  async similar(
+    actor: Actor,
+    words: string,
+    cardId: string | null,
+  ): Promise<{ key: string; title: string; path: string; source: string; overlap: string | null }[]> {
+    const query = words.trim().slice(0, 200);
+    if (query.length < 2) return [];
+    const hits = await this.search.docs(actor, query, undefined, SIMILAR_LIMIT + 1);
+    return hits
+      .filter((hit) => hit.card.id !== cardId)
+      .slice(0, SIMILAR_LIMIT)
+      .map((hit) => ({
+        key: hit.card.key,
+        title: hit.card.title,
+        path: hit.path,
+        source: hit.source,
+        overlap: hit.chunks[0]?.excerpt ?? null,
+      }));
+  }
+
   async revisions(actor: Actor, key: string): Promise<DocRevisionSummary[]> {
     const card = await this.docCard(actor, key);
     const rows = await this.txHost.tx.docRevision.findMany({

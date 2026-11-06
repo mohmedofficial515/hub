@@ -100,6 +100,10 @@
       "not_found": "Document not found.",
       "reindex_running": "Indexing is already running.",
       "stale_base": "This document changed after you read it. Read it again, then save.",
+      "draft_not_found": "That draft is not open any more.",
+      "draft_flags_open": "This draft has flagged claims with no answer yet, so it was not saved.",
+      "draft_target_missing": "A draft must name an existing document, or a source and a path for a new file.",
+      "claim_not_in_draft": "A flagged claim must appear in the draft word for word.",
       "bad_path": "That path is not a Markdown file inside this source.",
       "source_not_writable": "That source is not a local folder of documents.",
       "base_required": "Saving over an existing document needs the version you read.",
@@ -140,7 +144,9 @@
       "approval_expired": "This approval has ended: nobody answered in time, or the turn stopped.",
       "template_not_found": "No such template.",
       "message_not_found": "That message is not in this chat.",
-      "nothing_to_retry": "There is no earlier message to retry."
+      "nothing_to_retry": "There is no earlier message to retry.",
+      "report_contradicted": "This report says a check passed, and the real step failed. Nothing was stored on the card.",
+      "approval_device_offline": "The device went offline, so nothing can run on this answer. Its turn was stopped and marked as cut off. Send again once the device is back."
     },
     "devices": {
       "not_found": "No such device.",

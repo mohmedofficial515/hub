@@ -11,15 +11,18 @@ import {
   CHAT_TRUNCATED_MARK,
   type ChatChanged,
   type ChatLiveEvent,
+  type ChatNotice,
   type ChatStage,
   createStreamRedactor,
   redactDeep,
   redactSecrets,
   type TurnEvent,
   turnEventSchema,
+  type WorkReport,
 } from '@hub/contracts';
 import { Logger } from '@nestjs/common';
 import { type TransactionHost } from '@nestjs-cls/transactional';
+import { z } from 'zod';
 
 import type { Clock } from '@/infra/clock/clock';
 import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
@@ -31,6 +34,13 @@ import { capJson } from '../domain/folders';
 
 const TEXT_FLUSH_MS = 120;
 const AUDIT_SUMMARY_CHARS = 1_000;
+const NOTICES_LIMIT = 50;
+
+/** The draft a `save_doc` names, so the panel can show Save on its approval. */
+function draftIdOf(input: unknown): string | null {
+  const draft = (input as { draft?: unknown } | null)?.draft;
+  return typeof draft === 'string' && z.uuid().safeParse(draft).success ? draft : null;
+}
 
 export interface RecorderDeps {
   readonly txHost: TransactionHost<PrismaTransactionalAdapter>;
@@ -58,6 +68,8 @@ export class TurnRecorder {
   private cut = false;
   private steps = 0;
   private stages: ChatStage[] = [];
+  private notices: ChatNotice[] = [];
+  private reports: WorkReport[] = [];
   private ended = false;
 
   constructor(
@@ -73,6 +85,12 @@ export class TurnRecorder {
       return;
     }
     this.enqueue(() => this.handle(parsed.data));
+  }
+
+  /** A server-made event, in order with the bridge's. Answers once it is written. */
+  async post(event: TurnEvent): Promise<void> {
+    this.enqueue(() => this.handle(event));
+    await this.chain;
   }
 
   /** The action ended with no `turn.ended` of its own, as when the device goes away. */
@@ -187,7 +205,14 @@ export class TurnRecorder {
       return this.bump();
     });
     await this.publish(seq, event);
-    if (raw.kind === 'approval.requested' || raw.kind === 'approval.resolved') await this.nudge('approval');
+    if (
+      raw.kind === 'approval.requested' ||
+      raw.kind === 'approval.resolved' ||
+      raw.kind === 'question.asked' ||
+      raw.kind === 'question.resolved'
+    ) {
+      await this.nudge('approval');
+    }
     if (raw.kind === 'turn.ended') await this.nudge('turn');
   }
 
@@ -230,11 +255,15 @@ export class TurnRecorder {
       }
       case 'tool.input': {
         const input = capJson(redactDeep(event.input), CHAT_LIMITS.toolInputChars);
+        const command =
+          event.command === undefined
+            ? undefined
+            : capText(redactSecrets(event.command), CHAT_LIMITS.commandChars).text;
         await this.tx.chatStep.updateMany({
           where: { workspaceId, messageId, toolUseId: event.toolUseId },
-          data: { input: input as object },
+          data: { input: input as object, ...(command === undefined ? {} : { command }) },
         });
-        return { ...event, input };
+        return { ...event, input, ...(command === undefined ? {} : { command }) };
       }
       case 'tool.result': {
         const { text } = capText(redactSecrets(event.output), CHAT_LIMITS.toolOutputChars);
@@ -263,6 +292,8 @@ export class TurnRecorder {
             command,
             category: event.category,
             input: input as object,
+            effect: event.effect,
+            draftId: draftIdOf(input),
             expiresAt: new Date(event.expiresAt),
           },
         });
@@ -295,8 +326,58 @@ export class TurnRecorder {
       }
       case 'plan.proposed': {
         const { text } = capText(redactSecrets(event.plan), CHAT_LIMITS.messageChars);
-        await this.tx.chatMessage.update({ where: { id: messageId, workspaceId }, data: { plan: text } });
+        const structured = event.structured ? (redactDeep(event.structured) as object) : undefined;
+        await this.tx.chatMessage.update({
+          where: { id: messageId, workspaceId },
+          data: { plan: text, ...(structured ? { structuredPlan: structured } : {}) },
+        });
         return { ...event, plan: text };
+      }
+      case 'question.asked': {
+        const questions = redactDeep(event.questions) as typeof event.questions;
+        await this.tx.chatApproval.create({
+          data: {
+            id: event.questionId,
+            workspaceId,
+            chatId,
+            messageId,
+            toolUseId: event.toolUseId,
+            toolName: 'question',
+            command: capText(questions[0]?.text ?? '', CHAT_LIMITS.commandChars).text,
+            category: 'other',
+            kind: 'question',
+            questions,
+            expiresAt: new Date(event.expiresAt),
+          },
+        });
+        await this.tx.chatStep.updateMany({
+          where: { workspaceId, messageId, toolUseId: event.toolUseId },
+          data: { status: 'waiting' },
+        });
+        return { ...event, questions };
+      }
+      case 'question.resolved': {
+        await this.closeApproval(event.questionId, event.status);
+        const { answers: _answers, ...rest } = event;
+        return rest;
+      }
+      case 'turn.starting':
+      case 'engine.warning':
+        return this.notice(event, event, now);
+      case 'tool.blocked': {
+        const clean = { ...event, command: redactSecrets(event.command) };
+        return this.notice(clean, clean, now);
+      }
+      case 'report.refused':
+        return this.notice(event, event, now);
+      case 'work.reported': {
+        const report = redactDeep(event.report) as WorkReport;
+        this.reports = [...this.reports, report];
+        await this.tx.chatMessage.update({
+          where: { id: messageId, workspaceId },
+          data: { reports: this.reports },
+        });
+        return { ...event, report };
       }
       case 'limit': {
         await this.tx.chatMessage.update({
@@ -312,10 +393,26 @@ export class TurnRecorder {
     }
   }
 
+  private async notice<T extends TurnEvent>(
+    event: T,
+    fields: Omit<ChatNotice, 'at'>,
+    now: Date,
+  ): Promise<TurnEvent> {
+    const { messageId, workspaceId } = this.turn;
+    this.notices = [...this.notices, { ...fields, at: now.toISOString() } as ChatNotice].slice(
+      -NOTICES_LIMIT,
+    );
+    await this.tx.chatMessage.update({
+      where: { id: messageId, workspaceId },
+      data: { notices: this.notices },
+    });
+    return event;
+  }
+
   /** A timeout or a stop reported by the bridge. An answer given here already moved it, and then this changes nothing. */
   private async closeApproval(
     id: string,
-    status: 'allowed' | 'denied' | 'timed_out' | 'stopped',
+    status: 'allowed' | 'denied' | 'timed_out' | 'stopped' | 'answered' | 'declined',
   ): Promise<void> {
     const { chatId, workspaceId, deviceName } = this.turn;
     const moved = await this.tx.chatApproval.updateMany({

@@ -2,7 +2,13 @@
  * @file Handlers of the chat and document-writing tools. They call the same services as the panel and Docs.
  * @description Starting, sending to, stopping or answering a chat has no tool: those are the owner's own press (`chat.run`, `chat.answer`), so an agent cannot start agents or approve its own call.
  */
-import { type ChatDto, stageFitsProtocol } from '@hub/contracts';
+import {
+  type ChatDocDraftDto,
+  type ChatDto,
+  type SaveDocResult,
+  stageFitsProtocol,
+  type WorkReport,
+} from '@hub/contracts';
 
 import { AppException } from '@/shared/errors';
 
@@ -10,6 +16,58 @@ import type { ToolHandlers } from '../tool-context';
 
 function renderChat(chat: ChatDto): string {
   return `${chat.title || '(no title yet)'} (\`${chat.id}\`): ${chat.mode}, ${chat.deviceName}, ${chat.folder}${chat.pinned ? ', pinned' : ''}${chat.running ? ', running' : ''}${chat.deletedAt ? ', deleted' : ''}`;
+}
+
+const MOVE_WORDS: Readonly<Record<WorkReport['move']['reason'], string>> = {
+  all_verified:
+    'Every check is verified against a real step, so the task moved to In review. The owner completes it.',
+  no_checks: 'It stays where it is: the report has no checks.',
+  check_not_passed: 'It stays where it is: not every check passed.',
+  check_not_verified: 'It stays where it is: not every check matches a real step that succeeded.',
+  check_dropped: 'It stays where it is: this report leaves out a check an earlier report named.',
+  outside_panel: 'This chat is outside the panel, so the checks stay claimed and the task does not move.',
+  not_a_task: 'It stays where it is: this card is not a task.',
+  wrong_status: 'It stays where it is: only a started task moves to In review.',
+  not_permitted: 'It stays where it is: your roles do not allow moving it.',
+};
+
+function renderReport(report: WorkReport): string {
+  const checks = report.checks.map((check) => {
+    const failed = check.runs.filter((run) => run.status === 'failed').length;
+    return `- ${check.name}: ${check.outcome}, ${check.verified ? 'verified' : `not verified (${check.basis})`}${check.runs.length > 0 ? `, ${check.runs.length} real runs, ${failed} failed` : ''}`;
+  });
+  return [
+    `${report.cardKey}: ${report.summary}`,
+    ...checks,
+    ...(report.notChecked.length > 0 ? [`Not checked: ${report.notChecked.join('; ')}`] : []),
+    ...(report.droppedChecks.length > 0
+      ? [`Left out since an earlier report: ${report.droppedChecks.join(', ')}`]
+      : []),
+    `Files, from ${report.filesFrom}: ${report.changedFiles.map((file) => file.path).join(', ') || 'none'}`,
+    MOVE_WORDS[report.move.reason],
+  ].join('\n');
+}
+
+function renderDraft(draft: ChatDocDraftDto, inPanel: boolean): string {
+  const flags = draft.claims.filter((claim) => claim.status === 'unverified');
+  return [
+    `Draft \`${draft.id}\` of ${draft.docKey ?? `${draft.source}/${draft.path}`}.`,
+    ...(draft.baseVersion ? [`Compared with version ${draft.baseVersion}.`] : ['A new document.']),
+    ...(draft.duplicates.length > 0
+      ? [
+          'Hub found documents like this one. Show the user, and do not write a second one on the same topic:',
+          ...draft.duplicates.map(
+            (doc) => `- ${doc.key}: ${doc.title} (${doc.source}/${doc.path}) ${doc.url}`,
+          ),
+        ]
+      : ['Hub found no similar document.']),
+    ...(flags.length > 0
+      ? ['Flagged, each needing the owner:', ...flags.map((claim) => `- ${claim.id}: ${claim.text}`)]
+      : []),
+    inPanel
+      ? `The owner sees this in the panel. Now call save_doc with draft "${draft.id}": it waits for them.`
+      : `Show the user the draft and the flags. When they agree, call save_doc with draft "${draft.id}", and their answer to each flag in \`answers\`.`,
+  ].join('\n');
 }
 
 export const chatToolHandlers = {
@@ -73,12 +131,50 @@ export const chatToolHandlers = {
     }
     return `Noted: ${input.protocol} ${input.stage} ${input.state}.`;
   },
+  async report_work(context, input) {
+    const actor = await context.actor();
+    const { project: _project, ...report } = input;
+    return renderReport(await context.deps.workReports.report(actor, context.toolUseId, report));
+  },
+  async list_work_reports(context, input) {
+    const actor = await context.allowed('card.read');
+    const reports = await context.deps.workReports.reportsOn(actor, input.key);
+    return reports.length === 0
+      ? `${input.key} has no work reports.`
+      : reports.map(renderReport).join('\n\n');
+  },
+  async propose_plan(context, input) {
+    const actor = await context.allowed('chat.read');
+    const { project: _project, ...plan } = input;
+    const { inPanel, text } = await context.deps.workReports.proposePlan(actor, context.toolUseId, plan);
+    return inPanel
+      ? 'The plan is in the panel, with Run this plan. Stop here and wait for the owner.'
+      : `Show the user this plan in your reply:\n\n${text}`;
+  },
+  async propose_doc(context, input) {
+    const actor = await context.allowed('chat.read');
+    const { project: _project, ...proposal } = input;
+    const { draft, inPanel } = await context.deps.docDrafts.propose(actor, context.toolUseId, proposal);
+    return renderDraft(draft, inPanel);
+  },
 
   // Documents
   async save_doc(context, input) {
     const actor = await context.allowed('docs.write');
-    const { project: _project, ...save } = input;
-    const saved = await context.deps.docsWrite.save(actor, save);
+    const { project: _project, draft, answers, content, ...save } = input;
+    let saved: SaveDocResult;
+    if (draft) {
+      saved = await context.deps.docDrafts.save(actor, draft, answers);
+    } else {
+      if (content === undefined) {
+        throw new AppException('hub.common.validation', { details: { issues: [{ path: 'content' }] } });
+      }
+      await context.deps.docDrafts.assertNoOpenDraftBypass(actor, context.toolUseId, {
+        key: save.key,
+        path: save.path,
+      });
+      saved = await context.deps.docsWrite.save(actor, { ...save, content });
+    }
     return [
       saved.unchanged
         ? `No change: ${saved.source}/${saved.path} already holds this text.`

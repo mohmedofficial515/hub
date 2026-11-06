@@ -4,7 +4,7 @@
  * bridge. The partial unique index in `0003_chats` is what makes "one turn per chat" hold under two sends at once. An approval moves once from `pending`, in one statement, so the first answer wins however many devices have it open. A process restart marks what was running as interrupted, because no socket survives it.
  */
 import {
-  type ApprovalDecision,
+  type AnswerApprovalInput,
   capText,
   CHAT_LIMITS,
   type ChatApprovalDto,
@@ -15,6 +15,8 @@ import {
   type ChatFullDto,
   type ChatMessageDto,
   type ChatMode,
+  type ChatNotice,
+  type ChatQuestionDto,
   type ChatStepDto,
   chatToMarkdown,
   type ChatTurnStarted,
@@ -28,7 +30,9 @@ import {
   type PromptTemplateInput,
   redactSecrets,
   type SendChatMessageInput,
+  turnPrompt,
   type UpdateChatInput,
+  type WorkReport,
 } from '@hub/contracts';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -45,7 +49,9 @@ import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
 
 import { folderIsRegistered, titleFrom } from '../domain/folders';
+import { DocDraftsService } from './doc-drafts.service';
 import { TurnRecorder } from './turn-recorder';
+import { TurnRegistry } from './turn-registry';
 
 const ANSWER_TIMEOUT_MS = 30_000;
 const STOP_TIMEOUT_MS = 30_000;
@@ -90,8 +96,6 @@ const contextOf = (value: unknown) => {
 @Injectable()
 export class ChatsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ChatsService.name);
-  /** Turns running on this process. One API process holds the sockets (D37). */
-  private readonly running = new Map<string, TurnRecorder>();
 
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
@@ -100,6 +104,8 @@ export class ChatsService implements OnApplicationBootstrap {
     private readonly projects: ProjectsService,
     private readonly audit: AuditService,
     private readonly realtime: RealtimePublisher,
+    private readonly turns: TurnRegistry,
+    private readonly drafts: DocDraftsService,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
@@ -118,7 +124,7 @@ export class ChatsService implements OnApplicationBootstrap {
 
   /** How many turns this process is recording. For a clean shutdown, and for tests that must not race one. */
   runningCount(): number {
-    return this.running.size;
+    return this.turns.size();
   }
 
   // ── Reads ─────────────────────────────────────────────────────────────────────────────────────
@@ -147,7 +153,7 @@ export class ChatsService implements OnApplicationBootstrap {
       take: MESSAGE_LIMIT,
     });
     const ids = messages.map((message) => message.id);
-    const [steps, approvals] = await Promise.all([
+    const [steps, approvals, drafts] = await Promise.all([
       this.txHost.tx.chatStep.findMany({
         where: { workspaceId, messageId: { in: ids } },
         orderBy: { startedAt: 'asc' },
@@ -156,6 +162,7 @@ export class ChatsService implements OnApplicationBootstrap {
         where: { workspaceId, messageId: { in: ids } },
         orderBy: { createdAt: 'asc' },
       }),
+      this.drafts.ofMessages(actor, ids),
     ]);
     return {
       ...this.toChat(row),
@@ -176,6 +183,10 @@ export class ChatsService implements OnApplicationBootstrap {
         limit: (message.limit as ChatMessageDto['limit']) ?? null,
         stages: message.stages as ChatMessageDto['stages'],
         plan: message.plan,
+        structuredPlan: (message.structuredPlan as ChatMessageDto['structuredPlan']) ?? null,
+        reports: message.reports as unknown as WorkReport[],
+        notices: message.notices as unknown as ChatNotice[],
+        docDrafts: drafts.get(message.id) ?? [],
         changedFiles: message.changedFiles as ChatMessageDto['changedFiles'],
         steps: steps
           .filter((step) => step.messageId === message.id)
@@ -186,14 +197,28 @@ export class ChatsService implements OnApplicationBootstrap {
             name: step.name,
             status: step.status as ChatStepDto['status'],
             input: step.input,
+            command: step.command,
             output: step.output,
             decision: step.decision,
             textOffset: step.textOffset,
             startedAt: step.startedAt.toISOString(),
             endedAt: iso(step.endedAt),
           })),
+        questions: approvals
+          .filter((approval) => approval.messageId === message.id && approval.kind === 'question')
+          .map((approval): ChatQuestionDto => ({
+            id: approval.id,
+            messageId: approval.messageId,
+            toolUseId: approval.toolUseId,
+            questions: approval.questions as ChatQuestionDto['questions'],
+            status: approval.status as ChatQuestionDto['status'],
+            answers: (approval.answers as ChatQuestionDto['answers']) ?? null,
+            expiresAt: approval.expiresAt.toISOString(),
+            answeredAt: iso(approval.answeredAt),
+            createdAt: approval.createdAt.toISOString(),
+          })),
         approvals: approvals
-          .filter((approval) => approval.messageId === message.id)
+          .filter((approval) => approval.messageId === message.id && approval.kind === 'approval')
           .map((approval): ChatApprovalDto => ({
             id: approval.id,
             messageId: approval.messageId,
@@ -202,6 +227,8 @@ export class ChatsService implements OnApplicationBootstrap {
             command: approval.command,
             category: approval.category as ChatApprovalDto['category'],
             input: approval.input,
+            effect: approval.effect,
+            draftId: approval.draftId,
             status: approval.status as ChatApprovalDto['status'],
             expiresAt: approval.expiresAt.toISOString(),
             answeredAt: iso(approval.answeredAt),
@@ -233,7 +260,7 @@ export class ChatsService implements OnApplicationBootstrap {
         userId: actor.userId,
         deviceId: input.device,
         folder: input.folder,
-        mode: input.mode ?? 'ask',
+        mode: input.mode ?? 'execute',
         model: input.model ?? null,
         effort: input.effort ?? null,
         title: input.title ?? '',
@@ -435,7 +462,7 @@ export class ChatsService implements OnApplicationBootstrap {
 
     // A branch has words from another chat and no session: its first turn reads them.
     const history = chat.sessionId || !chat.parentChatId ? '' : historyPrefix(ids.earlier);
-    const prompt = `${contextPrefix({ project: project.slug, ...(context ?? {}) })}${history}${text}`;
+    const prompt = turnPrompt(contextPrefix({ project: project.slug, ...(context ?? {}) }), history, text);
     this.run(actor, chat, ids.assistant, {
       chatId: id,
       folder: chat.folder,
@@ -467,7 +494,7 @@ export class ChatsService implements OnApplicationBootstrap {
         hadSession: Boolean(chat.sessionId),
       },
     );
-    this.running.set(chat.id, recorder);
+    this.turns.set(chat.id, recorder);
     void this.hub
       .request(chat.deviceId, 'turn.start', args, {
         timeoutMs: null,
@@ -475,9 +502,7 @@ export class ChatsService implements OnApplicationBootstrap {
       })
       .then(() => recorder.finish('interrupted', 'unknown'))
       .catch((error: unknown) => this.turnRefused(recorder, error))
-      .finally(() => {
-        if (this.running.get(chat.id) === recorder) this.running.delete(chat.id);
-      });
+      .finally(() => this.turns.release(chat.id, recorder));
   }
 
   private turnRefused(recorder: TurnRecorder, error: unknown): Promise<void> {
@@ -499,13 +524,18 @@ export class ChatsService implements OnApplicationBootstrap {
     });
   }
 
-  /** First answer wins: `pending` moves once, in one statement. Audited with the exact command, the answer and the device; the audit row's ip and agent say which browser answered. */
+  /**
+   * First answer wins: `pending` moves once, in one statement. Audited with the exact command, the answer and the device; the audit row's ip and agent say which browser answered. A question takes the same path (docs/16 §7.2), and so does the Save of a draft, with the owner's edit and flag answers.
+   * With the device gone nothing can run on this answer, so it is refused rather than recorded as allowed: the socket closing stopped the turn too, as `interrupted` (review M9).
+   */
   async answer(
     actor: MemberActor,
     id: string,
     approvalId: string,
-    decision: ApprovalDecision,
+    input: AnswerApprovalInput,
   ): Promise<void> {
+    const { decision, note, answers, doc } = input;
+    assertNoSecrets({ note, answers, doc });
     const chat = await this.owned(actor, id);
     if (!z.uuid().safeParse(approvalId).success) throw new AppException('hub.chats.approval_not_found');
     const { workspaceId } = actor;
@@ -513,19 +543,42 @@ export class ChatsService implements OnApplicationBootstrap {
       where: { id: approvalId, workspaceId, chatId: id },
     });
     if (!approval) throw new AppException('hub.chats.approval_not_found');
+    const question = approval.kind === 'question';
+    if (!this.hub.isOnline(chat.deviceId)) {
+      await this.txHost.tx.chatApproval.updateMany({
+        where: { id: approvalId, workspaceId, chatId: id, status: 'pending' },
+        data: { status: 'stopped', answeredAt: this.clock.now() },
+      });
+      const now = await this.txHost.tx.chatApproval.findFirst({
+        where: { id: approvalId, workspaceId, chatId: id },
+        select: { status: true },
+      });
+      if (now?.status === 'stopped') {
+        await this.changed(actor, id, 'approval');
+        throw new AppException('hub.chats.approval_device_offline');
+      }
+      throw new AppException('hub.chats.approval_answered');
+    }
+    if (question && decision === 'allow' && !answers) throw new AppException('hub.common.validation');
+    if (approval.draftId && approval.status === 'pending') {
+      await this.drafts.applyOwnerAnswers(actor, id, approval.draftId, doc, decision);
+    }
     const answeredAt = this.clock.now();
+    const allowed = question ? 'answered' : 'allowed';
+    const denied = question ? 'declined' : 'denied';
     const moved = await this.txHost.withTransaction(async () => {
       const claim = await this.txHost.tx.chatApproval.updateMany({
         where: { id: approvalId, workspaceId, chatId: id, status: 'pending' },
         data: {
-          status: decision === 'allow' ? 'allowed' : 'denied',
+          status: decision === 'allow' ? allowed : denied,
           answeredById: actor.userId,
           answeredAt,
+          ...(question && answers ? { answers } : {}),
         },
       });
       if (claim.count === 0) return false;
       await this.audit.record(actor, {
-        action: `chats.approval.${decision}`,
+        action: `chats.${question ? 'question' : 'approval'}.${decision}`,
         targetType: 'chat_approval',
         targetId: approvalId,
         summary: `${decision} on ${chat.device.name}: ${approval.command}`.slice(0, AUDIT_SUMMARY_CHARS),
@@ -537,7 +590,13 @@ export class ChatsService implements OnApplicationBootstrap {
       .request<{ accepted: boolean }>(
         chat.deviceId,
         'turn.answer',
-        { chatId: id, approvalId, decision },
+        {
+          chatId: id,
+          approvalId,
+          decision,
+          ...(note ? { note } : {}),
+          ...(answers ? { answers } : {}),
+        },
         { timeoutMs: ANSWER_TIMEOUT_MS },
       )
       .catch(() => ({ accepted: false }));
@@ -565,11 +624,13 @@ export class ChatsService implements OnApplicationBootstrap {
     return { ...answer, diff: redactSecrets(answer.diff) };
   }
 
-  /** The engine on a device, for the panel's selectors and honest states. */
-  async engine(actor: MemberActor, deviceId: string): Promise<EngineStatus> {
+  /** The engine on a device, for the panel's selectors and honest states. `fresh` is the re-check action: it asks past the bridge's cache (review M9). */
+  async engine(actor: MemberActor, deviceId: string, fresh = false): Promise<EngineStatus> {
     await this.devices.owned(actor.userId, deviceId);
     return engineStatusSchema.parse(
-      await this.hub.request(deviceId, 'engine.status', {}, { timeoutMs: ENGINE_TIMEOUT_MS }),
+      await this.hub.request(deviceId, 'engine.status', fresh ? { fresh: true } : {}, {
+        timeoutMs: ENGINE_TIMEOUT_MS,
+      }),
     );
   }
 

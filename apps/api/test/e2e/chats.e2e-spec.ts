@@ -257,6 +257,7 @@ describe('chats', () => {
     command: 'git push origin main',
     category: 'push',
     input: { command: 'git push origin main' },
+    effect: 'Pushes to a remote',
     expiresAt: '2030-01-01T00:00:00.000Z',
   };
 
@@ -819,6 +820,9 @@ describe('chats', () => {
         signedIn: false,
         effortSupported: true,
         modelSupported: true,
+        canRun: true,
+        warning: null,
+        checkedAt: '2026-11-06T10:00:00.000Z',
         live: 0,
       };
       const answer = await browser.get(`${base()}/engine?device=${deviceId}`).expect(200);

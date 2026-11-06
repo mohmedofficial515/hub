@@ -20,6 +20,7 @@ import {
   retryChatSchema,
   sendChatMessageSchema,
   updateChatSchema,
+  workReportSchema,
 } from '@hub/contracts';
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import {
@@ -36,6 +37,7 @@ import { SessionOnly } from '@/modules/identity';
 import { Actor, Permissions } from '@/shared/http';
 
 import { ChatsService } from '../../application/chats.service';
+import { WorkReportsService } from '../../application/work-reports.service';
 
 class CreateChatDto extends createZodDto(createChatSchema) {}
 class UpdateChatDto extends createZodDto(updateChatSchema) {}
@@ -53,6 +55,7 @@ class ChatTurnStartedDto extends createZodDto(chatTurnStartedSchema) {}
 class ChatDiffDto extends createZodDto(chatDiffSchema) {}
 class EngineStatusDto extends createZodDto(engineStatusSchema) {}
 class PromptTemplateDto extends createZodDto(promptTemplateSchema) {}
+class WorkReportDto extends createZodDto(workReportSchema) {}
 class ChatExportDto extends createZodDto(z.object({ fileName: z.string(), markdown: z.string() })) {}
 
 @ApiTags('chats')
@@ -80,7 +83,7 @@ export class ChatsController {
   })
   @ApiOkResponse({ type: EngineStatusDto })
   engine(@Actor() actor: MemberActor, @Query() query: EngineQueryDto): Promise<EngineStatusDto> {
-    return this.chats.engine(actor, query.device);
+    return this.chats.engine(actor, query.device, query.fresh === 'true');
   }
 
   @Post()
@@ -190,7 +193,8 @@ export class ChatsController {
   @Permissions('chat.answer')
   @SessionOnly()
   @ApiOperation({
-    summary: 'Allow once or deny a paused call. The first answer wins; later ones get a conflict',
+    summary:
+      'Allow once or deny a paused call, or answer a question. The first answer wins; later ones get a conflict. An offline device refuses it',
   })
   @ApiNoContentResponse()
   async answer(
@@ -199,7 +203,7 @@ export class ChatsController {
     @Param('approval') approval: string,
     @Body() body: AnswerApprovalDto,
   ): Promise<void> {
-    await this.chats.answer(actor, id, approval, body.decision);
+    await this.chats.answer(actor, id, approval, body);
   }
 
   @Get(':id/export')
@@ -220,6 +224,23 @@ export class ChatsController {
     @Query() query: ChatDiffQueryDto,
   ): Promise<ChatDiffDto> {
     return this.chats.diff(actor, id, query.path);
+  }
+}
+
+@ApiTags('chats')
+@Controller('workspaces/:ws/cards/:key/work-reports')
+export class WorkReportsController {
+  constructor(private readonly reports: WorkReportsService) {}
+
+  @Get()
+  @Permissions('card.read')
+  @ApiOperation({
+    summary:
+      'A card’s work reports, newest first: each check with its real runs, what is verified and what is claimed',
+  })
+  @ApiOkResponse({ type: [WorkReportDto] })
+  list(@Actor() actor: MemberActor, @Param('key') key: string): Promise<WorkReportDto[]> {
+    return this.reports.reportsOn(actor, key);
   }
 }
 

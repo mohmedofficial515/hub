@@ -4,16 +4,25 @@
 import { Module } from '@nestjs/common';
 
 import { AuditModule } from '@/modules/audit';
+import { CardsModule } from '@/modules/cards';
 import { DevicesModule } from '@/modules/devices';
+import { DocsModule } from '@/modules/docs';
 import { WorkspacesModule } from '@/modules/workspaces';
 
 import { ChatsService } from './application/chats.service';
-import { ChatsController, PromptTemplatesController } from './presentation/http/chats.controller';
+import { DocDraftsService } from './application/doc-drafts.service';
+import { TurnRegistry } from './application/turn-registry';
+import { WorkReportsService } from './application/work-reports.service';
+import {
+  ChatsController,
+  PromptTemplatesController,
+  WorkReportsController,
+} from './presentation/http/chats.controller';
 
 @Module({
-  imports: [AuditModule, DevicesModule, WorkspacesModule],
-  controllers: [ChatsController, PromptTemplatesController],
-  providers: [ChatsService],
-  exports: [ChatsService],
+  imports: [AuditModule, CardsModule, DevicesModule, DocsModule, WorkspacesModule],
+  controllers: [ChatsController, PromptTemplatesController, WorkReportsController],
+  providers: [ChatsService, TurnRegistry, WorkReportsService, DocDraftsService],
+  exports: [ChatsService, WorkReportsService, DocDraftsService],
 })
 export class ChatsModule {}
