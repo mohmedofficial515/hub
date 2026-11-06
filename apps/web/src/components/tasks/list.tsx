@@ -28,7 +28,7 @@ import {
   type TaskCard,
   updateCard,
   useLocale,
-  useMedia,
+  usePageWide,
   useSession,
   useT,
   when,
@@ -100,7 +100,7 @@ export function TaskList({
   const kit = useT(kitMessages);
   const locale = useLocale();
   const { roles } = useSession();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const canPrioritise = isAllowed('card.edit_routing', roles);
 
   if (!wide) {

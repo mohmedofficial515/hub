@@ -127,7 +127,7 @@ export function MorningLetter({
         </h2>
         <time
           dateTime={narrative.date}
-          className={cn('text-body-sm text-muted-foreground', framed && 'hidden sm:block')}
+          className={cn('text-body-sm text-muted-foreground', framed && 'hidden sm:@page-sm:block')}
         >
           {longDate(`${narrative.date}T12:00:00+03:00`, locale)}
         </time>

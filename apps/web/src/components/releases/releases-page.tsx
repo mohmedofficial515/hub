@@ -165,7 +165,7 @@ function Manifest({
       className="flex flex-col rounded-lg border border-border bg-card"
     >
       {/* Stacked under `md`: beside the buttons this title block collapsed to a 3 px column on a phone (review B1). */}
-      <header className="flex flex-col items-start gap-x-4 gap-y-3 border-b border-border p-4 md:flex-row md:p-5">
+      <header className="flex flex-col items-start gap-x-4 gap-y-3 border-b border-border p-4 md:@page-md:flex-row md:p-5">
         <div className="w-full min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-body-sm text-muted-foreground">
             <StatusBadge status={card.status} />
@@ -189,7 +189,7 @@ function Manifest({
             </AppLink>
           </h3>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:shrink-0">
+        <div className="flex w-full flex-wrap items-center gap-2 md:@page-md:w-auto md:shrink-0">
           {isManager && (
             <Button onClick={regenerate}>
               <RefreshCw aria-hidden className="size-4" strokeWidth={1.75} />
@@ -211,7 +211,7 @@ function Manifest({
           )}
         </div>
       </header>
-      <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] md:@page-md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <section
           aria-label={t.includedTitle}
           className="flex flex-col gap-3 border-b border-border p-4 md:border-e md:border-b-0 md:p-5"
@@ -306,7 +306,7 @@ function ShippedRow({
   const rows = useIncluded(card.release, pool);
   return (
     // The date column is this list's spine: a release is first of all a moment.
-    <li className="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2 md:grid-cols-[3.5rem_minmax(0,1fr)] md:gap-3">
+    <li className="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-2 md:@page-md:grid-cols-[3.5rem_minmax(0,1fr)] md:gap-3">
       <time
         dateTime={iso}
         title={shortDate(iso, locale)}

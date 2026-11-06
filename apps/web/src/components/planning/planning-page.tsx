@@ -151,7 +151,7 @@ export function PlanningPage() {
         <LoadingRegion label={t.loading}>
           <Skeleton className="h-9 w-48 max-w-full" />
           <Skeleton className="h-56 w-full rounded-lg" />
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          <div className="grid gap-6 xl:@page-xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <div className="flex flex-col gap-2">
               <Skeleton className="h-6 w-40" />
               <SkeletonRows count={3} withAction={false} />
@@ -232,7 +232,11 @@ export function PlanningPage() {
       ) : (
         <>
           {focal && <FocalCard focal={focal} rowProps={list.rowProps} />}
-          <div className={cn('grid items-start gap-x-8 gap-y-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]')}>
+          <div
+            className={cn(
+              'grid items-start gap-x-8 gap-y-8 xl:@page-xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]',
+            )}
+          >
             <Lane<IdeaCard>
               id="lane-ideas"
               icon={Lightbulb}

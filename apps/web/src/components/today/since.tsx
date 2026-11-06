@@ -28,8 +28,8 @@ import {
   TypeIcon,
   useKeyboardList,
   useLocale,
-  useMedia,
   useMember,
+  usePageWide,
   useT,
   when,
 } from '@/components/kit';
@@ -185,7 +185,7 @@ export function SinceLastVisit({
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
   // Phone shows the first 5 rows, then "see all" (09 §4). Wider screens show what the API sent.
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const shown = wide ? rows : rows.slice(0, 5);
   const pinned = shown.filter((row) => diffOf(row).length > 0);
   const rest = shown.filter((row) => !pinned.includes(row));

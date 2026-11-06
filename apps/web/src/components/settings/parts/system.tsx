@@ -92,7 +92,7 @@ function Panels({ sys }: { sys: SystemData }) {
   return (
     <>
       <section aria-label={s.vitalsLabel}>
-        <dl className="grid rounded-lg border border-border bg-card px-4 sm:grid-cols-2 sm:divide-x sm:divide-border sm:px-0 sm:rtl:divide-x-reverse lg:grid-cols-4">
+        <dl className="grid rounded-lg border border-border bg-card px-4 sm:@page-sm:grid-cols-2 sm:divide-x sm:divide-border sm:px-0 sm:rtl:divide-x-reverse lg:@page-lg:grid-cols-4">
           <Vital
             label={s.outbox}
             value={<Ltr>{num(sys.outbox.pending, locale)}</Ltr>}

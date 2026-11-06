@@ -143,7 +143,7 @@ export function TaskBoard({
             <section
               key={column}
               aria-labelledby={`col-${column}`}
-              className="flex w-72 shrink-0 snap-start flex-col gap-2 md:w-52 lg:w-auto lg:min-w-52 lg:flex-1 lg:basis-0"
+              className="flex w-72 shrink-0 snap-start flex-col gap-2 md:w-52 lg:@page-lg:w-auto lg:min-w-52 lg:flex-1 lg:@page-lg:basis-0"
             >
               <header className="flex min-h-9 items-center gap-2 border-b border-border pb-1.5">
                 <h2 id={`col-${column}`} className="text-body font-semibold text-foreground">

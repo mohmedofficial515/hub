@@ -26,7 +26,7 @@ import {
   PriorityBadge,
   useCardQuery,
   useLocale,
-  useMedia,
+  usePageWide,
   useT,
 } from '@/components/kit';
 import { bandOf, tableOptions } from '@/features/decisions/model';
@@ -100,7 +100,7 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   const t = useT<DecisionMessages>('decisions');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const d = card.decision;
   const blocks = card.links.filter((l) => l.kind === 'blocks');
   const danger = bandOf(card) === 'overdue';
@@ -113,7 +113,9 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   const shown = showAll ? [...visible, ...folded] : visible;
   // Three tiles sit in a row from 768, so they leave no hole. More wrap, and two have the width to themselves.
   const columns =
-    shown.length === 3 ? 'md:grid-cols-3' : cn('md:grid-cols-2', shown.length > 3 && 'lg:grid-cols-3');
+    shown.length === 3
+      ? 'md:@page-md:grid-cols-3'
+      : cn('md:@page-md:grid-cols-2', shown.length > 3 && 'lg:@page-lg:grid-cols-3');
   const recommended = d.options.filter((o) => o.recommended).length;
 
   return (
@@ -142,7 +144,7 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
         </AppLink>
       </h3>
       {excerpt && (
-        <p className="line-clamp-2 max-w-prose text-body text-muted-foreground max-md:hidden">
+        <p className="line-clamp-2 max-w-prose text-body text-muted-foreground max-md:hidden @max-page-md:hidden">
           <Bidi>{excerpt}</Bidi>
         </p>
       )}
@@ -188,7 +190,7 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
           <Button
             variant="primary"
             aria-keyshortcuts="d"
-            className="max-sm:w-full"
+            className="max-sm:w-full @max-page-sm:w-full"
             onClick={() => openCard(card.key, { action: 'decide' })}
           >
             {actionName(kit, 'decision', 'decide')}

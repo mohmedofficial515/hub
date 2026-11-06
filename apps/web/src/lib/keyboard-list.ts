@@ -66,6 +66,9 @@ function focusNeighbor(list: ListEntry, removedId: string) {
   focusEl(list.options.emptyFocusRef?.current);
 }
 
+/** Every row the page's lists hold now, in the page's own order and with its own filters: what Previous and Next walk when the page has stepped aside (D54). */
+export const listRowIds = (): string[] => [...lists.values()].flatMap((list) => list.ids);
+
 /**
  * Called by the card sheet on close. The opener's row may have left its list because of the action just taken;
  * then focus goes to the row that replaced it, not to `<body>`.

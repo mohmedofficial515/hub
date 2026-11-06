@@ -30,7 +30,7 @@ import {
   TextInput,
   useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   useRoute,
   useT,
 } from '@/components/kit';
@@ -209,7 +209,7 @@ export function TokensTab() {
   const revokeToken = useRevokeToken();
   const tokens = query.data ?? [];
   const s = t.tokens;
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
   const active = tokens.filter((x) => !x.revokedAt);

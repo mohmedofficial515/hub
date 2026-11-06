@@ -28,8 +28,8 @@ import {
   StatusBadge,
   type useKeyboardList,
   useLocale,
-  useMedia,
   useMember,
+  usePageWide,
   useT,
 } from '@/components/kit';
 import type { HandoffsMessages } from '@/features/handoffs/messages';
@@ -58,7 +58,7 @@ export function HandoffRow({
   const t = useT<HandoffsMessages>('handoffs');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const roomy = useMedia('(min-width: 640px)');
+  const roomy = usePageWide(640);
   const h = card.handoff;
   const titleId = `hand-${card.key}`;
   const panelId = `hand-${card.key}-changes`;

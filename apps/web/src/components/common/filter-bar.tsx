@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/form';
 import { Segmented } from '@/components/ui/segmented';
 import { useSession } from '@/features/session/session';
-import { useMedia } from '@/lib/hooks';
+import { usePageWide } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import { useRoving } from '@/lib/roving';
@@ -90,7 +90,12 @@ export function ChipGroup({
   const id = useId();
   const { root, groupProps, itemProps } = useRoving(options.findIndex((o) => isActive(o.value)));
   return (
-    <div className={cn('flex min-w-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2', className)}>
+    <div
+      className={cn(
+        'flex min-w-0 flex-col gap-1.5 md:@page-md:flex-row md:@page-md:items-center md:gap-2',
+        className,
+      )}
+    >
       {showLabel && (
         <span id={id} className="shrink-0 text-body-sm text-muted-foreground">
           {label}
@@ -240,7 +245,7 @@ export function FilterBar<S extends string = string>({
   const t = useT(kitMessages);
   const locale = useLocale();
   const { query } = useRoute();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const panelId = useId();
   const [open, setOpen] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -381,7 +386,7 @@ export function FilterBar<S extends string = string>({
           {selects.map((select) => (
             <label
               key={select.param}
-              className="flex min-w-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2"
+              className="flex min-w-0 flex-col gap-1.5 md:@page-md:flex-row md:@page-md:items-center md:gap-2"
             >
               <span className="shrink-0 text-body-sm text-muted-foreground">{select.label}</span>
               <Select

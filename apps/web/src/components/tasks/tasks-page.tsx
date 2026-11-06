@@ -37,7 +37,7 @@ import {
   useFilterList,
   useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   usePerformAction,
   useReadyTasks,
   useRoute,
@@ -45,6 +45,7 @@ import {
   useT,
 } from '@/components/kit';
 import { NewCardDialog } from '@/components/shell/new-card-dialog';
+import { usePageRoom } from '@/components/workbench/layout';
 import {
   type Column,
   columnsOf,
@@ -100,10 +101,12 @@ function TasksBoardOrList() {
   const moved = useRef<{ key: string; index: number } | null>(null);
 
   // Under 768 px a board shows half a column at a time, so a phone opens on the list. An explicit choice is remembered (review M12).
-  const wideEnough = useMedia('(min-width: 768px)');
+  const wideEnough = usePageWide(768);
   const viewParam = useFilter('view');
   const [rememberedView] = useState(() => readView(me.id));
-  const view: 'board' | 'list' =
+  // Beside the panel, with no room for a Board's lanes, its List shows in its place and the chosen view stays the owner's (D54).
+  const { boardTight } = usePageRoom();
+  const chosenView: 'board' | 'list' =
     viewParam === 'list' || viewParam === 'board'
       ? viewParam
       : rememberedView === 'list' || rememberedView === 'board'
@@ -111,6 +114,7 @@ function TasksBoardOrList() {
         : wideEnough
           ? 'board'
           : 'list';
+  const view = boardTight ? 'list' : chosenView;
   const viewToggleRef = useRef<HTMLDivElement>(null);
   const mine = useFilter('mine') === '1';
   const review = useFilter('review') === '1';
@@ -350,7 +354,7 @@ function TasksBoardOrList() {
             {[4, 2, 3, 2].map((count, i) => (
               <div
                 key={i}
-                className="flex w-72 shrink-0 flex-col gap-2 md:w-60 lg:w-auto lg:min-w-52 lg:flex-1 lg:basis-0"
+                className="flex w-72 shrink-0 flex-col gap-2 md:w-60 lg:@page-lg:w-auto lg:min-w-52 lg:flex-1 lg:@page-lg:basis-0"
               >
                 <Skeleton className="h-7 w-28" />
                 <SkeletonRows count={count} withAction={false} />

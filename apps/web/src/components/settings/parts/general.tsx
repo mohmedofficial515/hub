@@ -219,7 +219,7 @@ function OnboardingEditor({
           ))}
         </ol>
       )}
-      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_8rem]">
+      <div className="grid gap-3 sm:@page-sm:grid-cols-[minmax(0,1fr)_8rem]">
         <Field id="onboarding-title" label={s.itemTitle} error={titleError}>
           <TextInput
             id="onboarding-title"
@@ -502,11 +502,11 @@ export function GeneralTab() {
             aria-invalid={!!errors.name}
           />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <RoRow label={s.project.slug} value={slug} hint={s.project.slugHint} />
           <RoRow label={s.project.prefix} value={project.data.keyPrefix} hint={s.project.prefixHint} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <Field id="general-timezone" label={s.project.timezone}>
             <Select
               id="general-timezone"
@@ -578,7 +578,7 @@ export function GeneralTab() {
             {s.project.links}
           </p>
           {draft.links.map((link, i) => (
-            <div key={i} className="grid items-end gap-2 sm:grid-cols-[10rem_minmax(0,1fr)_auto]">
+            <div key={i} className="grid items-end gap-2 sm:@page-sm:grid-cols-[10rem_minmax(0,1fr)_auto]">
               <Field id={`general-link-label-${i}`} label={s.project.linkLabel}>
                 <TextInput
                   id={`general-link-label-${i}`}
@@ -671,7 +671,7 @@ export function GeneralTab() {
         >
           <TextInput {...bind('reminderOffsets')} />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <Field
             id="general-escalationHours"
             label={s.decisions.escalation}
@@ -692,7 +692,7 @@ export function GeneralTab() {
       </FormSection>
 
       <FormSection title={s.staleness.title} description={s.staleness.body}>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <Field
             id="general-handoffStaleHours"
             label={s.staleness.handoff}
@@ -722,7 +722,7 @@ export function GeneralTab() {
         >
           <TextInput {...bind('morningTime')} />
         </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <Field
             id="general-weeklyDay"
             label={s.digests.weeklyDay}
@@ -744,7 +744,7 @@ export function GeneralTab() {
             <TextInput {...bind('weeklyTime')} />
           </Field>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:@page-sm:grid-cols-2">
           <Field
             id="general-quietFrom"
             label={s.digests.quietFrom}

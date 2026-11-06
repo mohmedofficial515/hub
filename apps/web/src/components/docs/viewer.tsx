@@ -27,10 +27,11 @@ import {
   RelativeTime,
   setQuery,
   useLocale,
-  useMedia,
+  usePageWide,
   useRoute,
   useT,
 } from '@/components/kit';
+import { DocBar } from '@/components/workbench/doc-bar';
 import type { DocCard } from '@/features/cards/types';
 import type { DocWithContent } from '@/features/docs/queries';
 import { docTwin, resolveDocLink } from '@/features/docs/tree';
@@ -73,7 +74,7 @@ export function DocViewer({ card, all }: { card: DocWithContent; all: readonly D
   const kit = useT(kitMessages);
   const locale = useLocale();
   const { query } = useRoute();
-  const showOutline = useMedia('(min-width: 1280px)');
+  const showOutline = usePageWide(1280);
   const d = card.doc;
   const source = card.content ?? '';
   const dir = d.lang === 'ar' ? 'rtl' : 'ltr';
@@ -115,7 +116,7 @@ export function DocViewer({ card, all }: { card: DocWithContent; all: readonly D
           view="docs"
           query={{ doc: null, anchor: null }}
           className={cn(
-            'inline-flex h-11 items-center gap-1.5 self-start rounded-sm text-body-sm font-medium text-muted-foreground hover:text-foreground lg:hidden',
+            'inline-flex h-11 items-center gap-1.5 self-start rounded-sm text-body-sm font-medium text-muted-foreground hover:text-foreground lg:@page-lg:hidden',
             focusRing,
           )}
         >
@@ -171,6 +172,8 @@ export function DocViewer({ card, all }: { card: DocWithContent; all: readonly D
         )}
       </header>
 
+      <DocBar doc={card} />
+
       <div className={cn('grid grid-cols-[minmax(0,1fr)] gap-8', wide && 'grid-cols-[minmax(0,1fr)_11.5rem]')}>
         <div className="flex min-w-0 flex-col gap-8">
           {card.content === null ? (
@@ -189,7 +192,7 @@ export function DocViewer({ card, all }: { card: DocWithContent; all: readonly D
                 query={{ anchor: id }}
                 aria-label={fmt(t.sectionLink, { name: text })}
                 className={cn(
-                  'shrink-0 rounded-sm text-muted-foreground opacity-0 group-hover/heading:opacity-100 hover:text-foreground focus-visible:opacity-100 max-md:hidden',
+                  'shrink-0 rounded-sm text-muted-foreground opacity-0 group-hover/heading:opacity-100 hover:text-foreground focus-visible:opacity-100 max-md:hidden @max-page-md:hidden',
                   focusRing,
                 )}
               >

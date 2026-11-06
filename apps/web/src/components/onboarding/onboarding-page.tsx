@@ -481,8 +481,8 @@ export function OnboardingPage() {
       )}
 
       {/* "You are here" stays in view beside the map of the whole path. On a phone it comes first. */}
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <div className="lg:sticky lg:top-18">
+      <div className="grid items-start gap-8 lg:@page-lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <div className="lg:@page-lg:sticky lg:@page-lg:top-18">
           {allDone ? (
             <motion.section
               initial={{ opacity: 0, y: 6 }}

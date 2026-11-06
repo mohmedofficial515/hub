@@ -219,5 +219,1303 @@
       "hub.docs.draft_flags_open": "A flag has no answer yet, so nothing was saved."
     },
     "saved": "Saved. The earlier text is kept as a revision, and nothing is committed."
+  },
+  "panel": {
+    "claude": "Claude",
+    "panelLabel": "Claude Code panel",
+    "toggle": "Open or close the Claude panel",
+    "close": "Close the panel",
+    "open": "Open the panel",
+    "resize": "Resize the panel",
+    "newChat": "New chat",
+    "chat": "Chat",
+    "history": "History",
+    "runs": "Runs",
+    "more": "More",
+    "back": "Back",
+    "backToChat": "To the chat",
+    "toCard": "To the card",
+    "context": {
+      "label": "Context",
+      "sent": "Sent with",
+      "project": "Project",
+      "page": "Page",
+      "card": "Card",
+      "removeCard": "Remove the card from context",
+      "hint": "Claude receives only the card key, and reads the rest through MCP.",
+      "onPage": "On this page",
+      "onCard": "About {key}",
+      "explain": "Explain this",
+      "plan": "Plan this",
+      "redesign": "Redesign this",
+      "prompt": {
+        "explain": "Explain {target}",
+        "plan": "Plan {target}",
+        "redesign": "Redesign {target}"
+      },
+      "busy": "This chat is working now. The request starts in a new chat.",
+      "dropHere": "Drop the card to add it to context",
+      "pinned": "Cards you added",
+      "pinOpen": "Add {key} to context",
+      "dragHint": "Drag any card from the page to here"
+    },
+    "composer": {
+      "label": "Message to Claude",
+      "placeholder": "Write to Claude, or / for skills",
+      "send": "Send",
+      "stop": "Stop",
+      "disabled": "Cannot send right now",
+      "hint": "Enter to send, Shift+Enter for a new line",
+      "usage": "Usage this week {n}%",
+      "waiting": "Waiting for your answer on the approval"
+    },
+    "slash": {
+      "title": "Skills",
+      "empty": "No skill by that name",
+      "sources": {
+        "hub": "Hub",
+        "personal": "Personal",
+        "folder": "From folder"
+      }
+    },
+    "picker": {
+      "device": "Device",
+      "folder": "Folder",
+      "persona": "Working as",
+      "workingAs": "Working as {role}",
+      "deviceChange": "The next message starts a new chat on {device} from a Hub summary, because each device keeps its own sessions.",
+      "folderChange": "The next message starts a new chat in this folder.",
+      "noBridge": "Cannot run",
+      "offline": "Offline"
+    },
+    "status": {
+      "starting": "Starting Claude in {folder}",
+      "startingNote": "Starting Claude takes about 10 seconds, then replies get faster.",
+      "startingWhy": {
+        "new": "A new chat",
+        "resume": "Claude had closed for this chat, so it returns to the session",
+        "mode": "The mode changed, so it restarts on the same session",
+        "model": "The model changed, so it restarts on the same session",
+        "effort": "The effort changed, so it restarts on the same session",
+        "folder": "The folder changed"
+      },
+      "elapsed": "{n} s",
+      "retryLine": "Retrying: attempt {attempt} in {sec} s",
+      "retryNote": "The server is busy. Nothing for you to do, and the turn is not lost.",
+      "thinking": "Thinking",
+      "retrying": "Retrying",
+      "streaming": "Writing",
+      "tool": "Working",
+      "waiting": "Waiting for your approval",
+      "waitingAnswer": "Waiting for your answer",
+      "stopped": "Stopped",
+      "idle": "Ready"
+    },
+    "tools": {
+      "summary": {
+        "zero": "No steps",
+        "one": "1 step",
+        "two": "2 steps",
+        "few": "{n} steps",
+        "many": "{n} steps",
+        "other": "{n} steps"
+      },
+      "running": "Now: {name}",
+      "show": "Show what Claude did",
+      "denied": "Denied",
+      "stopped": "Stopped"
+    },
+    "approval": {
+      "title": "Your approval is needed",
+      "titleClosed": "Approval request",
+      "denyNote": "If you deny it, Claude is told, and carries on without it or stops.",
+      "tool": "Tool",
+      "command": "The command, exactly as it will run",
+      "folder": "In",
+      "copy": "Copy command",
+      "showAll": "Show the whole command",
+      "showLess": "Fold the command",
+      "deny": "Deny",
+      "allowed": "You allowed this once",
+      "denied": "You denied this",
+      "timedOut": "Denied: no answer in 30 minutes",
+      "stopped": {
+        "turn": "Cancelled when the turn stopped. The command never ran",
+        "bridge": "Stopped: the bridge dropped, so the turn ended and the command never ran",
+        "engine": "Stopped: the turn ended in an error, and the command never ran"
+      },
+      "once": "Once only. A similar request pauses again.",
+      "expires": "Denied automatically if you have not answered by {time}",
+      "devices": "Also shows on any device with Hub open",
+      "effectLabel": "Effect",
+      "before": "Folders now",
+      "after": "After approval",
+      "added": "Added",
+      "jump": "An approval is waiting",
+      "allow": {
+        "delete": "Allow this delete",
+        "move": "Allow this move",
+        "commit": "Allow this commit",
+        "push": "Allow this push",
+        "deploy": "Allow this deploy",
+        "branch": "Allow this branch",
+        "worktree": "Allow this worktree",
+        "docker": "Allow this docker command",
+        "hub_project": "Allow this project change",
+        "hub_doc": "Allow this write",
+        "hub_sensitive": "Allow this action",
+        "other": "Allow this command"
+      },
+      "effects": {
+        "delete": "Deletes files",
+        "move": "Moves or overwrites files",
+        "commit": "Changes Git history",
+        "push": "Pushes to a remote",
+        "deploy": "Deploys or reaches another machine",
+        "branch": "Creates or switches a branch",
+        "worktree": "Creates a worktree",
+        "docker": "Runs Docker",
+        "hub_project": "Changes the project, including its allowed folders",
+        "hub_doc": "Writes a document",
+        "hub_sensitive": "A sensitive Hub action",
+        "other": "A command you have not allowed"
+      }
+    },
+    "card": {
+      "made": "Created by Claude",
+      "undo": "Claude created card {key}",
+      "open": "Open {key}",
+      "archivedNote": "This card was archived"
+    },
+    "vscode": {
+      "button": "Send to VS Code",
+      "short": "VS Code",
+      "title": "Send to VS Code",
+      "lead": "VS Code opens with the prompt written into Claude, and it is not sent. You press Enter there.",
+      "steps": [
+        "The bridge opens the folder’s window on this device.",
+        "This text is written into Claude inside VS Code.",
+        "You press Enter when you want. Hub cannot send it for you."
+      ],
+      "prompt": "The text it will write",
+      "folder": "Folder",
+      "newChat": "That starts a new chat from a Hub summary and the card key. It is not this same chat.",
+      "send": "Send to VS Code",
+      "copy": "Copy text",
+      "noBridge": "This device has no bridge, so it cannot open VS Code. Copy the text and paste it there.",
+      "sent": "Sent to VS Code. Press Enter there.",
+      "failed": "VS Code did not open: {why}",
+      "noFolder": "This project has no linked folder to open."
+    },
+    "runsPanel": {
+      "title": "Runs",
+      "groups": {
+        "needs": "Needs you",
+        "running": "Running",
+        "recent": "Ended"
+      },
+      "empty": "Nothing is running.",
+      "openChat": "Open chat",
+      "answer": "Answer",
+      "states": {
+        "waiting": "Waiting for your approval",
+        "running": "Running",
+        "done": "Finished",
+        "interrupted": "Cut off",
+        "failed": "Ended with an error",
+        "stopped": "You stopped it"
+      },
+      "needsCommand": "Paused on"
+    },
+    "next": {
+      "title": "Do next",
+      "how": "Ranked from card state, with no AI: overdue, then what blocks others, then priority.",
+      "why": {
+        "overdue": "Overdue",
+        "blocks": {
+          "one": "Blocks 1 card",
+          "two": "Blocks 2 cards",
+          "few": "Blocks {n} cards",
+          "many": "Blocks {n} cards",
+          "other": "Blocks {n} cards",
+          "zero": ""
+        },
+        "ready": "Ready to start",
+        "decision": "A decision waits for you"
+      },
+      "explain": "Explain",
+      "empty": "Nothing leads right now for this role."
+    },
+    "empty": {
+      "title": "Ask from where you are",
+      "body": "Discuss, plan and execute here. Claude knows your project, your page and the open card.",
+      "try": "Or write what you need",
+      "fills": "A suggestion goes into the box. Nothing runs until you send.",
+      "rowFills": "Fills the box, {mode}",
+      "rowRuns": "Runs now, {mode}",
+      "note": "Anything that changes something waits until you send it. A read-only one runs on a press, and its row says so."
+    },
+    "historyPanel": {
+      "title": "History",
+      "search": "Search chats",
+      "empty": "No chats by that name.",
+      "delete": "Delete",
+      "deleted": "Chat deleted",
+      "open": "Open"
+    },
+    "engine": {
+      "offline": {
+        "title": "The bridge is offline on {device}",
+        "body": "Hub cannot start Claude there right now. Your chats are saved.",
+        "action": "It clears by itself when the device reconnects. Pick another device, or run this on that device:",
+        "command": "hub doctor"
+      },
+      "signed_out": {
+        "title": "Claude is signed out on {device}",
+        "body": "Claude handles its own sign-in, and Hub never sees or stores your credentials. Sign-in only shows when a message is sent.",
+        "action": "Run this in a terminal on that device, then come back:",
+        "command": "claude /login"
+      },
+      "limit": {
+        "title": "Usage limit reached",
+        "body": "Paused until {time}. Chats stay as they are.",
+        "action": "It clears by itself at {time}, with nothing for you to do.",
+        "command": ""
+      },
+      "unknown": {
+        "title": "An error Hub does not recognise",
+        "body": "The turn ended with no result. Try again, or continue the topic in VS Code.",
+        "action": "Try again, or continue in VS Code."
+      },
+      "revoked": {
+        "title": "{device} is no longer paired",
+        "body": "Hub no longer accepts this device. The turn ended, and nothing pending ran.",
+        "action": "Pair it again from Settings, Devices, or pick another device.",
+        "command": ""
+      },
+      "limit_open": {
+        "title": "Usage limit reached, with no known reset",
+        "body": "Claude did not say when the limit returns. You can send, and it may fail again.",
+        "action": "Send when you want to try.",
+        "command": ""
+      },
+      "version_new": {
+        "title": "Claude Code is newer than Hub has tested",
+        "body": "Version {version} runs, and the tested one is {tested}. Permission rules stay active.",
+        "action": "If something looks odd, continue in VS Code and tell Hub.",
+        "command": ""
+      },
+      "version_old": {
+        "title": "Claude Code is older than the minimum on {device}",
+        "body": "Version {version} is installed, and the lowest Hub runs is {min}. The panel has stopped until you update it.",
+        "action": "Run this on that device:",
+        "command": "claude update"
+      },
+      "claude_missing": {
+        "title": "Claude Code was not found on {device}",
+        "body": "The bridge is running, but it cannot find the program.",
+        "action": "Install it on that device:",
+        "command": "npm install -g @anthropic-ai/claude-code"
+      },
+      "billing": {
+        "title": "A billing problem with Claude",
+        "body": "Claude refused the turn over billing. Hub cannot see your plan.",
+        "action": "Check your plan, then check again.",
+        "command": ""
+      },
+      "overloaded": {
+        "title": "Claude’s service is busy right now",
+        "body": "The turn failed after its retries. What finished before it stays.",
+        "action": "Try again in a little while.",
+        "command": ""
+      },
+      "session_missing": {
+        "title": "This chat’s session no longer exists",
+        "body": "Sessions stay on the device for 30 days. Hub’s copy of the chat stays, and the next turn starts a new session from it.",
+        "action": "Send your message and the new session starts.",
+        "command": ""
+      },
+      "folder_not_allowed": {
+        "title": "This folder is not on the project’s list",
+        "body": "The bridge works only in folders registered on the project.",
+        "action": "Pick a registered folder, or link it from the project page.",
+        "command": ""
+      },
+      "folder_missing": {
+        "title": "The folder does not exist on {device}",
+        "body": "It may have moved or been deleted. Nothing started.",
+        "action": "Pick another folder, or restore it and check again.",
+        "command": ""
+      },
+      "unreadable": {
+        "title": "Hub could not read an event, so the turn stopped",
+        "body": "Hub did not understand what Claude Code sent, so it stopped the turn rather than guess. What finished before it stays.",
+        "action": "Continue the topic in VS Code, or try again.",
+        "command": ""
+      },
+      "retry": "Try again",
+      "check": "Check again",
+      "checking": "Checking…",
+      "still": "Checked at {time}: still the same.",
+      "checkedSignIn": "Claude Code was found. Sign-in only shows with the next message, so send one to be sure.",
+      "details": "Details",
+      "hide": "Hide",
+      "openVs": "Open in VS Code",
+      "turnFailures": {
+        "signed_out": "Signed out",
+        "rate_limited": "At the limit",
+        "billing": "Billing",
+        "overloaded": "Service busy",
+        "version_out_of_range": "Version out of range",
+        "claude_missing": "Claude missing",
+        "session_missing": "Session missing",
+        "folder_not_allowed": "Folder not allowed",
+        "folder_missing": "Folder missing",
+        "device_offline": "Device offline",
+        "cut_off": "Cut off",
+        "unreadable_event": "Unreadable event",
+        "unknown": "Unknown error"
+      },
+      "otherDevice": "Other device",
+      "no_device": {
+        "title": "No device is connected",
+        "body": "Claude runs on a device of yours, through the bridge. None is paired with Hub yet.",
+        "action": "Connect one from Settings, Devices.",
+        "command": ""
+      },
+      "no_folder": {
+        "title": "No folder is linked to this project",
+        "body": "The bridge works only in folders registered on the project.",
+        "action": "Link a folder from Settings, Devices.",
+        "command": ""
+      },
+      "openSettings": "Open Settings"
+    },
+    "claudeBar": {
+      "label": "With Claude",
+      "explain": "Explain",
+      "plan": "Plan",
+      "redesign": "Redesign",
+      "run": "Run",
+      "vscode": "VS Code"
+    },
+    "pro": {
+      "modeGroup": "Chat mode",
+      "modes": {
+        "ask": "Ask",
+        "plan": "Plan",
+        "execute": "Execute"
+      },
+      "modelLabel": "Model",
+      "effortLabel": "Effort",
+      "efforts": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "effortOff": "{model} does not take effort. Pick Sonnet or Opus to change it.",
+      "suggestions": "Suggested requests from where you are",
+      "factLabels": {
+        "state": "State",
+        "doc": "Doc"
+      },
+      "offTexts": {
+        "turnBusy": "This turn is still running."
+      },
+      "diff": {
+        "added": "Added line",
+        "removed": "Removed line",
+        "large": "A wider view of the diff for {path}",
+        "loading": "Reading the file on the device…",
+        "unavailable": "No diff is available: the device is away, or the file matches HEAD."
+      },
+      "step": {
+        "input": "Input",
+        "result": "Result",
+        "error": "Error",
+        "copy": "Copy {what}",
+        "noOutput": "No result arrived for this step.",
+        "allowedBy": "Allowed by",
+        "decisions": {
+          "config": "Your rules",
+          "user_temporary": "You, once",
+          "user_reject": "You refused"
+        },
+        "goTo": "Go to the step",
+        "states": {
+          "running": "Running",
+          "ok": "Done",
+          "denied": "Denied",
+          "stopped": "Stopped",
+          "failed": "Failed"
+        }
+      },
+      "turn": {
+        "menu": "Options for this turn",
+        "status": "Status",
+        "mode": "Mode",
+        "model": "Model",
+        "duration": "Duration",
+        "stepsLabel": "Steps",
+        "input": "Input",
+        "output": "Output",
+        "cache": "From cache",
+        "usageMissing": "No usage was reported for this turn.",
+        "filesTitle": "Changed files",
+        "files": {
+          "zero": "",
+          "one": "1 file",
+          "two": "2 files",
+          "few": "{n} files",
+          "many": "{n} files",
+          "other": "{n} files"
+        },
+        "states": {
+          "done": "Finished",
+          "failed": "Ended with an error",
+          "stopped": "You stopped it",
+          "interrupted": "Interrupted: the bridge connection dropped"
+        },
+        "short": {
+          "done": "Finished",
+          "failed": "Error",
+          "stopped": "Stopped",
+          "interrupted": "Interrupted"
+        },
+        "retry": "Retry",
+        "retryNote": "Sends the same request. Changes to files stay.",
+        "modelEffort": "{model}, {effort}",
+        "branch": "Branch from here",
+        "branchNote": "A new chat with a copy of the earlier words, up to here.",
+        "copyReply": "Copy the reply",
+        "copyMessage": "Copy the message",
+        "branchedFrom": "Branched from \"{title}\". Claude receives a copy of the earlier words, not the session itself."
+      },
+      "protocol": {
+        "task": "Task steps",
+        "doc": "Doc steps",
+        "stoppedAt": "Stopped at: {stage}",
+        "finished": "{n} of {total} stages",
+        "states": {
+          "pending": "Not started",
+          "running": "Running now",
+          "done": "Done",
+          "failed": "Failed",
+          "skipped": "Not done"
+        }
+      },
+      "stages": {
+        "understand": "Understand",
+        "plan": "Plan",
+        "execute": "Execute",
+        "verify": "Verify",
+        "report": "Report",
+        "search": "Search",
+        "propose": "Propose",
+        "draft": "Draft",
+        "save": "Save",
+        "link": "Link"
+      },
+      "plan": {
+        "title": "Proposed plan",
+        "checks": "Checks that will prove it worked",
+        "risks": "Risks",
+        "asText": "This plan arrived as text in the reply, so it has no separate steps.",
+        "run": "Run this plan",
+        "aside": "Leave it",
+        "scheduled": "Scheduled.",
+        "asided": "You left it here.",
+        "promptText": "Carry out this plan, step by step, and run its checks."
+      },
+      "report": {
+        "title": "Report on {key}",
+        "partialTitle": "Report on {key}: not finished",
+        "files": "Files",
+        "checks": "Checks",
+        "notChecked": "Not checked",
+        "nothingListed": "Claude listed nothing it did not check.",
+        "passed": "Passed",
+        "failed": "Failed",
+        "skipped": "Did not run",
+        "verified": "Verified by Hub",
+        "claimed": "Claimed by Claude",
+        "basis": {
+          "matched": "",
+          "outside_panel": "From a chat outside the panel: no step can be verified there, so this is what Claude says.",
+          "no_command": "Claude named no command, so there is nothing to match.",
+          "no_matching_step": "No step in this chat ran this command, so this is what Claude says, not a result Hub verified.",
+          "step_mismatch": "The step it named ran something else.",
+          "not_finished": "Its step has not finished.",
+          "outcome_differs": "Claude said it did not pass, but its last real run did."
+        },
+        "summary": {
+          "verifiedAll": "{n} of {total} verified by Hub",
+          "some": "{verified} of {total} verified by Hub, {claimed} claimed by Claude",
+          "failed": "{failed} of {total} failed"
+        },
+        "limit": "Hub saw these commands run and succeed. It does not judge whether they are the right checks.",
+        "editsAfter": "Edits came after this run, so it did not see them.",
+        "claudeSays": "Claude says",
+        "failedTimes": "Failed {failed} times, passed on run {n}",
+        "failedOnce": "Failed once, passed on run {n}",
+        "runs": "Runs",
+        "runAt": "Run {n}, {time}",
+        "runStatus": {
+          "passed": "Passed",
+          "failed": "Failed",
+          "cut_off": "Cut off, no result",
+          "running": "Still running"
+        },
+        "noRuns": "No step in this chat.",
+        "moved": "Hub moved the card to In review: every check passed and was verified against a real step. The task does not complete itself: you confirm it. Not right? Send back on the card.",
+        "stays": {
+          "all_verified": "",
+          "check_not_passed": "It stays: {names} did not pass. Submit for review stays yours on the card.",
+          "check_not_verified": "It stays: Hub could not verify {names}. Submit for review stays yours on the card.",
+          "check_dropped": "It stays: this report left out {names}, which an earlier one named. Submit for review stays yours on the card.",
+          "no_checks": "It stays: the report has no checks. Submit for review stays yours on the card.",
+          "outside_panel": "It does not move by itself: the report came from outside the panel, so no step can be verified.",
+          "not_a_task": "It is not a task, so it does not move by itself.",
+          "wrong_status": "It did not move: it is not In progress now.",
+          "not_permitted": "It did not move: this role is not allowed to."
+        },
+        "refusedLabel": "A report Hub refused",
+        "refused": "Hub refused a report: Claude said {names} passed, and its real step failed. Nothing reached the card.",
+        "filesClaimed": "What Claude says: the device did not answer about files.",
+        "open": "Open {key}",
+        "evidence": "Report",
+        "fromChat": "The chat",
+        "line": "{checks}, {files}",
+        "noFiles": "no files",
+        "filesCount": {
+          "zero": "no files",
+          "one": "1 file",
+          "two": "2 files",
+          "few": "{n} files",
+          "many": "{n} files",
+          "other": "{n} files"
+        }
+      },
+      "choice": {
+        "chosen": "You chose: {what}"
+      },
+      "question": {
+        "several": "{n} questions wait for your answer",
+        "pickAny": "(pick any)",
+        "send": "Send answers",
+        "sendTip": "Your answer reaches Claude, and it carries on.",
+        "incomplete": "A question has no answer yet.",
+        "incompleteFix": "Pick an answer for each question.",
+        "decline": "Do not answer",
+        "declineTip": "Claude is told you did not answer, and carries on without it or stops.",
+        "expires": "Denied automatically if you have not answered by {time}",
+        "declined": "You did not answer, and Claude was told.",
+        "timedOut": "Denied: no answer in 30 minutes.",
+        "stopped": {
+          "turn": "Cancelled when the turn stopped. It was not answered.",
+          "bridge": "Stopped: the bridge dropped, so the turn ended and this was not answered.",
+          "engine": "Stopped: the turn ended in an error, and this was not answered."
+        }
+      },
+      "draft": {
+        "label": "Draft",
+        "base": "On version {rev}",
+        "newFile": "New file",
+        "save": "Save to the doc",
+        "saveFlags": {
+          "zero": "",
+          "one": "Answer 1 flag to save",
+          "two": "Answer 2 flags to save",
+          "few": "Answer {n} flags to save",
+          "many": "Answer {n} flags to save",
+          "other": "Answer {n} flags to save"
+        },
+        "saveKept": {
+          "zero": "",
+          "one": "Save with 1 unverified mark",
+          "two": "Save with 2 unverified marks",
+          "few": "Save with {n} unverified marks",
+          "many": "Save with {n} unverified marks",
+          "other": "Save with {n} unverified marks"
+        },
+        "saveNew": "Save a new doc anyway",
+        "updateExisting": "Update the existing doc instead",
+        "saving": "Saving…",
+        "discard": "Discard",
+        "saved": "Saved.",
+        "refused": "Save refused. Nothing was written.",
+        "discarded": "Discarded, and nothing was saved.",
+        "unverified": "Not verified",
+        "flagOpen": "Claude could not verify",
+        "flagConfirmed": "You confirmed",
+        "flagLeft": "You took out",
+        "flagKept": "You kept it marked",
+        "confirm": "I confirm it is true",
+        "leave": "Take it out",
+        "keep": "Keep it, marked",
+        "window": "Saving is your approval of save_doc. With no answer in 30 minutes it is denied.",
+        "honest": "Only what Claude flagged is flagged. A sentence with no mark is not proof it was checked.",
+        "checked": {
+          "zero": "No sourced claims",
+          "one": "1 claim has a source",
+          "two": "2 claims have a source",
+          "few": "{n} claims have a source",
+          "many": "{n} claims have a source",
+          "other": "{n} claims have a source"
+        },
+        "showDiff": "Show the diff",
+        "hideDiff": "Fold the diff",
+        "change": "Change",
+        "duplicates": "Hub found a doc with a similar title",
+        "duplicatesWhy": "A second doc would drift from it.",
+        "savedAs": "Saved, version {rev}.",
+        "conflictTitle": "The document changed after this draft was written",
+        "conflictVersion": "It is now version {version}.",
+        "conflictDiffLabel": "What changed in the document",
+        "conflictNext": "Nothing was saved. Ask Claude to read it again and redo the draft.",
+        "redraftNote": "Update the existing document instead of writing a new one: {keys}.",
+        "discardNote": "Discarded by the owner. Do not save this draft.",
+        "noSave": "Save opens when Claude asks to save this draft."
+      },
+      "saved": {
+        "label": "Doc saved",
+        "text": "Saved. The earlier text stays as a revision.",
+        "git": "Nothing was committed to Git. That is a separate step, with your approval.",
+        "open": "Open the doc",
+        "restore": "Restore the earlier text",
+        "restored": "Restored the earlier text.",
+        "restoreFailed": "Not restored: {why}"
+      },
+      "blocked": {
+        "switch": "Switch to Execute and send again",
+        "title": "{mode} mode refused this",
+        "refused": "Refused: {tool}",
+        "why": {
+          "ask": "Ask reads files and Hub only: no terminal, and no tools from other servers.",
+          "plan": "Plan reads files and Hub only: no terminal, and no tools from other servers.",
+          "execute": ""
+        }
+      },
+      "ctx": {
+        "leave": "Send without {name}",
+        "back": "Put {name} back in the message",
+        "remove": "Remove {name}",
+        "follow": "Follow the chat",
+        "followShort": "Follow",
+        "file": "File",
+        "followOpened": "Opened by Follow",
+        "followOffer": "Open {key}",
+        "projectPrefix": "{project} ·",
+        "add": "Add",
+        "templatesLabel": "Templates"
+      },
+      "attach": {
+        "label": "Attach",
+        "card": "Attach a card",
+        "doc": "Attach a doc",
+        "file": "Attach a file from the folder",
+        "fileTitle": "Attach a file",
+        "fileBody": "A path inside {folder}. Claude receives the path and reads the file itself.",
+        "fileAdd": "Attach",
+        "fileLabel": "Path inside the folder"
+      },
+      "templates": {
+        "label": "Templates",
+        "title": "{project} templates",
+        "empty": "No templates yet.",
+        "remove": "Delete template {name}",
+        "save": "Save the current text as a template",
+        "saveOff": "Write some text first.",
+        "saved": "Template saved for this project."
+      },
+      "menu": {
+        "label": "Chat options",
+        "pin": "Pin the chat",
+        "unpin": "Unpin",
+        "pinNote": "It stays at the top of its project in History.",
+        "export": "Export as Markdown",
+        "exportNote": "A file on this device, without tool output.",
+        "exported": "Chat exported: {file}",
+        "vscode": "Send to VS Code",
+        "vscodeNote": "A new chat there, and you press Enter.",
+        "settings": "Panel settings",
+        "settingsNote": "Default mode and how much tooltips say.",
+        "follow": "Follow the chat",
+        "followNote": "The card Claude reads opens beside the chat.",
+        "on": "On",
+        "off": "Off",
+        "explain": "Explain controls",
+        "explainNote": "Each tap explains a control instead of pressing it.",
+        "newChat": "New chat",
+        "newChatNote": "The current chat stays in History.",
+        "delete": "Delete",
+        "deleteNote": "You can undo this."
+      },
+      "settings": {
+        "title": "Panel settings",
+        "note": "Saved on this device only.",
+        "mode": "Default mode for a new chat",
+        "modeHint": "You can change it in any chat.",
+        "tip": "How much tooltips say",
+        "tipFull": "Full",
+        "tipCompact": "Compact",
+        "tipHint": "Compact keeps only what a control does and why it is off.",
+        "width": "Panel width",
+        "widthNow": "Now {n} px",
+        "reset": "Reset",
+        "follow": "Follow the chat",
+        "followHint": "The card Claude reads opens beside the chat.",
+        "on": "On",
+        "off": "Off",
+        "keys": "Shortcuts",
+        "done": "Done"
+      },
+      "help": {
+        "button": "Explain mode"
+      },
+      "facts": {
+        "project": "Project",
+        "title": "Chat facts",
+        "copy": "Copy the session id",
+        "notStarted": "Not started yet",
+        "noBranch": "Not a repository",
+        "noEngine": "Claude Code has not been heard from yet"
+      },
+      "sheetNav": {
+        "label": "Cards",
+        "prev": "Previous card",
+        "next": "Next card",
+        "prevTip": "Opens {key}, before this one in the list.",
+        "nextTip": "Opens {key}, after this one in the list.",
+        "none": "No other card this way in the list."
+      },
+      "skipPanel": "Skip to Claude panel",
+      "stepAside": "Back to {page}",
+      "statusGroup": "Status",
+      "strip": {
+        "bridge": "Bridge",
+        "bridgeOn": "Connected",
+        "usage": "Usage",
+        "usageShort": "{n}%",
+        "unknown": "Not reported yet"
+      },
+      "drop": "Drop the card to send it with your message",
+      "keysGroup": "Claude panel",
+      "keys": {
+        "regions": "Move between page, card, panel and strip",
+        "toggle": "Open or close the panel",
+        "modes": "Ask, Plan, Execute",
+        "stop": "Stop the turn",
+        "send": "Send",
+        "newline": "New line",
+        "skills": "Skills menu"
+      },
+      "phoneTips": {
+        "chat": "Shows the chat.",
+        "history": "Shows all chats by project.",
+        "runs": "Shows what waits for you, what is running and what is in line.",
+        "toCard": "Shows the open card. The chat stays as it is.",
+        "toChat": "Goes back to the chat. The card stays open.",
+        "closeCard": "Closes the card and keeps the chat."
+      },
+      "sheet": {
+        "do": "Run it in steps",
+        "document": "Document"
+      },
+      "docBar": {
+        "label": "With Claude",
+        "improve": "Improve this doc",
+        "document": "Document this task",
+        "gaps": "Find gaps",
+        "revisions": "Revisions",
+        "current": "Current",
+        "restore": "Restore"
+      },
+      "models": {
+        "default": {
+          "name": "Default",
+          "note": "What Claude Code chooses on this device"
+        },
+        "sonnet": {
+          "name": "Sonnet",
+          "note": "For everyday work"
+        },
+        "opus": {
+          "name": "Opus",
+          "note": "For hard problems, uses your limit faster"
+        },
+        "haiku": {
+          "name": "Haiku",
+          "note": "For small, quick jobs"
+        }
+      },
+      "personas": {
+        "owner": "The whole project: decisions and handoffs first",
+        "backend": "Server tasks and API contracts",
+        "frontend": "Interface tasks and ports from the lab",
+        "designer": "Lab versions and what awaits review",
+        "qa": "What awaits verification and delivery",
+        "pm": "What is late and what blocks others",
+        "other": "Work routed to this role"
+      },
+      "skills": {
+        "/hub:work": "Do a task in fixed stages, with a report on the card",
+        "/hub:doc": "Improve or write a doc, with a diff and flagged claims",
+        "/hub:plan": "Plan something new, ending in a plan to run",
+        "/hub:ask": "A question about the project docs, with sources"
+      },
+      "skillsOther": "From this folder and yours",
+      "stripWords": {
+        "label": "Claude strip",
+        "needs": {
+          "zero": "",
+          "one": "1 answer waiting",
+          "two": "2 answers waiting",
+          "few": "{n} answers waiting",
+          "many": "{n} answers waiting",
+          "other": "{n} answers waiting"
+        },
+        "pageHidden": "The page comes back when you close the card or the panel",
+        "pendingIn": "Waiting for you in: {chat}"
+      }
+    },
+    "listSeparator": ", "
+  },
+  "tips": {
+    "labels": {
+      "then": "What happens",
+      "needs": "Depends on",
+      "detail": "Detail",
+      "why": "Why it is off",
+      "fix": "How to fix it",
+      "keys": "Shortcut",
+      "helpTitle": "Explain mode",
+      "helpOn": "Tap anything to see what it does.",
+      "helpDone": "Done",
+      "helpLabel": "Explain",
+      "helpHint": "Tap Explain, then anything, to see what it does. Or long press a button. Menus explain themselves.",
+      "helpHintClose": "Got it"
+    },
+    "facts": {
+      "device": "Device",
+      "folder": "Folder",
+      "branch": "Branch",
+      "session": "Session",
+      "mode": "Mode",
+      "started": "Started",
+      "model": "Model",
+      "effort": "Effort",
+      "version": "Claude Code version",
+      "since": "Connected since",
+      "servers": "MCP servers",
+      "skills": "Skills",
+      "used": "Used",
+      "window": "Window",
+      "resets": "Resets",
+      "source": "Source",
+      "command": "Command",
+      "chat": "Chat",
+      "project": "Project",
+      "page": "Page",
+      "card": "Card",
+      "doc": "Doc",
+      "persona": "Working as",
+      "state": "State",
+      "reason": "Why",
+      "duration": "Duration",
+      "tokensIn": "Input",
+      "tokensOut": "Output",
+      "tokensCache": "From cache",
+      "decision": "Allowed by",
+      "lastSeen": "Last seen"
+    },
+    "items": {
+      "strip.toggle": {
+        "what": "Opens and closes the panel from any page, even while you type.",
+        "detail": "The strip stays after closing, so an approval never goes out of sight."
+      },
+      "strip.chat": {
+        "what": "Shows the open chat: the last reply and anything in it waiting for you.",
+        "then": "If it is already showing, the panel closes."
+      },
+      "strip.history": {
+        "what": "All your chats by project, pinned ones first.",
+        "then": "If it is already showing, the panel closes."
+      },
+      "strip.runs": {
+        "what": "What waits for you, what is running now, and what to do next.",
+        "then": "If it is already showing, the panel closes."
+      },
+      "strip.pending": {
+        "what": "Approvals and questions waiting for you in any chat. Claude will not finish that step until you answer.",
+        "then": "Opens the oldest chat that is waiting, scrolls to the approval and puts focus on it."
+      },
+      "strip.bridge": {
+        "what": "The bridge runs Claude on your device.",
+        "needs": "The device being on and paired with Hub."
+      },
+      "strip.usage": {
+        "what": "How much of your plan’s limit is used, as Claude reports it.",
+        "detail": "At the limit the queue pauses until it resets, then continues, oldest first."
+      },
+      "resize": {
+        "what": "Changes the panel’s width, and this device remembers it.",
+        "detail": "Arrow keys move in steps, Home and End go to the limits, Enter resets."
+      },
+      "head.title": {
+        "what": "This chat’s facts. Press to see all of them under the title."
+      },
+      "head.new": {
+        "what": "Starts an empty chat in your default mode.",
+        "then": "The current chat stays in History, and a turn running in it carries on."
+      },
+      "head.menu": {
+        "what": "Pin, export, open in VS Code, follow the chat, and panel settings."
+      },
+      "head.close": {
+        "what": "Shrinks the panel into the strip. The chat and any running turn are not affected."
+      },
+      "head.help": {
+        "what": "Makes each tap explain a control instead of pressing it.",
+        "then": "Tap Done and taps work as usual again.",
+        "detail": "A long press explains any button without this mode."
+      },
+      "ctx.auto": {
+        "what": "What \"this\" means in your message. Press to send the next message without it.",
+        "detail": "Claude receives only the key and reads the rest through Hub, so the card is not copied into the chat."
+      },
+      "ctx.leave": {
+        "what": "Sends the next message without this context.",
+        "then": "The context comes back after sending."
+      },
+      "ctx.back": {
+        "what": "Puts the open card or doc back into the next message."
+      },
+      "ctx.attached": {
+        "what": "Goes with the next message only, then the tray is clear."
+      },
+      "ctx.detach": {
+        "what": "Takes it out of the next message."
+      },
+      "ctx.followOffer": {
+        "what": "Claude read card {key}. Opening it here would move the page aside, so it did not open by itself.",
+        "then": "Opens it beside the chat."
+      },
+      "attach.aside": {
+        "what": "Adds a card, a doc or a file to the next message, or inserts a saved template.",
+        "detail": "Files come from the chosen folder only."
+      },
+      "ctx.followOn": {
+        "what": "Claude opened this card because Follow the chat is on. It never takes focus from you.",
+        "then": "Press to turn following off. This device remembers your choice."
+      },
+      "ctx.followOff": {
+        "what": "Off: cards do not open by themselves.",
+        "then": "Press to follow the chat. This device remembers your choice."
+      },
+      "attach": {
+        "what": "Adds a card, a doc or a file to the next message, or inserts a saved template.",
+        "detail": "Files come from the chosen folder only. You can also drag any card from the page to here."
+      },
+      "templates": {
+        "what": "Frequent prompts saved for this project.",
+        "then": "The text goes into the message and is not sent until you press Send."
+      },
+      "input": {
+        "what": "Write to Claude, or start with / for the skills menu.",
+        "then": "Claude reads the chosen folder’s CLAUDE.md and skills."
+      },
+      "send": {
+        "what": "Sends the message with the chosen mode and model, and the context shown above it.",
+        "then": "The first reply after Claude starts or restarts takes about 10 seconds, then it gets faster."
+      },
+      "stop": {
+        "what": "Stops this turn now.",
+        "then": "What finished stays, and nothing else starts. You can retry afterwards."
+      },
+      "mode.ask": {
+        "what": "Ask: reads files and Hub only, and answers.",
+        "detail": "No terminal, and no tools from other servers, so it cannot run tests or change anything.",
+        "then": "If it needs something refused, it says what and offers to switch. Changing mode restarts Claude, about 10 seconds on your next message."
+      },
+      "mode.plan": {
+        "what": "Plan: reads files and Hub only, writes a plan, and changes nothing.",
+        "detail": "No terminal, and no tools from other servers.",
+        "then": "The turn ends in a plan with steps, checks and a button to run it. Changing mode restarts Claude, about 10 seconds."
+      },
+      "mode.execute": {
+        "what": "Execute: reads and edits freely inside the folder, and runs commands.",
+        "then": "It pauses for you on delete, commit, push, deploy, a new branch and docker. Changing mode restarts Claude, about 10 seconds.",
+        "detail": "Your Claude Code rules stay loaded, so a command you always allow does not pause."
+      },
+      "model": {
+        "what": "The model and effort for your next message.",
+        "then": "A change restarts Claude on the same session, about 10 seconds before the next reply.",
+        "needs": "What the installed Claude Code supports."
+      },
+      "where": {
+        "what": "The device, the folder and the role Claude works in.",
+        "then": "Changing device or folder starts a new chat, because each device keeps its own sessions."
+      },
+      "suggestion": {
+        "what": "A suggestion from where you are now.",
+        "then": "Puts the text in the box. Nothing runs until you send it."
+      },
+      "next.title": {
+        "what": "Ranked from card state, with no AI: overdue first, then what blocks others, then priority."
+      },
+      "next.explain": {
+        "what": "Explains the decision and what each option means. It does not decide for you."
+      },
+      "next.open": {
+        "what": "Opens the card beside the chat."
+      },
+      "tools.fold": {
+        "what": "The steps Claude took in this turn.",
+        "then": "Opens the list, and each step opens to its exact input and result."
+      },
+      "tools.step": {
+        "what": "Opens what went into this step and what came out, exactly, and who allowed it."
+      },
+      "tools.copy": {
+        "what": "Copies the text exactly as it is."
+      },
+      "turn.line": {
+        "what": "How this turn ended.",
+        "then": "Opens its mode, model, usage and changed files, only as the engine reported them."
+      },
+      "turn.menu": {
+        "what": "Retry, branch from here, and copy the reply."
+      },
+      "turn.retry": {
+        "what": "Sends the same request again.",
+        "then": "What the last attempt changed in the files stays as it is."
+      },
+      "turn.file": {
+        "what": "Shows what changed in this file.",
+        "then": "Opens the diff here, with added and removed lines marked by sign and colour."
+      },
+      "turn.fileLarge": {
+        "what": "Opens the diff in a wider window."
+      },
+      "user.menu": {
+        "what": "Branch from this message, or copy it."
+      },
+      "facts.copy": {
+        "what": "Copies the session id, to find it again from Claude Code."
+      },
+      "approval.copy": {
+        "what": "Copies the command exactly as it would run, to inspect or run it yourself."
+      },
+      "stage": {
+        "what": "A stage of the work steps. Understand reads, Plan writes the steps, Execute edits, Verify runs the checks, Report writes to the card.",
+        "detail": "A failed check stops at Verify, which is what fails a stage."
+      },
+      "plan.run": {
+        "what": "Puts this plan in the box, in Execute. Nothing runs until you send it.",
+        "then": "After you send, Claude restarts, about 10 seconds, then the checklist starts."
+      },
+      "plan.aside": {
+        "what": "Leaves the plan in the chat without running it. You can come back to it."
+      },
+      "report.open": {
+        "what": "Opens the card this report landed on, with its actions."
+      },
+      "draft.save": {
+        "what": "Approves saving to the file on the main machine.",
+        "then": "The earlier text stays as a revision you can restore. No Git commit.",
+        "needs": "The file not having changed since the draft started. If it has, the save is refused and nothing is written."
+      },
+      "draft.discard": {
+        "what": "Leaves the doc as it is. Nothing is saved."
+      },
+      "flag.confirm": {
+        "what": "You confirm this claim is true.",
+        "then": "It is written plainly on save."
+      },
+      "flag.leave": {
+        "what": "Takes the claim out of the draft.",
+        "then": "It is not written into the doc."
+      },
+      "flag.keep": {
+        "what": "Keeps the claim, marked as not verified.",
+        "then": "It is written on its own line with that mark, so anyone reading the doc sees it."
+      },
+      "draft.update": {
+        "what": "Drops this draft and writes on the existing doc, with no new file.",
+        "then": "A new draft as a diff against its text. Nothing is saved until you approve."
+      },
+      "saved.restore": {
+        "what": "Brings back the earlier revision’s text.",
+        "then": "The current text stays as a revision too, so you can undo the restore."
+      },
+      "saved.open": {
+        "what": "Opens the doc on the Docs page behind the panel."
+      },
+      "blocked.switch": {
+        "what": "Switches to Execute and sends the request again.",
+        "then": "Claude restarts, about 10 seconds, then works inside the folder and pauses on sensitive commands."
+      },
+      "runs.answer": {
+        "what": "Opens the chat at the approval this run paused on.",
+        "then": "The folder stays held until you answer."
+      },
+      "runs.open": {
+        "what": "Opens this run’s chat so you can see what happened."
+      },
+      "runs.state": {
+        "what": "Waiting, running, in line, scheduled, finished or cut off. The reason is under the title."
+      },
+      "runs.card": {
+        "what": "Opens the card this run is working on."
+      },
+      "history.search": {
+        "what": "Searches chat titles."
+      },
+      "history.row": {
+        "what": "Opens this chat.",
+        "then": "A turn running in the current chat carries on."
+      },
+      "history.more": {
+        "what": "Pin or delete. A delete can be undone."
+      },
+      "history.pinned": {
+        "what": "Pinned to the top of its project."
+      },
+      "sheet.explain": {
+        "what": "Explains this card and what is around it, and changes nothing.",
+        "then": "Starts a new chat in Ask."
+      },
+      "sheet.plan": {
+        "what": "Writes a plan for this card, and changes nothing.",
+        "then": "The turn ends in a plan with a button to run it."
+      },
+      "sheet.redesign": {
+        "what": "Starts a brief in the lab, then directions for you to choose from.",
+        "then": "Nothing real changes until you approve a version."
+      },
+      "sheet.do": {
+        "what": "Does the task in fixed steps: Understand, Plan, Execute, Verify, Report.",
+        "then": "Runs as soon as you press, in Execute. The card moves to In progress, then to In review only if every check is verified against a real step."
+      },
+      "sheet.vscode": {
+        "what": "Opens VS Code with the request written into Claude.",
+        "then": "It is not sent: you press Enter there. That starts a new chat, not this one.",
+        "needs": "A bridge on this device. Without one, it only copies the text."
+      },
+      "evidence.chat": {
+        "what": "Opens the chat that wrote this report."
+      },
+      "evidence.check": {
+        "what": "Shows this check’s output as it came, and each time it ran.",
+        "detail": "Hub saw the command run and succeed. It does not judge whether it is the right check."
+      },
+      "doc.improve": {
+        "what": "Proposes an update to this doc from the code and the cards.",
+        "then": "Search, then a proposal, then a draft as a diff. Nothing is written until you approve."
+      },
+      "doc.document": {
+        "what": "Writes what the open card achieved into the docs.",
+        "then": "It searches first, and warns you about a similar doc rather than repeating it.",
+        "needs": "A task card open beside the page."
+      },
+      "doc.gaps": {
+        "what": "Compares what cards and code mention with what the docs say.",
+        "then": "You get a list of what is missing and out of date, with what was not checked. It writes nothing."
+      },
+      "doc.revisions": {
+        "what": "The saved versions of this doc. Any of them can be restored."
+      },
+      "doc.restore": {
+        "what": "Brings back this revision’s text.",
+        "then": "The current text stays as a revision, so you can undo."
+      }
+    },
+    "off": {
+      "offline": {
+        "why": "The bridge is offline on {device}, so Hub cannot start Claude there.",
+        "fix": "Run hub doctor on that device, or pick another device. It clears by itself when it reconnects."
+      },
+      "signed_out": {
+        "why": "Claude is signed out on {device}.",
+        "fix": "Run claude /login in a terminal on that device, then come back."
+      },
+      "limit": {
+        "why": "You reached the usage limit. It resets at {time}.",
+        "fix": "It clears by itself at {time}."
+      },
+      "unknown": {
+        "why": "The last turn ended in an error Hub does not recognise.",
+        "fix": "Press Try again in the notice above the message box."
+      },
+      "revoked": {
+        "why": "{device} is no longer paired with Hub.",
+        "fix": "Pair it again from Settings, Devices."
+      },
+      "taskInReview": {
+        "why": "This task is In review, and running it would redo finished work.",
+        "fix": "Send it back from the card’s buttons if it needs work, or write to Claude yourself."
+      },
+      "version_old": {
+        "why": "Claude Code on {device} is older than the minimum, so Hub will not run it.",
+        "fix": "Update it with the command in the notice, then press Check again."
+      },
+      "claude_missing": {
+        "why": "The bridge cannot find Claude Code on {device}.",
+        "fix": "Install it, then press Check again."
+      },
+      "billing": {
+        "why": "Claude reports a billing problem.",
+        "fix": "Check your plan, then press Check again."
+      },
+      "folder_not_allowed": {
+        "why": "This folder is not on the project’s list, so the bridge will not work in it.",
+        "fix": "Pick a registered folder, or link it from the project page."
+      },
+      "folder_missing": {
+        "why": "The folder does not exist on {device}.",
+        "fix": "Pick another folder, or restore it and check again."
+      },
+      "empty": {
+        "why": "There is no text to send.",
+        "fix": "Write a message, or pick a template from the + button."
+      },
+      "flagsOpen": {
+        "why": "A claim that could not be verified is waiting for your answer, and save_doc refuses until then.",
+        "fix": "Confirm the claim or take it out, above."
+      },
+      "turnBusy": {
+        "why": "This turn is still running, and a chat runs one turn at a time.",
+        "fix": "Wait for it to end, or press Stop."
+      },
+      "noBridgeVs": {
+        "why": "This device has no bridge, so it cannot open VS Code.",
+        "fix": "Open it from a device with a bridge, or copy the text from the dialog."
+      },
+      "notTask": {
+        "why": "The open card is not a task, or no card is open.",
+        "fix": "Open a task from the Tasks page beside this page."
+      },
+      "taskClosed": {
+        "why": "This task is done or cancelled.",
+        "fix": "Reopen it from the card’s buttons first."
+      },
+      "noRevisions": {
+        "why": "This doc has no saved revisions yet.",
+        "fix": "The first save through the panel starts them."
+      },
+      "no_device": {
+        "why": "No device is connected to Hub.",
+        "fix": "Connect one from Settings, Devices."
+      },
+      "no_folder": {
+        "why": "No folder is linked to this project.",
+        "fix": "Link one from Settings, Devices."
+      },
+      "noSave": {
+        "why": "Claude has not asked to save this draft.",
+        "fix": "Ask it to save, in the chat."
+      }
+    }
   }
 }

@@ -272,7 +272,7 @@ export function AwaitingStack({
                                 ? 'c'
                                 : undefined
                         }
-                        className={cn(row.index === 0 ? 'w-full sm:w-auto sm:min-w-24' : 'min-w-18')}
+                        className={cn(row.index === 0 ? 'w-full sm:@page-sm:w-auto sm:min-w-24' : 'min-w-18')}
                       >
                         {kit.actions[row.card.action]}
                       </Button>

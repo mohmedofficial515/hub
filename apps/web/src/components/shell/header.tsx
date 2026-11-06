@@ -5,6 +5,7 @@
  * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/header.tsx. Contract: apps/web/README.md.
  */
 import { ChevronRight, Menu, Plus, Search } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import {
   AppLink,
@@ -58,12 +59,12 @@ export function LiveIndicator() {
   );
 }
 
-function Breadcrumb() {
+function Breadcrumb({ compact }: { compact?: boolean | undefined }) {
   const t = useT(messages);
   const { view, known, cardKey } = useRoute();
   const { workspace } = useSession();
   const crumbs = [
-    { key: 'ws', node: <span className="max-md:hidden">{workspace?.name}</span> },
+    ...(compact ? [] : [{ key: 'ws', node: <span className="max-md:hidden">{workspace?.name}</span> }]),
     {
       key: 'view',
       node: !known ? (
@@ -80,7 +81,7 @@ function Breadcrumb() {
         </span>
       ),
     },
-    ...(cardKey
+    ...(cardKey && !compact
       ? [
           {
             key: 'card',
@@ -114,11 +115,17 @@ function Breadcrumb() {
 }
 
 export function Header({
+  extra,
+  compact,
   onOpenNav,
   onOpenPalette,
   onNewCard,
   onShortcuts,
 }: {
+  /** What the workbench adds: on a phone, the way to the panel. */
+  extra?: ReactNode | undefined;
+  /** The page is narrow beside the panel: the search is its icon, and the page's name is what stays. */
+  compact?: boolean | undefined;
   onOpenNav: () => void;
   onOpenPalette: () => void;
   onNewCard: () => void;
@@ -133,8 +140,8 @@ export function Header({
       <IconButton id="hub-nav-button" label={t.sidebar.openMenu} className="lg:hidden" onClick={onOpenNav}>
         <Menu aria-hidden className="size-5" strokeWidth={1.75} />
       </IconButton>
-      <div className="min-w-0 flex-1 md:flex-none md:basis-56 xl:basis-72">
-        <Breadcrumb />
+      <div className={cn('min-w-0 flex-1', !compact && 'md:flex-none md:basis-56 xl:basis-72')}>
+        <Breadcrumb compact={compact} />
       </div>
 
       {/* Looks like the search field it stands for; the palette holds the real input (08 §2). */}
@@ -144,7 +151,8 @@ export function Header({
         aria-keyshortcuts="Control+K Meta+K /"
         aria-haspopup="dialog"
         className={cn(
-          'hidden h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-3 text-body-sm text-muted-foreground transition-colors duration-120 hover:bg-accent md:flex md:max-w-md',
+          'hidden h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-3 text-body-sm text-muted-foreground transition-colors duration-120 hover:bg-accent md:max-w-md',
+          !compact && 'md:flex',
           focusRing,
         )}
       >
@@ -155,7 +163,7 @@ export function Header({
       <IconButton
         label={t.header.search}
         aria-haspopup="dialog"
-        className="md:hidden"
+        className={compact ? undefined : 'md:hidden'}
         onClick={onOpenPalette}
       >
         <Search aria-hidden className="size-5" strokeWidth={1.75} />
@@ -171,6 +179,7 @@ export function Header({
         >
           <Plus aria-hidden className="size-5" strokeWidth={1.75} />
         </IconButton>
+        {extra}
         <LiveIndicator />
         <MemberMenu
           side="bottom"

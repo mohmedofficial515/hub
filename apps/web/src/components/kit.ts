@@ -83,6 +83,19 @@ export { CardChip, CardKey } from '@/components/cards/card-key';
 export { CopyButton, copyText } from '@/components/common/copy-button';
 export { RelativeTime } from '@/components/common/relative-time';
 export { Button, type ButtonProps, type ButtonVariant, IconButton, Kbd } from '@/components/ui/button';
+export {
+  type OffCopy,
+  type OffKey,
+  setHelpMode,
+  Tip,
+  type TipCopy,
+  type TipFact,
+  type TipKey,
+  TipProvider,
+  useHelpMode,
+  useKeyLabels,
+  usingKeyboard,
+} from '@/components/ui/rich-tip';
 export { Tooltip } from '@/components/ui/tooltip';
 
 // Forms and dialogs
@@ -128,7 +141,7 @@ export { PickField } from '@/components/cards/pick-field';
 export { RowAction } from '@/components/cards/row-action';
 export { dismissToast, showToast, type ToastOptions } from '@/components/common/toast';
 export { Segmented } from '@/components/ui/segmented';
-export { portalRoot, useFocusReturn, useMedia } from '@/lib/hooks';
+export { portalRoot, useFocusReturn, useMedia, usePageWide } from '@/lib/hooks';
 export { focusRowWhenReady, type KeyboardListOptions, useKeyboardList } from '@/lib/keyboard-list';
 export { setPreference, shortcutsEnabled, usePreference } from '@/lib/preferences';
 

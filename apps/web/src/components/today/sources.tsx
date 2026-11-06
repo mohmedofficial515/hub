@@ -101,12 +101,12 @@ function SourceRow({ s }: { s: SourceHealth }) {
           <p
             dir="ltr"
             translate="no"
-            className="key mt-1.5 hidden truncate text-start text-caption text-muted-foreground sm:block rtl:text-end"
+            className="key mt-1.5 hidden truncate text-start text-caption text-muted-foreground sm:@page-sm:block rtl:text-end"
           >
             {s.target}
           </p>
         )}
-        <dl className="mt-1.5 hidden gap-4 text-caption text-muted-foreground sm:flex">
+        <dl className="mt-1.5 hidden gap-4 text-caption text-muted-foreground sm:@page-sm:flex">
           <div className="flex gap-1">
             <dt>{t.sources.runs}</dt>
             <dd className="font-medium text-foreground tabular-nums">
@@ -169,7 +169,7 @@ export function CaptureSources({ sources }: { sources: SourceHealth[] }) {
           )}
         </EmptyState>
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid gap-2 sm:@page-sm:grid-cols-2 lg:@page-lg:grid-cols-3">
           {sources.map((s) => (
             <SourceRow key={s.id} s={s} />
           ))}

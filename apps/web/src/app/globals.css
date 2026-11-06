@@ -4,12 +4,19 @@
  */
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '../components/workbench/workbench.css';
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant rtl (&:is([dir=rtl] *));
 @custom-variant ltr (&:is([dir=ltr] *));
 
 @theme inline {
+  /* The page's width at each viewport step with the panel closed, so "lg:@page-lg:" is exactly "lg:" there and falls back beside the panel (docs/16 D54). */
+  --container-page-sm: 40rem;
+  --container-page-md: 44.75rem;
+  --container-page-lg: 45.25rem;
+  --container-page-xl: 61.25rem;
+
   --color-lab-canvas: var(--lab-canvas);
   --color-lab-panel: var(--lab-panel);
   --color-lab-strong: var(--lab-strong);

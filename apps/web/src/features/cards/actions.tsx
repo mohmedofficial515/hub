@@ -55,7 +55,9 @@ export function usePerformAction() {
     if (!card) return;
     const { type, status } = card;
     // "Create tasks from steps" keeps its sheet: each step gains its task there, which is the answer the member is waiting for.
-    if (currentRoute().cardKey === key && action !== 'to_tasks') closeCard();
+    // With the panel open the card stays, so running a task just claimed is one press (review N16).
+    const keepsSheet = action === 'to_tasks' || !!document.querySelector('[data-wb-panel]');
+    if (currentRoute().cardKey === key && !keepsSheet) closeCard();
 
     const inverse = inverseOf(type, action);
     const message = fill(t.done[action], { key: <Ltr mono>{target}</Ltr> });

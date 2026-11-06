@@ -43,7 +43,7 @@ import {
   useFilterList,
   useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   useRoute,
   useSession,
   useT,
@@ -104,8 +104,8 @@ export function TimelinePage() {
   const route = useRoute();
   const { me, roles, isManager } = useSession();
   const run = useRunAction();
-  const wide = useMedia('(min-width: 768px)');
-  const rail = useMedia('(min-width: 1280px)');
+  const wide = usePageWide(768);
+  const rail = usePageWide(1280);
   const since = useLastVisit();
   const stream = useTimeline(useApiFilters());
   const { rows, pending, fresh } = stream;
@@ -301,9 +301,9 @@ export function TimelinePage() {
             {[0, 1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]"
+                className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:@page-md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]"
               >
-                <Skeleton className="mt-4 hidden h-4 w-10 md:block" />
+                <Skeleton className="mt-4 hidden h-4 w-10 md:@page-md:block" />
                 <Spine>
                   <span className="relative mt-5 size-2.5 rounded-full bg-muted ring-4 ring-background" />
                 </Spine>
@@ -362,7 +362,7 @@ export function TimelinePage() {
       </p>
       <TimelineFilters repos={repos} modules={modules} since={since} openRef={openFilters} />
 
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_10.5rem]">
+      <div className="grid gap-8 xl:@page-xl:grid-cols-[minmax(0,1fr)_10.5rem]">
         <div className="relative min-w-0">
           {/* 08 §5.2 `NewEventsPill`. Floats at the top of the stream, in the viewport, while there is anything to show. */}
           <div className="pointer-events-none sticky top-17 z-25 flex h-0 justify-center">
@@ -429,9 +429,9 @@ export function TimelinePage() {
                         return (
                           <li
                             key={slot.id}
-                            className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]"
+                            className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:@page-md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]"
                           >
-                            <span className="hidden md:block" />
+                            <span className="hidden md:@page-md:block" />
                             <Spine dashed />
                             <p
                               className={cn(

@@ -19,7 +19,7 @@ import type { CardListItem, CardType, HubCard, Role } from './types';
 /** The contract's answer, with the verb narrowed to what the kit has words for. */
 export type AvailableAction = Omit<ContractAction, 'action'> & { action: CardAction };
 
-function toActionable(card: CardListItem | HubCard): ActionableCard {
+export function toActionable(card: CardListItem | HubCard): ActionableCard {
   const detail = (card as unknown as Record<string, unknown>)[card.type];
   return {
     type: card.type,

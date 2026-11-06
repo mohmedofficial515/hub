@@ -31,7 +31,7 @@ import {
   StatusBadge,
   type useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   useSession,
   useT,
   when,
@@ -65,7 +65,7 @@ export function DocketLine({
   last?: boolean;
   children: ReactNode;
 }) {
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   if (!wide) return <>{children}</>;
   return (
     <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-x-5">
@@ -191,7 +191,7 @@ export type RowProps = ReturnType<typeof useKeyboardList>['rowProps'];
 export function OpenRow({ card, rowProps }: { card: DecisionCard; rowProps: RowProps }) {
   const t = useT<DecisionMessages>('decisions');
   const locale = useLocale();
-  const gutter = useMedia('(min-width: 768px)');
+  const gutter = usePageWide(768);
   const d = card.decision;
   return (
     <CardRow
@@ -264,7 +264,7 @@ export function RecordedRow({ card, rowProps }: { card: DecisionCard; rowProps: 
   const t = useT<DecisionMessages>('decisions');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const gutter = useMedia('(min-width: 768px)');
+  const gutter = usePageWide(768);
   const d = card.decision;
   const chosen = d.options.find((o) => o.id === d.chosenOptionId);
   return (

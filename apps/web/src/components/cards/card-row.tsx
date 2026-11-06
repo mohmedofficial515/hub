@@ -69,7 +69,7 @@ export function CardRow({
         'relative grid gap-x-3 gap-y-2 bg-card px-3 py-3 outline-none transition-colors duration-120 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         'grid-cols-[auto_minmax(0,1fr)] sm:px-4',
         action && !lead && 'grid-cols-[auto_minmax(0,1fr)_auto] items-center',
-        action && lead && 'items-center sm:grid-cols-[auto_minmax(0,1fr)_auto]',
+        action && lead && 'items-center sm:@page-sm:grid-cols-[auto_minmax(0,1fr)_auto]',
         variant === 'card'
           ? cn('rounded-lg border', tone === 'danger' ? 'border-destructive/70' : 'border-border')
           : 'border-b border-border last:border-b-0',
@@ -116,7 +116,7 @@ export function CardRow({
         <div
           className={cn(
             'relative z-10 flex items-center gap-2',
-            lead && 'col-span-2 sm:col-span-1 *:max-sm:w-full',
+            lead && 'col-span-2 sm:@page-sm:col-span-1 *:max-sm:w-full',
           )}
         >
           {action}

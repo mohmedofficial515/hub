@@ -40,6 +40,30 @@ export function useMedia(query: string, serverValue = false) {
 }
 
 /** Portal target for Radix overlays: inside the version root, so they keep the version's tokens. */
+/** The page's width at each viewport step with the panel closed: `--container-page-*` in `globals.css`. */
+const PAGE_AT: Readonly<Record<number, number>> = { 640: 640, 768: 716, 1024: 724, 1280: 980 };
+
+function subscribePage(notify: () => void) {
+  const main = document.getElementById('main');
+  if (!main) return () => undefined;
+  const observer = new ResizeObserver(notify);
+  observer.observe(main);
+  return () => observer.disconnect();
+}
+
+/**
+ * `useMedia('(min-width: ...)')` for a page: true only when the window is that wide and the page has the room it would have with the panel closed. So a page reads exactly as it did with the panel closed, and folds its lanes beside the panel or the sheet (docs/16 D54). The CSS twin is `lg:@page-lg:`.
+ */
+export function usePageWide(px: number) {
+  const viewport = useMedia(`(min-width: ${px}px)`, true);
+  const room = useSyncExternalStore(
+    subscribePage,
+    () => (document.getElementById('main')?.clientWidth ?? Number.POSITIVE_INFINITY) >= (PAGE_AT[px] ?? px),
+    () => true,
+  );
+  return viewport && room;
+}
+
 export const portalRoot = () =>
   typeof document === 'undefined' ? undefined : (document.getElementById('hub-root') ?? undefined);
 

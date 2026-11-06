@@ -27,7 +27,7 @@ export function FormSection({
     <section
       aria-labelledby={id}
       className={cn(
-        'grid gap-x-10 gap-y-3 border-t border-border pt-6 lg:grid-cols-[15rem_minmax(0,1fr)]',
+        'grid gap-x-10 gap-y-3 border-t border-border pt-6 lg:@page-lg:grid-cols-[15rem_minmax(0,1fr)]',
         className,
       )}
     >

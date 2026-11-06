@@ -335,13 +335,13 @@ export function TimelineItem({
   return (
     <li
       className={cn(
-        'grid scroll-mt-28 grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]',
+        'grid scroll-mt-28 grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:@page-md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]',
         fresh && 'motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150',
       )}
     >
       <span
         className={cn(
-          'hidden pe-0.5 text-end text-body-sm text-muted-foreground md:block',
+          'hidden pe-0.5 text-end text-body-sm text-muted-foreground md:@page-md:block',
           quiet ? 'pt-1.5' : 'pt-3.5',
         )}
       >
@@ -364,7 +364,7 @@ export function TimelineItem({
             className="relative scroll-mt-28 rounded-md px-3 py-1.5 outline-none transition-colors duration-120 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
           >
             <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body-sm text-muted-foreground">
-              <span className="text-muted-foreground md:hidden">{when}</span>
+              <span className="text-muted-foreground md:@page-md:hidden">{when}</span>
               <ActorChip kind={actor.kind} memberId={actor.memberId} adapter={actor.adapter} />
               <Verb event={event} />
               <span
@@ -403,7 +403,7 @@ export function TimelineItem({
                   {link}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-body-sm text-muted-foreground">
-                  <span className="text-muted-foreground md:hidden">{when}</span>
+                  <span className="text-muted-foreground md:@page-md:hidden">{when}</span>
                   <span className={cn('font-medium', typeClass[card.type].fg)}>{kit.types[card.type]}</span>
                   <Ltr mono className="text-caption">
                     {card.key}

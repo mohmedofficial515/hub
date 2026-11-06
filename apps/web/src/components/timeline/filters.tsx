@@ -55,7 +55,7 @@ function DateFilter({ since }: { since: string | undefined }) {
   const ranges = useRanges(since);
   const value = useRangeValue(since);
   return (
-    <label className="flex min-w-0 flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+    <label className="flex min-w-0 flex-col gap-1.5 md:@page-md:flex-row md:@page-md:items-center md:gap-2">
       <span className="shrink-0 text-body-sm text-muted-foreground">{t.filters.range}</span>
       <Select
         value={value}

@@ -72,7 +72,7 @@ function StageHead({
   const locale = useLocale();
   return (
     <div className="flex flex-col gap-2">
-      <div aria-hidden className="relative hidden h-2 items-center lg:flex">
+      <div aria-hidden className="relative hidden h-2 items-center lg:@page-lg:flex">
         <span className={cn('absolute start-0 h-px bg-input', last ? 'w-2' : '-end-3')} />
         <span className="relative size-2 rounded-full bg-muted-foreground" />
       </div>
@@ -94,7 +94,7 @@ function StageHead({
 
 function BoardSkeleton() {
   return (
-    <div className="grid gap-6 lg:grid-cols-3 lg:gap-3">
+    <div className="grid gap-6 lg:@page-lg:grid-cols-3 lg:gap-3">
       {[2, 1, 2].map((n, i) => (
         <div key={i} className="flex flex-col gap-3">
           <Skeleton className="h-6 w-32" />
@@ -296,14 +296,17 @@ export function NeedsPage() {
               }
             />
           ) : lane === 'status' ? (
-            <div className="grid gap-8 lg:grid-cols-3 lg:gap-x-3">
+            <div className="grid gap-8 lg:@page-lg:grid-cols-3 lg:gap-x-3">
               {stages.map(({ stage, icon, title, empty }, i) => {
                 const rows = inStage(stage);
                 return (
                   <section
                     key={stage}
                     aria-labelledby={`stage-${stage}`}
-                    className={cn('flex min-w-0 flex-col gap-3', stage === 'verified' && 'lg:col-span-3')}
+                    className={cn(
+                      'flex min-w-0 flex-col gap-3',
+                      stage === 'verified' && 'lg:@page-lg:col-span-3',
+                    )}
                   >
                     <StageHead
                       id={`stage-${stage}`}
@@ -322,7 +325,7 @@ export function NeedsPage() {
                         data-hub-list
                         className={cn(
                           'flex flex-col gap-2',
-                          stage === 'verified' && 'lg:grid lg:grid-cols-3 lg:gap-x-3',
+                          stage === 'verified' && 'lg:@page-lg:grid lg:@page-lg:grid-cols-3 lg:gap-x-3',
                         )}
                       >
                         {rows.map((card) => row(card))}
@@ -355,7 +358,7 @@ export function NeedsPage() {
                         <Ltr>{num(rows.length, locale)}</Ltr>
                       </span>
                     </h2>
-                    <ul data-hub-list className="grid gap-2 md:grid-cols-2">
+                    <ul data-hub-list className="grid gap-2 md:@page-md:grid-cols-2">
                       {rows.map((card) => row(card, true))}
                     </ul>
                   </section>

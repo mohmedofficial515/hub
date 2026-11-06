@@ -28,7 +28,7 @@ import {
   StatusBadge,
   useFilter,
   useKeyboardList,
-  useMedia,
+  usePageWide,
   useSession,
   useT,
 } from '@/components/kit';
@@ -78,7 +78,7 @@ export function DocsPage() {
   const t = useT<DocsMessages>('docs');
   const { isManager } = useSession();
   const docKey = useFilter('doc');
-  const wide = useMedia('(min-width: 1024px)');
+  const wide = usePageWide(1024);
   const tree = useDocTree();
   const selected = useDoc(docKey);
   const card = selected.data;
@@ -131,13 +131,13 @@ export function DocsPage() {
       <PageContainer className="max-w-none">
         {header}
         <LoadingRegion label={t.loading}>
-          <div className="grid gap-8 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
+          <div className="grid gap-8 lg:@page-lg:grid-cols-[17.5rem_minmax(0,1fr)]">
             <div className="flex flex-col gap-2">
               {Array.from({ length: 10 }, (_, i) => (
                 <Skeleton key={i} className={cn('h-5', i % 4 === 0 ? 'w-2/3' : 'ms-4 w-4/5')} />
               ))}
             </div>
-            <SkeletonRows count={6} withAction={false} className="max-lg:hidden" />
+            <SkeletonRows count={6} withAction={false} className="max-lg:hidden @max-page-lg:hidden" />
           </div>
         </LoadingRegion>
       </PageContainer>
@@ -240,7 +240,7 @@ export function DocsPage() {
   return (
     <PageContainer className="max-w-none">
       {header}
-      <div className="grid items-start gap-8 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
+      <div className="grid items-start gap-8 lg:@page-lg:grid-cols-[17.5rem_minmax(0,1fr)]">
         <aside className="sticky top-18 max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain pe-1">
           {treeView}
         </aside>

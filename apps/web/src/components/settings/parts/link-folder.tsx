@@ -85,7 +85,7 @@ export function LinkFolder({ slug }: { slug: string }) {
         </p>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <div className="grid gap-3 sm:@page-sm:grid-cols-[minmax(0,1fr)_12rem]">
             <Field id="link-folder" label={s.folder} hint={s.folderHint} error={folderError}>
               <TextInput
                 id="link-folder"

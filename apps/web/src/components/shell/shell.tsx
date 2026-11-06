@@ -21,12 +21,14 @@ import {
   useRoute,
 } from '@/components/kit';
 import { CommandPalette } from '@/components/shell/command-palette';
-import { Header } from '@/components/shell/header';
 import { NewCardDialog, type NewCardType } from '@/components/shell/new-card-dialog';
 import { RouterBridge } from '@/components/shell/router';
 import { ShortcutsDialog } from '@/components/shell/shortcuts-dialog';
-import { DesktopSidebar, SidebarDrawer, useSidebarCollapsed } from '@/components/shell/sidebar';
+import { SidebarDrawer, useSidebarCollapsed } from '@/components/shell/sidebar';
 import { views } from '@/components/shell/views';
+import { WorkbenchLayout } from '@/components/workbench/layout';
+import { WorkbenchProvider } from '@/components/workbench/store';
+import type { ChatMessages } from '@/components/workbench/words';
 import { useSession } from '@/features/session/session';
 import { onSignedOut } from '@/lib/api/client';
 import { useDocumentTitle } from '@/lib/hooks';
@@ -127,6 +129,7 @@ function useGlobalKeys(actions: {
 
 export function Shell({ children }: { children: ReactNode }) {
   const t = useT(messages);
+  const w = useT<ChatMessages>('chat').panel;
   const locale = useLocale();
   const { view } = useRoute();
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -167,7 +170,10 @@ export function Shell({ children }: { children: ReactNode }) {
               href="#main"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById('main')?.focus();
+                // With the page stepped aside, the content is the card.
+                const main = document.getElementById('main');
+                if (main?.offsetParent) main.focus();
+                else (document.querySelector<HTMLElement>('[data-sheet-title]') ?? main)?.focus();
               }}
               className={cn(
                 'sr-only rounded-md bg-primary px-3 py-2 text-body font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:start-3 focus:top-2 focus:z-[90]',
@@ -177,31 +183,50 @@ export function Shell({ children }: { children: ReactNode }) {
               {t.skip}
             </a>
             {view === 'gallery' ? (
-              // The lab has the whole window. Everything below still serves it: the sheet, the palette, the keys, the toasts.
-              <main id="main" tabIndex={-1} className="outline-none">
-                {children}
-              </main>
+              // The lab has the whole window, so it has no panel (D39 as amended). Everything below still serves it: the palette, the keys, the toasts, and the sheet, which lies over it.
+              <>
+                <main id="main" tabIndex={-1} className="outline-none">
+                  {children}
+                </main>
+                {rootReady && (
+                  <CardSheet className="fixed inset-y-0 end-0 z-50 w-full shadow-md md:w-140 md:border-s md:border-border" />
+                )}
+              </>
             ) : (
-              <div className="flex min-h-dvh">
-                <DesktopSidebar onShortcuts={openHelp} />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <Header
-                    onOpenNav={() => setNavOpen(true)}
-                    onOpenPalette={openPalette}
-                    onNewCard={() => openNew()}
-                    onShortcuts={openHelp}
-                  />
-                  <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+              <>
+                <a
+                  href="#wb-panel"
+                  data-wb-skip-panel
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new Event('wb:focus-panel'));
+                  }}
+                  className={cn(
+                    'sr-only rounded-md bg-primary px-3 py-2 text-body font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:start-3 focus:top-2 focus:z-[90]',
+                    focusRing,
+                  )}
+                >
+                  {w.pro.skipPanel}
+                </a>
+                <WorkbenchProvider>
+                  <WorkbenchLayout
+                    ready={rootReady}
+                    controls={{
+                      openNav: () => setNavOpen(true),
+                      openPalette,
+                      openNew: () => openNew(),
+                      openHelp,
+                    }}
+                  >
                     {children}
-                  </main>
-                </div>
-              </div>
+                  </WorkbenchLayout>
+                </WorkbenchProvider>
+              </>
             )}
             {/* Overlays portal into #hub-root to keep its tokens, so a deep-linked sheet waits for the root to exist. */}
             {rootReady && (
               <>
                 <SidebarDrawer open={navOpen} onOpenChange={setNavOpen} onShortcuts={openHelp} />
-                <CardSheet />
                 <CommandPalette
                   open={paletteOpen}
                   onOpenChange={setPaletteOpen}

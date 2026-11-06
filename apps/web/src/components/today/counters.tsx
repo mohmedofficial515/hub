@@ -67,7 +67,7 @@ export function CountersBand({ tiles }: { tiles: CounterTile[] }) {
       <ul
         className={cn(
           'grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border',
-          tiles.length >= 5 ? 'md:grid-cols-5' : 'md:grid-cols-4',
+          tiles.length >= 5 ? 'md:@page-md:grid-cols-5' : 'md:@page-md:grid-cols-4',
         )}
       >
         {tiles.map((tile, i) => {

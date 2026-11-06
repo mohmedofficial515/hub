@@ -33,7 +33,7 @@ import {
   typeClass,
   TypeIcon,
   useLocale,
-  useMedia,
+  usePageWide,
   useT,
   weekday,
   when,
@@ -173,11 +173,11 @@ function OutsidePin({ card, wide }: { card: Dated; wide: boolean }) {
 function Ribbon({ inStack, outside }: { inStack: Dated[]; outside: Dated[] }) {
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
-  const wide = useMedia('(min-width: 1280px)');
+  const wide = usePageWide(1280);
   const ticks = dayTicks();
   const soonEnd = xOf(24);
   return (
-    <div className={cn('relative hidden md:block', outside.length ? 'h-30' : 'h-19')}>
+    <div className={cn('relative hidden md:@page-md:block', outside.length ? 'h-30' : 'h-19')}>
       {/* zones */}
       <div
         aria-hidden
@@ -257,7 +257,7 @@ function PhoneList({ outside, inStackCount }: { outside: Dated[]; inStackCount: 
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
   return (
-    <div className="flex flex-col gap-1.5 md:hidden">
+    <div className="flex flex-col gap-1.5 md:@page-md:hidden">
       {outside.length > 0 && (
         <ol className="flex flex-col gap-1.5">
           {outside.map((card) => {

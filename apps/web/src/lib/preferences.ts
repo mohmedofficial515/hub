@@ -15,10 +15,12 @@ interface Prefs {
   shortcuts: boolean;
   /** null = follow the width rule (08 §7: expanded from 1280 px, icons from 1024 px). */
   sidebarCollapsed: boolean | null;
+  /** How much the rich tooltip says (docs/16 §7.1). */
+  tipLevel: 'full' | 'compact';
 }
 
 const KEY = 'hub-v5:prefs';
-const DEFAULTS: Prefs = { shortcuts: true, sidebarCollapsed: null };
+const DEFAULTS: Prefs = { shortcuts: true, sidebarCollapsed: null, tipLevel: 'full' };
 
 function load(): Prefs {
   try {

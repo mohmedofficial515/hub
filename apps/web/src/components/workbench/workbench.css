@@ -1,0 +1,165 @@
+/*
+ * The panel's own layout rules (docs/16 §7), on the app's tokens. No new colours: only what no utility can say.
+ * The layout sets --wb-toast-end and --wb-toast-bottom-phone, so an Undo toast never sits on the composer.
+ */
+@media (min-width: 640px) {
+  #hub-root [data-toast] {
+    inset-inline-end: calc(var(--wb-toast-end, 0px) + 1.5rem);
+  }
+}
+@media (max-width: 639px) {
+  #hub-root [data-toast] {
+    bottom: calc(var(--wb-toast-bottom-phone, 0px) + 1rem);
+  }
+}
+
+/* Replies read as prose in a narrow column: tight headings, no big gaps from the docs reader. */
+#hub-root .wb-prose h1,
+#hub-root .wb-prose h2,
+#hub-root .wb-prose h3,
+#hub-root .wb-prose h4 {
+  font-size: inherit;
+  font-weight: 600;
+  margin-block: 0.75rem 0.25rem;
+}
+#hub-root .wb-prose > :first-child > :first-child {
+  margin-block-start: 0;
+}
+
+/* While a pane is dragged, nothing animates and nothing selects. */
+[data-wb-dragging='true'],
+[data-wb-dragging='true'] * {
+  transition: none !important;
+  user-select: none;
+}
+
+/* The tooltip never leaves the screen, in either direction, whatever it holds. */
+[data-wb-tipbox] {
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  max-height: var(--radix-tooltip-content-available-height);
+  overflow-y: auto;
+  /* It holds no links, so the pointer passes through it to whatever it happens to sit over. A neighbour under a tip still answers. */
+  pointer-events: none;
+}
+[data-radix-popper-content-wrapper]:has(> [data-wb-tipbox]) {
+  pointer-events: none;
+}
+
+/*
+ * Touch targets follow the pointer, not the width (review N1): a tablet at 768 has the desktop layout and a finger. Inside the panel, the strip and the sheet, every control is at
+ * least 44 px on a coarse pointer. This sits outside Tailwind's layers, so it beats a size utility.
+ */
+@media (pointer: coarse) {
+  [data-wb-panel] button,
+  [data-wb-panel] a[href],
+  [data-wb-panel] [role='button'],
+  [data-wb-panel] [role='menuitem'],
+  [data-wb-strip] button,
+  [data-wb-strip] [role='img'],
+  [data-card-sheet] button,
+  [data-card-sheet] a[href],
+  [data-card-sheet] [role='button'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  [data-wb-panel] label {
+    min-height: 44px;
+  }
+  [data-wb-panel] input[type='checkbox'] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  /* A long press means Explain here, so the browser's own menu and selection stay out of it. */
+  [data-wb-panel] button,
+  [data-wb-strip] button,
+  [data-card-sheet] button {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
+/* Actions that only matter on the line under the pointer. On a touch screen there is no hover, so they stay. */
+@media (hover: hover) {
+  .wb-hover-reveal {
+    opacity: 0;
+  }
+  .group:hover .wb-hover-reveal,
+  .group:focus-within .wb-hover-reveal,
+  .wb-hover-reveal:focus-visible,
+  .wb-hover-reveal[data-state='open'] {
+    opacity: 1;
+  }
+}
+
+/* One row in the composer never wraps, whatever the folder is called. */
+.wb-nowrap-row {
+  display: flex;
+  flex-wrap: nowrap;
+  min-width: 0;
+  align-items: center;
+}
+
+/* The approval's long command: its start stays in view, and it scrolls inside itself. */
+.wb-command {
+  max-height: 11.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.wb-command[data-all='true'] {
+  max-height: none;
+}
+.wb-danger {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--warning-strong);
+  background: transparent;
+}
+
+/* An Arabic line in a diff is prose: the body font, and read from its own start. A hunk header and code stay mono. */
+.wb-diff-prose {
+  font-family: inherit;
+  font-size: inherit;
+}
+[data-wb-diff] [dir='rtl'] .wb-diff-text,
+.wb-diff-text.wb-diff-prose {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+}
+[lang='en'] .wb-diff-text.wb-diff-prose:not([dir='rtl']) {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* The focus a jump lands on: the ring, never a coloured edge. */
+[data-wb-revealed='true'] {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+/* The sheet's reading column when the page has stepped aside. */
+.wb-sheet-measure {
+  max-width: 46rem;
+}
+
+/* The grip's visible line stays thin, and its hit area does not (review N10). */
+@media (pointer: coarse) {
+  [data-wb-resizer]::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline: -18px;
+  }
+}
+/* WCAG 2.5.8: no small text button under 24 px with a mouse (review N11). A coarse pointer has its 44 px above. */
+@media (pointer: fine) {
+  [data-wb-panel] button,
+  [data-card-sheet] [data-wb-evidence] button {
+    min-height: 24px;
+  }
+}
+.wb-danger {
+  white-space: nowrap;
+}
+/* The sheet overlays the page when the panel is closed and they cannot both work, as v5's sheet does. */
+[data-wb-sheet-overlay='true'] {
+  box-shadow: var(--shadow-lg, 0 10px 30px rgb(0 0 0 / 0.2));
+}

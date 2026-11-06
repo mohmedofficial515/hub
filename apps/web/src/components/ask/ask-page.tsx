@@ -165,7 +165,7 @@ function Handoff({ query }: { query: string }) {
           {t.noQuery}
         </p>
       )}
-      <div className="flex flex-col gap-3 max-lg:hidden">
+      <div className="flex flex-col gap-3 max-lg:hidden @max-page-lg:hidden">
         <div className="flex flex-col gap-1.5">
           <h3 className="text-body-sm font-semibold text-foreground">{t.what}</h3>
           <ol className="flex list-decimal flex-col gap-1 ps-5 text-body-sm text-muted-foreground">
@@ -313,7 +313,7 @@ export function AskPage() {
   return (
     <PageContainer>
       {header}
-      <form role="search" onSubmit={onSubmit} className="flex flex-col gap-2 sm:flex-row">
+      <form role="search" onSubmit={onSubmit} className="flex flex-col gap-2 sm:@page-sm:flex-row">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">{t.inputLabel}</span>
           <Search
@@ -354,8 +354,8 @@ export function AskPage() {
         }}
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
-        <div className="order-first lg:sticky lg:top-18 lg:order-last">
+      <div className="grid items-start gap-6 lg:@page-lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
+        <div className="order-first lg:@page-lg:sticky lg:@page-lg:top-18 lg:@page-lg:order-last">
           <Handoff query={q} />
         </div>
 

@@ -38,7 +38,7 @@ import {
   typeClass,
   typeIcon,
   useLocale,
-  useMedia,
+  usePageWide,
   useT,
   type ViewId,
 } from '@/components/kit';
@@ -162,7 +162,7 @@ export function InboxRow({
   const card = lead.card;
   const cardKey = card?.key ?? lead.data.cardKey;
   const { dx, handlers } = useSwipe(onArchive);
-  const wide = useMedia('(min-width: 640px)');
+  const wide = usePageWide(640);
   const danger = lead.kind === 'escalation';
   const KindIcon = kindIcon[lead.kind] ?? (card ? typeIcon[card.type] : Cpu);
   const titleId = `inbox-${lead.id}`;
@@ -262,7 +262,7 @@ export function InboxRow({
           </div>
           {!wide && action && !archivedView && <div className="relative z-10 mt-2 flex">{action}</div>}
         </div>
-        <div className="relative z-10 flex items-start justify-end gap-1 sm:items-center">
+        <div className="relative z-10 flex items-start justify-end gap-1 sm:@page-sm:items-center">
           {archivedView ? (
             <IconButton label={t.row.restore} onClick={onRestore}>
               <ArchiveRestore aria-hidden className="size-4" strokeWidth={1.75} />
@@ -274,7 +274,7 @@ export function InboxRow({
                 label={unread ? t.row.markRead : t.row.markUnread}
                 aria-keyshortcuts="e"
                 onClick={onToggleRead}
-                className="hidden md:inline-flex"
+                className="hidden md:@page-md:inline-flex"
               >
                 {unread ? (
                   <MailOpen aria-hidden className="size-4" strokeWidth={1.75} />

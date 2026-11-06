@@ -2,12 +2,34 @@
 
 /**
  * @file card-sheet.tsx
- * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/card-sheet.tsx. Contract: apps/web/README.md.
+ * @description The card sheet: a plain region in the layout, not a dialog, because a non-modal dialog still loops focus and Tab could never reach an approval in the panel beside it (docs/16 D54, v6-edge-strip-port). It opens from the URL, on any page. Contract: apps/web/README.md.
  */
-import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, ArchiveRestore, Eye, EyeOff, Link2, MoreHorizontal, X } from 'lucide-react';
-import { Dialog, DropdownMenu, Tabs } from 'radix-ui';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { WorkReport } from '@hub/contracts';
+import { motion } from 'framer-motion';
+import {
+  Archive,
+  ArchiveRestore,
+  ArrowRight,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Link2,
+  ListChecks,
+  MoreHorizontal,
+  X,
+} from 'lucide-react';
+import { DropdownMenu, Tabs } from 'radix-ui';
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { ActorChip, Avatar } from '@/components/cards/avatar';
 import { PriorityBadge, RoleBadge, StatusBadge, TypeBadge } from '@/components/cards/badges';
@@ -21,12 +43,24 @@ import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/common/states';
 import { Bidi, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
-import { closeCard, setQuery, type SheetTab, takeOpener, useRoute } from '@/components/shell/router';
+import {
+  closeCard,
+  openCard,
+  setQuery,
+  type SheetTab,
+  takeOpener,
+  useRoute,
+} from '@/components/shell/router';
 import { Button, IconButton } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { detectSecret, Field, SecretFilterError, Select, Textarea, TextInput } from '@/components/ui/form';
+import { Tip, usingKeyboard } from '@/components/ui/rich-tip';
 import { tabTriggerClass } from '@/components/ui/tabs-class';
 import { Tooltip } from '@/components/ui/tooltip';
+import { SheetClaudeBar } from '@/components/workbench/panels';
+import { checksLine, MarkInline, moveText, ReportBody } from '@/components/workbench/protocol';
+import { panelOwes, useMaybeWb, wasFollowOpened } from '@/components/workbench/store';
+import type { ChatMessages } from '@/components/workbench/words';
 import { actionsFor, type AvailableAction, usePerformAction } from '@/features/cards/actions';
 import { eventFacts } from '@/features/cards/history';
 import {
@@ -40,22 +74,18 @@ import {
   useCardQuery,
 } from '@/features/cards/store';
 import type { CardLink, HubCard, LinkKind } from '@/features/cards/types';
+import { useWorkReports } from '@/features/chat/queries';
 import { useSession } from '@/features/session/session';
 import { useMembers } from '@/features/session/session';
 import { isHubError } from '@/lib/api/errors';
+import { plural } from '@/lib/format';
 import { portalRoot } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { actionName, type CardAction, eventLabel, kitMessages } from '@/lib/i18n';
-import { restoreFocus } from '@/lib/keyboard-list';
+import { listRowIds, restoreFocus } from '@/lib/keyboard-list';
 import { matchKey } from '@/lib/keys';
 import { shortcutsEnabled } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
-
-/**
- * Which edge the sheet opens from. End, per 08 §5.3: it keeps the action lane in view while acting on a row. It is one
- * constant so the owner can still flip it (see README, open questions).
- */
-const SHEET_EDGE: 'start' | 'end' = 'end';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 
@@ -65,6 +95,8 @@ const hasOwnText = (card: HubCard) => (card.type === 'task' ? !!card.task.accept
 
 function ActionBar({ card, action }: { card: HubCard; action: CardAction | null }) {
   const t = useT(kitMessages);
+  // Its filled button steps down while the panel beside it owes the owner an answer, so one thing on screen is asking at a time (review M11).
+  const owes = panelOwes(useMaybeWb());
   const { roles, me } = useSession();
   const perform = usePerformAction();
   const available = actionsFor(card, roles, me.id);
@@ -85,7 +117,7 @@ function ActionBar({ card, action }: { card: HubCard; action: CardAction | null 
             key={a.action}
             // One filled button: while a form is open it is the form's save. A self-verify is never filled (owner decision 2026-11-04).
             variant={
-              i === 0 && a.enabled && !action && !a.selfVerify
+              i === 0 && a.enabled && !action && !a.selfVerify && !owes
                 ? 'primary'
                 : a.destructive
                   ? 'destructive'
@@ -342,8 +374,129 @@ function LinksTab({ card }: { card: HubCard }) {
   );
 }
 
-function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardAction | null; tab: SheetTab }) {
+/** The list the page gave, with `j` and `k` as on the lists. Only while the page has stepped aside (D54). */
+function SheetNav({ cardKey }: { cardKey: string }) {
+  const w = useT<ChatMessages>('chat').panel;
+  const locale = useLocale();
+  const list = listRowIds();
+  const at = list.indexOf(cardKey);
+  const prev = at > 0 ? list[at - 1] : undefined;
+  const next = at >= 0 ? list[at + 1] : undefined;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.ctrlKey || e.metaKey || e.altKey || !shortcutsEnabled()) return;
+      if (el.closest('input, textarea, select, [role="menu"], [role="dialog"]')) return;
+      if (matchKey(e, 'j') && next) openCard(next);
+      if (matchKey(e, 'k') && prev) openCard(prev);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [next, prev]);
+  const Prev = locale === 'ar' ? ChevronRight : ChevronLeft;
+  const Next = locale === 'ar' ? ChevronLeft : ChevronRight;
+  const s = w.pro.sheetNav;
+  return (
+    <div role="group" aria-label={s.label} data-wb-sheet-nav className="flex shrink-0 items-center">
+      <Tip content={{ what: prev ? fmt(s.prevTip, { key: prev }) : s.none }} keys={['k']} side="bottom">
+        <IconButton
+          label={s.prev}
+          title={undefined}
+          data-wb-sheet-prev
+          disabled={!prev}
+          onClick={() => prev && openCard(prev)}
+        >
+          <Prev aria-hidden className="size-4" strokeWidth={1.75} />
+        </IconButton>
+      </Tip>
+      <Tip content={{ what: next ? fmt(s.nextTip, { key: next }) : s.none }} keys={['j']} side="bottom">
+        <IconButton
+          label={s.next}
+          title={undefined}
+          data-wb-sheet-next
+          disabled={!next}
+          onClick={() => next && openCard(next)}
+        >
+          <Next aria-hidden className="size-4" strokeWidth={1.75} />
+        </IconButton>
+      </Tip>
+    </div>
+  );
+}
+
+/**
+ * Reports from `report_work`, folded to one line each that says what stands: verified or claimed, and how many files. The summary stays in the panel's report when the same card is open beside it, so the two do not repeat each other. The move, or the reason for none, is the card's own state above, and the line says why.
+ */
+function Evidence({ cardKey }: { cardKey: string }) {
+  const w = useT<ChatMessages>('chat').panel;
+  const locale = useLocale();
+  const reports = useWorkReports(cardKey).data ?? [];
+  const [open, setOpen] = useState<string | null>(null);
+  if (reports.length === 0) return null;
+  const r = w.pro.report;
+  const line = (report: WorkReport) =>
+    fmt(r.line, {
+      checks: checksLine(report, w),
+      files: fmt(plural(report.changedFiles.length, locale, r.filesCount), { n: report.changedFiles.length }),
+    });
+  return (
+    <section aria-label={r.evidence} data-wb-evidence className="flex min-w-0 flex-col gap-1">
+      <h3 className="flex items-center gap-2 text-body-sm font-medium text-muted-foreground">
+        <ListChecks aria-hidden className="size-4 shrink-0" strokeWidth={1.75} />
+        {r.evidence}
+      </h3>
+      {reports.map((report) => (
+        <div key={report.id} data-wb-evidence-row className="flex min-w-0 flex-col gap-2">
+          <Tip k="evidence.check" align="start">
+            <button
+              type="button"
+              data-wb-evidence-toggle
+              aria-expanded={open === report.id}
+              onClick={() => setOpen(open === report.id ? null : report.id)}
+              className={cn(
+                'flex min-h-11 w-full min-w-0 items-start gap-2 rounded-sm text-start text-body-sm text-foreground hover:bg-accent md:min-h-7',
+                focusRing,
+              )}
+            >
+              <span className="min-w-0 flex-1">{line(report)}</span>
+              <ChevronDown
+                aria-hidden
+                className={cn(
+                  'mt-0.5 size-3.5 shrink-0 text-muted-foreground',
+                  open === report.id && 'rotate-180',
+                )}
+                strokeWidth={1.75}
+              />
+            </button>
+          </Tip>
+          {open === report.id && <ReportBody report={report} />}
+          {open === report.id && !report.move.moved && (
+            <p className="text-body-sm text-muted-foreground">
+              <MarkInline text={moveText(report, w)} />
+            </p>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SheetBody({
+  cardKey,
+  action,
+  tab,
+  onAsk,
+  stepAside,
+}: {
+  cardKey: string;
+  action: CardAction | null;
+  tab: SheetTab;
+  onAsk?: (() => void) | undefined;
+  stepAside?: string | undefined;
+}) {
   const t = useT(kitMessages);
+  const w = useT<ChatMessages>('chat').panel;
+  const wb = useMaybeWb();
   const locale = useLocale();
   const query = useCardQuery(cardKey);
   const events = useCardEvents(cardKey);
@@ -361,20 +514,24 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
   const cardRef = useRef(card);
   cardRef.current = card;
 
-  // On a first open the card is still loading when the dialog takes focus, and the skeleton's Close is replaced by the real header, which
-  // drops focus on the container. Land where a cached open lands. Anything that took focus meanwhile, such as an action's form, keeps it.
+  // A deep link focuses the title and not an action, so Enter claims nothing. What took focus meanwhile, such as an action's form, keeps it.
   const settled = !query.isPending;
   const landed = useRef(false);
   useEffect(() => {
     if (!settled || landed.current) return;
     landed.current = true;
-    const root = document.querySelector<HTMLElement>('[data-card-sheet]');
     const active = document.activeElement;
-    if (!root || (active && active !== root && active !== document.body)) return;
-    (
-      root.querySelector<HTMLElement>('[data-sheet-primary]') ??
-      root.querySelector<HTMLElement>('[data-sheet-close]')
-    )?.focus();
+    const root = document.querySelector<HTMLElement>('[data-card-sheet]');
+    if (
+      !root ||
+      (active &&
+        active !== document.body &&
+        root.contains(active) &&
+        !active.hasAttribute('data-sheet-title'))
+    )
+      return;
+    if (active && active !== document.body && !root.contains(active)) return;
+    focusSheetTitle();
   }, [settled]);
 
   // `w` toggles watch, Ctrl/Cmd+Shift+C copies the key (08 §12).
@@ -406,13 +563,13 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <Dialog.Close asChild>
-            <IconButton label={t.close} data-sheet-close>
-              <X aria-hidden className="size-4" strokeWidth={1.75} />
-            </IconButton>
-          </Dialog.Close>
+          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+            <X aria-hidden className="size-4" strokeWidth={1.75} />
+          </IconButton>
         </div>
-        <Dialog.Title className="sr-only">{fmt(t.sheet.label, { key: cardKey })}</Dialog.Title>
+        <h2 tabIndex={-1} data-sheet-title className="sr-only">
+          {fmt(t.sheet.label, { key: cardKey })}
+        </h2>
         <LoadingRegion label={fmt(t.sheet.label, { key: cardKey })}>
           <div className="flex flex-col gap-4 p-4 md:p-6">
             <Skeleton className="h-6 w-40" />
@@ -427,13 +584,13 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <Dialog.Close asChild>
-            <IconButton label={t.close} data-sheet-close>
-              <X aria-hidden className="size-4" strokeWidth={1.75} />
-            </IconButton>
-          </Dialog.Close>
+          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+            <X aria-hidden className="size-4" strokeWidth={1.75} />
+          </IconButton>
         </div>
-        <Dialog.Title className="sr-only">{fmt(t.sheet.label, { key: cardKey })}</Dialog.Title>
+        <h2 tabIndex={-1} data-sheet-title className="sr-only">
+          {fmt(t.sheet.label, { key: cardKey })}
+        </h2>
         <ErrorState
           title={t.sheet.notLoaded}
           code={isHubError(query.error) ? query.error.code : undefined}
@@ -447,13 +604,13 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <Dialog.Close asChild>
-            <IconButton label={t.close} data-sheet-close>
-              <X aria-hidden className="size-4" strokeWidth={1.75} />
-            </IconButton>
-          </Dialog.Close>
+          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+            <X aria-hidden className="size-4" strokeWidth={1.75} />
+          </IconButton>
         </div>
-        <Dialog.Title className="sr-only">{fmt(t.sheet.label, { key: cardKey })}</Dialog.Title>
+        <h2 tabIndex={-1} data-sheet-title className="sr-only">
+          {fmt(t.sheet.label, { key: cardKey })}
+        </h2>
         <ErrorState title={fmt(t.sheet.notFound, { key: cardKey })} code="404" />
         <p className="px-6 text-center text-body text-muted-foreground">{t.sheet.notFoundBody}</p>
       </>
@@ -521,16 +678,25 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
-          <Dialog.Close asChild>
-            <IconButton label={t.close} data-sheet-close>
+          {stepAside && <SheetNav cardKey={card.key} />}
+          {stepAside ? (
+            <Button size="sm" variant="ghost" data-sheet-close data-wb-step-back onClick={() => closeCard()}>
+              <ArrowRight aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
+              {fmt(w.pro.stepAside, { page: stepAside })}
+            </Button>
+          ) : (
+            <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
               <X aria-hidden className="size-4" strokeWidth={1.75} />
             </IconButton>
-          </Dialog.Close>
+          )}
         </div>
-        <Dialog.Title className="text-title font-semibold text-pretty text-foreground">
+        <h2
+          tabIndex={-1}
+          data-sheet-title
+          className="rounded-sm text-title font-semibold text-pretty text-foreground outline-none"
+        >
           <Bidi>{card.title}</Bidi>
-        </Dialog.Title>
-        <Dialog.Description className="sr-only">{t.types[card.type]}</Dialog.Description>
+        </h2>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
           {card.ownerRole && <RoleBadge role={card.ownerRole} routed={me.roles.includes(card.ownerRole)} />}
           <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -564,6 +730,7 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
           )}
         </div>
         <ActionBar card={card} action={action} />
+        {wb && <SheetClaudeBar cardKey={card.key} onAsk={onAsk} />}
         {card.archivedAt && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
             <p>
@@ -603,7 +770,11 @@ function SheetBody({ cardKey, action, tab }: { cardKey: string; action: CardActi
           ))}
         </Tabs.List>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          <Tabs.Content value="details" className={cn('flex flex-col gap-5 p-4 md:p-6', focusRingInset)}>
+          <Tabs.Content
+            value="details"
+            className={cn('wb-sheet-measure flex flex-col gap-5 p-4 md:p-6', focusRingInset)}
+          >
+            <Evidence cardKey={card.key} />
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
             {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
               // The sheet's title is an h2, so a body's `##` is an h3.
@@ -667,13 +838,13 @@ function SheetCrash({ cardKey, onRetry }: { cardKey: string; onRetry: () => void
   return (
     <>
       <div className="flex items-center justify-end p-3">
-        <Dialog.Close asChild>
-          <IconButton label={t.close} data-sheet-close>
-            <X aria-hidden className="size-4" strokeWidth={1.75} />
-          </IconButton>
-        </Dialog.Close>
+        <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+          <X aria-hidden className="size-4" strokeWidth={1.75} />
+        </IconButton>
       </div>
-      <Dialog.Title className="sr-only">{fmt(t.sheet.label, { key: cardKey })}</Dialog.Title>
+      <h2 tabIndex={-1} data-sheet-title className="sr-only">
+        {fmt(t.sheet.label, { key: cardKey })}
+      </h2>
       <ErrorState title={t.sheet.notLoaded} onRetry={onRetry} />
     </>
   );
@@ -682,73 +853,79 @@ function SheetCrash({ cardKey, onRetry }: { cardKey: string; onRetry: () => void
 const menuItemClass =
   'flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 text-body-sm text-foreground outline-none select-none data-[highlighted]:bg-accent md:min-h-9';
 
+/** Focus lands on the title, never on an action. The ring shows only for someone moving by keyboard, and a pointer or a page load does not paint one. */
+export function focusSheetTitle() {
+  const title = document.querySelector<HTMLElement>('[data-sheet-title]');
+  if (!title) return;
+  title.focus({ preventScroll: true });
+  if (usingKeyboard()) {
+    title.setAttribute('data-wb-revealed', 'true');
+    title.addEventListener('blur', () => title.removeAttribute('data-wb-revealed'), { once: true });
+  }
+}
+
 /**
- * The card drawer (08 §5.3–5.4). Render once in the shell. It opens from the URL: `openCard(key)` anywhere, or
- * `openCard(key, { action: 'decide' })` to open on that action. 560 px on desktop, full screen under 768 px.
- * Focus is trapped while open and returns to what opened it, or to the row that replaced it.
+ * The card sheet. Render it once, where the layout wants it. It opens from the URL: `openCard(key)` anywhere, or `openCard(key, { action: 'decide' })` to open on that action.
+ * Tab runs straight through it, Esc closes it only while focus is inside, and it takes focus when opened by the owner, on the title. A card brought by Follow the chat, or a pane that remounts while the owner types, takes nothing. Focus returns to what opened it, or to the row that replaced it.
  */
-export function CardSheet() {
+export function CardSheet({
+  className,
+  topBar,
+  onAsk,
+  stepAside,
+}: {
+  className?: string | undefined;
+  topBar?: ReactNode | undefined;
+  onAsk?: (() => void) | undefined;
+  stepAside?: string | undefined;
+}) {
   const route = useRoute();
   const key = route.cardKey;
   const actionParam = route.query.get('action');
   const action = isCardAction(actionParam) ? actionParam : null;
   const tab = (route.query.get('tab') as SheetTab | null) ?? 'details';
   const locale = useLocale();
-  const startOffset = locale === 'ar' ? 48 : -48;
-  const offset = SHEET_EDGE === 'start' ? startOffset : -startOffset;
-
+  const t = useT(kitMessages);
+  const offset = locale === 'ar' ? -32 : 32;
+  const opener = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!key) return;
+    opener.current = takeOpener() ?? null;
+    if ((document.activeElement as HTMLElement | null)?.hasAttribute('data-wb-input')) return;
+    if (wasFollowOpened()) return;
+    focusSheetTitle();
+  }, [key]);
+  const openerRef = opener;
+  useEffect(
+    () => () => {
+      if (!key) return;
+      // The opener may be gone by now, and restoreFocus knows where to go then.
+      if (!document.activeElement || document.activeElement === document.body)
+        restoreFocus(openerRef.current);
+    },
+    [key, openerRef],
+  );
+  if (!key) return null;
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
+    // A menu or dialog inside the sheet handles its own Esc first, and marks it.
+    if (matchKey(e, 'Escape') && !e.defaultPrevented) {
+      e.preventDefault();
+      closeCard();
+    }
+  };
   return (
-    <Dialog.Root open={!!key} onOpenChange={(open) => !open && closeCard()}>
-      <AnimatePresence>
-        {key && (
-          <Dialog.Portal forceMount container={portalRoot()}>
-            <Dialog.Overlay asChild forceMount>
-              <motion.div
-                className="fixed inset-0 z-40 bg-(--scrim)"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1, transition: { duration: 0.2 } }}
-                exit={{ opacity: 0, transition: { duration: 0.12 } }}
-              />
-            </Dialog.Overlay>
-            <Dialog.Content
-              asChild
-              forceMount
-              onOpenAutoFocus={(e) => {
-                // Land on what the member came to do: the first enabled action, else Close. An action form focuses itself.
-                e.preventDefault();
-                const root = e.currentTarget as HTMLElement;
-                (
-                  root.querySelector<HTMLElement>('[data-sheet-primary]') ??
-                  root.querySelector<HTMLElement>('[data-sheet-close]')
-                )?.focus();
-              }}
-              onCloseAutoFocus={(e) => {
-                e.preventDefault();
-                restoreFocus(takeOpener());
-              }}
-              onInteractOutside={(e) => {
-                // The toast sits beside the sheet: using Copy or Undo there must not close it.
-                if ((e.target as HTMLElement).closest?.('[data-toast]')) e.preventDefault();
-              }}
-            >
-              <motion.div
-                data-card-sheet
-                className={cn(
-                  'fixed inset-y-0 z-50 flex w-full flex-col bg-background text-foreground shadow-md outline-none md:w-140 md:border-border',
-                  SHEET_EDGE === 'start' ? 'start-0 md:border-e' : 'end-0 md:border-s',
-                )}
-                initial={{ opacity: 0, x: offset }}
-                animate={{ opacity: 1, x: 0, transition: { duration: 0.22, ease: EASE } }}
-                exit={{ opacity: 0, x: offset / 2, transition: { duration: 0.14, ease: 'easeOut' } }}
-              >
-                <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
-                  <SheetBody cardKey={key} action={action} tab={tab} />
-                </ErrorBoundary>
-              </motion.div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+    <motion.section
+      aria-label={fmt(t.sheet.label, { key })}
+      data-card-sheet
+      onKeyDown={onKeyDown}
+      className={cn('flex flex-col bg-background text-foreground outline-none', className)}
+      initial={{ opacity: 0, x: offset }}
+      animate={{ opacity: 1, x: 0, transition: { duration: 0.2, ease: EASE } }}
+    >
+      {topBar}
+      <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
+        <SheetBody key={key} cardKey={key} action={action} tab={tab} onAsk={onAsk} stepAside={stepAside} />
+      </ErrorBoundary>
+    </motion.section>
   );
 }

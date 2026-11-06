@@ -5,13 +5,13 @@
  * @description First load only (a refresh keeps the page, review M7). Same blocks, same order and about the same heights as the loaded page at each
  * width, including team and sources, so nothing jumps when the data lands.
  */
-import { LoadingRegion, Skeleton, SkeletonRow, useMedia, useT } from '@/components/kit';
+import { LoadingRegion, Skeleton, SkeletonRow, usePageWide, useT } from '@/components/kit';
 
 import { NS, type TodayMessages } from './messages';
 
 function BandSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:@page-md:grid-cols-5">
       {Array.from({ length: 5 }, (_, i) => (
         <div key={i} className="flex flex-col gap-1.5 bg-card px-3 py-2.5 max-md:last:col-span-2">
           <Skeleton className="h-3.5 w-24" />
@@ -72,7 +72,7 @@ function TeamAndSources() {
     <>
       <div className="flex flex-col gap-4">
         <Skeleton className="h-5 w-44" />
-        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-6">
+        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border lg:@page-lg:grid-cols-6">
           {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="flex flex-col gap-1.5 bg-card px-3 py-2.5">
               <Skeleton className="h-3.5 w-16" />
@@ -84,7 +84,7 @@ function TeamAndSources() {
       </div>
       <div className="flex flex-col gap-3">
         <Skeleton className="h-5 w-36" />
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 sm:@page-sm:grid-cols-2 lg:@page-lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-24 rounded-lg" />
           ))}
@@ -96,7 +96,7 @@ function TeamAndSources() {
 
 export function LoadingView() {
   const t = useT<TodayMessages>(NS);
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   if (!wide) {
     return (
       <LoadingRegion label={t.loading} className="gap-6">
@@ -114,12 +114,12 @@ export function LoadingView() {
   return (
     <LoadingRegion label={t.loading} className="gap-8">
       <BandSkeleton />
-      <div className="grid gap-8 lg:grid-cols-12">
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-7">
+      <div className="grid gap-8 lg:@page-lg:grid-cols-12">
+        <div className="flex min-w-0 flex-col gap-8 lg:@page-lg:col-span-7">
           <StackSkeleton />
           <Skeleton className="h-19 w-full rounded-lg" />
         </div>
-        <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 lg:col-span-5">
+        <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-5 lg:@page-lg:col-span-5">
           <LetterSkeleton framed={false} lines={6} />
           <div className="mt-4 flex flex-col gap-3">
             <ReadSkeleton />

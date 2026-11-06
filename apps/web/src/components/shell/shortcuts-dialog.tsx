@@ -6,13 +6,25 @@
  */
 import { useId } from 'react';
 
-import { Kbd, Modal, setPreference, usePreference } from '@/components/kit';
+import { Kbd, Modal, setPreference, useKeyLabels, usePreference } from '@/components/kit';
 import { views } from '@/components/shell/views';
+import type { ChatMessages } from '@/components/workbench/words';
 import { useT } from '@/lib/i18n';
 import { messages } from '@/lib/i18n';
 
 /** One row per destination, from the registry, so a `g` key can never be missing from this list (review M19). */
 const GO_TO = views.filter((v) => v.goKey);
+
+/** The panel's keys (docs/16 §7). On a Mac `Ctrl` reads as `⌘`, and `Alt` as `⌥`. */
+const PANEL: [string[], 'regions' | 'toggle' | 'modes' | 'stop' | 'send' | 'newline' | 'skills'][] = [
+  [['F6', 'Shift F6'], 'regions'],
+  [['Ctrl /'], 'toggle'],
+  [['Alt 1', 'Alt 2', 'Alt 3'], 'modes'],
+  [['Ctrl .'], 'stop'],
+  [['Enter'], 'send'],
+  [['Shift Enter'], 'newline'],
+  [['/'], 'skills'],
+];
 
 const LIST: { group: 'nav' | 'lists' | 'cards'; keys: [string[], string][] }[] = [
   {
@@ -63,6 +75,8 @@ export function ShortcutsDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useT(messages);
+  const w = useT<ChatMessages>('chat').panel;
+  const label = useKeyLabels();
   const id = useId();
   const enabled = usePreference('shortcuts');
   return (
@@ -81,6 +95,25 @@ export function ShortcutsDialog({
             <span className="mt-0.5 block text-body-sm text-muted-foreground">{t.shortcuts.disableHint}</span>
           </label>
         </div>
+        <section data-wb-shortcuts-panel>
+          <h3 className="text-body font-semibold text-foreground">{w.pro.keysGroup}</h3>
+          <dl className="mt-1.5 flex flex-col">
+            {PANEL.map(([combo, item]) => (
+              <div
+                key={item}
+                className="flex items-center justify-between gap-3 border-b border-border py-1.5 last:border-b-0"
+              >
+                <dt className="min-w-0 text-body-sm text-foreground">{w.pro.keys[item]}</dt>
+                <dd className="flex shrink-0 flex-wrap justify-end gap-1">
+                  {combo.map((key) => (
+                    <Kbd key={key}>{label(key)}</Kbd>
+                  ))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
         <section>
           <h3 className="text-body font-semibold text-foreground">{t.shortcuts.groups.go}</h3>
           <dl className="mt-1.5 flex flex-col">

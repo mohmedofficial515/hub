@@ -179,7 +179,7 @@ function ProblemPanel({
 
       {hours && <RunStrip hours={hours} showLegend className="mt-4 max-w-sm" />}
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:gap-8">
+      <div className="mt-5 grid gap-5 lg:@page-lg:grid-cols-2 lg:gap-8">
         <div className="min-w-0">
           <h4 className="text-body font-semibold text-foreground">{t.sources.why}</h4>
           {source.lastError ? (
@@ -245,7 +245,7 @@ function SourceListRow({
   return (
     <li
       {...rowProps}
-      className="grid gap-x-5 gap-y-3 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] md:items-center"
+      className="grid gap-x-5 gap-y-3 p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:@page-md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_auto] md:@page-md:items-center"
     >
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">

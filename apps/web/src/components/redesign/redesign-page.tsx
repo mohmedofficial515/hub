@@ -199,7 +199,7 @@ function ReviewView() {
             <div key={n} className="flex flex-col gap-3">
               <Skeleton className="h-6 w-48" />
               <Skeleton className="h-9 w-full max-w-2xl" />
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:@page-sm:grid-cols-2 lg:@page-lg:grid-cols-3">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="overflow-hidden rounded-lg border border-border bg-card">
                     <Skeleton className="aspect-16/10 rounded-none" />
@@ -292,11 +292,11 @@ function ReviewView() {
         <div className="flex flex-col gap-10">
           {ordered.map(({ page, list: all, shown }) => (
             <PageStrip key={`${page.app}/${page.page}`} page={page} all={all} shown={shown}>
-              <ul data-hub-list className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <ul data-hub-list className="grid gap-3 sm:@page-sm:grid-cols-2 lg:@page-lg:grid-cols-3">
                 {shown.map((v) => {
                   const lead = v.status === 'review';
                   return (
-                    <li key={v.key} className={cn(lead && 'sm:col-span-2 lg:col-span-3')}>
+                    <li key={v.key} className={cn(lead && 'sm:@page-sm:col-span-2 lg:@page-lg:col-span-3')}>
                       {lead ? (
                         <LeadVersion
                           card={v}
@@ -539,7 +539,7 @@ function LeadVersion({
     <article
       {...rowProps}
       aria-labelledby={`lead-${card.key}`}
-      className="group relative grid overflow-hidden rounded-lg border border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      className="group relative grid overflow-hidden rounded-lg border border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset lg:@page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
     >
       <div className="relative">
         <ShotThumb

@@ -35,7 +35,7 @@ import {
   useFilter,
   useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   useSession,
   useT,
 } from '@/components/kit';
@@ -60,7 +60,7 @@ export function HandoffsPage() {
   const isHandoffStale = useHandoffStale();
   const [creating, setCreating] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
 
   const statusParam = useFilter('status');
   const to = useFilter('to');

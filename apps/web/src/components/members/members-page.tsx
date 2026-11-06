@@ -48,7 +48,7 @@ import {
   useFilter,
   useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   useRoute,
   useSession,
   useT,
@@ -137,7 +137,7 @@ export function MembersPage() {
   const loading = directoryQuery.isPending;
   const error = directoryQuery.isError;
   const { query } = useRoute();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const role = useFilter('role') as Role | null;
   const q = (useFilter('q') ?? '').trim().toLowerCase();
   const [dialog, setDialog] = useState<Dialog>(null);

@@ -5,7 +5,7 @@
  * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/button.tsx. Contract: apps/web/README.md.
  */
 import { Loader2 } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import { type ComponentProps, createContext, type ReactNode, useContext } from 'react';
 
 import { focusRing } from '@/components/cards/meta';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,11 @@ const variantClass: Record<ButtonVariant, string> = {
     'border border-destructive/60 bg-card text-destructive-soft-foreground hover:bg-destructive-soft',
 };
 
+/**
+ * True on the page while a card is open beside it: the page's filled button steps down, so at most one thing on screen asks (review M11). A dialog opened from the page puts it back.
+ */
+export const QuietPrimary = createContext(false);
+
 /** 44 px tall on phones. 36 px on desktop for `md` and 32 px for `sm`. */
 export function Button({
   variant = 'outline',
@@ -38,6 +43,7 @@ export function Button({
   disabled,
   ...rest
 }: ButtonProps) {
+  const quiet = useContext(QuietPrimary);
   return (
     <button
       type="button"
@@ -45,7 +51,7 @@ export function Button({
       className={cn(
         'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60',
         size === 'md' ? 'h-11 px-4 text-body md:h-9' : 'h-11 px-3 text-body-sm md:h-8',
-        variantClass[variant],
+        variantClass[quiet && variant === 'primary' ? 'outline' : variant],
         focusRing,
         className,
       )}

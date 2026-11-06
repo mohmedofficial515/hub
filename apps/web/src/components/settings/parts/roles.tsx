@@ -26,7 +26,7 @@ import {
   SectionHeader,
   Select,
   useLocale,
-  useMedia,
+  usePageWide,
   useT,
 } from '@/components/kit';
 import { useDirectory } from '@/features/members/queries';
@@ -294,13 +294,13 @@ export function RolesTab() {
   const kit = useT(kitMessages);
   const locale = useLocale();
   const directory = useDirectory().data ?? [];
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const active = directory.filter((d) => d.status === 'active');
   return (
     <>
       <section aria-labelledby="roles-title" className="flex flex-col gap-3">
         <SectionHeader id="roles-title" icon={ShieldCheck} title={t.roles.title} />
-        <ul className="grid gap-x-8 sm:grid-cols-2">
+        <ul className="grid gap-x-8 sm:@page-sm:grid-cols-2">
           {ROLES.map((role) => {
             const Icon = roleIcon[role];
             const holders = active.filter((d) => d.roles.includes(role));

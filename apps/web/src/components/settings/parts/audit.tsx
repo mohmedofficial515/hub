@@ -33,8 +33,8 @@ import {
   useFilter,
   useKeyboardList,
   useLocale,
-  useMedia,
   useMembers,
+  usePageWide,
   useRoute,
   useT,
 } from '@/components/kit';
@@ -115,7 +115,7 @@ function RowDetail({ row }: { row: AuditRow }) {
     { label: t.audit.detail.client, value: row.userAgent ?? t.audit.detail.none },
   ];
   return (
-    <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-3">
+    <dl className="grid gap-x-6 gap-y-1 sm:@page-sm:grid-cols-3">
       {items.map((i) => (
         <div key={i.label} className="min-w-0">
           <dt className="text-caption text-muted-foreground">{i.label}</dt>
@@ -166,8 +166,8 @@ export function AuditTab() {
       types: kit.types,
     });
   // Six columns need the room of a laptop. Tablet and phone read the same rows as a compact ledger.
-  const wide = useMedia('(min-width: 1024px)');
-  const filtersInline = useMedia('(min-width: 768px)');
+  const wide = usePageWide(1024);
+  const filtersInline = usePageWide(768);
   const actor = useFilter('actor');
   // Not `action`: the card sheet owns that param. It maps to the API's `action` prefix.
   const verb = useFilter('verb');
@@ -201,7 +201,7 @@ export function AuditTab() {
   const rangeError = from && to && from > to ? s.rangeInvalid : undefined;
 
   const filters = (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(2,minmax(0,1fr))_auto_auto] md:items-start">
+    <div className="grid grid-cols-2 gap-3 md:@page-md:grid-cols-[repeat(2,minmax(0,1fr))_auto_auto] md:@page-md:items-start">
       <Field id="audit-actor" label={s.filters.actor}>
         <Select
           id="audit-actor"

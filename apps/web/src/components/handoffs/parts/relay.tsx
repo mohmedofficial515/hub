@@ -35,7 +35,7 @@ export function Relay({
     <div
       role="group"
       aria-label={t.relay.label}
-      className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-card md:grid-cols-[1fr_1fr_1fr_auto]"
+      className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-card md:@page-md:grid-cols-[1fr_1fr_1fr_auto]"
     >
       {STAGES.map((s, i) => {
         const rows = cards.filter((c) => c.status === s);
@@ -93,7 +93,7 @@ export function Relay({
         aria-pressed={allActive}
         onClick={() => onChange(allActive ? null : 'all')}
         className={cn(
-          'relative col-span-3 flex min-h-11 items-center gap-2 border-t border-border px-3 text-start text-body-sm transition-colors duration-120 hover:bg-accent md:col-span-1 md:flex-col md:items-start md:justify-center md:gap-0.5 md:border-s md:border-t-0 md:px-4',
+          'relative col-span-3 flex min-h-11 items-center gap-2 border-t border-border px-3 text-start text-body-sm transition-colors duration-120 hover:bg-accent md:@page-md:col-span-1 md:flex-col md:@page-md:items-start md:@page-md:justify-center md:gap-0.5 md:border-s md:border-t-0 md:px-4',
           allActive ? 'bg-accent font-semibold text-foreground' : 'text-muted-foreground',
           focusRingInset,
         )}

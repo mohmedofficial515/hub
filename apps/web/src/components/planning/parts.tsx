@@ -33,7 +33,7 @@ import {
   useCardQuery,
   type useKeyboardList,
   useLocale,
-  useMedia,
+  usePageWide,
   usePerformAction,
   useSession,
   useT,
@@ -94,7 +94,7 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
     <article
       {...rowProps(card.key)}
       aria-labelledby={titleId}
-      className="grid gap-x-8 gap-y-4 rounded-lg border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      className="grid gap-x-8 gap-y-4 rounded-lg border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 lg:@page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
     >
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-body-sm text-muted-foreground">
@@ -120,7 +120,7 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
           {action && available && (
-            <Button variant="primary" className="max-sm:w-full" onClick={run}>
+            <Button variant="primary" className="max-sm:w-full @max-page-sm:w-full" onClick={run}>
               {actionName(kit, card.type, available.action)}
             </Button>
           )}
@@ -210,7 +210,7 @@ function GroupHeading({ id, title, count }: { id: string; title: string; count: 
 export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps }) {
   const t = useT<PlanningMessages>('planning');
   const { me, roles } = useSession();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const next = nextActionOf(card, roles, me.id);
   const text = excerptOf(card.idea.problem, 140);
   const button = next && (
@@ -243,7 +243,7 @@ export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps
 export function PlanRow({ card, rowProps }: { card: PlanCard; rowProps: RowProps }) {
   const t = useT<PlanningMessages>('planning');
   const { me, roles } = useSession();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const next = nextActionOf(card, roles, me.id);
   const { done, total } = progressOf(card);
   const button = next && (

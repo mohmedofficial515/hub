@@ -30,8 +30,8 @@ import {
   typeClass,
   TypeDot,
   useLocale,
-  useMedia,
   useMember,
+  usePageWide,
   useT,
   weekday,
 } from '@/components/kit';
@@ -58,7 +58,7 @@ function Totals({ totals }: { totals: TeamStats['totals'] }) {
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
   return (
-    <ul className="grid auto-rows-fr grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-6">
+    <ul className="grid auto-rows-fr grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border lg:@page-lg:grid-cols-6">
       {totals.map((m) => {
         const delta = m.value - m.prev;
         const Icon = delta > 0 ? ArrowUp : delta < 0 ? ArrowDown : Equal;
@@ -120,7 +120,7 @@ function Identity({ stats }: { stats: TeamMember }) {
   const t = useT<TodayMessages>(NS);
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const known = useMember(stats.userId);
   const member: Member = known ?? {
     id: stats.userId,
@@ -174,7 +174,7 @@ function Identity({ stats }: { stats: TeamMember }) {
 function Heatmap({ team }: { team: TeamStats }) {
   const t = useT<TodayMessages>(NS);
   const locale = useLocale();
-  const wide = useMedia('(min-width: 768px)');
+  const wide = usePageWide(768);
   const days = team.days.slice(wide ? -14 : -7).map(noon);
   const span = days.length;
   const rows = [...team.members].sort((a, b) => a.displayName.localeCompare(b.displayName, locale));
@@ -350,7 +350,7 @@ function Flow({ flow }: { flow: TeamStats['flow'] }) {
       {flow.length === 0 ? (
         <p className="text-body-sm text-muted-foreground">{t.team.flowEmpty}</p>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2 md:gap-x-8 lg:grid-cols-1">
+        <ul className="grid gap-3 md:@page-md:grid-cols-2 md:gap-x-8 lg:@page-lg:grid-cols-1">
           {flow.map((f) => (
             <li key={f.type} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3">
               <span className="min-w-0">
@@ -413,11 +413,11 @@ export function TeamWeek({ team }: { team: TeamStats }) {
         }
       />
       <Totals totals={team.totals} />
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="min-w-0 rounded-lg border border-border bg-card p-4 lg:col-span-8">
+      <div className="grid gap-4 lg:@page-lg:grid-cols-12">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-4 lg:@page-lg:col-span-8">
           <Heatmap team={team} />
         </div>
-        <div className="min-w-0 rounded-lg border border-border bg-card p-4 lg:col-span-4">
+        <div className="min-w-0 rounded-lg border border-border bg-card p-4 lg:@page-lg:col-span-4">
           <Flow flow={team.flow} />
         </div>
       </div>

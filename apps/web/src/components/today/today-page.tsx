@@ -30,8 +30,8 @@ import {
   TZ,
   useAwaiting,
   useLocale,
-  useMedia,
   useMyCounts,
+  usePageWide,
   useReadyTasks,
   useSession,
   useT,
@@ -80,8 +80,8 @@ export function TodayPage() {
   const stackHeading = useRef<HTMLHeadingElement>(null);
   useSeenOnLeave(!!data);
 
-  const wide = useMedia('(min-width: 768px)');
-  const lanes = useMedia('(min-width: 1024px)');
+  const wide = usePageWide(768);
+  const lanes = usePageWide(1024);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshed, setRefreshed] = useState(0);
   // Clamped on phones by default, so the first action is on the first screen (review B2).
@@ -191,7 +191,7 @@ export function TodayPage() {
       actions={
         <>
           {data && (
-            <span className="hidden flex-col items-end text-body-sm text-muted-foreground sm:flex">
+            <span className="hidden flex-col items-end text-body-sm text-muted-foreground sm:@page-sm:flex">
               <time dateTime={data.date}>{longDate(data.now, locale)}</time>
               <span>
                 {fmt(t.updated, { when: '' })}
@@ -269,9 +269,9 @@ export function TodayPage() {
       {/* Phone order (09 §4): the letter first, clamped. From 768 px it sits atop the reading lane. */}
       {!wide && letter(true)}
 
-      <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+      <div className="grid gap-8 lg:@page-lg:grid-cols-12 lg:@page-lg:items-start">
         {/* Start lane, "Needs me": act on these. */}
-        <div className="flex min-w-0 flex-col gap-8 lg:col-span-7">
+        <div className="flex min-w-0 flex-col gap-8 lg:@page-lg:col-span-7">
           <AwaitingStack stack={stack} headingRef={stackHeading} />
           <DeadlineRunway cards={deadlines} stackKeys={stackKeys} />
           {showReady && (
@@ -284,7 +284,7 @@ export function TodayPage() {
           className={cn(
             'flex min-w-0 flex-col gap-8',
             wide && 'gap-5 rounded-lg border border-border bg-card p-5',
-            lanes && 'lg:col-span-5',
+            lanes && 'lg:@page-lg:col-span-5',
           )}
         >
           {wide && letter(false)}
