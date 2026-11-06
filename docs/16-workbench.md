@@ -30,7 +30,11 @@ Hub becomes the place the owner works from, not only where they record work:
 | D46 | **`repoPaths` stays editable through MCP, with approval (owner's choice).** A change to `repoPaths` widens the bridge's folder allowlist, so `update_project` must pause for the owner's approval in bridge runs: its permission rules must put that tool on the `ask` list. Slice 3 must test this. |
 | D47 | **Uninstall keeps folder trust (owner's choice).** Removing Hub from a device removes the `hub` servers and the bridge, and leaves folders trusted, as if the owner had accepted the dialog. |
 | D48 | **Panel design:** three clearly different directions as working prototypes in the lab. The owner picks one before the port. |
-| D49 | **Direction chosen, in principle (2026-11-06):** `hub/workbench/v1-edge-strip`, extended as §7.1 describes into `hub/workbench/v4-edge-strip-pro`. The owner gives the final approval on v4 in the lab. Two ideas come from the other directions: drag a card into the chat, and "follow the chat". |
+| D49 | **Direction chosen, in principle (2026-11-06):** `hub/workbench/v1-edge-strip`, extended as §7.1 describes into `hub/workbench/v4-edge-strip-pro`. The owner gives the final approval on v4 in the lab. Two ideas come from the other directions: drag a card into the chat, and "follow the chat". Review of v4 scored 6.2 with 5 blockers, so the final version to approve is `v5-edge-strip-final`. |
+| D50 | **Strengthen the engine (owner's choice):** the rich cards stay and get real sources, as §7.2 specifies. |
+| D51 | **A new chat defaults to Execute (owner's choice).** A suggestion never runs in Execute by itself: pressing one fills the composer or states plainly that it will run. |
+| D52 | **After a report, a task moves to In review by itself (owner's choice), under a server rule (§7.2):** only if it has at least one check and every check is verified against a real step that succeeded. Otherwise it stays, and the card's primary action stays Submit for review. The owner still completes it. |
+| D53 | **Newer Claude Code: work with a warning (owner's choice).** A version above the tested one runs and shows a visible warning. Permission rules stay active. Older than the minimum stays refused. An unreadable event stops the turn with a clear message and offers Open in VS Code. |
 | D42 | **Connect:** automatic on the main machine, and one command with browser approval on any other. Linking a folder is a button in Hub. No token copying and no new terminal. |
 | D43 | **Devices reach Hub through Tailscale.** Hub is never open to the public internet. This amends D33 for those devices. |
 
@@ -161,6 +165,19 @@ The owner asked for more detail, strong info tooltips, and a panel that is smart
 **Document development protocol**, a Hub skill. Stages: Search (existing docs through Hub, §10) → Propose (update or new, and why, with no duplicates) → Draft (shown as a diff against the current text) → Save through `save_doc` on approval, keeping the earlier revision → Link (the doc to its related cards). Writing follows the project's rules for language and audience. Starts from "Improve this doc", "Document this task" or "Find gaps". A gap report compares what cards and code mention against the docs. Nothing is invented: a claim Claude cannot verify from the project is flagged instead of written as fact.
 
 **Flexibility.** Pin a chat. Branch from a message into a new chat. Export a chat as Markdown. Retry a turn. Stop at any time. Templates for frequent prompts, saved per project. Panel width, default mode and the tooltip level (full or compact) are remembered per device.
+
+### 7.2 Structured results (D50, D52)
+
+This is the shared contract between the engine and the panel design. It lives in `packages/contracts/src/chat.ts`. Models are unreliable narrators, so the server separates what was **verified** from what was **claimed**, and the UI shows the difference.
+
+- **`report_work` (MCP):** `{ card, summary, checks: [{ name, command?, stepId?, outcome: passed|failed|skipped, note? }], changedFiles?, notChecked: string[] }`. It replaces the Markdown comment as `/hub:work`'s report and is stored as evidence on the card with its event. The server sets each check's `verified` itself: true only when `stepId` is a step in this chat whose command matches and whose real result succeeded. A failed real step cannot be reported as passed: the server refuses or marks a conflict. `changedFiles` comes from the bridge's facts when available.
+- **Auto-move (D52):** after `report_work`, if there is at least one check and all are `passed` and `verified`, the task goes to In review through `CardService.apply`, recorded as the agent's action with the reason. Otherwise it stays, and the report says why. Outside a panel chat (a VS Code chat) no step can be verified, so checks are `claimed` and it never moves by itself.
+- **`propose_plan`:** `{ title, steps: [{ title, role?, why? }], checks?, risks? }`, an event `plan.proposed` with a structured plan, leading to "Run this plan". Plan mode's skill and system prompt use it; text in the reply stays the fallback.
+- **Questions:** `AskUserQuestion` from the engine becomes a `question` event with choice cards, answered through the same path as approvals.
+- **`propose_doc`:** `{ doc?, title, reason, baseVersion?, draft, duplicates: [], claims: [{ text, status: verified|unverified, source? }] }`, an event `doc.draft`, shown as a diff with flagged claims. The owner's edits and flag answers go back with the save. The server computes the duplicate check against real docs with links, instead of trusting Claude. `save_doc` refuses when a flag is unanswered, and a refused save never shows as sent.
+- **Approval effect line:** a deterministic line per D41 category from the bridge (for example, "Pushes to a remote"), never model text.
+- **Blocked note:** when Ask or Plan refuses a tool, an event says what was refused and offers to switch to Execute.
+- **Engine honesty rules for the UI:** Ask and Plan refuse shells and other servers' tools. A mode or model change restarts the process, with a visible Starting line.
 
 ### Slice 3 engine as built (2026-11-06)
 
