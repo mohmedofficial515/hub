@@ -357,7 +357,8 @@ describe('devices', () => {
         details: expect.objectContaining({ reason: 'folder_not_allowed' }) as unknown,
       });
       await expect(hub.request(deviceId, 'vscode.open', { folder: allowed })).rejects.toMatchObject({
-        details: expect.objectContaining({ reason: 'not_implemented' }) as unknown,
+        // No prompt, so it stops before anything could open.
+        details: expect.objectContaining({ reason: 'bad_arguments' }) as unknown,
       });
       await expect(hub.request(deviceId, 'vscode.open', { folder: outside })).rejects.toMatchObject({
         details: expect.objectContaining({ reason: 'folder_not_allowed' }) as unknown,
