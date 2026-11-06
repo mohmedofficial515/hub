@@ -8,6 +8,7 @@ export * from './chat';
 export * from './chat-results';
 export * from './chat-suggestions';
 export * from './devices';
+export * from './do-next';
 export * from './errors';
 export * from './events';
 export * from './identity';
