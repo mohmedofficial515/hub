@@ -6,7 +6,13 @@ import { execFileSync } from 'node:child_process';
 
 import { hold, overloaded, text, tool, unauthorized } from '../support/fake-model';
 import type { Rest } from '../support/hub';
-import { expect, type ScriptedEngine, scriptedEngineAvailable, test } from '../support/scripted-engine';
+import {
+  expect,
+  recordedBridges,
+  type ScriptedEngine,
+  scriptedEngineAvailable,
+  test,
+} from '../support/scripted-engine';
 
 test.skip(!scriptedEngineAvailable(), 'Needs the Claude Code extension on this machine');
 
@@ -182,7 +188,10 @@ test.describe('the scripted engine', () => {
     await chats.send(id, 'wait');
     await expect.poll(async () => (await chats.read(id)).running, LONG).toBe(true);
 
+    // A stopped bridge is forgotten, so teardown never acts on its number once Windows reuses it.
+    expect(recordedBridges()).toHaveLength(1);
     await engine.goOffline();
+    expect(recordedBridges()).toEqual([]);
     await expect.poll(async () => (await chats.last(id)).status, LONG).toBe('interrupted');
     expect(await chats.last(id)).toMatchObject({ failure: 'device_offline' });
     expect((await chats.read(id)).deviceOnline).toBe(false);
