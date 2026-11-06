@@ -550,6 +550,8 @@ function SheetBody({
         !e.metaKey &&
         !e.altKey &&
         shortcutsEnabled() &&
+        // The page beside it has keys of its own, so this one is for the card.
+        el.closest('[data-card-sheet]') &&
         !el.closest('input, textarea, select')
       ) {
         e.preventDefault();
