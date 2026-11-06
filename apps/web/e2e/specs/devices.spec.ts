@@ -140,7 +140,7 @@ test.describe('Settings › Devices', () => {
     expect(answer.status).toBe(401);
   });
 
-  test('fits a phone and a desktop, in both themes, with a real device on the page', async ({
+  test('fits a phone, a tablet and a desktop, with a real device on the page', async ({
     page,
     locale,
     ws,
