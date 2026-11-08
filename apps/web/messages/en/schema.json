@@ -73,7 +73,9 @@
       "other": "# tables"
     },
     "coverage": "{pct}% named",
-    "searchPlaceholder": "Search the domains"
+    "searchPlaceholder": "Search the domains",
+    "show": "Show {name} on the map",
+    "hide": "Hide {name} from the map"
   },
   "node": {
     "more": {
@@ -346,5 +348,43 @@
     "implied": "Implied by a column's name",
     "changed": "Changed in the last version",
     "proposed": "Proposed in the draft"
+  },
+  "chrome": {
+    "panel": "Details and overview",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Leave full screen",
+    "tilt": "3D view",
+    "tiltTip": "Tilt the map in perspective, with the tables floating over their domains (T). Dragging tables is off while tilted.",
+    "minimap": "Minimap",
+    "arabicNames": "Arabic names",
+    "showCode": "Show the code names",
+    "showArabic": "Show the Arabic names",
+    "zoomLevel": "Zoom {pct}%, press to fit the map",
+    "zoomTip": "Press to fit the map (Shift+1). 0 is 100%.",
+    "searchShort": "Search",
+    "keys": {
+      "zoomIn": "Zoom in (+)",
+      "zoomOut": "Zoom out (−)",
+      "fit": "Fit the map (Shift+1)",
+      "minimap": "Minimap (M)",
+      "layers": "Domains (L)",
+      "panel": "Details and overview (I)",
+      "search": "Search the design (/)"
+    }
+  },
+  "panel": {
+    "details": "Details",
+    "overview": "Overview",
+    "draft": "Draft",
+    "source": "Source",
+    "numbers": "The design",
+    "coverage": "Arabic names",
+    "connected": "Most connected tables",
+    "links": {
+      "one": "# relation",
+      "other": "# relations"
+    },
+    "emptyTitle": "Nothing selected",
+    "emptyBody": "Select a table on the map, or search with /, to see its columns, relations and Arabic names here."
   }
 }

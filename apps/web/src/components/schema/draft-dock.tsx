@@ -2,12 +2,12 @@
 
 /**
  * @file draft-dock.tsx
- * @description The open draft (docs/17 §4, D63), docked at the bottom of the page: its changes in order, its status, and the one press that starts the review with Claude in the panel.
- * Changes are proposed in a dialog from a table, a column or here. While Claude reviews or applies it, the dock says so with a status pill, not a coloured border (owner's
- * choice on review B3), and opens that chat. The dialog refuses text that looks like a secret before anything is sent (review M12).
+ * @description The open draft (docs/17 §4, D63): a pill in the map's toolbar with its state and count, and its changes in order in the side panel's Draft tab, with the one press that
+ * starts the review with Claude in the panel. Changes are proposed in a dialog from a table, a column or here. While Claude reviews or applies it, the draft says so with a status
+ * pill, not a coloured border (owner's choice on review B3), and opens that chat. The dialog refuses text that looks like a secret before anything is sent (review M12).
  */
 import { SCHEMA_CHANGE_KINDS, type SchemaChange, type SchemaChangeKind } from '@hub/contracts';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Bot,
   ChevronDown,
@@ -44,7 +44,7 @@ import {
 import { useUpdateDraft } from '@/features/schema/queries';
 
 import { newChangeId } from './model';
-import { useSchemaWords, useStudio } from './studio';
+import { useChrome, useSchemaWords, useStudio } from './studio';
 
 const KIND_TONE: Partial<Record<SchemaChangeKind, 'added' | 'changed' | 'removed'>> = {
   add_model: 'added',
@@ -195,221 +195,208 @@ export function ChangeDialog() {
   );
 }
 
-export function DraftDock() {
+/** The draft in the toolbar: what state it is in and how many changes it holds. A press opens it in the side panel; with no draft it proposes the first change. */
+export function DraftPill() {
+  const studio = useStudio();
+  const chrome = useChrome();
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const draft = studio.draft;
+  if (!studio.can.draft) return null;
+  if (!draft) {
+    return (
+      <Tooltip content={t.actions.propose}>
+        <IconButton label={t.actions.propose} className="schema-tool" onClick={() => studio.propose({})}>
+          <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+        </IconButton>
+      </Tooltip>
+    );
+  }
+  const working = draft.status === 'in_review' || draft.status === 'applying';
+  const open = chrome.panel === 'draft';
+  return (
+    <button
+      type="button"
+      className="schema-draft-pill"
+      data-status={draft.status}
+      aria-pressed={open}
+      onClick={() => chrome.setPanel(open ? null : 'draft')}
+    >
+      {working ? (
+        <Loader2 aria-hidden className="size-4 motion-safe:animate-spin" strokeWidth={2} />
+      ) : (
+        <GitPullRequestDraft aria-hidden className="size-4" strokeWidth={1.75} />
+      )}
+      <span className="schema-draft-pill-label">{t.draft.label}</span>
+      <span className="schema-draft-pill-count">{num(draft.changes.length, locale)}</span>
+      <span className="sr-only">
+        {t.draft.statuses[draft.status]} · {plural(draft.changes.length, locale, t.draft.count)}
+      </span>
+    </button>
+  );
+}
+
+/** The open draft in the side panel (D63): its changes in order, its status, and the one press that starts the review with Claude. */
+export function DraftPanel() {
   const studio = useStudio();
   const t = useSchemaWords();
   const locale = useLocale();
   const updateDraft = useUpdateDraft();
-  const [open, setOpen] = useState(false);
   const [discarding, setDiscarding] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const draft = studio.draft;
 
-  // A change just added opens the dock, so the owner sees where it went.
-  const count = draft?.changes.length ?? 0;
-  const [seen, setSeen] = useState(count);
-  useEffect(() => {
-    if (count > seen) setOpen(true);
-    setSeen(count);
-  }, [count, seen]);
-
-  if (!studio.can.draft) return null;
   if (!draft) {
     return (
-      <div className="schema-dock schema-dock-idle">
-        <Button size="sm" variant="outline" onClick={() => studio.propose({})}>
-          <Plus aria-hidden className="size-4" strokeWidth={1.75} />
-          {t.actions.propose}
-        </Button>
+      <div className="flex flex-col items-start gap-3 p-4">
+        <p className="text-body-sm text-muted-foreground">{t.draft.empty}</p>
+        {studio.can.draft && (
+          <Button size="sm" variant="outline" onClick={() => studio.propose({})}>
+            <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.actions.propose}
+          </Button>
+        )}
       </div>
     );
   }
 
   const status = draft.status;
+  const count = draft.changes.length;
   const editing = status === 'editing';
   const working = status === 'in_review' || status === 'applying';
 
   return (
-    <motion.section
-      layout
-      initial={{ y: 40, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-      className="schema-dock"
-      data-status={status}
-      aria-label={t.draft.label}
-    >
-      <div className="schema-dock-head">
-        <button
-          type="button"
-          className="schema-dock-toggle"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-        >
-          <span className="schema-dock-icon" aria-hidden>
-            {working ? (
-              <Loader2 className="size-4 motion-safe:animate-spin" strokeWidth={2} />
-            ) : (
-              <GitPullRequestDraft className="size-4" strokeWidth={2} />
-            )}
-          </span>
-          <span className="min-w-0 text-start">
-            <span className="block truncate font-semibold text-foreground">{draft.title}</span>
-            <span className="flex min-w-0 items-center gap-1.5 text-caption text-muted-foreground">
-              {working ? (
-                <Pill tone="info" className="shrink-0">
-                  {t.draft.statuses[status]}
-                </Pill>
-              ) : (
-                <span className="shrink-0">{t.draft.statuses[status]} ·</span>
-              )}
-              <span className="truncate">{plural(count, locale, t.draft.count)}</span>
-            </span>
-          </span>
-          {open ? (
-            <ChevronDown aria-hidden className="size-4 shrink-0" strokeWidth={1.75} />
-          ) : (
-            <ChevronUp aria-hidden className="size-4 shrink-0" strokeWidth={1.75} />
-          )}
-          <span className="sr-only">{open ? t.draft.collapse : t.draft.expand}</span>
-        </button>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {editing && (
-            <IconButton label={t.actions.propose} onClick={() => studio.propose({})}>
-              <Plus aria-hidden className="size-4" strokeWidth={1.75} />
-            </IconButton>
-          )}
-          {working && draft.chatId ? (
-            <Button size="sm" variant="outline" onClick={() => void studio.reviewWithClaude(draft)}>
-              <MessageSquareText aria-hidden className="size-4" strokeWidth={1.75} />
-              {t.draft.reopen}
+    <section className="flex flex-col gap-4 p-4" aria-label={t.draft.label}>
+      <header className="flex flex-col gap-1.5">
+        <h3 className="text-title-sm font-semibold text-foreground">{draft.title}</h3>
+        <p className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
+          <Pill tone={working ? 'info' : 'muted'} className="shrink-0">
+            {t.draft.statuses[status]}
+          </Pill>
+          <span>{plural(count, locale, t.draft.count)}</span>
+        </p>
+        <p className="text-body-sm text-muted-foreground">{t.draft.statusHints[status]}</p>
+      </header>
+      <div className="flex flex-wrap gap-2">
+        {editing && studio.can.draft && (
+          <Tooltip content={t.draft.reviewTip}>
+            <Button
+              size="sm"
+              variant="primary"
+              busy={reviewing}
+              onClick={() => {
+                setReviewing(true);
+                void studio.reviewWithClaude(draft).finally(() => setReviewing(false));
+              }}
+            >
+              <Bot aria-hidden className="size-4" strokeWidth={1.75} />
+              {t.draft.review}
             </Button>
-          ) : null}
-          {editing && (
-            <Tooltip content={t.draft.reviewTip}>
-              <Button
-                size="sm"
-                variant="primary"
-                busy={reviewing}
-                onClick={() => {
-                  setReviewing(true);
-                  void studio.reviewWithClaude(draft).finally(() => setReviewing(false));
-                }}
-              >
-                <Bot aria-hidden className="size-4" strokeWidth={1.75} />
-                {t.draft.review}
-              </Button>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="schema-dock-body">
-              <p className="text-body-sm text-muted-foreground">{t.draft.statusHints[status]}</p>
-              {count === 0 ? (
-                <p className="text-body-sm text-muted-foreground">{t.draft.empty}</p>
-              ) : (
-                <ol className="flex flex-col gap-1.5">
-                  {draft.changes.map((change, index) => (
-                    <motion.li
-                      key={change.id}
-                      layout
-                      className="schema-change"
-                      data-mark={KIND_TONE[change.kind] ?? 'changed'}
-                    >
-                      <span className="schema-change-index">{num(index + 1, locale)}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="schema-chip" data-mark={KIND_TONE[change.kind] ?? 'changed'}>
-                            {t.change.kinds[change.kind]}
-                          </span>
-                          <span className="font-mono text-body-sm text-foreground" dir="ltr">
-                            {change.target}
-                          </span>
-                        </p>
-                        <p className="mt-0.5 text-body-sm text-foreground">{change.summary}</p>
-                        {change.detail && (
-                          <pre className="schema-code mt-1 whitespace-pre-wrap" dir="ltr">
-                            {change.detail}
-                          </pre>
-                        )}
-                        {change.reason && (
-                          <p className="mt-0.5 text-caption text-muted-foreground">{change.reason}</p>
-                        )}
-                      </div>
-                      {editing && (
-                        <RowMenu
-                          label={change.summary}
-                          items={[
-                            {
-                              label: t.draft.edit,
-                              icon: Pencil,
-                              onSelect: () => studio.propose({ id: change.id }),
-                            },
-                            ...(index > 0
-                              ? [
-                                  {
-                                    label: t.draft.moveUp,
-                                    icon: ChevronUp,
-                                    onSelect: () => studio.moveChange(change.id, -1),
-                                  },
-                                ]
-                              : []),
-                            ...(index < count - 1
-                              ? [
-                                  {
-                                    label: t.draft.moveDown,
-                                    icon: ChevronDown,
-                                    onSelect: () => studio.moveChange(change.id, 1),
-                                  },
-                                ]
-                              : []),
-                            {
-                              label: t.draft.remove,
-                              icon: Trash2,
-                              onSelect: () => studio.removeChange(change.id),
-                              destructive: true,
-                            },
-                          ]}
-                        />
-                      )}
-                    </motion.li>
-                  ))}
-                </ol>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {status === 'in_review' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => updateDraft.mutate({ id: draft.id, status: 'editing' })}
-                  >
-                    <Undo2 aria-hidden className="size-4" strokeWidth={1.75} />
-                    {t.draft.backToEditing}
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className={cn('text-destructive-soft-foreground')}
-                  onClick={() => setDiscarding(true)}
-                >
-                  <Trash2 aria-hidden className="size-4" strokeWidth={1.75} />
-                  {t.draft.discard}
-                </Button>
-              </div>
-            </div>
-          </motion.div>
+          </Tooltip>
         )}
-      </AnimatePresence>
+        {working && draft.chatId && (
+          <Button size="sm" variant="outline" onClick={() => void studio.reviewWithClaude(draft)}>
+            <MessageSquareText aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.draft.reopen}
+          </Button>
+        )}
+        {editing && studio.can.draft && (
+          <Button size="sm" variant="outline" onClick={() => studio.propose({})}>
+            <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.actions.propose}
+          </Button>
+        )}
+      </div>
+      {count === 0 ? (
+        <p className="text-body-sm text-muted-foreground">{t.draft.empty}</p>
+      ) : (
+        <ol className="flex flex-col gap-1.5">
+          {draft.changes.map((change, index) => (
+            <motion.li
+              key={change.id}
+              layout
+              className="schema-change"
+              data-mark={KIND_TONE[change.kind] ?? 'changed'}
+            >
+              <span className="schema-change-index">{num(index + 1, locale)}</span>
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="schema-chip" data-mark={KIND_TONE[change.kind] ?? 'changed'}>
+                    {t.change.kinds[change.kind]}
+                  </span>
+                  <span className="font-mono text-body-sm text-foreground" dir="ltr">
+                    {change.target}
+                  </span>
+                </p>
+                <p className="mt-0.5 text-body-sm text-foreground">{change.summary}</p>
+                {change.detail && (
+                  <pre className="schema-code mt-1 whitespace-pre-wrap" dir="ltr">
+                    {change.detail}
+                  </pre>
+                )}
+                {change.reason && (
+                  <p className="mt-0.5 text-caption text-muted-foreground">{change.reason}</p>
+                )}
+              </div>
+              {editing && studio.can.draft && (
+                <RowMenu
+                  label={change.summary}
+                  items={[
+                    { label: t.draft.edit, icon: Pencil, onSelect: () => studio.propose({ id: change.id }) },
+                    ...(index > 0
+                      ? [
+                          {
+                            label: t.draft.moveUp,
+                            icon: ChevronUp,
+                            onSelect: () => studio.moveChange(change.id, -1),
+                          },
+                        ]
+                      : []),
+                    ...(index < count - 1
+                      ? [
+                          {
+                            label: t.draft.moveDown,
+                            icon: ChevronDown,
+                            onSelect: () => studio.moveChange(change.id, 1),
+                          },
+                        ]
+                      : []),
+                    {
+                      label: t.draft.remove,
+                      icon: Trash2,
+                      onSelect: () => studio.removeChange(change.id),
+                      destructive: true,
+                    },
+                  ]}
+                />
+              )}
+            </motion.li>
+          ))}
+        </ol>
+      )}
+      {studio.can.draft && (
+        <div className="flex flex-wrap gap-2 border-t border-border pt-3">
+          {status === 'in_review' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => updateDraft.mutate({ id: draft.id, status: 'editing' })}
+            >
+              <Undo2 aria-hidden className="size-4" strokeWidth={1.75} />
+              {t.draft.backToEditing}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn('text-destructive-soft-foreground')}
+            onClick={() => setDiscarding(true)}
+          >
+            <Trash2 aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.draft.discard}
+          </Button>
+        </div>
+      )}
       <ConfirmDialog
         open={discarding}
         onOpenChange={setDiscarding}
@@ -422,6 +409,6 @@ export function DraftDock() {
           setDiscarding(false);
         }}
       />
-    </motion.section>
+    </section>
   );
 }

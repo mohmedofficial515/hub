@@ -2,30 +2,38 @@
 
 /**
  * @file schema-page.tsx
- * @description Schema Studio (docs/17): the project's database design as a workspace. A header with the design's numbers and its two presses (Refresh design, Suggest Arabic names), the domains on one
- * side, the diagram or the dictionary, enums and history in the middle, the details of what is selected on the other side, and the open draft docked below. `/` or Ctrl+Shift+K
- * searches the design: on this page `/` is the page's search, not the global palette (review M9). Below 68rem the domains are a drawer that takes focus and closes on Escape.
+ * @description Schema Studio (docs/17): the project's database design as a full-window workspace, in the manner of a design tool. The map takes the whole window; over it float
+ * two small bars (on the start side the layers, the title and the three views; on the end side search, Claude's names, refresh, the side panel and full screen) and, on the map,
+ * a toolbar at the bottom. The layers and the side panel open only when asked for. Full screen covers Hub's sidebar and header and is the default; a press that reaches
+ * Claude steps out of it, since Claude answers in the panel beside the page.
+ * Keys: `/` or Ctrl+Shift+K searches the design (on this page `/` is the page's search, not the global palette, review M9), L the layers, I the side panel, Escape leaves a focus.
  */
 import { changeCount, type SchemaChangeSummary, type SchemaStudioDto } from '@hub/contracts';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Database, FolderCog, PanelLeft, RefreshCw, Search, Sparkles } from 'lucide-react';
+import {
+  BookOpenText,
+  Database,
+  ListTree,
+  Maximize2,
+  Minimize2,
+  PanelLeft,
+  PanelRight,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Waypoints,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
-  Button,
   cn,
   ErrorState,
-  fill,
   fmt,
   IconButton,
   LoadingRegion,
-  Ltr,
   matchKey,
-  num,
   plural,
-  type PluralForms,
-  RelativeTime,
-  Segmented,
   shortcutsEnabled,
   showToast,
   Skeleton,
@@ -38,13 +46,12 @@ import { isHubError } from '@/lib/api/errors';
 
 import { Diagram } from './diagram';
 import { DomainRail } from './domain-rail';
-import { ChangeDialog, DraftDock } from './draft-dock';
-import { Inspector } from './inspector';
-import { coverageOf, unsyncedCount } from './model';
+import { ChangeDialog } from './draft-dock';
 import { SearchDialog } from './search-dialog';
+import { SidePanel } from './side-panel';
 import { SourceDialog, SourceSetup } from './source-setup';
-import { StudioProvider, type StudioView, useSchemaWords, useStudio } from './studio';
-import { DictionaryView, EnumsView, HistoryView } from './views';
+import { StudioProvider, type StudioView, useChrome, useSchemaWords, useStudio } from './studio';
+import { DictionaryView, EnumsView } from './views';
 
 type Ready = SchemaStudioDto & { snapshot: NonNullable<SchemaStudioDto['snapshot']> };
 
@@ -66,62 +73,97 @@ function summaryOf(
     .join('، ');
 }
 
-function Stat({
-  value,
+/** A bar's button with its name in a tooltip, and the key that does the same. */
+function BarButton({
   label,
-  tone,
+  tip,
+  pressed,
+  onPress,
+  children,
+  ...rest
 }: {
-  value: string | null;
   label: string;
-  tone?: 'info' | 'warning' | undefined;
+  tip?: string | undefined;
+  pressed?: boolean | undefined;
+  onPress: () => void;
+  children: React.ReactNode;
+  [data: `data-${string}`]: unknown;
 }) {
   return (
-    <span className="schema-stat" data-tone={tone}>
-      {value && <span className="schema-stat-value">{value}</span>}
-      <span className="schema-stat-label">{label}</span>
-    </span>
+    <Tooltip content={tip ?? label}>
+      <IconButton
+        label={label}
+        aria-pressed={pressed}
+        data-pressed={pressed || undefined}
+        className="schema-tool"
+        onClick={onPress}
+        {...rest}
+      >
+        {children}
+      </IconButton>
+    </Tooltip>
   );
 }
 
-/** A count with its plural noun, the number in bold: "119 جدولًا", "جدولان" (Arabic's dual takes no numeral), "1 table" (review M13). */
-function CountStat({
-  n,
-  forms,
-  tone,
-}: {
-  n: number;
-  forms: PluralForms;
-  tone?: 'info' | 'warning' | undefined;
-}) {
-  const locale = useLocale();
-  const text = plural(n, locale, forms);
-  const shown = num(n, locale);
-  const at = text.indexOf(shown);
-  return at < 0 ? (
-    <Stat value={null} label={text} tone={tone} />
-  ) : (
-    <Stat value={shown} label={(text.slice(0, at) + text.slice(at + shown.length)).trim()} tone={tone} />
-  );
-}
-
-function Header({
-  onSearch,
-  onSource,
-  onRail,
-  railOpen,
-}: {
-  onSearch: () => void;
-  onSource: () => void;
-  onRail: () => void;
-  railOpen: boolean;
-}) {
+function StartBar({ onLayers }: { onLayers: () => void }) {
   const studio = useStudio();
+  const chrome = useChrome();
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const Layers = locale === 'ar' ? PanelRight : PanelLeft;
+  const views: { value: StudioView; label: string; icon: typeof Waypoints }[] = [
+    { value: 'diagram', label: t.views.diagram, icon: Waypoints },
+    { value: 'dictionary', label: t.views.dictionary, icon: BookOpenText },
+    { value: 'enums', label: t.views.enums, icon: ListTree },
+  ];
+  return (
+    <div className="schema-topbar" data-side="start">
+      <BarButton
+        label={t.domains.title}
+        tip={t.chrome.keys.layers}
+        pressed={chrome.layers}
+        onPress={onLayers}
+        aria-expanded={chrome.layers}
+        data-schema-rail-toggle
+      >
+        <Layers aria-hidden className="size-4" strokeWidth={1.75} />
+      </BarButton>
+      <div className="schema-title">
+        <span className="schema-title-icon" aria-hidden>
+          <Database className="size-4" strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0">
+          <h1 className="truncate text-body font-semibold text-foreground">{t.title}</h1>
+          <p className="schema-title-meta truncate text-caption text-muted-foreground">
+            <bdi dir="ltr">{studio.data.source?.name}</bdi> ·{' '}
+            {plural(studio.doc.stats.models, locale, t.stats.models)}
+          </p>
+        </div>
+      </div>
+      <span className="schema-toolbar-gap" aria-hidden />
+      <div role="group" aria-label={t.views.label} className="schema-toolbar-group" data-view-switch>
+        {views.map(({ value, label, icon: Icon }) => (
+          <BarButton
+            key={value}
+            label={label}
+            pressed={studio.view === value}
+            onPress={() => studio.setView(value)}
+          >
+            <Icon aria-hidden className="size-4" strokeWidth={1.75} />
+          </BarButton>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function EndBar({ onSearch }: { onSearch: () => void }) {
+  const studio = useStudio();
+  const chrome = useChrome();
   const t = useSchemaWords();
   const locale = useLocale();
   const refresh = useRefreshSchema();
-  const { doc, data } = studio;
-  const coverage = coverageOf(doc.models, studio.annotations);
-  const unsynced = unsyncedCount(data.annotations);
+  const Panel = locale === 'ar' ? PanelLeft : PanelRight;
 
   const runRefresh = () =>
     refresh.mutate(
@@ -140,139 +182,122 @@ function Header({
     );
 
   return (
-    <header className="schema-header">
-      <div className="flex min-w-0 items-center gap-3">
-        <IconButton
-          label={t.domains.title}
-          className="schema-rail-toggle"
-          onClick={onRail}
-          aria-expanded={railOpen}
-          data-schema-rail-toggle
+    <div className="schema-topbar" data-side="end">
+      <Tooltip content={t.chrome.keys.search}>
+        <button
+          type="button"
+          className="schema-search-button"
+          onClick={onSearch}
+          aria-label={t.actions.search}
         >
-          <PanelLeft aria-hidden className="size-4" strokeWidth={1.75} />
-        </IconButton>
-        <span className="schema-header-icon" aria-hidden>
-          <Database className="size-5" strokeWidth={1.75} />
-        </span>
-        <div className="min-w-0">
-          <h1 className="truncate text-title-sm font-semibold text-foreground">{t.title}</h1>
-          <p className="flex flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
-            <button
-              type="button"
-              className="schema-link block max-w-full truncate font-mono"
-              dir="ltr"
-              onClick={onSource}
-              disabled={!studio.can.manage}
-              title={t.setup.change}
-            >
-              {data.source?.path}/{data.source?.schemaDir}
-            </button>
-            <span aria-hidden>·</span>
-            <span>{fill(t.stats.readAt, { when: <RelativeTime iso={data.snapshot!.createdAt} /> })}</span>
-            <span aria-hidden className="hidden sm:inline">
-              ·
-            </span>
-            <span className="hidden sm:inline">
-              {fill(t.stats.hash, { hash: <Ltr mono>{data.snapshot!.hash.slice(0, 8)}</Ltr> })}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      <div className="schema-stats" aria-label={t.title}>
-        <CountStat n={doc.stats.models} forms={t.stats.models} />
-        <CountStat n={doc.stats.fields} forms={t.stats.fields} />
-        <Stat
-          value={null}
-          label={fmt(t.stats.relationsPair, {
-            declared: num(doc.stats.relations, locale),
-            implied: num(doc.stats.impliedRelations, locale),
-          })}
-        />
-        <CountStat n={doc.stats.enums} forms={t.stats.enums} />
-        <Tooltip
-          content={fmt(t.stats.coverageTip, {
-            named: num(coverage.named, locale),
-            total: num(coverage.total, locale),
-          })}
-        >
-          <span className="schema-stat schema-stat-meter" tabIndex={0} data-tone="info">
-            <span className="schema-stat-value">{fmt(t.stats.pct, { pct: num(coverage.pct, locale) })}</span>
-            <span className="schema-stat-label">{t.stats.named}</span>
-            <span className="schema-meter" aria-hidden>
-              <motion.span
-                initial={{ inlineSize: 0 }}
-                animate={{ inlineSize: `${coverage.pct}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
-            </span>
-          </span>
-        </Tooltip>
-        {unsynced > 0 && <CountStat n={unsynced} forms={t.stats.unsynced} tone="warning" />}
-        {doc.warnings.length > 0 && (
-          <Tooltip content={t.states.warningsTip}>
-            <span className="schema-stat" data-tone="warning" tabIndex={0}>
-              <AlertTriangle aria-hidden className="size-4" strokeWidth={1.75} />
-              <span className="schema-stat-label">
-                {plural(doc.warnings.length, locale, t.states.warnings)}
-              </span>
-            </span>
-          </Tooltip>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="ghost" onClick={onSearch}>
           <Search aria-hidden className="size-4" strokeWidth={1.75} />
-          <span className="sr-only md:not-sr-only">{t.actions.search}</span>
-          <kbd className="schema-kbd hidden md:inline" aria-hidden>
+          <span className="schema-search-text" aria-hidden>
+            {t.chrome.searchShort}
+          </span>
+          <kbd className="schema-kbd" aria-hidden>
             /
           </kbd>
-        </Button>
-        {studio.can.annotate && (
-          <Tooltip content={t.actions.suggestNamesTip}>
-            <Button size="sm" variant="outline" onClick={() => void studio.suggestNames({})}>
-              <Sparkles aria-hidden className="size-4" strokeWidth={1.75} />
-              <span className="sr-only sm:not-sr-only">{t.actions.suggestNames}</span>
-            </Button>
-          </Tooltip>
+        </button>
+      </Tooltip>
+      {studio.can.annotate && (
+        <BarButton
+          label={t.actions.suggestNames}
+          tip={t.actions.suggestNamesTip}
+          onPress={() => void studio.suggestNames({})}
+        >
+          <Sparkles aria-hidden className="size-4" strokeWidth={1.75} />
+        </BarButton>
+      )}
+      {studio.can.manage && (
+        <BarButton
+          label={refresh.isPending ? t.actions.refreshing : t.actions.refresh}
+          tip={t.actions.refreshTip}
+          onPress={runRefresh}
+        >
+          <RefreshCw
+            aria-hidden
+            className={cn('size-4', refresh.isPending && 'motion-safe:animate-spin')}
+            strokeWidth={1.75}
+          />
+        </BarButton>
+      )}
+      <span className="schema-toolbar-gap" aria-hidden />
+      <BarButton
+        label={t.chrome.panel}
+        tip={t.chrome.keys.panel}
+        pressed={chrome.panel !== null}
+        onPress={chrome.togglePanel}
+        data-schema-panel-toggle
+      >
+        <Panel aria-hidden className="size-4" strokeWidth={1.75} />
+      </BarButton>
+      <BarButton
+        label={chrome.immersive ? t.chrome.exitFullscreen : t.chrome.fullscreen}
+        pressed={chrome.immersive}
+        onPress={() => chrome.setImmersive(!chrome.immersive, { browser: true })}
+      >
+        {chrome.immersive ? (
+          <Minimize2 aria-hidden className="size-4" strokeWidth={1.75} />
+        ) : (
+          <Maximize2 aria-hidden className="size-4" strokeWidth={1.75} />
         )}
-        {studio.can.draft && unsynced > 0 && !studio.draft && (
-          <Tooltip content={t.actions.syncNamesTip}>
-            <Button size="sm" variant="outline" onClick={() => void studio.syncNames()}>
-              <FolderCog aria-hidden className="size-4" strokeWidth={1.75} />
-              <span className="sr-only sm:not-sr-only">{t.actions.syncNames}</span>
-            </Button>
-          </Tooltip>
-        )}
-        {studio.can.manage && (
-          <Tooltip content={t.actions.refreshTip}>
-            <Button size="sm" variant="outline" onClick={runRefresh} disabled={refresh.isPending}>
-              <RefreshCw
-                aria-hidden
-                className={cn('size-4', refresh.isPending && 'motion-safe:animate-spin')}
-                strokeWidth={1.75}
-              />
-              <span className="sr-only sm:not-sr-only">
-                {refresh.isPending ? t.actions.refreshing : t.actions.refresh}
-              </span>
-            </Button>
-          </Tooltip>
-        )}
-      </div>
-    </header>
+      </BarButton>
+    </div>
+  );
+}
+
+/** The layers float over the map's start side. Not a modal: the map stays usable. Focus moves in when it opens, and Escape gives it back to the toggle (review B2). */
+function LayersPanel({ onClose }: { onClose: () => void }) {
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    box.current?.querySelector<HTMLElement>('input, button')?.focus({ preventScroll: true });
+  }, []);
+  return (
+    <motion.div
+      ref={box}
+      initial={{ opacity: 0, x: locale === 'ar' ? 16 : -16, scale: 0.985 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: locale === 'ar' ? 16 : -16, scale: 0.985 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+      className="schema-layers"
+      role="dialog"
+      aria-modal={false}
+      aria-label={t.domains.title}
+      onKeyDown={(event) => {
+        if (matchKey(event, 'Escape')) {
+          event.preventDefault();
+          event.stopPropagation();
+          onClose();
+        }
+      }}
+    >
+      <IconButton label={t.actions.close} className="schema-layers-close schema-tool" onClick={onClose}>
+        <X aria-hidden className="size-4" strokeWidth={1.75} />
+      </IconButton>
+      <DomainRail />
+    </motion.div>
   );
 }
 
 function Workspace() {
   const studio = useStudio();
-  const t = useSchemaWords();
+  const chrome = useChrome();
   const [searching, setSearching] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
-  const [railOpen, setRailOpen] = useState(false);
   const studioBox = useRef<HTMLDivElement>(null);
-  const railSlot = useRef<HTMLDivElement>(null);
-  const narrow = useNarrow(studioBox);
+
+  const closeLayers = () => {
+    chrome.setLayers(false);
+    window.setTimeout(
+      () =>
+        studioBox.current
+          ?.querySelector<HTMLElement>('[data-schema-rail-toggle]')
+          ?.focus({ preventScroll: true }),
+      0,
+    );
+  };
 
   // `/` and Ctrl+Shift+K search the design while this page is open, unless typing or in a dialog. It listens before the shell does and keeps `/`
   // from reaching it, so the page's search wins over the global palette here (review M9). Ctrl+K stays the palette.
@@ -280,8 +305,9 @@ function Workspace() {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const busy = target?.closest(
-        'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"]',
+        'input, textarea, select, [contenteditable="true"], [role="dialog"][aria-modal="true"], [role="menu"]',
       );
+      const typing = target?.closest('input, textarea, select, [contenteditable="true"]');
       const slash = matchKey(event, '/') && !event.ctrlKey && !event.metaKey && !event.altKey;
       const chord = (event.ctrlKey || event.metaKey) && matchKey(event, 'K');
       if ((slash && !busy && shortcutsEnabled()) || chord) {
@@ -290,89 +316,51 @@ function Workspace() {
         setSearching(true);
         return;
       }
-      if (matchKey(event, 'Escape') && !busy && studio.focus) studio.setFocus(null);
+      if (busy || typing || event.ctrlKey || event.metaKey || event.altKey || !shortcutsEnabled()) return;
+      if (matchKey(event, 'l')) {
+        event.preventDefault();
+        chrome.setLayers(!chrome.layers);
+      } else if (matchKey(event, 'i')) {
+        event.preventDefault();
+        chrome.togglePanel();
+      } else if (matchKey(event, 'Escape') && studio.focus) {
+        studio.setFocus(null);
+      }
     };
     window.addEventListener('keydown', onKey, { capture: true });
     return () => window.removeEventListener('keydown', onKey, { capture: true });
-  }, [studio]);
-
-  // The drawer takes focus when it opens, and gives it back to its toggle when it closes (review B2).
-  const drawer = narrow && railOpen;
-  const wasDrawer = useRef(false);
-  useEffect(() => {
-    if (drawer) railSlot.current?.querySelector<HTMLElement>('button, input')?.focus();
-    else if (wasDrawer.current)
-      studioBox.current?.querySelector<HTMLElement>('[data-schema-rail-toggle]')?.focus();
-    wasDrawer.current = drawer;
-  }, [drawer]);
-
-  const views: { value: StudioView; label: string }[] = [
-    { value: 'diagram', label: t.views.diagram },
-    { value: 'dictionary', label: t.views.dictionary },
-    { value: 'enums', label: t.views.enums },
-    { value: 'history', label: t.views.history },
-  ];
+  }, [studio, chrome]);
 
   return (
-    <div ref={studioBox} className="schema-studio" data-inspecting={studio.selection ? '' : undefined}>
-      <Header
-        onSearch={() => setSearching(true)}
-        onSource={() => setSourceOpen(true)}
-        onRail={() => setRailOpen((value) => !value)}
-        railOpen={railOpen}
-      />
-      <div className="schema-viewbar">
-        <Segmented label={t.views.label} value={studio.view} onChange={studio.setView} options={views} />
-      </div>
-      <div className="schema-body">
-        <div
-          ref={railSlot}
-          className={cn('schema-rail-slot', railOpen && 'is-open')}
-          // Below 68rem the rail is a drawer: a dialog while open, out of the Tab order while closed.
-          role={drawer ? 'dialog' : undefined}
-          aria-modal={drawer || undefined}
-          aria-label={drawer ? t.domains.title : undefined}
-          inert={narrow && !railOpen ? true : undefined}
-          onKeyDown={(event) => {
-            if (drawer && matchKey(event, 'Escape')) {
-              event.preventDefault();
-              event.stopPropagation();
-              setRailOpen(false);
-            }
-          }}
-        >
-          <DomainRail />
-        </div>
-        {railOpen && (
-          <button
-            type="button"
-            aria-label={t.actions.close}
-            className="schema-rail-scrim"
-            onClick={() => setRailOpen(false)}
-          />
-        )}
-        <div className="schema-main">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={studio.view}
-              className="schema-view"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.16 }}
-            >
-              {studio.view === 'diagram' && <Diagram />}
-              {studio.view === 'dictionary' && <DictionaryView />}
-              {studio.view === 'enums' && <EnumsView />}
-              {studio.view === 'history' && <HistoryView />}
-            </motion.div>
-          </AnimatePresence>
-          <DraftDock />
-        </div>
-        <AnimatePresence>
-          <Inspector />
+    <div
+      ref={studioBox}
+      className="schema-studio"
+      data-immersive={chrome.immersive || undefined}
+      data-panel={chrome.panel ?? undefined}
+      data-layers={chrome.layers || undefined}
+    >
+      {/* The bars come first in Tab order, then the map's toolbar and its tables (review B2). */}
+      <StartBar onLayers={() => (chrome.layers ? closeLayers() : chrome.setLayers(true))} />
+      <EndBar onSearch={() => setSearching(true)} />
+      <div className="schema-stage">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={studio.view}
+            className="schema-view"
+            data-view={studio.view}
+            initial={{ opacity: 0, scale: 0.995 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.995 }}
+            transition={{ duration: 0.18 }}
+          >
+            {studio.view === 'diagram' && <Diagram />}
+            {studio.view === 'dictionary' && <DictionaryView />}
+            {studio.view === 'enums' && <EnumsView />}
+          </motion.div>
         </AnimatePresence>
       </div>
+      <AnimatePresence>{chrome.layers && <LayersPanel onClose={closeLayers} />}</AnimatePresence>
+      <SidePanel onSource={() => setSourceOpen(true)} />
       <SearchDialog open={searching} onOpenChange={setSearching} />
       <SourceDialog open={sourceOpen} onOpenChange={setSourceOpen} current={studio.data.source} />
       <ChangeDialog />
@@ -380,32 +368,12 @@ function Workspace() {
   );
 }
 
-/** True while the studio is under 68rem, where schema.css turns the rail into a drawer. */
-function useNarrow(box: React.RefObject<HTMLDivElement | null>): boolean {
-  const [narrow, setNarrow] = useState(false);
-  useEffect(() => {
-    const element = box.current;
-    if (!element) return;
-    const rem = () => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const update = () => setNarrow(element.getBoundingClientRect().width <= 68 * rem());
-    update();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [box]);
-  return narrow;
-}
-
 function Loading() {
   const t = useSchemaWords();
   return (
     <LoadingRegion label={t.states.loading} className="schema-studio p-4 md:p-6">
-      <Skeleton className="h-14 w-full" />
-      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-[16rem_1fr]">
-        <Skeleton className="hidden h-96 lg:block" />
-        <Skeleton className="h-96" />
-      </div>
+      <Skeleton className="h-12 w-full" />
+      <Skeleton className="min-h-96 flex-1" />
     </LoadingRegion>
   );
 }

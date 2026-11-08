@@ -3,8 +3,8 @@
 /**
  * @file views.tsx
  * @description Schema Studio's other three views (docs/17 §4). The dictionary: every column as a row, searchable and filterable, named in place, exported as Markdown, shown a page at a
- * time with how many are shown of how many (review M11). The enums: each list with its values, named one by one. The history: each version of the design with what changed, and the
- * drafts that were applied or discarded with Claude's review.
+ * time with how many are shown of how many (review M11). The enums: each list with its values, named one by one. The history, in the side panel: each version of the design with
+ * what changed, and the drafts that were applied or discarded with Claude's review.
  */
 import type { SchemaChangeSummary, SchemaDraftDto } from '@hub/contracts';
 import { changeCount } from '@hub/contracts';
@@ -434,7 +434,8 @@ function ClosedDraft({ draft }: { draft: SchemaDraftDto }) {
   );
 }
 
-export function HistoryView() {
+/** The design's versions and the closed drafts, in the side panel's Overview tab. */
+export function HistoryList() {
   const studio = useStudio();
   const t = useSchemaWords();
   const history = useSchemaHistory(true);
@@ -442,65 +443,56 @@ export function HistoryView() {
     (draft) => draft.status === 'applied' || draft.status === 'discarded',
   );
   return (
-    <div className="schema-scroll">
-      <div className="mx-auto grid w-full max-w-275 gap-8 p-4 md:p-6 lg:grid-cols-[3fr_2fr]">
-        <section className="flex flex-col gap-3">
-          <h2 className="flex items-center gap-2 text-title-sm font-semibold text-foreground">
-            <History aria-hidden className="size-5 text-muted-foreground" strokeWidth={1.75} />
-            {t.history.title}
-          </h2>
-          {history.isPending ? (
-            <SkeletonRows count={4} />
-          ) : (
-            <ol className="schema-timeline">
-              {(history.data?.snapshots ?? []).map((snapshot, index) => (
-                <motion.li
-                  key={snapshot.id}
-                  initial={{ opacity: 0, x: 12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: Math.min(index, 12) * 0.03 }}
-                  className="schema-timeline-item"
-                  data-current={index === 0 || undefined}
-                >
-                  <span className="schema-timeline-dot" aria-hidden>
-                    <GitCommitHorizontal className="size-3.5" strokeWidth={2} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-x-2 text-body-sm text-muted-foreground">
-                      <span className="font-medium text-foreground">
-                        {t.history.triggers[snapshot.trigger]}
-                      </span>
-                      {snapshot.takenBy && <span>{fmt(t.history.by, { name: snapshot.takenBy })}</span>}
-                      <RelativeTime iso={snapshot.createdAt} />
-                      <span className="font-mono" dir="ltr">
-                        {snapshot.hash.slice(0, 8)}
-                      </span>
-                    </p>
-                    <div className="mt-1.5">
-                      <ChangeChips changes={snapshot.changes} />
-                    </div>
+    <>
+      <section className="flex flex-col gap-3">
+        <h3 className="schema-panel-heading">
+          <History aria-hidden className="size-4" strokeWidth={1.75} />
+          {t.history.title}
+        </h3>
+        {history.isPending ? (
+          <SkeletonRows count={3} />
+        ) : (
+          <ol className="schema-timeline">
+            {(history.data?.snapshots ?? []).slice(0, 12).map((snapshot, index) => (
+              <li key={snapshot.id} className="schema-timeline-item" data-current={index === 0 || undefined}>
+                <span className="schema-timeline-dot" aria-hidden>
+                  <GitCommitHorizontal className="size-3.5" strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {t.history.triggers[snapshot.trigger]}
+                    </span>
+                    {snapshot.takenBy && <span>{fmt(t.history.by, { name: snapshot.takenBy })}</span>}
+                    <RelativeTime iso={snapshot.createdAt} />
+                    <span className="font-mono" dir="ltr">
+                      {snapshot.hash.slice(0, 8)}
+                    </span>
+                  </p>
+                  <div className="mt-1.5">
+                    <ChangeChips changes={snapshot.changes} />
                   </div>
-                </motion.li>
-              ))}
-            </ol>
-          )}
-          {history.data && history.data.snapshots.length <= 1 && (
-            <p className="text-body-sm text-muted-foreground">{t.history.empty}</p>
-          )}
-        </section>
-        <section className="flex flex-col gap-3">
-          <h2 className="text-title-sm font-semibold text-foreground">{t.history.drafts}</h2>
-          {closed.length === 0 ? (
-            <p className="text-body-sm text-muted-foreground">{t.history.noDrafts}</p>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {closed.map((draft) => (
-                <ClosedDraft key={draft.id} draft={draft} />
-              ))}
-            </ul>
-          )}
-        </section>
-      </div>
-    </div>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        {history.data && history.data.snapshots.length <= 1 && (
+          <p className="text-body-sm text-muted-foreground">{t.history.empty}</p>
+        )}
+      </section>
+      <section className="flex flex-col gap-3">
+        <h3 className="schema-panel-heading">{t.history.drafts}</h3>
+        {closed.length === 0 ? (
+          <p className="text-body-sm text-muted-foreground">{t.history.noDrafts}</p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {closed.map((draft) => (
+              <ClosedDraft key={draft.id} draft={draft} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }

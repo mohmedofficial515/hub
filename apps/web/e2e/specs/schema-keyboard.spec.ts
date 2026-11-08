@@ -1,7 +1,7 @@
 /**
  * @file The Database page by keyboard in a real browser (docs/17, Slice 6 review B2 and M9): `/` opens the page's search and not the palette, a search pick opens
  * the inspector with focus on its heading, Escape gives focus back to the table, Tab reaches the diagram's toolbar before its tables, Enter on a table opens it, and
- * the domains drawer on a narrow page takes focus and closes on Escape. Runs in `ar` and `en`.
+ * the domains layers take focus and close on Escape. Runs in `ar` and `en`.
  * @description The schema is a throwaway folder in the temp directory, registered on the test's project only for this test and read by the throwaway API, so
  * nothing reaches F:/Goteav or the owner's Hub. Its first model line ends with a comment, as Hub's own `SessionLog` does, so the reader fix is seen in the page.
  */
@@ -70,7 +70,7 @@ const focused = (page: Page) =>
       heading: el?.hasAttribute('data-inspector-heading') ?? false,
       node: el?.classList.contains('react-flow__node-table') ? (el.dataset['id'] ?? null) : null,
       toolbar: !!el?.closest('.schema-toolbar'),
-      inDrawer: !!el?.closest('.schema-rail-slot[role="dialog"]'),
+      inDrawer: !!el?.closest('.schema-layers[role="dialog"]'),
       railToggle: el?.hasAttribute('data-schema-rail-toggle') ?? false,
       text: el?.textContent?.trim().slice(0, 60) ?? '',
     };
@@ -89,7 +89,7 @@ test.describe('Database page by keyboard', () => {
       await expect(page.locator('.react-flow__node-table')).toHaveCount(3);
 
       // `/` is the page's search here, not the global palette (M9).
-      await page.locator('.schema-viewbar button').first().focus();
+      await page.locator('[data-view-switch] button').first().focus();
       await page.keyboard.press('/');
       const search = page.getByRole('dialog', { name: word(t, 'search.title') });
       await expect(search).toBeVisible();
@@ -110,7 +110,7 @@ test.describe('Database page by keyboard', () => {
       await expect.poll(async () => (await focused(page)).node).toBe('BookingNote');
 
       // Tab from the view switch reaches the toolbar before any table.
-      await page.locator('.schema-viewbar button').first().focus();
+      await page.locator('[data-view-switch] button').first().focus();
       let toolbarAt = -1;
       let nodeAt = -1;
       for (let step = 0; step < 80 && nodeAt < 0; step += 1) {
@@ -134,7 +134,7 @@ test.describe('Database page by keyboard', () => {
     }
   });
 
-  test('the domains drawer takes focus, and Escape gives it back to its toggle', async ({
+  test('the domains layers take focus, and Escape gives it back to their toggle', async ({
     page,
     locale,
     ws,
@@ -147,14 +147,14 @@ test.describe('Database page by keyboard', () => {
       await page.goto(view(locale, ws, 'schema'));
       const toggle = page.locator('[data-schema-rail-toggle]');
       await expect(toggle).toBeVisible({ timeout: 30_000 });
-      // Closed, the drawer's buttons are out of the Tab order.
-      await expect(page.locator('.schema-rail-slot')).toHaveAttribute('inert', '');
+      // Closed, the layers are not on the page at all.
+      await expect(page.locator('.schema-layers')).toHaveCount(0);
       await toggle.click();
-      const drawer = page.getByRole('dialog', { name: word(t, 'domains.title') });
-      await expect(drawer).toBeVisible();
+      const layers = page.getByRole('dialog', { name: word(t, 'domains.title') });
+      await expect(layers).toBeVisible();
       await expect.poll(async () => (await focused(page)).inDrawer).toBe(true);
       await page.keyboard.press('Escape');
-      await expect(page.locator('.schema-rail-slot')).not.toHaveClass(/is-open/);
+      await expect(page.locator('.schema-layers')).toHaveCount(0);
       await expect.poll(async () => (await focused(page)).railToggle).toBe(true);
     } finally {
       await schema.cleanup();

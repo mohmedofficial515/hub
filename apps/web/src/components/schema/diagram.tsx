@@ -2,14 +2,17 @@
 
 /**
  * @file diagram.tsx
- * @description The design as a map (docs/17 §4): domains as tinted zones, tables inside them, relations between them. Hover or select a table and its relations light up while the rest fades.
- * Focus shows one table with its neighbours, laid out again tightly. A table dragged keeps its place in this browser; Arrange again forgets them. In Arabic the map reads from the right.
- * By keyboard (review B2): the toolbar comes before the tables in Tab order, Enter or Space on a table opens it in the inspector, and a table reached by Tab far
- * out is brought close. Fitting and centring keep clear of the toolbar on top and the draft dock below (review M8).
+ * @description The design as a full-window map (docs/17 §4), in the manner of a design tool's canvas: domains as quiet zones, tables inside them, relations between them, and a
+ * floating toolbar at the bottom with the zoom and the view's switches. Nothing sits on the map that it does not need.
+ * Smooth by construction: hover and the selection's neighbourhood are painted by one generated stylesheet, and the semantic zoom is a data attribute and a CSS variable on the canvas,
+ * so neither redraws a table. The 3D view tilts the map in perspective with the tables floating over their domains; dragging is off while tilted, because the pointer no longer maps
+ * flat onto the map.
+ * By keyboard (review B2): the toolbar comes before the tables in Tab order, Enter or Space on a table opens it in the panel, and a table reached by Tab far out is brought close.
+ * Fitting and centring keep clear of whatever floats over the canvas: the top bars, the toolbar, the layers and the side panel (review M8).
+ * Keys on the map: Shift+1 or F fits, 0 is 100%, + and − zoom, T tilts, M shows the minimap.
  */
 import '@xyflow/react/dist/style.css';
 
-import type { SchemaRelation } from '@hub/contracts';
 import {
   Background,
   BackgroundVariant,
@@ -22,12 +25,36 @@ import {
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
+  useStore,
 } from '@xyflow/react';
-import { Focus, LayoutGrid, Maximize, Minus, Plus, Sparkles, X } from 'lucide-react';
-import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Box as BoxIcon,
+  Focus,
+  Languages,
+  LayoutGrid,
+  MapIcon,
+  Maximize,
+  Minus,
+  Plus,
+  Rows3,
+  Spline,
+  X,
+} from 'lucide-react';
+import { type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
-import { Button, cn, IconButton, matchKey, Segmented, Tooltip, useLocale, useRoute } from '@/components/kit';
+import {
+  Button,
+  fmt,
+  IconButton,
+  matchKey,
+  num,
+  shortcutsEnabled,
+  Tooltip,
+  useLocale,
+  useRoute,
+} from '@/components/kit';
 
+import { DraftPill } from './draft-dock';
 import {
   type Box,
   coverageOf,
@@ -38,11 +65,15 @@ import {
   nodeHeight,
   visibleFields,
 } from './model';
-import { useSchemaWords, useStudio } from './studio';
-import { DomainNode, type DomainNodeData, HotContext, TableNode, type TableNodeData } from './table-node';
+import { useChrome, useSchemaWords, useStudio } from './studio';
+import { DomainNode, type DomainNodeData, HoverContext, TableNode, type TableNodeData } from './table-node';
 
 const NODE_TYPES = { table: TableNode, domain: DomainNode };
 const GHOST_DOMAIN = '__proposed';
+/** Below `MAP` the map shows blocks and domain names, below `FAR` a table is its name, below `MID` its columns thin out. */
+const MAP = 0.22;
+const FAR = 0.36;
+const MID = 0.7;
 
 type Point = { x: number; y: number };
 
@@ -62,34 +93,54 @@ function writePinned(ws: string, pinned: Record<string, Point>) {
   }
 }
 
-/** What covers the canvas: the toolbar on top and the draft dock below, in pixels from each edge. */
-function coveredEdges(canvas: HTMLElement | null): { top: number; bottom: number; height: number } {
-  if (!canvas) return { top: 0, bottom: 0, height: 0 };
-  const box = canvas.getBoundingClientRect();
-  const toolbar = canvas.querySelector<HTMLElement>('.schema-toolbar')?.getBoundingClientRect();
-  const dock = canvas
-    .closest('.schema-main')
-    ?.querySelector<HTMLElement>('.schema-dock')
-    ?.getBoundingClientRect();
-  return {
-    top: toolbar ? Math.max(0, toolbar.bottom - box.top) : 0,
-    bottom: dock ? Math.max(0, box.bottom - dock.top) : 0,
-    height: box.height,
-  };
+interface Covered {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+  width: number;
+  height: number;
 }
 
-/** Fit padding that keeps the top row of domains out from under the toolbar and the last one above the dock. */
+/** How far in from each edge the floating parts cover the canvas: the top bars, the toolbar, the layers and the side panel. */
+function coveredEdges(canvas: HTMLElement | null): Covered {
+  const none = { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+  if (!canvas) return none;
+  const box = canvas.getBoundingClientRect();
+  const covered = { ...none, width: box.width, height: box.height };
+  const studio = canvas.closest('.schema-studio');
+  const rect = (selector: string) =>
+    [...(studio?.querySelectorAll<HTMLElement>(selector) ?? [])].map((element) =>
+      element.getBoundingClientRect(),
+    );
+  for (const bar of rect('.schema-topbar')) covered.top = Math.max(covered.top, bar.bottom - box.top);
+  for (const bar of rect('.schema-toolbar')) covered.bottom = Math.max(covered.bottom, box.bottom - bar.top);
+  for (const side of rect('.schema-layers, .schema-panel')) {
+    if (side.width === 0) continue;
+    if (side.left + side.width / 2 < box.left + box.width / 2) {
+      covered.left = Math.max(covered.left, side.right - box.left);
+    } else {
+      covered.right = Math.max(covered.right, box.right - side.left);
+    }
+  }
+  return covered;
+}
+
+/** Fit padding that keeps every domain out from under what floats over the canvas. */
 function fitPadding(canvas: HTMLElement | null) {
   const covered = coveredEdges(canvas);
   if (!covered.height) return INITIAL_FIT_PADDING;
+  const px = (value: number) => `${Math.round(value + 20)}px` as const;
   return {
-    top: `${Math.round(covered.top + 16)}px`,
-    bottom: `${Math.round(covered.bottom + 16)}px`,
-    x: '4%',
-  } as const;
+    // Far out, a domain's name stands above its zone, so the top keeps room for the first row's names.
+    top: px(covered.top + 28),
+    bottom: px(covered.bottom),
+    left: px(covered.left),
+    right: px(covered.right),
+  };
 }
 
-const INITIAL_FIT_PADDING = { top: '84px', bottom: '72px', x: '4%' } as const;
+const INITIAL_FIT_PADDING = { top: '80px', bottom: '84px', left: '40px', right: '40px' } as const;
 
 function sides(from: Box, to: Box): { sourceHandle: string; targetHandle: string } {
   const fromCentre = from.x + from.width / 2;
@@ -100,8 +151,24 @@ function sides(from: Box, to: Box): { sourceHandle: string; targetHandle: string
     : { sourceHandle: 'l', targetHandle: 'tr' };
 }
 
+/** Writes the zoom onto the canvas, for the stylesheet: `data-zoom` and `--schema-zinv`. One tiny component re-renders per frame; no table does. */
+function ZoomMarks({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
+  const zoom = useStore((state) => state.transform[2]);
+  useLayoutEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    element.style.setProperty('--schema-zinv', (1 / zoom).toFixed(4));
+    const tier = zoom < MAP ? 'map' : zoom < FAR ? 'far' : zoom < MID ? 'mid' : 'near';
+    if (element.dataset.zoom !== tier) element.dataset.zoom = tier;
+  }, [zoom, canvas]);
+  return null;
+}
+
+const quoted = (value: string) => `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+
 function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
   const studio = useStudio();
+  const chrome = useChrome();
   const t = useSchemaWords();
   const locale = useLocale();
   const { ws } = useRoute();
@@ -110,7 +177,6 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
   const { doc, prefs, focus, marks } = studio;
 
   const [pinned, setPinned] = useState<Record<string, Point>>(() => readPinned(ws));
-  const [hovered, setHovered] = useState<string | null>(null);
 
   const shown = useMemo(() => {
     if (focus) return neighbourhood(doc, focus, 1, prefs.implied);
@@ -181,7 +247,9 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
         id: name,
         type: 'table',
         position: { x: box.x, y: box.y },
-        data: ghost ? { model: name, ghost: { summary: ghost.change.summary } } : { model: name },
+        data: ghost
+          ? { model: name, height: box.height, ghost: { summary: ghost.change.summary } }
+          : { model: name, height: box.height },
         width: NODE_WIDTH,
         style: { width: NODE_WIDTH },
         draggable: !ghost,
@@ -259,12 +327,6 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
     [onNodesChangeBase, setNodes, doc, heightOf, focus, ws],
   );
 
-  const active = hovered ?? studio.selection?.name ?? null;
-  const hot = useMemo(
-    () => (active && shown.has(active) ? neighbourhood(doc, active, 1, prefs.implied) : null),
-    [active, shown, doc, prefs.implied],
-  );
-
   const edges = useMemo((): Edge[] => {
     const positions = new Map(
       nodes
@@ -281,43 +343,92 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
     );
     return doc.relations
       .filter(
-        (relation: SchemaRelation) =>
+        (relation) =>
           (prefs.implied || !relation.implied) && positions.has(relation.from) && positions.has(relation.to),
       )
-      .map((relation) => {
-        const lit = active !== null && (relation.from === active || relation.to === active);
-        const faded = active !== null && !lit;
-        return {
-          id: relation.id,
-          source: relation.from,
-          target: relation.to,
-          type: 'smoothstep',
-          ...sides(positions.get(relation.from)!, positions.get(relation.to)!),
-          animated: lit,
-          className: cn(
-            'schema-edge',
-            relation.implied && 'schema-edge-implied',
-            lit && 'schema-edge-lit',
-            faded && 'schema-edge-faded',
-          ),
-          markerEnd: {
-            type: relation.cardinality === 'one_to_one' ? MarkerType.Arrow : MarkerType.ArrowClosed,
-            width: 14,
-            height: 14,
-          },
-          zIndex: lit ? 1 : 0,
-          focusable: false,
-        } satisfies Edge;
-      });
-  }, [nodes, doc.relations, prefs.implied, active, heightOf]);
+      .map(
+        (relation) =>
+          ({
+            id: relation.id,
+            source: relation.from,
+            target: relation.to,
+            type: 'smoothstep',
+            pathOptions: { borderRadius: 18 },
+            ...sides(positions.get(relation.from)!, positions.get(relation.to)!),
+            className: relation.implied ? 'schema-edge schema-edge-implied' : 'schema-edge',
+            markerEnd: {
+              type: relation.cardinality === 'one_to_one' ? MarkerType.Arrow : MarkerType.ArrowClosed,
+              width: 14,
+              height: 14,
+            },
+            focusable: false,
+          }) as Edge,
+      );
+  }, [nodes, doc.relations, prefs.implied, heightOf]);
 
-  // Centre a table in the part of the canvas nothing covers: below the toolbar, above the dock. A table taller than that starts just under the toolbar.
+  // ── Hover and the selection's neighbourhood, painted by one stylesheet ────────────────────────
+
+  const paintSheet = useRef<HTMLStyleElement>(null);
+  const hovered = useRef<string | null>(null);
+  const selectedName = studio.selection?.name ?? null;
+  const paint = useCallback(
+    (active: string | null) => {
+      const sheet = paintSheet.current;
+      const box = canvas.current;
+      if (!sheet || !box) return;
+      if (!active || !shown.has(active)) {
+        sheet.textContent = '';
+        delete box.dataset.hot;
+        return;
+      }
+      const hot = neighbourhood(doc, active, 1, prefs.implied);
+      const lit = doc.relations
+        .filter(
+          (relation) =>
+            (prefs.implied || !relation.implied) && (relation.from === active || relation.to === active),
+        )
+        .map((relation) => relation.id);
+      const tables = [...hot].map((name) => `[data-id=${quoted(name)}]`).join(',');
+      const lines = [
+        `.schema-canvas[data-hot] .react-flow__node-table:not(${tables}) .schema-node{opacity:.2}`,
+        `.schema-canvas[data-hot] .react-flow__edge${lit.length ? `:not(${lit.map((id) => `[data-id=${quoted(id)}]`).join(',')})` : ''}{opacity:.07}`,
+      ];
+      if (lit.length) {
+        lines.push(
+          `.schema-canvas[data-hot] :is(${lit.map((id) => `.react-flow__edge[data-id=${quoted(id)}]`).join(',')}) .react-flow__edge-path{stroke:var(--primary);stroke-width:2.2;stroke-dasharray:8 6;animation:schema-flow .8s linear infinite}`,
+        );
+      }
+      sheet.textContent = lines.join('\n');
+      box.dataset.hot = '';
+    },
+    [canvas, shown, doc, prefs.implied],
+  );
+  const paintRef = useRef(paint);
+  const selectedRef = useRef(selectedName);
+  useLayoutEffect(() => {
+    paintRef.current = paint;
+    selectedRef.current = selectedName;
+    paint(hovered.current ?? selectedName);
+  }, [paint, selectedName]);
+  const hover = useCallback((model: string | null) => {
+    hovered.current = model;
+    paintRef.current(model ?? selectedRef.current);
+  }, []);
+
+  // ── Moving the view ───────────────────────────────────────────────────────────────────────────
+
+  const fit = useCallback(
+    (duration = 450) => void flow.fitView({ padding: fitPadding(canvas.current), duration }),
+    [flow, canvas],
+  );
+
+  // Centre a table in the part of the canvas nothing covers. A table taller than that starts just under the top bars.
   const centreOn = useCallback(
     (node: Node, zoom: number, duration: number) => {
       const covered = coveredEdges(canvas.current);
       const height = node.measured?.height ?? 200;
       const clear = covered.height - covered.top - covered.bottom;
-      const x = node.position.x + NODE_WIDTH / 2;
+      const x = node.position.x + NODE_WIDTH / 2 - (covered.left - covered.right) / 2 / zoom;
       const y =
         height * zoom + 24 <= clear
           ? node.position.y + height / 2 + (covered.bottom - covered.top) / 2 / zoom
@@ -327,7 +438,7 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
     [canvas, flow],
   );
 
-  // Centre on a table asked for by search, the inspector or the dictionary.
+  // Centre on a table asked for by search, the panel, the layers or the dictionary.
   const lastReveal = useRef(0);
   useEffect(() => {
     const reveal = studio.reveal;
@@ -335,18 +446,15 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
     lastReveal.current = reveal.tick;
     const node = nodes.find((entry) => entry.id === reveal.model);
     if (!node) return;
-    centreOn(node, 1, 600);
-  }, [studio.reveal, nodes, centreOn]);
+    centreOn(node, Math.max(flow.getZoom(), 0.9), 650);
+  }, [studio.reveal, nodes, centreOn, flow]);
 
   // A new focus or filter fits the view to what is shown.
   const fitKey = `${focus ?? ''}|${prefs.hidden.join(',')}`;
   useEffect(() => {
-    const id = window.setTimeout(
-      () => void flow.fitView({ padding: fitPadding(canvas.current), duration: 500 }),
-      60,
-    );
+    const id = window.setTimeout(() => fit(550), 60);
     return () => window.clearTimeout(id);
-  }, [fitKey, flow, canvas]);
+  }, [fitKey, fit]);
 
   // A table reached by Tab while the map is far out comes close enough to read (review B2).
   useEffect(() => {
@@ -362,23 +470,46 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
     return () => box.removeEventListener('focusin', onFocus);
   }, [canvas, flow, centreOn]);
 
-  const hotValue = useMemo(() => ({ hot, active, hover: setHovered }), [hot, active]);
+  // The map's own keys, when nothing is being typed and no dialog is open.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || !shortcutsEnabled()) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"]')
+      )
+        return;
+      const run = (action: () => void) => {
+        event.preventDefault();
+        action();
+      };
+      if ((event.code === 'Digit1' && event.shiftKey) || matchKey(event, 'f')) run(() => fit());
+      else if (event.code === 'Digit0' || event.key === '0')
+        run(() => void flow.zoomTo(1, { duration: 300 }));
+      else if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd')
+        run(() => void flow.zoomIn({ duration: 220 }));
+      else if (event.key === '-' || event.code === 'NumpadSubtract')
+        run(() => void flow.zoomOut({ duration: 220 }));
+      else if (matchKey(event, 't')) run(() => chrome.setTilt(!chrome.tilt));
+      else if (matchKey(event, 'm')) run(() => chrome.setMinimap(!chrome.minimap));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [fit, flow, chrome]);
 
   return (
-    <HotContext.Provider value={hotValue}>
+    <HoverContext.Provider value={hover}>
+      <style ref={paintSheet} />
       <Toolbar
-        onFit={() => void flow.fitView({ padding: fitPadding(canvas.current), duration: 400 })}
+        onFit={() => fit(400)}
         onRelayout={() => {
           setPinned({});
           writePinned(ws, {});
-          window.setTimeout(
-            () => void flow.fitView({ padding: fitPadding(canvas.current), duration: 400 }),
-            60,
-          );
+          window.setTimeout(() => fit(450), 60);
         }}
       />
       {focus && (
-        <div className="schema-focus-pill">
+        <div className="schema-focus-pill" dir={rtl ? 'rtl' : 'ltr'}>
           <Focus aria-hidden className="size-4" strokeWidth={1.75} />
           <span className="font-mono text-body-sm" dir="ltr">
             {focus}
@@ -403,40 +534,95 @@ function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
         }}
         onPaneClick={() => studio.select(null)}
         nodesConnectable={false}
+        nodesDraggable={!chrome.tilt}
         elementsSelectable
-        onlyRenderVisibleElements
-        minZoom={0.08}
-        maxZoom={2}
+        zoomOnDoubleClick={false}
+        minZoom={0.06}
+        maxZoom={2.5}
         fitView
         fitViewOptions={{ padding: INITIAL_FIT_PADDING }}
         proOptions={{ hideAttribution: true }}
         className="schema-flow"
       >
-        <Background variant={BackgroundVariant.Dots} gap={22} size={1.2} className="schema-bg" />
-        <MiniMap
-          pannable
-          zoomable
-          className="schema-minimap"
-          nodeColor={(node) =>
-            node.type === 'domain'
-              ? 'transparent'
-              : `var(--type-${studio.tones.get(doc.models.find((model) => model.name === node.id)?.domain ?? '') ?? 'doc'})`
-          }
-          nodeStrokeWidth={0}
-          maskColor="var(--schema-mask)"
-        />
+        <ZoomMarks canvas={canvas} />
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} className="schema-bg" />
+        {chrome.minimap && !chrome.panel && (
+          <MiniMap
+            pannable
+            zoomable
+            position={rtl ? 'bottom-left' : 'bottom-right'}
+            className="schema-minimap"
+            ariaLabel={t.chrome.minimap}
+            nodeColor={(node) =>
+              node.type === 'domain'
+                ? 'transparent'
+                : `var(--type-${studio.tones.get(doc.models.find((model) => model.name === node.id)?.domain ?? '') ?? 'doc'})`
+            }
+            nodeBorderRadius={6}
+            nodeStrokeWidth={0}
+            maskColor="var(--schema-mask)"
+          />
+        )}
       </ReactFlow>
-      <Legend />
-    </HotContext.Provider>
+    </HoverContext.Provider>
+  );
+}
+
+/** The zoom as a percentage; a press fits the map. */
+function ZoomLevel({ onFit }: { onFit: () => void }) {
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const pct = useStore((state) => Math.round(state.transform[2] * 100));
+  return (
+    <Tooltip content={t.chrome.zoomTip}>
+      <button
+        type="button"
+        className="schema-zoom-level"
+        onClick={onFit}
+        aria-label={fmt(t.chrome.zoomLevel, { pct: num(pct, locale) })}
+      >
+        {fmt(t.stats.pct, { pct: num(pct, locale) })}
+      </button>
+    </Tooltip>
+  );
+}
+
+function Toggle({
+  pressed,
+  label,
+  tip,
+  onPress,
+  children,
+}: {
+  pressed: boolean;
+  label: string;
+  tip: string;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip content={tip}>
+      <IconButton
+        label={label}
+        aria-pressed={pressed}
+        data-pressed={pressed || undefined}
+        className="schema-tool"
+        onClick={onPress}
+      >
+        {children}
+      </IconButton>
+    </Tooltip>
   );
 }
 
 function Toolbar({ onRelayout, onFit }: { onRelayout: () => void; onFit: () => void }) {
   const studio = useStudio();
+  const chrome = useChrome();
   const t = useSchemaWords();
   const locale = useLocale();
   const flow = useReactFlow();
   const { prefs } = studio;
+  const icon = 'size-4';
   return (
     <div
       className="schema-toolbar"
@@ -444,84 +630,97 @@ function Toolbar({ onRelayout, onFit }: { onRelayout: () => void; onFit: () => v
       aria-label={t.views.diagram}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
     >
-      <Segmented
-        label={t.actions.detail}
-        value={prefs.detail}
-        onChange={(detail) => studio.setPrefs({ detail })}
-        options={[
-          { value: 'keys', label: t.actions.detailKeys },
-          { value: 'all', label: t.actions.detailAll },
-        ]}
-      />
-      <Segmented
-        label={t.actions.labels}
-        value={prefs.labels}
-        onChange={(labels) => studio.setPrefs({ labels })}
-        options={[
-          { value: 'ar', label: t.actions.labelsAr },
-          { value: 'code', label: t.actions.labelsEn },
-        ]}
-      />
-      <label className="schema-toggle">
-        <input
-          type="checkbox"
-          checked={prefs.implied}
-          onChange={(event) => studio.setPrefs({ implied: event.target.checked })}
-        />
-        <span>{t.actions.implied}</span>
-      </label>
-      <span className="schema-toolbar-gap" />
-      <IconButton label={t.actions.zoomOut} onClick={() => void flow.zoomOut({ duration: 200 })}>
-        <Minus aria-hidden className="size-4" strokeWidth={1.75} />
-      </IconButton>
-      <IconButton label={t.actions.zoomIn} onClick={() => void flow.zoomIn({ duration: 200 })}>
-        <Plus aria-hidden className="size-4" strokeWidth={1.75} />
-      </IconButton>
-      <IconButton label={t.actions.fit} onClick={onFit}>
-        <Maximize aria-hidden className="size-4" strokeWidth={1.75} />
-      </IconButton>
-      <Tooltip content={t.actions.relayoutTip}>
-        <IconButton label={t.actions.relayout} onClick={onRelayout}>
-          <LayoutGrid aria-hidden className="size-4" strokeWidth={1.75} />
-        </IconButton>
-      </Tooltip>
-    </div>
-  );
-}
-
-function Legend() {
-  const t = useSchemaWords();
-  return (
-    <div className="schema-legend" aria-label={t.legend.title}>
-      <span className="schema-legend-item">
-        <span className="schema-legend-line" aria-hidden />
-        {t.legend.declared}
-      </span>
-      <span className="schema-legend-item">
-        <span className="schema-legend-line schema-legend-dashed" aria-hidden />
-        {t.legend.implied}
-      </span>
-      <span className="schema-legend-item">
-        <Sparkles aria-hidden className="size-3.5 text-info-soft-foreground" strokeWidth={2} />
-        {t.legend.changed}
-      </span>
-      <span className="schema-legend-item">
-        <Plus aria-hidden className="size-3.5 text-success-soft-foreground" strokeWidth={2} />
-        {t.legend.proposed}
-      </span>
+      <div className="schema-toolbar-group">
+        <Tooltip content={t.chrome.keys.zoomOut}>
+          <IconButton
+            label={t.actions.zoomOut}
+            className="schema-tool"
+            onClick={() => void flow.zoomOut({ duration: 220 })}
+          >
+            <Minus aria-hidden className={icon} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+        <ZoomLevel onFit={onFit} />
+        <Tooltip content={t.chrome.keys.zoomIn}>
+          <IconButton
+            label={t.actions.zoomIn}
+            className="schema-tool"
+            onClick={() => void flow.zoomIn({ duration: 220 })}
+          >
+            <Plus aria-hidden className={icon} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip content={t.chrome.keys.fit}>
+          <IconButton label={t.actions.fit} className="schema-tool" onClick={onFit}>
+            <Maximize aria-hidden className={icon} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </div>
+      <span className="schema-toolbar-gap" aria-hidden />
+      <div className="schema-toolbar-group">
+        <Toggle
+          pressed={prefs.detail === 'all'}
+          label={t.actions.detailAll}
+          tip={prefs.detail === 'all' ? t.actions.detailKeys : t.actions.detailAll}
+          onPress={() => studio.setPrefs({ detail: prefs.detail === 'all' ? 'keys' : 'all' })}
+        >
+          <Rows3 aria-hidden className={icon} strokeWidth={1.75} />
+        </Toggle>
+        <Toggle
+          pressed={prefs.labels === 'ar'}
+          label={t.chrome.arabicNames}
+          tip={prefs.labels === 'ar' ? t.chrome.showCode : t.chrome.showArabic}
+          onPress={() => studio.setPrefs({ labels: prefs.labels === 'ar' ? 'code' : 'ar' })}
+        >
+          <Languages aria-hidden className={icon} strokeWidth={1.75} />
+        </Toggle>
+        <Toggle
+          pressed={prefs.implied}
+          label={t.actions.implied}
+          tip={t.actions.implied}
+          onPress={() => studio.setPrefs({ implied: !prefs.implied })}
+        >
+          <Spline aria-hidden className={icon} strokeWidth={1.75} />
+        </Toggle>
+        <Toggle
+          pressed={chrome.tilt}
+          label={t.chrome.tilt}
+          tip={t.chrome.tiltTip}
+          onPress={() => chrome.setTilt(!chrome.tilt)}
+        >
+          <BoxIcon aria-hidden className={icon} strokeWidth={1.75} />
+        </Toggle>
+        <Toggle
+          pressed={chrome.minimap}
+          label={t.chrome.minimap}
+          tip={t.chrome.keys.minimap}
+          onPress={() => chrome.setMinimap(!chrome.minimap)}
+        >
+          <MapIcon aria-hidden className={icon} strokeWidth={1.75} />
+        </Toggle>
+        <Tooltip content={t.actions.relayoutTip}>
+          <IconButton label={t.actions.relayout} className="schema-tool" onClick={onRelayout}>
+            <LayoutGrid aria-hidden className={icon} strokeWidth={1.75} />
+          </IconButton>
+        </Tooltip>
+      </div>
+      <span className="schema-toolbar-gap" aria-hidden />
+      <DraftPill />
     </div>
   );
 }
 
 export function Diagram() {
   const studio = useStudio();
+  const chrome = useChrome();
   const canvas = useRef<HTMLDivElement>(null);
   return (
     <div
       ref={canvas}
       className="schema-canvas"
       dir="ltr"
-      // Enter or Space on a table opens it in the inspector, as a click does, and moves focus there (review B2).
+      data-tilt={chrome.tilt || undefined}
+      // Enter or Space on a table opens it in the panel, as a click does, and moves focus there (review B2).
       onKeyDown={(event) => {
         if (!matchKey(event, 'Enter') && !matchKey(event, ' ')) return;
         const target = event.target as HTMLElement;

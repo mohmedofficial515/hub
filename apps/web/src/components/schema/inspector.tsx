@@ -7,7 +7,6 @@
  */
 import type { SchemaAnnotationDto, SchemaEnum, SchemaField, SchemaModel, Sensitivity } from '@hub/contracts';
 import { SENSITIVITIES } from '@hub/contracts';
-import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,7 +16,6 @@ import {
   GitPullRequestDraft,
   Link2,
   Sparkles,
-  X,
 } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
@@ -29,7 +27,6 @@ import {
   fill,
   fmt,
   focusRing,
-  IconButton,
   kitMessages,
   matchKey,
   RelativeTime,
@@ -645,18 +642,18 @@ function EnumValueRow({ name, value, doc }: { name: string; value: string; doc: 
   );
 }
 
+/** What is selected, in the side panel's Details tab. Escape closes the panel and gives focus back to what opened it (review B2). */
 export function Inspector() {
   const studio = useStudio();
-  const t = useSchemaWords();
   const selection = studio.selection;
-  const aside = useRef<HTMLElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const tick = studio.inspectorFocus;
   useEffect(() => {
     if (!tick) return;
     // After a dialog that opened it has given focus back to its opener.
     const id = window.setTimeout(
       () =>
-        aside.current?.querySelector<HTMLElement>('[data-inspector-heading]')?.focus({ preventScroll: true }),
+        box.current?.querySelector<HTMLElement>('[data-inspector-heading]')?.focus({ preventScroll: true }),
       60,
     );
     return () => window.clearTimeout(id);
@@ -668,14 +665,10 @@ export function Inspector() {
     selection.kind === 'enum' ? studio.doc.enums.find((entry) => entry.name === selection.name) : undefined;
   if (!model && !value) return null;
   return (
-    <motion.aside
+    <div
       key={selection.kind + selection.name}
-      initial={{ opacity: 0, x: 24 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.22, ease: 'easeOut' }}
-      ref={aside}
+      ref={box}
       className="schema-inspector"
-      aria-label={t.inspector.label}
       onKeyDown={(event) => {
         const typing = (event.target as HTMLElement).closest('input, textarea, select, [role="dialog"]');
         if (matchKey(event, 'Escape') && !typing) {
@@ -686,14 +679,7 @@ export function Inspector() {
       }}
       data-schema-inspector
     >
-      <IconButton
-        label={t.actions.close}
-        className="schema-inspector-close"
-        onClick={() => studio.closeInspector()}
-      >
-        <X aria-hidden className="size-4" strokeWidth={1.75} />
-      </IconButton>
       {model ? <ModelInspector model={model} /> : value ? <EnumInspector value={value} /> : null}
-    </motion.aside>
+    </div>
   );
 }

@@ -43,21 +43,47 @@ The Database page under **Admin** (`/<locale>/<project>/schema`) is where the te
 
 ## 4. The page
 
-- **Header.** The source and when it was read, the counts, the Arabic-name coverage, and how many names are not in the files yet. Actions: Search (`/`), Suggest Arabic names, Write names to the files, Refresh design.
-- **Domains.** One per Prisma file, each with a colour, its table count and a coverage ring. You can show, hide or isolate a domain, or ask Claude to name it.
-- **Diagram** (React Flow).
-  - Each domain is a quiet zone with its coloured dot, and each table shows its Arabic or code name and its key columns (or all of them).
-  - Hovering or selecting a table lights up its relations and fades the rest. Double-clicking focuses on a table and its neighbours.
-  - Dragging a table keeps it there in this browser.
-  - Zoomed far out, the domain names grow so the map stays readable.
-  - It also has a minimap, a legend, marks for what changed in the last version, and ghost marks for what the draft proposes. The minimap and the legend step aside while a table is open, and fitting or centring keeps clear of the toolbar and the dock.
-- **Inspector.** For a table, a column or an enum: the Arabic fields, saved on blur; what the files say; the relations both ways; indexes; and Propose a change.
-- **Dictionary.** Every column in one table that you can search and filter, with the Arabic name edited in place. It exports as Markdown.
-- **Enums.** Each enum with its values, each value named on its own.
-- **History.** The versions of the design with what changed, and the closed drafts with Claude's review.
-- **Draft dock.** The changes in order, which you can edit, reorder or remove. Its button is "Review and apply with Claude". While Claude reviews or applies it, a status pill says so.
-- **Surfaces (owner, 2026-11-08, review B3).** Hub's own: every card is one neutral surface with one neutral border, a domain shows as its small coloured dot, no row is tinted, nothing has a gradient, no shadow is deeper than `shadow-md`. What changed in the last version is a sparkle icon, a proposed change a small badge or icon.
-- **Keyboard (review B2, M9).** `/` (or Ctrl+Shift+K) opens the page's search, not the global palette. The diagram's toolbar comes before its tables in Tab order; Enter or Space on a table opens it in the inspector, and a table reached by Tab far out is brought close. Opening from search, the dictionary or a table moves focus to the inspector's heading; Escape closes it and gives focus back. Below 68rem the domains are a drawer that takes focus and closes on Escape.
+The owner asked on 2026-11-09 for a page with less on it: a full-screen workspace like a design tool's, where the map is the page, responds to zoom, and is smooth, with a side panel that opens only when needed. The page follows that request.
+
+- **Full screen.** By default the workspace covers Hub's sidebar and header, and sits under Hub's dialogs, toasts and tooltips. The full-screen button on the end bar leaves full screen or comes back to it, and coming back also asks the browser for full screen. A press that reaches Claude (Review and apply, Suggest Arabic names) leaves full screen first, because Claude answers in the panel beside the page.
+- **Two floating bars on top.** The start bar holds:
+  - the layers button (L);
+  - the title, with the source and how many tables;
+  - the three views: Map, Dictionary and Enums.
+
+  The end bar holds Search (`/`), Suggest Arabic names, Refresh design, the side panel (I) and full screen. On a phone the two bars stack.
+- **Map** (React Flow). It fills the window.
+  - Domains are quiet zones and tables are neutral cards.
+  - Hovering a table, or selecting it, lights its relations and fades the rest. One generated stylesheet paints this, so no table redraws.
+  - A selected table wears a frame with corner handles and a label with its column count.
+  - Double-click focuses on a table and its neighbours. A dragged table keeps its place in this browser.
+- **Semantic zoom** (`data-zoom` and `--schema-zinv` on the canvas, again with no redraw):
+  - **near**: every column.
+  - **mid**: the column types fade.
+  - **far**: a table is its name. Domain names stand above their zones and grow against the zoom, and implied relations step back.
+  - **map**: tables are blocks with their domain's dot, and only the domains are named.
+- **Toolbar** at the bottom. It shows the zoom out and zoom in buttons, the zoom level (a press fits the map) and Fit, then switches for all columns, Arabic or code names, implied relations, the 3D view, the minimap, and Arrange again. Its last item is the draft pill, with the draft's status and count. Keys: Shift+1 or F fits, 0 is 100%, + and − zoom, T tilts, M toggles the minimap.
+- **3D view** (T). The map tilts in perspective: domains lie flat, tables float above them, and a hovered or selected table rises higher. Dragging is off while tilted.
+- **Layers** (L). They float over the start side.
+  - Each domain shows its colour, its table count and a coverage ring.
+  - A domain opens to its tables, and pressing a table opens it and brings it to the middle of the map.
+  - The eye shows or hides a domain, and "Only this" isolates it.
+  - The layers take focus when they open, and Escape gives focus back to their toggle.
+- **Side panel** (I). It floats over the end side, closed until needed, with three tabs:
+  - **Details:** what is selected (table, column or enum), edited in place, with what the files say, its relations, its indexes and Propose a change. When nothing is selected, it says how to select something.
+  - **Overview:** the source and its version, the counts, Arabic-name coverage overall and by domain, Suggest Arabic names, Write names to the files, the most connected tables, the legend, the design's versions and the closed drafts.
+  - **Draft:** the open draft's changes in order, which you can edit, reorder or remove, and "Review and apply with Claude".
+- **Dictionary and Enums.** These are the same as before, under the bars.
+- **Surfaces (owner, 2026-11-08, review B3).** Hub's own:
+  - every card and bar is one neutral surface with one neutral border;
+  - a domain shows as its small coloured dot and a quiet zone;
+  - no row is tinted, nothing has a gradient, and no shadow is deeper than `shadow-md`;
+  - the selection frame uses the focus-ring colour.
+- **Keyboard (review B2, M9).**
+  - `/` (or Ctrl+Shift+K) opens the page's search, not the global palette.
+  - Tab order runs through the bars, the toolbar, then the tables.
+  - Enter or Space on a table opens it in the panel, and a table reached by Tab far out is brought close.
+  - Opening from search, the dictionary or a table moves focus to the panel's heading. Escape closes it and gives focus back.
 
 ## 5. Out of the first release
 

@@ -4,6 +4,7 @@
  * @file studio.tsx
  * @description Schema Studio's shared state (docs/17 §4): the design, its names and the open draft, what is selected and how the diagram is drawn, and the two presses that reach Claude.
  * The view settings are remembered per member in this browser, behind try/catch, so a private window still works. Everything the team shares lives in the API.
+ * The workspace's chrome (the side panel, the layers, full screen, the 3D tilt, the minimap) is a second context, so opening a panel never redraws the tables.
  */
 import {
   isPossible,
@@ -13,7 +14,16 @@ import {
   schemaNamesPrompt,
   type SchemaStudioDto,
 } from '@hub/contracts';
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { fmt, showToast, useSession, useT } from '@/components/kit';
 import { activeChatId, revealChat, send, setFolder, useMaybeWb } from '@/components/workbench/store';
@@ -41,7 +51,10 @@ import {
 export type SchemaMessages = typeof messages;
 export const useSchemaWords = () => useT<SchemaMessages>('schema');
 
-export type StudioView = 'diagram' | 'dictionary' | 'enums' | 'history';
+export type StudioView = 'diagram' | 'dictionary' | 'enums';
+
+/** The side panel's tabs: what is selected, the design's numbers and history, and the open draft. */
+export type PanelTab = 'details' | 'overview' | 'draft';
 
 export interface Selection {
   kind: 'model' | 'enum';
@@ -67,20 +80,61 @@ interface Prefs {
 
 const DEFAULT_PREFS: Prefs = { labels: 'ar', detail: 'keys', implied: true, hidden: [] };
 
-function readPrefs(): Prefs {
+function readStored<T extends object>(key: string, fallback: T): T {
   try {
-    const raw = window.localStorage.getItem(PREFS_KEY);
-    return raw ? { ...DEFAULT_PREFS, ...(JSON.parse(raw) as Partial<Prefs>) } : DEFAULT_PREFS;
+    const raw = window.localStorage.getItem(key);
+    return raw ? { ...fallback, ...(JSON.parse(raw) as Partial<T>) } : fallback;
   } catch {
-    return DEFAULT_PREFS;
+    return fallback;
   }
 }
 
-function writePrefs(prefs: Prefs) {
+function writeStored(key: string, value: object) {
   try {
-    window.localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    window.localStorage.setItem(key, JSON.stringify(value));
   } catch {
     /* A private window or blocked storage: the view simply is not remembered. */
+  }
+}
+
+const readPrefs = () => readStored(PREFS_KEY, DEFAULT_PREFS);
+
+const CHROME_KEY = 'hub:schema:chrome';
+
+interface ChromePrefs {
+  /** The workspace covers the whole window, over Hub's sidebar and header. */
+  immersive: boolean;
+  /** The map tilted in perspective, tables floating over their domains. */
+  tilt: boolean;
+  minimap: boolean;
+}
+
+const DEFAULT_CHROME: ChromePrefs = { immersive: true, tilt: false, minimap: true };
+
+export interface Chrome extends ChromePrefs {
+  panel: PanelTab | null;
+  setPanel: (tab: PanelTab | null) => void;
+  /** Opens the panel on its last tab, or closes it. */
+  togglePanel: () => void;
+  layers: boolean;
+  setLayers: (open: boolean) => void;
+  /** `browser` also asks the browser for full screen, which needs the press itself. */
+  setImmersive: (on: boolean, options?: { browser?: boolean }) => void;
+  setTilt: (on: boolean) => void;
+  setMinimap: (on: boolean) => void;
+}
+
+const ChromeCtx = createContext<Chrome | null>(null);
+
+export function useChrome(): Chrome {
+  const chrome = useContext(ChromeCtx);
+  if (!chrome) throw new Error('useChrome needs StudioProvider');
+  return chrome;
+}
+
+function leaveBrowserFullscreen() {
+  if (typeof document !== 'undefined' && document.fullscreenElement) {
+    void document.exitFullscreen().catch(() => {});
   }
 }
 
@@ -152,6 +206,10 @@ export function StudioProvider({
   const [selection, setSelection] = useState<Selection | null>(null);
   const [focus, setFocus] = useState<string | null>(null);
   const [prefs, setPrefsState] = useState<Prefs>(readPrefs);
+  const [chromePrefs, setChromePrefs] = useState<ChromePrefs>(() => readStored(CHROME_KEY, DEFAULT_CHROME));
+  const [panel, setPanelState] = useState<PanelTab | null>(null);
+  const lastTab = useRef<PanelTab>('overview');
+  const [layers, setLayers] = useState(false);
   const [reveal, setReveal] = useState<Studio['reveal']>(null);
   const [proposing, setProposing] = useState<ChangeDraftInput | null>(null);
 
@@ -181,15 +239,46 @@ export function StudioProvider({
   const setPrefs = useCallback((change: Partial<Prefs>) => {
     setPrefsState((before) => {
       const next = { ...before, ...change };
-      writePrefs(next);
+      writeStored(PREFS_KEY, next);
       return next;
     });
   }, []);
+
+  const setChrome = useCallback((change: Partial<ChromePrefs>) => {
+    setChromePrefs((before) => {
+      const next = { ...before, ...change };
+      writeStored(CHROME_KEY, next);
+      return next;
+    });
+  }, []);
+  const setPanel = useCallback((tab: PanelTab | null) => {
+    if (tab) lastTab.current = tab;
+    setPanelState(tab);
+  }, []);
+  const togglePanel = useCallback(() => setPanelState((open) => (open ? null : lastTab.current)), []);
+  const setImmersive = useCallback(
+    (on: boolean, options?: { browser?: boolean }) => {
+      setChrome({ immersive: on });
+      if (!on) leaveBrowserFullscreen();
+      else if (options?.browser && !document.fullscreenElement) {
+        void document.documentElement.requestFullscreen?.().catch(() => {});
+      }
+    },
+    [setChrome],
+  );
+  // Leaving the page leaves the browser's full screen too.
+  useEffect(() => leaveBrowserFullscreen, []);
+  /** Claude answers in the panel beside the page, so a press that reaches Claude steps out of full screen first. */
+  const showClaude = useCallback(() => setImmersive(false), [setImmersive]);
 
   const [inspectorFocus, setInspectorFocus] = useState(0);
   const opener = useRef<HTMLElement | null>(null);
   const select = useCallback((next: Selection | null, options?: { focus?: boolean }) => {
     setSelection(next);
+    if (next) {
+      lastTab.current = 'details';
+      setPanelState('details');
+    }
     if (next && options?.focus) {
       const active = document.activeElement as HTMLElement | null;
       if (active && !active.closest('.schema-inspector')) opener.current = active;
@@ -199,6 +288,7 @@ export function StudioProvider({
   const closeInspector = useCallback(() => {
     const was = selection;
     setSelection(null);
+    setPanelState(null);
     const back =
       (opener.current?.isConnected ? opener.current : null) ??
       (was
@@ -296,10 +386,12 @@ export function StudioProvider({
       const target = given ?? draft;
       if (!target) return;
       if (target.chatId && target.status !== 'editing') {
+        showClaude();
         revealChat(target.chatId);
         return;
       }
       if (!pointPanelAtSource()) return;
+      showClaude();
       try {
         const { prompt } = await reviewDraft.mutateAsync(target.id);
         const sent = await send({ text: prompt, mode: 'plan', fresh: true, context: { page: 'schema' } });
@@ -317,7 +409,7 @@ export function StudioProvider({
         failed(error);
       }
     },
-    [draft, pointPanelAtSource, reviewDraft, attachChat, t, failed],
+    [draft, pointPanelAtSource, showClaude, reviewDraft, attachChat, t, failed],
   );
 
   const syncNames = useCallback(async () => {
@@ -332,6 +424,7 @@ export function StudioProvider({
   const suggestNames = useCallback(
     async (scope: { domain?: string; model?: string }) => {
       if (!pointPanelAtSource()) return;
+      showClaude();
       const sent = await send({
         text: schemaNamesPrompt(scope),
         mode: 'execute',
@@ -346,39 +439,86 @@ export function StudioProvider({
       if (chatId) revealChat(chatId);
       showToast({ message: t.toasts.namesSent, tone: 'success' });
     },
-    [pointPanelAtSource, t],
+    [pointPanelAtSource, showClaude, t],
   );
 
-  const studio: Studio = {
-    data,
-    doc,
-    annotations,
-    tones,
-    draft,
-    marks,
-    can,
-    view,
-    setView,
-    selection,
-    select,
-    inspectorFocus,
-    closeInspector,
-    focus,
-    setFocus,
-    prefs,
-    setPrefs,
-    reveal,
-    revealModel,
-    proposing,
-    propose: setProposing,
-    saveChange,
-    removeChange,
-    moveChange,
-    reviewWithClaude,
-    syncNames,
-    suggestNames,
-  };
-  return <Ctx.Provider value={studio}>{children}</Ctx.Provider>;
+  // One object per real change, so the tables redraw only when the design, its names, the draft or the selection moves.
+  const studio = useMemo<Studio>(
+    () => ({
+      data,
+      doc,
+      annotations,
+      tones,
+      draft,
+      marks,
+      can,
+      view,
+      setView,
+      selection,
+      select,
+      inspectorFocus,
+      closeInspector,
+      focus,
+      setFocus,
+      prefs,
+      setPrefs,
+      reveal,
+      revealModel,
+      proposing,
+      propose: setProposing,
+      saveChange,
+      removeChange,
+      moveChange,
+      reviewWithClaude,
+      syncNames,
+      suggestNames,
+    }),
+    [
+      data,
+      doc,
+      annotations,
+      tones,
+      draft,
+      marks,
+      can,
+      view,
+      selection,
+      select,
+      inspectorFocus,
+      closeInspector,
+      focus,
+      prefs,
+      setPrefs,
+      reveal,
+      revealModel,
+      proposing,
+      saveChange,
+      removeChange,
+      moveChange,
+      reviewWithClaude,
+      syncNames,
+      suggestNames,
+    ],
+  );
+  const chrome = useMemo<Chrome>(
+    () => ({
+      ...chromePrefs,
+      panel,
+      setPanel,
+      togglePanel,
+      layers,
+      setLayers,
+      setImmersive,
+      setTilt: (tilt: boolean) => setChrome({ tilt }),
+      setMinimap: (minimap: boolean) => setChrome({ minimap }),
+    }),
+    [chromePrefs, panel, setPanel, togglePanel, layers, setImmersive, setChrome],
+  );
+  return (
+    <Ctx.Provider value={studio}>
+      <ChromeCtx.Provider value={chrome}>{children}</ChromeCtx.Provider>
+    </Ctx.Provider>
+  );
 }
 
 export { newChangeId };

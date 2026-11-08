@@ -1,5 +1,5 @@
 /**
- * @file The Database page (docs/17) against the Slice 6 review: the setup form on a direct load (B1), the page's own `/` (M9), the header's names on phones (M10),
+ * @file The Database page (docs/17) against the Slice 6 review: the setup form on a direct load (B1), the page's own `/` (M9), the bars' button names (M10),
  * the dictionary's count and Show more (M11), a refused save that keeps the text and a secret that is never sent (M12), plural counts (M13) and isolated Latin
  * tokens (M14). The diagram's keyboard path needs real layout, so it is a browser spec (`e2e/specs/schema-keyboard.spec.ts`).
  */
@@ -194,14 +194,19 @@ describe('SchemaPage', () => {
     expect(screen.queryByText('Choose the repository folder first.')).toBeNull();
   });
 
-  it('names the header buttons on phones too, and isolates the version (review M10, M14)', async () => {
+  it('names the bar buttons, and isolates the version in the overview (review M10, M14)', async () => {
     api(studio());
     show();
     await screen.findByRole('button', { name: /Search tables and columns/ });
-    const header = within(document.querySelector<HTMLElement>('.schema-header')!);
-    expect(header.getByRole('button', { name: /Search tables and columns/ })).toBeTruthy();
-    expect(header.getByRole('button', { name: /Suggest Arabic names/ })).toBeTruthy();
-    expect(header.getByRole('button', { name: /Refresh design/ })).toBeTruthy();
+    const bars = document.querySelectorAll<HTMLElement>('.schema-topbar');
+    const end = within(bars[1]!);
+    expect(end.getByRole('button', { name: /Search tables and columns/ })).toBeTruthy();
+    expect(end.getByRole('button', { name: /Suggest Arabic names/ })).toBeTruthy();
+    expect(end.getByRole('button', { name: /Refresh design/ })).toBeTruthy();
+    // The panel is closed until asked for; its button opens it on the overview.
+    expect(screen.queryByRole('complementary')).toBeNull();
+    await userEvent.click(end.getByRole('button', { name: 'Details and overview' }));
+    await screen.findByRole('complementary', { name: 'Overview' });
     const version = screen.getByText('e8e02b4d');
     expect(version.closest('bdi')?.getAttribute('dir')).toBe('ltr');
     expect(version.closest('bdi')?.textContent).toBe('e8e02b4d');
@@ -212,20 +217,23 @@ describe('SchemaPage', () => {
   it('says counts with their plural forms, in English and Arabic (review M13)', async () => {
     api(studio());
     const { unmount } = show();
-    await screen.findByRole('button', { name: /Search tables and columns/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'Details and overview' }));
+    let panel = within(await screen.findByRole('complementary', { name: 'Overview' }));
     let stats = within(document.querySelector<HTMLElement>('.schema-stats')!);
     expect(stats.getByText('tables')).toBeTruthy();
     expect(stats.getByText('Relations: 1 declared · 0 implied')).toBeTruthy();
     expect(stats.getByText('no enums')).toBeTruthy();
+    expect(panel.getAllByText('0%').length).toBeGreaterThan(0);
     unmount();
     api(studio());
     show('ar');
     // Arabic's dual takes no numeral.
-    await screen.findByRole('button', { name: /ابحث في الجداول والأعمدة/ });
+    await userEvent.click(await screen.findByRole('button', { name: 'التفاصيل والنظرة العامة' }));
+    panel = within(await screen.findByRole('complementary', { name: 'نظرة عامة' }));
     stats = within(document.querySelector<HTMLElement>('.schema-stats')!);
     expect(stats.getByText('جدولان')).toBeTruthy();
     expect(stats.getByText('العلاقات: 1 مُعلنة · 0 ضمنية')).toBeTruthy();
-    expect(stats.getByText('0٪')).toBeTruthy();
+    expect(panel.getAllByText('0٪').length).toBeGreaterThan(0);
   });
 
   it('opens the page search with / on an Arabic layout, before the shell can take it (review M9)', async () => {
