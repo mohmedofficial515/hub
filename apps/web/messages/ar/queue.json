@@ -201,7 +201,7 @@
   "decisions": {
     "title": "قرارات اتُّخذت عنك",
     "pending": "تنتظر أن تشغّلها",
-    "summary": "{answered} خيارات أُخذت · {pending} أوامر محفوظة لك",
+    "summary": "خيارات أُخذت: {answered} · أوامر محفوظة لك: {pending}",
     "took": "أخذ «{answer}»",
     "skipped": "تُخطّي ولم يُنفَّذ",
     "folder": "في {folder}",

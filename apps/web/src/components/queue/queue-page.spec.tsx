@@ -206,7 +206,7 @@ describe('QueuePage', () => {
     expect(within(recent).getByText('Automatic')).toBeInTheDocument();
     expect(within(recent).getByText('+1 folders')).toBeInTheDocument();
     expect(within(recent).getByText(/Backend.*Frontend/)).toBeInTheDocument();
-    expect(within(recent).getByText(/1 choices taken · 1 commands kept for you/)).toBeInTheDocument();
+    expect(within(recent).getByText(/Choices taken: 1 · Commands kept for you: 1/)).toBeInTheDocument();
     expect(within(recent).getByText('git push origin main')).toBeInTheDocument();
     expect(within(recent).getByText('Why: Publish the fix')).toBeInTheDocument();
     expect(within(recent).getByText(/Took “Postgres \(Recommended\)”/)).toBeInTheDocument();

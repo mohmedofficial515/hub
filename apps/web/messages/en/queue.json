@@ -198,7 +198,7 @@
   "decisions": {
     "title": "Decided for you",
     "pending": "Waiting for you to run",
-    "summary": "{answered} choices taken · {pending} commands kept for you",
+    "summary": "Choices taken: {answered} · Commands kept for you: {pending}",
     "took": "Took “{answer}”",
     "skipped": "Skipped, not run",
     "folder": "In {folder}",

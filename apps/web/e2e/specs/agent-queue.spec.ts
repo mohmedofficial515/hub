@@ -107,4 +107,74 @@ test.describe('the agent queue (docs/16 §9)', () => {
     await expect(recent.locator(`[data-queue-run="${run.id}"]`)).toBeVisible();
     await page.screenshot({ path: info.outputPath(`queue-recent-${locale}.png`), fullPage: true });
   });
+
+  test('Schedule pressed on a task in a fresh browser runs it automatically, and the push waits in its summary (D58, review B1)', async ({
+    engine,
+    owner,
+    page,
+    locale,
+    ws,
+  }, info) => {
+    const q = words(locale, 'queue');
+    const base = `workspaces/${owner.ws}/queue`;
+    const limits = await owner.context.patch(`/api/v1/${base}/settings`, {
+      data: { timezone: 'UTC', maxConcurrent: 1, perDay: 50, quietHours: null },
+      headers: HEADERS,
+    });
+    expect(limits.ok()).toBe(true);
+    await owner.post(`${base}/pause`, { paused: false });
+    const task = await owner.create({
+      type: 'task',
+      title: `Ship automatically ${locale} ${Date.now()}`,
+      detail: { specialty: 'backend' },
+    });
+    engine.script(
+      text('Fixing it now. '),
+      tool('Bash', { command: 'git push origin main', description: 'Publish the fix' }),
+      text('Done. The push waits for the owner. '),
+    );
+
+    // A fresh profile: no device or folder was ever picked by hand, so the panel's own fallbacks decide (B1).
+    await page.goto(view(locale, ws, 'tasks', `card=${task.key}`));
+    const schedule = page.locator('[data-card-sheet] [data-queue-schedule]');
+    await expect(schedule).toBeEnabled({ timeout: 60_000 });
+    await schedule.click();
+    const dialog = page.locator('[data-queue-dialog]');
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel(word(q, 'dialog.when')).selectOption('now');
+    await dialog.getByLabel(word(q, 'dialog.mode')).selectOption('automatic');
+    await dialog.getByLabel(word(q, 'dialog.folder')).selectOption(engine.folder);
+    await page.screenshot({ path: info.outputPath(`queue-dialog-automatic-${locale}.png`) });
+    await page.locator('[data-queue-save]').click();
+
+    const runOf = async () =>
+      (
+        await owner.get<{
+          runs: (Run & {
+            mode: string;
+            cardKey: string | null;
+            decisions: { kind: string; command: string }[];
+          })[];
+        }>(base)
+      ).runs.find((each) => each.cardKey === task.key);
+    await expect.poll(async () => (await runOf())?.state, LONG).toBe('done');
+    const done = (await runOf())!;
+    expect(done.mode).toBe('automatic');
+    expect(done.decisions).toEqual([
+      expect.objectContaining({ kind: 'skipped', command: 'git push origin main' }),
+    ]);
+    // Nothing waited on the owner.
+    const inbox = await owner.get<unknown[]>(`workspaces/${owner.ws}/inbox`);
+    expect(JSON.stringify(inbox)).not.toContain(done.chatId ?? 'none');
+
+    await page.goto(view(locale, ws, 'queue'));
+    const row = page.locator(`[data-queue-run="${done.id}"]`);
+    await expect(row).toContainText(word(q, 'meta.automatic'));
+    const decisions = row.locator('[data-run-decisions]');
+    await expect(decisions).toContainText(word(q, 'decisions.title'));
+    await expect(decisions.locator('[data-run-decision="skipped"]')).toContainText('git push origin main');
+    await expect(decisions.getByRole('button', { name: word(q, 'decisions.runIt') })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+    await page.screenshot({ path: info.outputPath(`queue-automatic-${locale}.png`), fullPage: true });
+  });
 });
