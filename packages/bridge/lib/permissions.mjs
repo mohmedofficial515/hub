@@ -129,6 +129,7 @@ export const HUB_READ_TOOLS = [
   'get_chat',
   'export_chat',
   'list_prompt_templates',
+  'list_queue',
   'list_work_reports',
   'report_stage',
   'propose_plan',
