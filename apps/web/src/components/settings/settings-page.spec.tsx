@@ -108,14 +108,14 @@ describe('SettingsPage', () => {
     search.value = 'tab=general';
   });
 
-  it('gives a manager eight tabs and the project details', async () => {
+  it('gives a manager nine tabs and the project details', async () => {
     stubFetch(answer(['owner']));
     renderWithApp(
       <Tooltip.Provider>
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(8));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(9));
     expect(await screen.findByDisplayValue('Demo')).toBeTruthy();
     expect(screen.getByDisplayValue('About')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close project' })).toBeTruthy();
@@ -142,7 +142,7 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('button', { name: 'Close project' })).toBeNull();
   });
 
-  it('gives any other member three tabs, and a 403 on the rest', async () => {
+  it('gives any other member four tabs, and a 403 on the rest', async () => {
     search.value = 'tab=audit';
     stubFetch(answer(['frontend']));
     renderWithApp(
@@ -150,7 +150,7 @@ describe('SettingsPage', () => {
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(4));
     expect(screen.getByRole('button', { name: 'Go to my settings' })).toBeTruthy();
   });
 

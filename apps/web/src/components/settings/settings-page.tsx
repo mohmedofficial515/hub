@@ -36,6 +36,7 @@ import { AuditTab } from './parts/audit';
 import { DevicesTab } from './parts/devices';
 import { GeneralTab } from './parts/general';
 import { NotificationsTab } from './parts/notifications';
+import { QueueTab } from './parts/queue';
 import { RolesTab } from './parts/roles';
 import { SourcesTab } from './parts/sources';
 import { SystemTab } from './parts/system';
@@ -48,12 +49,13 @@ const TABS = [
   'notifications',
   'tokens',
   'devices',
+  'queue',
   'system',
   'audit',
 ] as const;
 type SettingsTab = (typeof TABS)[number];
-/** 09 §18.4, §18.5, docs/16 §5: these three belong to every member. The rest are owner and PM, with a 403 otherwise. */
-const PERSONAL: readonly SettingsTab[] = ['notifications', 'tokens', 'devices'];
+/** 09 §18.4, §18.5, docs/16 §5 and §9: these four belong to every member. The rest are owner and PM, with a 403 otherwise. */
+const PERSONAL: readonly SettingsTab[] = ['notifications', 'tokens', 'devices', 'queue'];
 const isTab = (v: string | null): v is SettingsTab => !!v && (TABS as readonly string[]).includes(v);
 
 const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
@@ -63,6 +65,7 @@ const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
   notifications: NotificationsTab,
   tokens: TokensTab,
   devices: DevicesTab,
+  queue: QueueTab,
   system: SystemTab,
   audit: AuditTab,
 };

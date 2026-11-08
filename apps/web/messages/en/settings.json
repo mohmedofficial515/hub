@@ -13,6 +13,7 @@
     "notifications": "Notifications",
     "tokens": "Tokens",
     "devices": "Devices",
+    "queue": "Queue",
     "system": "System",
     "audit": "Audit"
   },
