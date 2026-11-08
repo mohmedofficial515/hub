@@ -8,6 +8,7 @@
  */
 import { z } from 'zod';
 
+import { queueRunsQuerySchema } from '../agent-queue';
 import { logSessionSchema } from '../capture';
 import {
   acknowledgeHandoffSchema,
@@ -923,6 +924,15 @@ const TOOL_TABLE = {
       "Propose a document's new text before saving it. Give `doc` for an existing one (with baseVersion, the Version line of get_doc), or `source` and `path` for a new file. List each claim you checked as `verified` with its source, and each one you could not check as `unverified`: its text must appear in the draft word for word. Hub finds real duplicates itself and answers with them and a draft id. In the panel the owner sees a diff and answers each flag. Then call save_doc with `draft`; it refuses while a flag is unanswered.",
     input: proposeDocSchema,
     actions: ['chat.read'],
+    readOnly: true,
+  },
+
+  // The agent queue (docs/16 §9). Reading only: adding, ordering, pausing and cancelling runs and changing the limits are the owner's own press, because an agent that could add a run would be starting an agent, and one that could resume a run or lift a limit would be approving itself.
+  list_queue: {
+    description:
+      "The owner's agent queue: what is running, what waits for an approval, what is next or scheduled, and what finished recently, with the limits and why a due run is held. `card` narrows it to one card's runs. It cannot add, move or stop a run.",
+    input: queueRunsQuerySchema,
+    actions: ['queue.read'],
     readOnly: true,
   },
 

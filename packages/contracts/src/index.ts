@@ -2,6 +2,7 @@
  * @file Public surface of @hub/contracts.
  */
 export * from './actor';
+export * from './agent-queue';
 export * from './capture';
 export * from './cards';
 export * from './chat';

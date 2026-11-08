@@ -178,6 +178,9 @@ const MATRIX = {
   'chat.manage': EVERYONE,
   'chat.run': EVERYONE,
   'chat.answer': EVERYONE,
+  // The agent queue (docs/16 §9). Reading it has a tool; starting, ordering, pausing and the limits are the owner's own press, so an agent cannot start agents or lift its own limits.
+  'queue.read': EVERYONE,
+  'queue.manage': EVERYONE,
   // Writing a local-path doc (docs/16 §10). The accountant reads.
   'docs.write': ['Y', 'Y', 'N', 'Y', 'Y', 'Y', 'Y'],
 } as const satisfies Record<string, Row>;
@@ -193,6 +196,7 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'device.link',
   'chat.run',
   'chat.answer',
+  'queue.manage',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {
