@@ -22,7 +22,7 @@ export interface SchemaFile {
 
 const BLOCK_START = /^(model|view|enum|type|generator|datasource)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{\s*$/;
 const FIELD_LINE =
-  /^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_.]*(?:\([^)]*\))?)(\[\])?(\?)?(?:\s+(.*))?$/;
+  /^([A-Za-z_][A-Za-z0-9_]*)\s+([A-Za-z_][A-Za-z0-9_.]*(?:\((?:"(?:[^"\\]|\\.)*"|[^()"])*\))?)(\[\])?(\?)?(?:\s+(.*))?$/;
 const ENUM_VALUE = /^([A-Za-z_][A-Za-z0-9_]*)(?:\s+(.*))?$/;
 
 /** Splits the comment after code, outside strings and brackets. */
@@ -303,20 +303,22 @@ export function parsePrismaFiles(files: readonly SchemaFile[]): SchemaDoc {
         comment.push(line.replace(/^\/\/\s?/, ''));
         continue;
       }
-      const start = BLOCK_START.exec(line);
+      // `model SessionLog {   // one row per session` opens a block too: its comment joins the block's.
+      const opening = splitTrailingComment(line);
+      const start = BLOCK_START.exec(opening.code);
       if (!start) {
         warnings.push(`${file.path}:${index + 1}: not read: ${line.slice(0, 80)}`);
         continue;
       }
       const [, block, name] = start as unknown as [string, string, string];
       const blockDoc = doc;
-      const blockComment = comment;
+      const blockComment = opening.comment ? [...comment, opening.comment] : comment;
       doc = [];
       comment = [];
       const startLine = index + 1;
       const body: { text: string; line: number }[] = [];
       index += 1;
-      while (index < lines.length && (lines[index] ?? '').trim() !== '}') {
+      while (index < lines.length && splitTrailingComment((lines[index] ?? '').trim()).code !== '}') {
         body.push({ text: (lines[index] ?? '').trim(), line: index + 1 });
         index += 1;
       }

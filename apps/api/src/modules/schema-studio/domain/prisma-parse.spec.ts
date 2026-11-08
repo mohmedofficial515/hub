@@ -137,6 +137,41 @@ describe('parsePrismaFiles', () => {
     expect(doc.stats).toMatchObject({ models: 4, enums: 1, relations: 3 });
   });
 
+  it('opens a block whose line ends with a comment, as Hub’s own SessionLog does', () => {
+    const text = [
+      'model SessionLog {                                       // one row per Claude Code session',
+      '  id        String @id',
+      '  summary   String? // what the session did',
+      '}   // end of SessionLog',
+      '',
+      'enum Kind { // how it was seen',
+      '  HOOK',
+      '}',
+    ].join('\n');
+    const parsed = parsePrismaFiles([{ path: 'capture.prisma', text }]);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.models[0]).toMatchObject({
+      name: 'SessionLog',
+      comment: 'one row per Claude Code session',
+      line: 1,
+    });
+    expect(parsed.models[0]?.fields.map((field) => field.name)).toEqual(['id', 'summary']);
+    expect(parsed.enums[0]).toMatchObject({ name: 'Kind', comment: 'how it was seen' });
+    expect(parsed.enums[0]?.values.map((value) => value.name)).toEqual(['HOOK']);
+  });
+
+  it('reads Hub’s own schema with no warnings', () => {
+    const own = join(__dirname, '../../../../prisma/schema');
+    const files = readdirSync(own)
+      .filter((name) => name.endsWith('.prisma'))
+      .map((name) => ({ path: `prisma/schema/${name}`, text: readFileSync(join(own, name), 'utf8') }));
+    const parsed = parsePrismaFiles(files);
+    expect(parsed.warnings).toEqual([]);
+    expect(parsed.models.some((model) => model.name === 'SessionLog')).toBe(true);
+    const all = files.map((file) => file.text).join('\n');
+    expect(parsed.stats.models).toBe((all.match(/^model /gm) ?? []).length);
+  });
+
   it('turns a line it cannot read into a warning', () => {
     const broken = parsePrismaFiles([{ path: 'x.prisma', text: 'model A {\n  id Int @id\n  ???\n}\n' }]);
     expect(broken.models[0]?.fields).toHaveLength(1);
