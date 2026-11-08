@@ -10,6 +10,8 @@ import {
   sectionOf,
   startOfLocalDay,
 } from './agent-queue';
+import { APPROVAL_NO_TIME_LIMIT_MS, AUTOMATIC_RUN_NOTE, contextPrefix, hasNoTimeLimit } from './chat';
+import { ROLE_BRIEFS, specialtiesOf } from './roles';
 
 const IST = 'Europe/Istanbul';
 const BERLIN = 'Europe/Berlin';
@@ -94,5 +96,56 @@ describe('a run', () => {
     expect(sectionOf('paused')).toBe('next');
     expect(sectionOf('waiting')).toBe('waiting');
     expect(sectionOf('interrupted')).toBe('recent');
+  });
+});
+
+describe('run mode, folders and roles (D58 to D60)', () => {
+  const base = {
+    source: 'prompt' as const,
+    prompt: 'x',
+    device: '0190f0f0-0000-7000-8000-000000000001',
+    folder: 'C:/work/backend',
+    when: { kind: 'now' as const },
+  };
+
+  it('takes extra folders and roles, each once, and never the main folder twice', () => {
+    expect(
+      createRunSchema.safeParse({ ...base, extraFolders: ['C:/work/web'], roles: ['backend', 'frontend'] })
+        .success,
+    ).toBe(true);
+    expect(createRunSchema.safeParse({ ...base, extraFolders: ['c:/work/BACKEND/'] }).success).toBe(false);
+    expect(createRunSchema.safeParse({ ...base, roles: ['qa', 'qa'] }).success).toBe(false);
+    expect(createRunSchema.safeParse({ ...base, mode: 'yolo' }).success).toBe(false);
+  });
+
+  it('tells the engine each role, the extra folders, and that nobody answers an automatic run', () => {
+    const prefix = contextPrefix({
+      project: 'goteav',
+      page: 'queue',
+      runMode: 'automatic',
+      extraFolders: ['C:/work/web'],
+      roles: [
+        {
+          role: 'backend',
+          label: 'Backend',
+          brief: ROLE_BRIEFS.backend,
+          specialties: specialtiesOf('backend'),
+          readFirst: ['docs/api.md'],
+        },
+        { role: 'frontend', label: 'Frontend', brief: ROLE_BRIEFS.frontend, specialties: [], readFirst: [] },
+      ],
+    });
+    expect(prefix).toContain('Role: Backend (backend).');
+    expect(prefix).toContain('Read first: docs/api.md.');
+    expect(prefix).toContain('Role: Frontend (frontend).');
+    expect(prefix).toContain('Also work in: C:/work/web');
+    expect(prefix).toContain(AUTOMATIC_RUN_NOTE);
+    expect(contextPrefix({ project: 'goteav' })).not.toContain('Run mode');
+  });
+
+  it('reads an expiry far ahead as no time limit', () => {
+    const now = Date.parse('2026-11-08T10:00:00Z');
+    expect(hasNoTimeLimit(new Date(now + APPROVAL_NO_TIME_LIMIT_MS).toISOString(), now)).toBe(true);
+    expect(hasNoTimeLimit(new Date(now + 30 * 60_000).toISOString(), now)).toBe(false);
   });
 });

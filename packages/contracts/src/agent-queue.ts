@@ -6,12 +6,25 @@
 import { z } from 'zod';
 
 import { cardKeySchema } from './cards/card';
-import { changedFileSchema, CHAT_LIMITS, TURN_FAILURES } from './chat';
+import {
+  APPROVAL_CATEGORIES,
+  changedFileSchema,
+  CHAT_LIMITS,
+  QUEUE_EXTRA_FOLDERS,
+  TURN_FAILURES,
+} from './chat';
 import { absolutePath } from './projects';
+import { roleSchema } from './roles';
 
 /** What a run starts from. A task runs `/hub:work`, so its stages and report land on the card. */
 export const RUN_SOURCES = ['task', 'plan_step', 'prompt'] as const;
 export type RunSource = (typeof RUN_SOURCES)[number];
+
+/**
+ * How a run treats the owner (D58). `approval`, the default, is the panel's D41: it pauses for the owner, and a queued run waits with no time limit. `automatic` never waits: whatever needs approval is refused at once and kept as a pending item, and a question takes its recommended option.
+ */
+export const RUN_MODES = ['approval', 'automatic'] as const;
+export type RunMode = (typeof RUN_MODES)[number];
 
 /** What is stored. `queued` covers both "next" and "scheduled": a future `runAt` is what makes it scheduled. */
 export const RUN_STATES = [
@@ -100,10 +113,29 @@ export const createRunSchema = z
     /** A chat prompt's words. */
     prompt: z.string().trim().min(1).max(QUEUE_LIMITS.promptChars).optional(),
     device: z.uuid(),
+    /** The main folder: the run's working directory. */
     folder: absolutePath,
     when: runWhenSchema,
+    /** D58. Absent is `approval`. */
+    mode: z.enum(RUN_MODES).optional(),
+    /** D59: more folders registered on the same project, passed to Claude Code with `--add-dir`. All of them are held while the run works. */
+    extraFolders: z.array(absolutePath).max(QUEUE_EXTRA_FOLDERS).optional(),
+    /** D60: the roles the run works as. Each one's line, specialties and reading path go into its context. */
+    roles: z.array(roleSchema).max(7).optional(),
   })
   .superRefine((value, ctx) => {
+    const key = (path: string) => path.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase();
+    const folders = [value.folder, ...(value.extraFolders ?? [])].map(key);
+    if (new Set(folders).size !== folders.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['extraFolders'],
+        message: 'Each folder once, and not the main one',
+      });
+    }
+    if (value.roles && new Set(value.roles).size !== value.roles.length) {
+      ctx.addIssue({ code: 'custom', path: ['roles'], message: 'Each role once' });
+    }
     if (value.source === 'prompt' && !value.prompt) {
       ctx.addIssue({ code: 'custom', path: ['prompt'], message: 'A prompt run needs its words' });
     }
@@ -119,6 +151,10 @@ export type CreateRunInput = z.infer<typeof createRunSchema>;
 /** The full order of the runs that have not started, first to start first. Ids not listed keep their place after these. */
 export const reorderRunsSchema = z.object({ ids: z.array(z.uuid()).min(1).max(500) });
 export type ReorderRunsInput = z.infer<typeof reorderRunsSchema>;
+
+/** The mode of a run that has not started (D58). Only the owner's press changes it; no agent tool does. */
+export const setRunModeSchema = z.object({ mode: z.enum(RUN_MODES) });
+export type SetRunModeInput = z.infer<typeof setRunModeSchema>;
 
 export const queueRunsQuerySchema = z.object({ card: cardKeySchema.optional() });
 
@@ -140,6 +176,25 @@ export const QUEUE_DEFAULTS = { maxConcurrent: 1, perDay: 5, quietHours: null } 
 
 // ── Answers ────────────────────────────────────────────────────────────────────────────────────────
 
+/**
+ * What an automatic run decided on the owner's behalf (D58). `skipped` is a pending item: the exact command, the folder, and why, never run. Run it later starts a chat on that folder, where D41 asks the owner as usual.
+ */
+export const runDecisionSchema = z.object({
+  id: z.string(),
+  kind: z.enum(['skipped', 'answered']),
+  command: z.string(),
+  category: z.enum(APPROVAL_CATEGORIES),
+  folder: z.string(),
+  /** The model's own reason when it gave one (a shell call's description), else null. */
+  why: z.string().nullable(),
+  /** `answered`: each question and the option taken. */
+  answers: z.array(z.object({ question: z.string(), answer: z.string() })),
+  at: z.string(),
+  /** The chat Run it later started, once pressed. */
+  followChatId: z.string().nullable(),
+});
+export type RunDecision = z.infer<typeof runDecisionSchema>;
+
 export const agentRunSchema = z.object({
   id: z.string(),
   source: z.enum(RUN_SOURCES),
@@ -151,6 +206,11 @@ export const agentRunSchema = z.object({
   deviceId: z.string(),
   deviceName: z.string(),
   folder: z.string(),
+  extraFolders: z.array(z.string()),
+  mode: z.enum(RUN_MODES),
+  roles: z.array(roleSchema),
+  /** Every choice an automatic run took for the owner, and its pending items, oldest first. */
+  decisions: z.array(runDecisionSchema),
   state: z.enum(RUN_VIEW_STATES),
   stored: z.enum(RUN_STATES),
   /** Set when a due run waits: why. */

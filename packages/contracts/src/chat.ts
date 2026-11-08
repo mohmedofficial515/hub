@@ -213,7 +213,15 @@ export const chatQuestionItemSchema = z.object({
     .max(20),
 });
 export type ChatQuestionItem = z.infer<typeof chatQuestionItemSchema>;
-export const QUESTION_STATUSES = ['pending', 'answered', 'declined', 'timed_out', 'stopped'] as const;
+/** `auto_answered`: an automatic queue run (D58) took the recommended option on the owner's behalf. */
+export const QUESTION_STATUSES = [
+  'pending',
+  'answered',
+  'declined',
+  'timed_out',
+  'stopped',
+  'auto_answered',
+] as const;
 export type QuestionStatus = (typeof QUESTION_STATUSES)[number];
 
 export const CLAIM_STATUSES = ['verified', 'unverified'] as const;
@@ -361,7 +369,8 @@ export type TurnFailure = (typeof TURN_FAILURES)[number];
 
 export const APPROVAL_DECISIONS = ['allow', 'deny'] as const;
 export type ApprovalDecision = (typeof APPROVAL_DECISIONS)[number];
-export const APPROVAL_STATUSES = ['pending', 'allowed', 'denied', 'timed_out', 'stopped'] as const;
+/** `skipped`: an automatic queue run (D58) refused it at once, never ran it, and kept it for the owner to run later. */
+export const APPROVAL_STATUSES = ['pending', 'allowed', 'denied', 'timed_out', 'stopped', 'skipped'] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 /** The D41 class a paused call falls in, for the prompt's wording. `other` is any unnamed command, which also pauses. */
 export const APPROVAL_CATEGORIES = [
@@ -521,6 +530,23 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     status: z.enum(['answered', 'declined', 'timed_out', 'stopped']),
     answers: z.record(z.string(), z.string()).optional(),
   }),
+  /**
+   * An automatic queue run (D58) decided on the owner's behalf, with nobody asked and nothing waiting: a call that needs approval was `skipped` (refused at once, never run), or a question was `answered` with its recommended option.
+   */
+  z.object({
+    kind: z.literal('auto.decision'),
+    decisionId: z.string().max(100),
+    toolUseId: z.string().max(100),
+    decision: z.enum(['skipped', 'answered']),
+    toolName: z.string().max(200),
+    /** The exact command for `skipped`; the first question for `answered`. */
+    command: z.string(),
+    category: z.enum(APPROVAL_CATEGORIES),
+    input: anyJson,
+    effect: z.string().max(200),
+    questions: z.array(chatQuestionItemSchema).max(CHAT_LIMITS.questionsPerCall).optional(),
+    answers: z.record(z.string(), z.string()).optional(),
+  }),
   /** `report_work`'s evidence, as stored on the card. */
   z.object({ kind: z.literal('work.reported'), report: workReportSchema }),
   /** A report that said a failed step passed. Nothing was stored on the card. */
@@ -564,6 +590,9 @@ export interface ChatChanged {
 
 // ── The bridge's turn actions ──────────────────────────────────────────────────────────────────────
 
+/** At most this many extra folders on one run (D59). */
+export const QUEUE_EXTRA_FOLDERS = 8;
+
 export const turnStartArgsSchema = z.object({
   chatId: z.uuid(),
   folder: absolutePath,
@@ -572,8 +601,22 @@ export const turnStartArgsSchema = z.object({
   model: chatModelSchema.optional(),
   effort: z.enum(CHAT_EFFORTS).optional(),
   sessionId: z.string().max(100).optional(),
+  /** More folders of the same project for this turn (D59), passed as `--add-dir`. The bridge checks each against its allowlist and the main folder's project. */
+  addDirs: z.array(absolutePath).max(QUEUE_EXTRA_FOLDERS).optional(),
+  /** A queued run's mode (D58). `automatic` never waits: approvals are skipped and questions take the recommended option. Absent is the panel's own behaviour. */
+  runMode: z.enum(['approval', 'automatic']).optional(),
+  /** A queued run waiting for approval waits with no time limit (D58). The panel's chats keep the bridge's window. */
+  untimed: z.boolean().optional(),
 });
 export type TurnStartArgs = z.infer<typeof turnStartArgsSchema>;
+
+/**
+ * An approval with no time limit (D58) still carries an `expiresAt`, because the column and the event need one: the bridge sets it this far ahead. Anything further than `NO_TIME_LIMIT_AFTER_MS` away reads as "no time limit".
+ */
+export const APPROVAL_NO_TIME_LIMIT_MS = 20 * 24 * 60 * 60_000;
+const NO_TIME_LIMIT_AFTER_MS = 2 * 24 * 60 * 60_000;
+export const hasNoTimeLimit = (expiresAt: string, now: number = Date.now()): boolean =>
+  Date.parse(expiresAt) - now > NO_TIME_LIMIT_AFTER_MS;
 
 /** The engine on a device, for the panel's selectors and its honest states. */
 export const engineStatusSchema = z.object({
@@ -874,9 +917,28 @@ export type PromptTemplateDto = z.infer<typeof promptTemplateSchema>;
 
 // ── The prompt prefix (§7, §7.1) ───────────────────────────────────────────────────────────────────
 
+/** One role a queued run carries (D60), as the engine reads it. */
+export interface PromptRole {
+  readonly role: string;
+  readonly label: string;
+  readonly brief: string;
+  readonly specialties: readonly string[];
+  readonly readFirst: readonly string[];
+}
+
 export interface PromptContext extends ChatContext {
   readonly project: string;
+  /** A queued run's roles (D60). */
+  readonly roles?: readonly PromptRole[] | undefined;
+  /** A queued run's mode (D58), so the engine knows nobody will answer. */
+  readonly runMode?: 'approval' | 'automatic' | undefined;
+  /** A queued run's extra folders (D59). */
+  readonly extraFolders?: readonly string[] | undefined;
 }
+
+/** What an automatic run is told (D58). The bridge enforces it either way; this saves the model asking. */
+export const AUTOMATIC_RUN_NOTE =
+  'Run mode: automatic. The owner is away and nobody will answer. Do not ask questions: take the recommended option and say which you took. Commands that need approval (delete, commit, push, deploy, branch, worktree, docker, and any command not allowed) will be refused and kept for the owner to run later: carry on without them, and list them in your report.';
 
 /** An explicit prefix, so the turn shows what it was told. Claude reads the named things itself, through Hub and the folder. */
 export function contextPrefix(context: PromptContext): string {
@@ -888,6 +950,16 @@ export function contextPrefix(context: PromptContext): string {
     if (item.kind === 'doc') lines.push(`Attached doc: ${item.key} (read it with hub get_doc)`);
     if (item.kind === 'file') lines.push(`Attached file: ${item.path} (read it from the folder)`);
   }
+  if (context.extraFolders && context.extraFolders.length > 0) {
+    lines.push(`Also work in: ${context.extraFolders.join(', ')} (same project, added with --add-dir)`);
+  }
+  for (const role of context.roles ?? []) {
+    const parts = [`Role: ${role.label} (${role.role}). ${role.brief}`];
+    if (role.specialties.length > 0) parts.push(`Specialties: ${role.specialties.join(', ')}.`);
+    if (role.readFirst.length > 0) parts.push(`Read first: ${role.readFirst.join('; ')}.`);
+    lines.push(parts.join(' '));
+  }
+  if (context.runMode === 'automatic') lines.push(AUTOMATIC_RUN_NOTE);
   return `[Hub context]\n${lines.join('\n')}\n[/Hub context]\n\n`;
 }
 

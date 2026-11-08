@@ -41,3 +41,27 @@ export const SPECIALTY_DEFAULT_ROLE: Record<Specialty, Role> = {
   ops: 'backend',
   docs: 'backend',
 };
+
+/**
+ * What a role does, in one line the engine reads (docs/16 D60). Hub held no instructions per role before this: a role was a name, its specialties (`SPECIALTY_ROLES`) and its reading path (`onboarding.paths`).
+ * A queued run that carries roles is told each role's line, its specialties and its reading path. English, because agents read it.
+ */
+export const ROLE_BRIEFS: Record<Role, string> = {
+  owner:
+    'Decides scope and priorities, and approves what ships. Prefer asking for a decision over guessing a business rule.',
+  pm: 'Keeps tasks, plans and handoffs in order. Make sure each change has a card, checks and a clear next step.',
+  accountant:
+    'Owns money rules: invoices, taxes, refunds and reports. Change nothing about amounts without a recorded decision.',
+  backend:
+    'Builds the API, data and integrations. Keep contracts, migrations and tests in step, and run the backend checks.',
+  frontend:
+    'Builds the pages people use. Follow the existing design and i18n, keep RTL and LTR right, and run the web checks.',
+  designer:
+    'Shapes how pages look and read. Keep existing layouts and measurements unless a decision changes them.',
+  qa: 'Tests what changed. Write or run tests for every acceptance check, and say plainly what was not checked.',
+};
+
+/** The specialties a role covers, from `SPECIALTY_ROLES`. */
+export function specialtiesOf(role: Role): Specialty[] {
+  return SPECIALTIES.filter((specialty) => SPECIALTY_ROLES[specialty].includes(role));
+}
