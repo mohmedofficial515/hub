@@ -2,7 +2,9 @@
  * @file The running bridge against a fake socket: hello, the folder list, actions, staying up, and stopping for good when revoked.
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -132,6 +134,99 @@ describe('the bridge', () => {
       vi.useRealTimers();
     }
   });
+});
+
+describe('the reconnect loop', () => {
+  it('tries again after an error with no close, as the WebSocket built into Node does when nothing listens', async () => {
+    vi.useFakeTimers();
+    try {
+      FakeSocket.opened = [];
+      const system = fakeSystem({ WebSocket: FakeSocket });
+      const bridge = createBridge(system, { url: URL, credential: CREDENTIAL });
+      void bridge.start();
+      const first = FakeSocket.opened[0];
+      first.readyState = 0;
+      first.fire('error');
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(FakeSocket.opened).toHaveLength(2);
+      // A late close from the first socket must not start a second loop.
+      first.fire('close', { code: 1006 });
+      FakeSocket.opened[1].readyState = 0;
+      FakeSocket.opened[1].fire('error');
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(FakeSocket.opened).toHaveLength(3);
+      bridge.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('gives up on a connection that never opens and tries again', async () => {
+    vi.useFakeTimers();
+    try {
+      FakeSocket.opened = [];
+      const system = fakeSystem({ WebSocket: FakeSocket });
+      const bridge = createBridge(system, { url: URL, credential: CREDENTIAL });
+      void bridge.start();
+      FakeSocket.opened[0].readyState = 0;
+      await vi.advanceTimersByTimeAsync(19_000);
+      expect(FakeSocket.opened).toHaveLength(1);
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(FakeSocket.opened).toHaveLength(2);
+      bridge.stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('still stops for good when a socket that errored is then closed as revoked', async () => {
+    const { socket, done } = await aBridge();
+    socket.fire('error');
+    socket.fire('close', { code: BRIDGE_CLOSE.revoked });
+    await expect(done).resolves.toBe(0);
+  });
+
+  it('with a real socket, reaches Hub once it starts listening after the bridge', async () => {
+    const probe = createServer();
+    await new Promise((ready) => probe.listen(0, '127.0.0.1', ready));
+    const { port } = probe.address();
+    await new Promise((closed) => probe.close(closed));
+
+    const system = fakeSystem({ WebSocket: globalThis.WebSocket });
+    const bridge = createBridge(system, { url: `http://127.0.0.1:${port}`, credential: CREDENTIAL });
+    const done = bridge.start();
+    await new Promise((wait) => setTimeout(wait, 300));
+
+    const hub = createServer();
+    const upgraded = new Promise((reached) => {
+      hub.on('upgrade', (request, socket) => {
+        const accept = createHash('sha1')
+          .update(`${request.headers['sec-websocket-key']}258EAFA5-E914-47DA-95CA-C5AB0DC11B85`)
+          .digest('base64');
+        socket.write(
+          `HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: ${accept}
+
+`,
+        );
+        reached(request.headers.authorization);
+        socket.destroy();
+      });
+    });
+    await new Promise((ready) => hub.listen(port, '127.0.0.1', ready));
+    try {
+      await expect(upgraded).resolves.toBe(`Bearer ${CREDENTIAL}`);
+      const log = readFileSync(join(system.home, '.hub', 'bridge.log'), 'utf8');
+      expect(log).toContain('Hub cannot be reached');
+      expect(log).not.toContain('revoked');
+    } finally {
+      bridge.stop();
+      await done;
+      await new Promise((closed) => hub.close(closed));
+    }
+  }, 15_000);
 });
 
 describe('hub-mcp-headers', () => {

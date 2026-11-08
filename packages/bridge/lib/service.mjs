@@ -23,6 +23,8 @@ const HEARTBEAT_MS = 25_000;
 const STATUS_REFRESH_MS = 5 * 60_000;
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
+/** A connection still not open by now is given up and tried again, so a socket that never answers cannot stall the loop. */
+const CONNECT_TIMEOUT_MS = 20_000;
 
 export function socketUrl(url) {
   return `${url.replace(/^http/, 'ws')}${BRIDGE_SOCKET_PATH}`;
@@ -36,6 +38,7 @@ export function createBridge(system, device) {
   let heartbeat = null;
   let stopped = false;
   let backoff = BACKOFF_MIN_MS;
+  let failing = false;
   let status = { bridgeVersion: BRIDGE_VERSION };
   let statusAt = 0;
   let resolveDone;
@@ -80,6 +83,7 @@ export function createBridge(system, device) {
       folders = Array.isArray(frame.folders) ? frame.folders : [];
       docRoots = Array.isArray(frame.docRoots) ? frame.docRoots : [];
       backoff = BACKOFF_MIN_MS;
+      failing = false;
       log(`Connected as device ${frame.deviceId}, ${folders.length} folders`);
     } else if (frame.type === 'allowlist') {
       folders = Array.isArray(frame.folders) ? frame.folders : [];
@@ -97,51 +101,76 @@ export function createBridge(system, device) {
       .finally(() => resolveDone(code));
   }
 
+  function retry() {
+    if (stopped) return;
+    if (!failing) log('Hub cannot be reached. Trying again every 30 seconds at most.');
+    failing = true;
+    const wait = backoff + Math.floor(Math.random() * 500);
+    backoff = Math.min(backoff * 2, BACKOFF_MAX_MS);
+    setTimeout(open, wait).unref?.();
+  }
+
   function open() {
     if (stopped) return;
     const target = new system.WebSocket(socketUrl(device.url), {
       headers: { authorization: `Bearer ${device.credential}` },
     });
     socket = target;
+    // Each socket ends once. Node's own WebSocket fires `error` and never `close` when the connection is refused or the answer is not a 101,
+    // so an `error` before `open` ends the attempt here too, or the loop would stop with nothing in the log (seen 2026-11-08).
+    let ended = false;
+    const end = (code) => {
+      if (ended) return false;
+      ended = true;
+      clearTimeout(watchdog);
+      if (heartbeat) clearInterval(heartbeat);
+      // Nobody can answer an approval or see the reply now, and the API has already marked these interrupted.
+      if (socket === target) turnManager(context).stopAll();
+      if (code === BRIDGE_CLOSE.revoked) {
+        log('This device was revoked. Stopping.');
+        finish(0);
+      } else if (code === BRIDGE_CLOSE.replaced) {
+        log('Another bridge took over for this device. Stopping.');
+        finish(0);
+      } else if (code === BRIDGE_CLOSE.unsupportedProtocol) {
+        log('Hub uses another protocol version. Run the connect command again.');
+        finish(1);
+      } else {
+        retry();
+      }
+      return true;
+    };
+    const abandon = () => {
+      if (!end(1006)) return;
+      try {
+        target.close();
+      } catch {
+        /* A socket still connecting may refuse to close, and it is dropped either way. */
+      }
+    };
+    const watchdog = setTimeout(() => {
+      if (target.readyState === 0) abandon();
+    }, CONNECT_TIMEOUT_MS);
+    watchdog.unref?.();
     target.addEventListener('open', async () => {
+      clearTimeout(watchdog);
       send(target, {
         type: 'hello',
         protocol: BRIDGE_PROTOCOL_VERSION,
         status: await refreshStatus(),
         actions: BRIDGE_ACTIONS,
       });
+      if (ended) return;
       heartbeat = setInterval(async () => {
         send(target, { type: 'heartbeat', status: await refreshStatus() });
       }, HEARTBEAT_MS);
     });
     target.addEventListener('message', (event) => onMessage(target, event.data));
     target.addEventListener('error', () => {
-      /* `close` follows, and handles it. */
+      // Once open, `close` follows with the real code. While still connecting, it may never come.
+      if (target.readyState === 0) abandon();
     });
-    target.addEventListener('close', (event) => {
-      if (heartbeat) clearInterval(heartbeat);
-      // Nobody can answer an approval or see the reply now, and the API has already marked these interrupted.
-      if (socket === target) turnManager(context).stopAll();
-      if (event.code === BRIDGE_CLOSE.revoked) {
-        log('This device was revoked. Stopping.');
-        finish(0);
-        return;
-      }
-      if (event.code === BRIDGE_CLOSE.replaced) {
-        log('Another bridge took over for this device. Stopping.');
-        finish(0);
-        return;
-      }
-      if (event.code === BRIDGE_CLOSE.unsupportedProtocol) {
-        log('Hub uses another protocol version. Run the connect command again.');
-        finish(1);
-        return;
-      }
-      if (stopped) return;
-      const wait = backoff + Math.floor(Math.random() * 500);
-      backoff = Math.min(backoff * 2, BACKOFF_MAX_MS);
-      setTimeout(open, wait).unref?.();
-    });
+    target.addEventListener('close', (event) => end(event.code));
   }
 
   return {
