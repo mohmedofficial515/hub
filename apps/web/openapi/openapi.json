@@ -3452,6 +3452,152 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/backups": {
+      "get": {
+        "operationId": "BackupsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The backup history, the settings, the next nightly time and the free space on the backup drive",
+        "tags": [
+          "backups"
+        ]
+      },
+      "post": {
+        "operationId": "BackupsController_run",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Back up now. Answers the running backup; the history shows how it ends",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/backups/settings": {
+      "patch": {
+        "operationId": "BackupsController_settings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupSettingsInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The folder, the nightly time, how many unpinned backups to keep, and whether the night runs",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/backups/{id}/pin": {
+      "post": {
+        "operationId": "BackupsController_pin",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PinBackupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Keep a backup forever (pinned: true), or hand it back to the retention rule",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/backups/{id}": {
+      "delete": {
+        "operationId": "BackupsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete a backup’s files. The history keeps the line, marked deleted",
+        "tags": [
+          "backups"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/docs/save": {
       "post": {
         "operationId": "DocsController_save",
@@ -3882,6 +4028,28 @@
           }
         },
         "summary": "The one command that connects a new device, and the one that removes Hub from it",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/v1/me/devices/publishing": {
+      "get": {
+        "operationId": "DevicesController_publishingStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishingDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "How other devices reach Hub: the public URL, Secure cookies, where the API listens, and what Tailscale serves",
         "tags": [
           "devices"
         ]
@@ -7938,6 +8106,320 @@
         "summary": "Runs at once, runs per day, quiet hours and the timezone. The member’s, across projects",
         "tags": [
           "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema": {
+      "get": {
+        "operationId": "SchemaStudioController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaStudioDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The design as last read, its Arabic names, and the drafts of changes",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/source": {
+      "put": {
+        "operationId": "SchemaStudioController_setSource",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SchemaSourceInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaStudioDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Where the Prisma files are: one of the project’s folders, and the schema folder inside it. Reads it at once",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/refresh": {
+      "post": {
+        "operationId": "SchemaStudioController_refresh",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshSchemaDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshSchemaResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Read the files again; a new snapshot when they changed. With a draft, the draft is applied",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/snapshots": {
+      "get": {
+        "operationId": "SchemaStudioController_snapshots",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotRowsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The design’s history, newest first, each with what changed",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/annotations": {
+      "put": {
+        "operationId": "SchemaStudioController_annotate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutAnnotationsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnotationsResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Arabic names, descriptions, notes, tags and sensitivity; a field left out keeps its value",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/drafts": {
+      "post": {
+        "operationId": "SchemaStudioController_createDraft",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaDraftDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start a draft of changes",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/drafts/{id}": {
+      "get": {
+        "operationId": "SchemaStudioController_draft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaDraftDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One draft",
+        "tags": [
+          "schema"
+        ]
+      },
+      "patch": {
+        "operationId": "SchemaStudioController_updateDraft",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaDraftDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Change a draft: its title, changes, review or status",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/drafts/{id}/review": {
+      "post": {
+        "operationId": "SchemaStudioController_review",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDraftResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send a draft to review: it moves to In review, and the answer is the prompt the page sends to the panel",
+        "tags": [
+          "schema"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/schema/drafts/{id}/chat": {
+      "post": {
+        "operationId": "SchemaStudioController_attachChat",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachChatDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaDraftDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The panel chat the review runs in",
+        "tags": [
+          "schema"
         ]
       }
     }
@@ -27224,6 +27706,344 @@
           "worker"
         ]
       },
+      "BackupsDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "running",
+                    "done",
+                    "failed"
+                  ]
+                },
+                "trigger": {
+                  "type": "string",
+                  "enum": [
+                    "scheduled",
+                    "catch_up",
+                    "manual"
+                  ]
+                },
+                "startedAt": {
+                  "type": "string"
+                },
+                "endedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "path": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "sizeBytes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "docs": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "pinned": {
+                  "type": "boolean"
+                },
+                "failure": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "deletedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "deletedBy": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "retention",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "missing": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "trigger",
+                "startedAt",
+                "endedAt",
+                "path",
+                "sizeBytes",
+                "docs",
+                "pinned",
+                "failure",
+                "deletedAt",
+                "deletedBy",
+                "missing"
+              ]
+            }
+          },
+          "settings": {
+            "type": "object",
+            "properties": {
+              "folder": {
+                "type": "string"
+              },
+              "folderSource": {
+                "type": "string",
+                "enum": [
+                  "setting",
+                  "default"
+                ]
+              },
+              "defaultFolder": {
+                "type": "string"
+              },
+              "time": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "keep": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "enabled": {
+                "type": "boolean"
+              },
+              "timezone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "folder",
+              "folderSource",
+              "defaultFolder",
+              "time",
+              "keep",
+              "enabled",
+              "timezone"
+            ]
+          },
+          "disk": {
+            "type": "object",
+            "properties": {
+              "freeBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "totalBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "low": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "freeBytes",
+              "totalBytes",
+              "low"
+            ],
+            "nullable": true
+          },
+          "nextAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "running": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "settings",
+          "disk",
+          "nextAt",
+          "running"
+        ]
+      },
+      "BackupDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "done",
+              "failed"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "catch_up",
+              "manual"
+            ]
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "endedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "docs": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "failure": {
+            "type": "string",
+            "nullable": true
+          },
+          "deletedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "deletedBy": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "retention",
+              null
+            ],
+            "nullable": true
+          },
+          "missing": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "trigger",
+          "startedAt",
+          "endedAt",
+          "path",
+          "sizeBytes",
+          "docs",
+          "pinned",
+          "failure",
+          "deletedAt",
+          "deletedBy",
+          "missing"
+        ]
+      },
+      "BackupSettingsInputDto": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260,
+            "nullable": true
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "keep": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BackupSettingsDto": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string"
+          },
+          "folderSource": {
+            "type": "string",
+            "enum": [
+              "setting",
+              "default"
+            ]
+          },
+          "defaultFolder": {
+            "type": "string"
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+          },
+          "keep": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder",
+          "folderSource",
+          "defaultFolder",
+          "time",
+          "keep",
+          "enabled",
+          "timezone"
+        ]
+      },
+      "PinBackupDto": {
+        "type": "object",
+        "properties": {
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pinned"
+        ]
+      },
       "SaveDocDto": {
         "type": "object",
         "properties": {
@@ -28845,6 +29665,64 @@
           "apiUrl",
           "connect",
           "uninstall"
+        ]
+      },
+      "PublishingDto": {
+        "type": "object",
+        "properties": {
+          "publicUrl": {
+            "type": "string"
+          },
+          "apiPublicUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "secureCookies": {
+            "type": "boolean"
+          },
+          "bindHost": {
+            "type": "string",
+            "nullable": true
+          },
+          "tailscale": {
+            "type": "object",
+            "properties": {
+              "installed": {
+                "type": "boolean"
+              },
+              "running": {
+                "type": "boolean"
+              },
+              "dnsName": {
+                "type": "string",
+                "nullable": true
+              },
+              "servesWeb": {
+                "type": "boolean"
+              },
+              "servesApi": {
+                "type": "boolean"
+              },
+              "matchesPublicUrl": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "installed",
+              "running",
+              "dnsName",
+              "servesWeb",
+              "servesApi",
+              "matchesPublicUrl"
+            ]
+          }
+        },
+        "required": [
+          "publicUrl",
+          "apiPublicUrl",
+          "secureCookies",
+          "bindHost",
+          "tailscale"
         ]
       },
       "FixDeviceDto": {
@@ -36966,6 +37844,1662 @@
             "nullable": true
           }
         }
+      },
+      "SchemaStudioDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "schemaDir": {
+                "type": "string"
+              },
+              "deviceId": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "path",
+              "schemaDir",
+              "deviceId"
+            ],
+            "nullable": true
+          },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "hash": {
+                "type": "string"
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "trigger": {
+                "type": "string",
+                "enum": [
+                  "manual",
+                  "mcp",
+                  "after_apply"
+                ]
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "domains": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "file": {
+                          "type": "string"
+                        },
+                        "header": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "models": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "enums": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "file",
+                        "header",
+                        "models",
+                        "enums"
+                      ]
+                    }
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "dbName": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "domain": {
+                          "type": "string"
+                        },
+                        "block": {
+                          "type": "string",
+                          "enum": [
+                            "model",
+                            "view"
+                          ]
+                        },
+                        "doc": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "comment": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "scalar",
+                                  "enum",
+                                  "relation",
+                                  "unsupported"
+                                ]
+                              },
+                              "list": {
+                                "type": "boolean"
+                              },
+                              "optional": {
+                                "type": "boolean"
+                              },
+                              "dbName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "isId": {
+                                "type": "boolean"
+                              },
+                              "isUnique": {
+                                "type": "boolean"
+                              },
+                              "isUpdatedAt": {
+                                "type": "boolean"
+                              },
+                              "default": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "nativeType": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "relation": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "fields": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "references": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "onDelete": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "onUpdate": {
+                                    "type": "string",
+                                    "nullable": true
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "fields",
+                                  "references",
+                                  "onDelete",
+                                  "onUpdate"
+                                ],
+                                "nullable": true
+                              },
+                              "isForeignKey": {
+                                "type": "boolean"
+                              },
+                              "attributes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "doc": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "comment": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "line": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "type",
+                              "kind",
+                              "list",
+                              "optional",
+                              "dbName",
+                              "isId",
+                              "isUnique",
+                              "isUpdatedAt",
+                              "default",
+                              "nativeType",
+                              "relation",
+                              "isForeignKey",
+                              "attributes",
+                              "doc",
+                              "comment",
+                              "line"
+                            ]
+                          }
+                        },
+                        "indexes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "id",
+                                  "unique",
+                                  "index",
+                                  "fulltext"
+                                ]
+                              },
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "name": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "raw": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "kind",
+                              "fields",
+                              "name",
+                              "raw"
+                            ]
+                          }
+                        },
+                        "attributes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "line": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "dbName",
+                        "domain",
+                        "block",
+                        "doc",
+                        "comment",
+                        "fields",
+                        "indexes",
+                        "attributes",
+                        "line"
+                      ]
+                    }
+                  },
+                  "enums": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "dbName": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "domain": {
+                          "type": "string"
+                        },
+                        "doc": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "comment": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "dbName": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "doc": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "comment": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "dbName",
+                              "doc",
+                              "comment"
+                            ]
+                          }
+                        },
+                        "line": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "dbName",
+                        "domain",
+                        "doc",
+                        "comment",
+                        "values",
+                        "line"
+                      ]
+                    }
+                  },
+                  "relations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string"
+                        },
+                        "fromField": {
+                          "type": "string"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "toField": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "references": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "cardinality": {
+                          "type": "string",
+                          "enum": [
+                            "one_to_one",
+                            "many_to_one"
+                          ]
+                        },
+                        "optional": {
+                          "type": "boolean"
+                        },
+                        "onDelete": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "implied": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "from",
+                        "fromField",
+                        "to",
+                        "toField",
+                        "fields",
+                        "references",
+                        "cardinality",
+                        "optional",
+                        "onDelete",
+                        "name",
+                        "implied"
+                      ]
+                    }
+                  },
+                  "stats": {
+                    "type": "object",
+                    "properties": {
+                      "domains": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "models": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "enums": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "fields": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "relations": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "impliedRelations": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "documentedInFiles": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "domains",
+                      "models",
+                      "enums",
+                      "fields",
+                      "relations",
+                      "impliedRelations",
+                      "documentedInFiles"
+                    ]
+                  },
+                  "warnings": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "provider",
+                  "domains",
+                  "models",
+                  "enums",
+                  "relations",
+                  "stats",
+                  "warnings"
+                ]
+              },
+              "changes": {
+                "type": "object",
+                "properties": {
+                  "addedModels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "removedModels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "changedModels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "addedFields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "removedFields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "changedFields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "addedEnums": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "removedEnums": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "changedEnums": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "addedModels",
+                  "removedModels",
+                  "changedModels",
+                  "addedFields",
+                  "removedFields",
+                  "changedFields",
+                  "addedEnums",
+                  "removedEnums",
+                  "changedEnums"
+                ],
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "hash",
+              "createdAt",
+              "trigger",
+              "schema",
+              "changes"
+            ],
+            "nullable": true
+          },
+          "annotations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "nameAr": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "descriptionAr": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "notes": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sensitivity": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pii",
+                    "money",
+                    "secret"
+                  ]
+                },
+                "updatedBy": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "syncedAt": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "target",
+                "nameAr",
+                "descriptionAr",
+                "notes",
+                "tags",
+                "sensitivity",
+                "updatedBy",
+                "updatedAt",
+                "syncedAt"
+              ]
+            }
+          },
+          "drafts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "editing",
+                    "in_review",
+                    "applying",
+                    "applied",
+                    "discarded"
+                  ]
+                },
+                "changes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 64
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "add_model",
+                          "add_field",
+                          "change_field",
+                          "rename",
+                          "remove",
+                          "split_model",
+                          "add_relation",
+                          "add_index",
+                          "add_enum",
+                          "change_enum",
+                          "note"
+                        ]
+                      },
+                      "target": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 200
+                      },
+                      "summary": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "detail": {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      "reason": {
+                        "type": "string",
+                        "maxLength": 2000
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "target",
+                      "summary"
+                    ]
+                  }
+                },
+                "review": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "chatId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "baseSnapshotId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "appliedSnapshotId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdBy": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "status",
+                "changes",
+                "review",
+                "chatId",
+                "baseSnapshotId",
+                "appliedSnapshotId",
+                "createdBy",
+                "createdAt",
+                "updatedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "source",
+          "snapshot",
+          "annotations",
+          "drafts"
+        ]
+      },
+      "SchemaSourceInputDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]{2,32}$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "schemaDir": {
+            "default": "prisma/schema",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ]
+      },
+      "RefreshSchemaDto": {
+        "type": "object",
+        "properties": {
+          "draftId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        }
+      },
+      "RefreshSchemaResultDto": {
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "changes": {
+            "type": "object",
+            "properties": {
+              "addedModels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "removedModels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "changedModels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "addedFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "removedFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "changedFields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "addedEnums": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "removedEnums": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "changedEnums": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "addedModels",
+              "removedModels",
+              "changedModels",
+              "addedFields",
+              "removedFields",
+              "changedFields",
+              "addedEnums",
+              "removedEnums",
+              "changedEnums"
+            ],
+            "nullable": true
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "domains": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "models": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "enums": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "fields": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "relations": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "impliedRelations": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "documentedInFiles": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "domains",
+              "models",
+              "enums",
+              "fields",
+              "relations",
+              "impliedRelations",
+              "documentedInFiles"
+            ]
+          }
+        },
+        "required": [
+          "snapshotId",
+          "created",
+          "changes",
+          "stats"
+        ]
+      },
+      "SnapshotRowsDto": {
+        "type": "object",
+        "properties": {
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "hash": {
+                  "type": "string"
+                },
+                "trigger": {
+                  "type": "string",
+                  "enum": [
+                    "manual",
+                    "mcp",
+                    "after_apply"
+                  ]
+                },
+                "takenBy": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "stats": {
+                  "type": "object",
+                  "properties": {
+                    "domains": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "models": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "enums": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "fields": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "relations": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "impliedRelations": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "documentedInFiles": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "domains",
+                    "models",
+                    "enums",
+                    "fields",
+                    "relations",
+                    "impliedRelations",
+                    "documentedInFiles"
+                  ]
+                },
+                "changes": {
+                  "type": "object",
+                  "properties": {
+                    "addedModels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "removedModels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "changedModels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "addedFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "removedFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "changedFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "addedEnums": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "removedEnums": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "changedEnums": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "addedModels",
+                    "removedModels",
+                    "changedModels",
+                    "addedFields",
+                    "removedFields",
+                    "changedFields",
+                    "addedEnums",
+                    "removedEnums",
+                    "changedEnums"
+                  ],
+                  "nullable": true
+                },
+                "draftId": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "hash",
+                "trigger",
+                "takenBy",
+                "createdAt",
+                "stats",
+                "changes",
+                "draftId"
+              ]
+            }
+          }
+        },
+        "required": [
+          "snapshots"
+        ]
+      },
+      "PutAnnotationsDto": {
+        "type": "object",
+        "properties": {
+          "annotations": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "maxLength": 200,
+                  "pattern": "^(model|field|enum|enumValue):[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?$"
+                },
+                "nameAr": {
+                  "type": "string",
+                  "maxLength": 120,
+                  "nullable": true
+                },
+                "descriptionAr": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "nullable": true
+                },
+                "notes": {
+                  "type": "string",
+                  "maxLength": 4000,
+                  "nullable": true
+                },
+                "tags": {
+                  "maxItems": 12,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 40
+                  }
+                },
+                "sensitivity": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pii",
+                    "money",
+                    "secret"
+                  ]
+                }
+              },
+              "required": [
+                "target"
+              ]
+            }
+          }
+        },
+        "required": [
+          "annotations"
+        ]
+      },
+      "AnnotationsResultDto": {
+        "type": "object",
+        "properties": {
+          "annotations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "nameAr": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "descriptionAr": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "notes": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sensitivity": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "pii",
+                    "money",
+                    "secret"
+                  ]
+                },
+                "updatedBy": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "syncedAt": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "target",
+                "nameAr",
+                "descriptionAr",
+                "notes",
+                "tags",
+                "sensitivity",
+                "updatedBy",
+                "updatedAt",
+                "syncedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "annotations"
+        ]
+      },
+      "CreateDraftDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "changes": {
+            "default": [],
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "add_model",
+                    "add_field",
+                    "change_field",
+                    "rename",
+                    "remove",
+                    "split_model",
+                    "add_relation",
+                    "add_index",
+                    "add_enum",
+                    "change_enum",
+                    "note"
+                  ]
+                },
+                "target": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "summary": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "detail": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "reason": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "target",
+                "summary"
+              ]
+            }
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "SchemaDraftDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "editing",
+              "in_review",
+              "applying",
+              "applied",
+              "discarded"
+            ]
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "add_model",
+                    "add_field",
+                    "change_field",
+                    "rename",
+                    "remove",
+                    "split_model",
+                    "add_relation",
+                    "add_index",
+                    "add_enum",
+                    "change_enum",
+                    "note"
+                  ]
+                },
+                "target": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "summary": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "detail": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "reason": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "target",
+                "summary"
+              ]
+            }
+          },
+          "review": {
+            "type": "string",
+            "nullable": true
+          },
+          "chatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "baseSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "appliedSnapshotId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "changes",
+          "review",
+          "chatId",
+          "baseSnapshotId",
+          "appliedSnapshotId",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateDraftDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "changes": {
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "add_model",
+                    "add_field",
+                    "change_field",
+                    "rename",
+                    "remove",
+                    "split_model",
+                    "add_relation",
+                    "add_index",
+                    "add_enum",
+                    "change_enum",
+                    "note"
+                  ]
+                },
+                "target": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "summary": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "detail": {
+                  "type": "string",
+                  "maxLength": 2000
+                },
+                "reason": {
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "target",
+                "summary"
+              ]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "editing",
+              "in_review",
+              "applying",
+              "applied",
+              "discarded"
+            ]
+          },
+          "review": {
+            "type": "string",
+            "maxLength": 20000,
+            "nullable": true
+          }
+        }
+      },
+      "ReviewDraftResultDto": {
+        "type": "object",
+        "properties": {
+          "draft": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "editing",
+                  "in_review",
+                  "applying",
+                  "applied",
+                  "discarded"
+                ]
+              },
+              "changes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "add_model",
+                        "add_field",
+                        "change_field",
+                        "rename",
+                        "remove",
+                        "split_model",
+                        "add_relation",
+                        "add_index",
+                        "add_enum",
+                        "change_enum",
+                        "note"
+                      ]
+                    },
+                    "target": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "summary": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "detail": {
+                      "type": "string",
+                      "maxLength": 2000
+                    },
+                    "reason": {
+                      "type": "string",
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "target",
+                    "summary"
+                  ]
+                }
+              },
+              "review": {
+                "type": "string",
+                "nullable": true
+              },
+              "chatId": {
+                "type": "string",
+                "nullable": true
+              },
+              "baseSnapshotId": {
+                "type": "string",
+                "nullable": true
+              },
+              "appliedSnapshotId": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdBy": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "status",
+              "changes",
+              "review",
+              "chatId",
+              "baseSnapshotId",
+              "appliedSnapshotId",
+              "createdBy",
+              "createdAt",
+              "updatedAt"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "draft",
+          "prompt"
+        ]
+      },
+      "AttachChatDto": {
+        "type": "object",
+        "properties": {
+          "chatId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          }
+        },
+        "required": [
+          "chatId"
+        ]
       }
     }
   }

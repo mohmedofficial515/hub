@@ -3995,6 +3995,77 @@ export type SystemDto = {
     };
 };
 
+export type BackupsDto = {
+    items: Array<{
+        id: string;
+        status: 'running' | 'done' | 'failed';
+        trigger: 'scheduled' | 'catch_up' | 'manual';
+        startedAt: string;
+        endedAt: string | null;
+        path: string | null;
+        sizeBytes: number | null;
+        docs: number | null;
+        pinned: boolean;
+        failure: string | null;
+        deletedAt: string | null;
+        deletedBy: 'owner' | 'retention' | null;
+        missing: boolean;
+    }>;
+    settings: {
+        folder: string;
+        folderSource: 'setting' | 'default';
+        defaultFolder: string;
+        time: string;
+        keep: number;
+        enabled: boolean;
+        timezone: string;
+    };
+    disk: {
+        freeBytes: number;
+        totalBytes: number;
+        low: boolean;
+    } | null;
+    nextAt: string | null;
+    running: boolean;
+};
+
+export type BackupDto = {
+    id: string;
+    status: 'running' | 'done' | 'failed';
+    trigger: 'scheduled' | 'catch_up' | 'manual';
+    startedAt: string;
+    endedAt: string | null;
+    path: string | null;
+    sizeBytes: number | null;
+    docs: number | null;
+    pinned: boolean;
+    failure: string | null;
+    deletedAt: string | null;
+    deletedBy: 'owner' | 'retention' | null;
+    missing: boolean;
+};
+
+export type BackupSettingsInputDto = {
+    folder?: string | null;
+    time?: string;
+    keep?: number;
+    enabled?: boolean;
+};
+
+export type BackupSettingsDto = {
+    folder: string;
+    folderSource: 'setting' | 'default';
+    defaultFolder: string;
+    time: string;
+    keep: number;
+    enabled: boolean;
+    timezone: string;
+};
+
+export type PinBackupDto = {
+    pinned: boolean;
+};
+
 export type SaveDocDto = {
     key?: string;
     source?: string;
@@ -4353,6 +4424,21 @@ export type ConnectCommandDto = {
     apiUrl: string;
     connect: string;
     uninstall: string;
+};
+
+export type PublishingDto = {
+    publicUrl: string;
+    apiPublicUrl: string | null;
+    secureCookies: boolean;
+    bindHost: string | null;
+    tailscale: {
+        installed: boolean;
+        running: boolean;
+        dnsName: string | null;
+        servesWeb: boolean;
+        servesApi: boolean;
+        matchesPublicUrl: boolean;
+    };
 };
 
 export type FixDeviceDto = {
@@ -6047,6 +6133,320 @@ export type QueueSettingsDto = {
     timezone?: string | null;
 };
 
+export type SchemaStudioDto = {
+    source: {
+        id: string;
+        name: string;
+        path: string;
+        schemaDir: string;
+        deviceId: string | null;
+    } | null;
+    snapshot: {
+        id: string;
+        hash: string;
+        createdAt: string;
+        trigger: 'manual' | 'mcp' | 'after_apply';
+        schema: {
+            provider: string | null;
+            domains: Array<{
+                name: string;
+                file: string;
+                header: string | null;
+                models: Array<string>;
+                enums: Array<string>;
+            }>;
+            models: Array<{
+                name: string;
+                dbName: string | null;
+                domain: string;
+                block: 'model' | 'view';
+                doc: string | null;
+                comment: string | null;
+                fields: Array<{
+                    name: string;
+                    type: string;
+                    kind: 'scalar' | 'enum' | 'relation' | 'unsupported';
+                    list: boolean;
+                    optional: boolean;
+                    dbName: string | null;
+                    isId: boolean;
+                    isUnique: boolean;
+                    isUpdatedAt: boolean;
+                    default: string | null;
+                    nativeType: string | null;
+                    relation: {
+                        name: string | null;
+                        fields: Array<string>;
+                        references: Array<string>;
+                        onDelete: string | null;
+                        onUpdate: string | null;
+                    } | null;
+                    isForeignKey: boolean;
+                    attributes: Array<string>;
+                    doc: string | null;
+                    comment: string | null;
+                    line: number;
+                }>;
+                indexes: Array<{
+                    kind: 'id' | 'unique' | 'index' | 'fulltext';
+                    fields: Array<string>;
+                    name: string | null;
+                    raw: string;
+                }>;
+                attributes: Array<string>;
+                line: number;
+            }>;
+            enums: Array<{
+                name: string;
+                dbName: string | null;
+                domain: string;
+                doc: string | null;
+                comment: string | null;
+                values: Array<{
+                    name: string;
+                    dbName: string | null;
+                    doc: string | null;
+                    comment: string | null;
+                }>;
+                line: number;
+            }>;
+            relations: Array<{
+                id: string;
+                from: string;
+                fromField: string;
+                to: string;
+                toField: string | null;
+                fields: Array<string>;
+                references: Array<string>;
+                cardinality: 'one_to_one' | 'many_to_one';
+                optional: boolean;
+                onDelete: string | null;
+                name: string | null;
+                implied: boolean;
+            }>;
+            stats: {
+                domains: number;
+                models: number;
+                enums: number;
+                fields: number;
+                relations: number;
+                impliedRelations: number;
+                documentedInFiles: number;
+            };
+            warnings: Array<string>;
+        };
+        changes: {
+            addedModels: Array<string>;
+            removedModels: Array<string>;
+            changedModels: Array<string>;
+            addedFields: Array<string>;
+            removedFields: Array<string>;
+            changedFields: Array<string>;
+            addedEnums: Array<string>;
+            removedEnums: Array<string>;
+            changedEnums: Array<string>;
+        } | null;
+    } | null;
+    annotations: Array<{
+        target: string;
+        nameAr: string | null;
+        descriptionAr: string | null;
+        notes: string | null;
+        tags: Array<string>;
+        sensitivity: 'none' | 'pii' | 'money' | 'secret';
+        updatedBy: string | null;
+        updatedAt: string;
+        syncedAt: string | null;
+    }>;
+    drafts: Array<{
+        id: string;
+        title: string;
+        status: 'editing' | 'in_review' | 'applying' | 'applied' | 'discarded';
+        changes: Array<{
+            id: string;
+            kind: 'add_model' | 'add_field' | 'change_field' | 'rename' | 'remove' | 'split_model' | 'add_relation' | 'add_index' | 'add_enum' | 'change_enum' | 'note';
+            target: string;
+            summary: string;
+            detail?: string;
+            reason?: string;
+        }>;
+        review: string | null;
+        chatId: string | null;
+        baseSnapshotId: string | null;
+        appliedSnapshotId: string | null;
+        createdBy: string | null;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+};
+
+export type SchemaSourceInputDto = {
+    name: string;
+    path: string;
+    schemaDir?: string;
+    deviceId?: string | null;
+};
+
+export type RefreshSchemaDto = {
+    draftId?: string;
+};
+
+export type RefreshSchemaResultDto = {
+    snapshotId: string;
+    created: boolean;
+    changes: {
+        addedModels: Array<string>;
+        removedModels: Array<string>;
+        changedModels: Array<string>;
+        addedFields: Array<string>;
+        removedFields: Array<string>;
+        changedFields: Array<string>;
+        addedEnums: Array<string>;
+        removedEnums: Array<string>;
+        changedEnums: Array<string>;
+    } | null;
+    stats: {
+        domains: number;
+        models: number;
+        enums: number;
+        fields: number;
+        relations: number;
+        impliedRelations: number;
+        documentedInFiles: number;
+    };
+};
+
+export type SnapshotRowsDto = {
+    snapshots: Array<{
+        id: string;
+        hash: string;
+        trigger: 'manual' | 'mcp' | 'after_apply';
+        takenBy: string | null;
+        createdAt: string;
+        stats: {
+            domains: number;
+            models: number;
+            enums: number;
+            fields: number;
+            relations: number;
+            impliedRelations: number;
+            documentedInFiles: number;
+        };
+        changes: {
+            addedModels: Array<string>;
+            removedModels: Array<string>;
+            changedModels: Array<string>;
+            addedFields: Array<string>;
+            removedFields: Array<string>;
+            changedFields: Array<string>;
+            addedEnums: Array<string>;
+            removedEnums: Array<string>;
+            changedEnums: Array<string>;
+        } | null;
+        draftId: string | null;
+    }>;
+};
+
+export type PutAnnotationsDto = {
+    annotations: Array<{
+        target: string;
+        nameAr?: string | null;
+        descriptionAr?: string | null;
+        notes?: string | null;
+        tags?: Array<string>;
+        sensitivity?: 'none' | 'pii' | 'money' | 'secret';
+    }>;
+};
+
+export type AnnotationsResultDto = {
+    annotations: Array<{
+        target: string;
+        nameAr: string | null;
+        descriptionAr: string | null;
+        notes: string | null;
+        tags: Array<string>;
+        sensitivity: 'none' | 'pii' | 'money' | 'secret';
+        updatedBy: string | null;
+        updatedAt: string;
+        syncedAt: string | null;
+    }>;
+};
+
+export type CreateDraftDto = {
+    title: string;
+    changes?: Array<{
+        id: string;
+        kind: 'add_model' | 'add_field' | 'change_field' | 'rename' | 'remove' | 'split_model' | 'add_relation' | 'add_index' | 'add_enum' | 'change_enum' | 'note';
+        target: string;
+        summary: string;
+        detail?: string;
+        reason?: string;
+    }>;
+};
+
+export type SchemaDraftDto = {
+    id: string;
+    title: string;
+    status: 'editing' | 'in_review' | 'applying' | 'applied' | 'discarded';
+    changes: Array<{
+        id: string;
+        kind: 'add_model' | 'add_field' | 'change_field' | 'rename' | 'remove' | 'split_model' | 'add_relation' | 'add_index' | 'add_enum' | 'change_enum' | 'note';
+        target: string;
+        summary: string;
+        detail?: string;
+        reason?: string;
+    }>;
+    review: string | null;
+    chatId: string | null;
+    baseSnapshotId: string | null;
+    appliedSnapshotId: string | null;
+    createdBy: string | null;
+    createdAt: string;
+    updatedAt: string;
+};
+
+export type UpdateDraftDto = {
+    title?: string;
+    changes?: Array<{
+        id: string;
+        kind: 'add_model' | 'add_field' | 'change_field' | 'rename' | 'remove' | 'split_model' | 'add_relation' | 'add_index' | 'add_enum' | 'change_enum' | 'note';
+        target: string;
+        summary: string;
+        detail?: string;
+        reason?: string;
+    }>;
+    status?: 'editing' | 'in_review' | 'applying' | 'applied' | 'discarded';
+    review?: string | null;
+};
+
+export type ReviewDraftResultDto = {
+    draft: {
+        id: string;
+        title: string;
+        status: 'editing' | 'in_review' | 'applying' | 'applied' | 'discarded';
+        changes: Array<{
+            id: string;
+            kind: 'add_model' | 'add_field' | 'change_field' | 'rename' | 'remove' | 'split_model' | 'add_relation' | 'add_index' | 'add_enum' | 'change_enum' | 'note';
+            target: string;
+            summary: string;
+            detail?: string;
+            reason?: string;
+        }>;
+        review: string | null;
+        chatId: string | null;
+        baseSnapshotId: string | null;
+        appliedSnapshotId: string | null;
+        createdBy: string | null;
+        createdAt: string;
+        updatedAt: string;
+    };
+    prompt: string;
+};
+
+export type AttachChatDto = {
+    chatId: string;
+};
+
 export type AuthControllerSignInData = {
     body: SignInDto;
     path?: never;
@@ -7457,6 +7857,75 @@ export type MetricsControllerMetricsResponses = {
     200: unknown;
 };
 
+export type BackupsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/backups';
+};
+
+export type BackupsControllerListResponses = {
+    200: BackupsDto;
+};
+
+export type BackupsControllerListResponse = BackupsControllerListResponses[keyof BackupsControllerListResponses];
+
+export type BackupsControllerRunData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/backups';
+};
+
+export type BackupsControllerRunResponses = {
+    202: BackupDto;
+};
+
+export type BackupsControllerRunResponse = BackupsControllerRunResponses[keyof BackupsControllerRunResponses];
+
+export type BackupsControllerSettingsData = {
+    body: BackupSettingsInputDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/backups/settings';
+};
+
+export type BackupsControllerSettingsResponses = {
+    200: BackupSettingsDto;
+};
+
+export type BackupsControllerSettingsResponse = BackupsControllerSettingsResponses[keyof BackupsControllerSettingsResponses];
+
+export type BackupsControllerPinData = {
+    body: PinBackupDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/backups/{id}/pin';
+};
+
+export type BackupsControllerPinResponses = {
+    200: BackupDto;
+};
+
+export type BackupsControllerPinResponse = BackupsControllerPinResponses[keyof BackupsControllerPinResponses];
+
+export type BackupsControllerRemoveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/backups/{id}';
+};
+
+export type BackupsControllerRemoveResponses = {
+    200: BackupDto;
+};
+
+export type BackupsControllerRemoveResponse = BackupsControllerRemoveResponses[keyof BackupsControllerRemoveResponses];
+
 export type DocsControllerSaveData = {
     body: SaveDocDto;
     path?: never;
@@ -7642,6 +8111,19 @@ export type DevicesControllerConnectCommandResponses = {
 };
 
 export type DevicesControllerConnectCommandResponse = DevicesControllerConnectCommandResponses[keyof DevicesControllerConnectCommandResponses];
+
+export type DevicesControllerPublishingStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices/publishing';
+};
+
+export type DevicesControllerPublishingStatusResponses = {
+    200: PublishingDto;
+};
+
+export type DevicesControllerPublishingStatusResponse = DevicesControllerPublishingStatusResponses[keyof DevicesControllerPublishingStatusResponses];
 
 export type DevicesControllerHealthData = {
     body?: never;
@@ -9227,3 +9709,141 @@ export type AgentQueueControllerSettingsResponses = {
 };
 
 export type AgentQueueControllerSettingsResponse = AgentQueueControllerSettingsResponses[keyof AgentQueueControllerSettingsResponses];
+
+export type SchemaStudioControllerGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema';
+};
+
+export type SchemaStudioControllerGetResponses = {
+    200: SchemaStudioDto;
+};
+
+export type SchemaStudioControllerGetResponse = SchemaStudioControllerGetResponses[keyof SchemaStudioControllerGetResponses];
+
+export type SchemaStudioControllerSetSourceData = {
+    body: SchemaSourceInputDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/source';
+};
+
+export type SchemaStudioControllerSetSourceResponses = {
+    200: SchemaStudioDto;
+};
+
+export type SchemaStudioControllerSetSourceResponse = SchemaStudioControllerSetSourceResponses[keyof SchemaStudioControllerSetSourceResponses];
+
+export type SchemaStudioControllerRefreshData = {
+    body: RefreshSchemaDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/refresh';
+};
+
+export type SchemaStudioControllerRefreshResponses = {
+    200: RefreshSchemaResultDto;
+};
+
+export type SchemaStudioControllerRefreshResponse = SchemaStudioControllerRefreshResponses[keyof SchemaStudioControllerRefreshResponses];
+
+export type SchemaStudioControllerSnapshotsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/snapshots';
+};
+
+export type SchemaStudioControllerSnapshotsResponses = {
+    200: SnapshotRowsDto;
+};
+
+export type SchemaStudioControllerSnapshotsResponse = SchemaStudioControllerSnapshotsResponses[keyof SchemaStudioControllerSnapshotsResponses];
+
+export type SchemaStudioControllerAnnotateData = {
+    body: PutAnnotationsDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/annotations';
+};
+
+export type SchemaStudioControllerAnnotateResponses = {
+    200: AnnotationsResultDto;
+};
+
+export type SchemaStudioControllerAnnotateResponse = SchemaStudioControllerAnnotateResponses[keyof SchemaStudioControllerAnnotateResponses];
+
+export type SchemaStudioControllerCreateDraftData = {
+    body: CreateDraftDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/drafts';
+};
+
+export type SchemaStudioControllerCreateDraftResponses = {
+    201: SchemaDraftDto;
+};
+
+export type SchemaStudioControllerCreateDraftResponse = SchemaStudioControllerCreateDraftResponses[keyof SchemaStudioControllerCreateDraftResponses];
+
+export type SchemaStudioControllerDraftData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/drafts/{id}';
+};
+
+export type SchemaStudioControllerDraftResponses = {
+    200: SchemaDraftDto;
+};
+
+export type SchemaStudioControllerDraftResponse = SchemaStudioControllerDraftResponses[keyof SchemaStudioControllerDraftResponses];
+
+export type SchemaStudioControllerUpdateDraftData = {
+    body: UpdateDraftDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/drafts/{id}';
+};
+
+export type SchemaStudioControllerUpdateDraftResponses = {
+    200: SchemaDraftDto;
+};
+
+export type SchemaStudioControllerUpdateDraftResponse = SchemaStudioControllerUpdateDraftResponses[keyof SchemaStudioControllerUpdateDraftResponses];
+
+export type SchemaStudioControllerReviewData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/drafts/{id}/review';
+};
+
+export type SchemaStudioControllerReviewResponses = {
+    200: ReviewDraftResultDto;
+};
+
+export type SchemaStudioControllerReviewResponse = SchemaStudioControllerReviewResponses[keyof SchemaStudioControllerReviewResponses];
+
+export type SchemaStudioControllerAttachChatData = {
+    body: AttachChatDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/schema/drafts/{id}/chat';
+};
+
+export type SchemaStudioControllerAttachChatResponses = {
+    200: SchemaDraftDto;
+};
+
+export type SchemaStudioControllerAttachChatResponse = SchemaStudioControllerAttachChatResponses[keyof SchemaStudioControllerAttachChatResponses];
