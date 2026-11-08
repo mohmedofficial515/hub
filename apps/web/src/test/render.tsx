@@ -18,6 +18,7 @@ import arMembers from '../../messages/ar/members.json';
 import arNeeds from '../../messages/ar/needs.json';
 import arOnboarding from '../../messages/ar/onboarding.json';
 import arPlanning from '../../messages/ar/planning.json';
+import arQueue from '../../messages/ar/queue.json';
 import arRedesign from '../../messages/ar/redesign.json';
 import arReleases from '../../messages/ar/releases.json';
 import arSettings from '../../messages/ar/settings.json';
@@ -35,6 +36,7 @@ import enMembers from '../../messages/en/members.json';
 import enNeeds from '../../messages/en/needs.json';
 import enOnboarding from '../../messages/en/onboarding.json';
 import enPlanning from '../../messages/en/planning.json';
+import enQueue from '../../messages/en/queue.json';
 import enRedesign from '../../messages/en/redesign.json';
 import enReleases from '../../messages/en/releases.json';
 import enSettings from '../../messages/en/settings.json';
@@ -61,6 +63,7 @@ const catalogs = {
     tasks: arTasks,
     decisions: arDecisions,
     planning: arPlanning,
+    queue: arQueue,
   },
   en: {
     kit: enKit,
@@ -80,6 +83,7 @@ const catalogs = {
     tasks: enTasks,
     decisions: enDecisions,
     planning: enPlanning,
+    queue: enQueue,
   },
 };
 

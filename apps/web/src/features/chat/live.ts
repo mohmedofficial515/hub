@@ -316,6 +316,8 @@ export function applyChatChanged(client: QueryClient, ws: string, chatId: string
   void client.invalidateQueries({ queryKey: chatKeys.list(ws) });
   void client.invalidateQueries({ queryKey: chatKeys.list(ws, true) });
   void client.invalidateQueries({ queryKey: qk.counters(ws) });
+  // A queued run is a chat: its waiting or running state moves with it.
+  void client.invalidateQueries({ queryKey: qk.queue(ws) });
 }
 
 export const pendingApprovals = (chat: ChatFullDto): ChatApprovalDto[] =>

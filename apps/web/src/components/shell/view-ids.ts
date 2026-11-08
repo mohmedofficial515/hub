@@ -13,6 +13,7 @@ export const VIEW_IDS = [
   'handoffs',
   'redesign',
   'releases',
+  'queue',
   'docs',
   'ask',
   'onboarding',

@@ -1,0 +1,158 @@
+/**
+ * @file The agent queue page: its four states, its sections, why a run waits, the one filled button, and the keyboard order.
+ */
+import type { AgentRunDto, QueueDto } from '@hub/contracts';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { renderWithApp, stubFetch } from '@/test/render';
+
+import { QueuePage } from './queue-page';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(''),
+  usePathname: () => '/en/demo/queue',
+}));
+
+const state: QueueDto['state'] = {
+  paused: false,
+  pausedReason: null,
+  resumesAt: null,
+  maxConcurrent: 1,
+  perDay: 5,
+  usedToday: 2,
+  running: 1,
+  quietHours: null,
+  inQuietHours: false,
+  timezone: 'Europe/Istanbul',
+  timezoneSource: 'machine',
+  machineTimezone: 'Europe/Istanbul',
+};
+
+const run = (over: Partial<AgentRunDto>): AgentRunDto => ({
+  id: 'r1',
+  source: 'prompt',
+  title: 'Tidy the README',
+  cardKey: null,
+  planStep: null,
+  prompt: 'Tidy the README',
+  deviceId: 'd1',
+  deviceName: 'Main',
+  folder: 'F:/work/repo',
+  state: 'next',
+  stored: 'queued',
+  hold: null,
+  runAt: null,
+  repeat: null,
+  paused: false,
+  position: 1,
+  chatId: null,
+  messageId: null,
+  waitingOn: null,
+  failure: null,
+  summary: null,
+  changedFiles: [],
+  moved: null,
+  createdAt: '2026-11-08T08:00:00Z',
+  startedAt: null,
+  endedAt: null,
+  ...over,
+});
+
+function serve(queue: QueueDto | 'error') {
+  return stubFetch((url) => {
+    if (url.pathname.endsWith('/queue')) {
+      return queue === 'error'
+        ? { status: 500, body: { error: { code: 'hub.common.internal', message: 'down' } } }
+        : { body: { data: queue } };
+    }
+    if (url.pathname.endsWith('/queue/order')) return { body: { data: queue } };
+    return undefined;
+  });
+}
+
+describe('QueuePage', () => {
+  beforeEach(() => vi.unstubAllGlobals());
+
+  it('says when nothing is in the queue, and New run is the filled button', async () => {
+    serve({ state, runs: [] });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    expect(await screen.findByText('Nothing in the queue')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /New run/ }).className).toMatch(/bg-primary/);
+  });
+
+  it('shows an error it can retry', async () => {
+    serve('error');
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    expect(await screen.findByRole('button', { name: /retry|try again/i })).toBeInTheDocument();
+  });
+
+  it('puts runs in their sections, says why a run waits, and fills Answer on the first waiting run', async () => {
+    serve({
+      state: { ...state, pausedReason: null },
+      runs: [
+        run({
+          id: 'w',
+          state: 'waiting',
+          stored: 'running',
+          chatId: 'c1',
+          waitingOn: { id: 'a', kind: 'approval', command: 'git push origin main', category: 'push' },
+        }),
+        run({ id: 'n', title: 'Lint', hold: 'concurrency' }),
+        run({
+          id: 's',
+          title: 'Weekly tidy',
+          state: 'scheduled',
+          runAt: '2026-11-09T05:00:00Z',
+          repeat: { day: 'MON', time: '08:00' },
+        }),
+        run({
+          id: 'd',
+          title: 'Docs pass',
+          state: 'done',
+          stored: 'done',
+          summary: 'Rewrote the intro.',
+          changedFiles: [{ path: 'README.md', source: 'git' }],
+        }),
+      ],
+    });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    const waiting = await screen.findByRole('region', { name: /Waiting for your approval/ });
+    expect(within(waiting).getByText('git push origin main')).toBeInTheDocument();
+    expect(within(waiting).getByRole('button', { name: 'Answer' }).className).toMatch(/bg-primary/);
+    const next = screen.getByRole('region', { name: /Next/ });
+    expect(within(next).getByText('Waits for a running run to finish')).toBeInTheDocument();
+    expect(within(next).getByText('Every Monday at 08:00')).toBeInTheDocument();
+    const recent = screen.getByRole('region', { name: /Recent/ });
+    expect(within(recent).getByText('Rewrote the intro.')).toBeInTheDocument();
+    expect(within(recent).getByText('1 changed file')).toBeInTheDocument();
+  });
+
+  it('says a usage-limit pause and when it continues', async () => {
+    serve({
+      state: { ...state, paused: true, pausedReason: 'usage_limit', resumesAt: '2026-11-08T15:45:00Z' },
+      runs: [run({})],
+    });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    expect(await screen.findByText(/usage limit is reached, so the queue is paused/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Resume all/ })).toBeInTheDocument();
+  });
+
+  it('moves a run with Alt and an arrow, and says where it went', async () => {
+    const calls = serve({
+      state,
+      runs: [run({ id: 'a', title: 'A' }), run({ id: 'b', title: 'B', position: 2 })],
+    });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    await screen.findByText('B');
+    const second = document.querySelector<HTMLElement>('[data-queue-run="b"]')!;
+    second.focus();
+    await userEvent.keyboard('{Alt>}{ArrowUp}{/Alt}');
+    await waitFor(() => expect(calls.calls.some((call) => call.path.endsWith('/queue/order'))).toBe(true));
+    const order = calls.calls.find((call) => call.path.endsWith('/queue/order'))!.body as { ids: string[] };
+    expect(order.ids).toEqual(['b', 'a']);
+    expect(await screen.findByText('Moved to place 1 of 2')).toBeInTheDocument();
+  });
+});

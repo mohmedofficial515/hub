@@ -21,4 +21,6 @@ export const qk = {
   /** Members, invites, settings, sources, audit: `project.updated` on the stream rereads all of them. */
   admin: (ws: string, ...part: readonly unknown[]) => ['admin', ws, ...part] as const,
   search: (ws: string, q: string) => ['search', ws, q] as const,
+  /** The agent queue (docs/16 §9), whatever its filter. `queue.changed` and `chat.changed` reread it. */
+  queue: (ws: string, card?: string) => (card ? (['queue', ws, card] as const) : (['queue', ws] as const)),
 };

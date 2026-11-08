@@ -262,6 +262,10 @@ export function applyLiveMessage(
     applyChatChanged(client, ws, (data as ChatChanged).chatId);
     return true;
   }
+  if (event === 'queue.changed') {
+    void client.invalidateQueries({ queryKey: qk.queue(ws) });
+    return true;
+  }
   if (event === 'source.run') {
     // A source's status and its runs moved.
     void client.invalidateQueries({ queryKey: qk.admin(ws, 'sources') });

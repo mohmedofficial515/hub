@@ -102,7 +102,7 @@ interface Local {
   model: ModelId;
   effort: Effort;
   /** The last request to bring something into view. The panel opens and the thread scrolls to it. */
-  reveal: { chatId: string; kind: 'approval' | 'step'; stepId?: string; tick: number } | null;
+  reveal: { chatId: string; kind: 'approval' | 'step' | 'chat'; stepId?: string; tick: number } | null;
   /** A suggestion waiting in the composer. */
   fill: { text: string; tick: number } | null;
   followed: string | null;
@@ -427,6 +427,11 @@ export const setLeaveOut = (key: string | null) => set((s) => ({ ...s, leaveOut:
 export function revealApproval(chatId: string) {
   openChatKeepingMode(chatId);
   set((s) => ({ ...s, reveal: { chatId, kind: 'approval', tick: nextTick() } }));
+}
+/** Opens a chat in the panel from anywhere, as a queued run's Open chat does (docs/16 §9). */
+export function revealChat(chatId: string) {
+  openChatKeepingMode(chatId);
+  set((s) => ({ ...s, reveal: { chatId, kind: 'chat', tick: nextTick() } }));
 }
 export function revealStep(chatId: string, stepId: string) {
   openChatKeepingMode(chatId);

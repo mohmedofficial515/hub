@@ -15,7 +15,8 @@
     "members": "Members",
     "settings": "Settings",
     "planning": "Planning",
-    "gallery": "Redesign Lab"
+    "gallery": "Redesign Lab",
+    "queue": "Agent queue"
   },
   "groups": {
     "work": "Work",
