@@ -52,6 +52,7 @@ const message: ChatMessageDto = {
   stages: [],
   plan: null,
   structuredPlan: null,
+  suggestions: null,
   engineFacts: null,
   changedFiles: [],
   steps: [],

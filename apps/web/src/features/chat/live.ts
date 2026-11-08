@@ -166,6 +166,9 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
       };
     case 'plan.proposed':
       return { ...message, plan: event.plan, structuredPlan: event.structured ?? message.structuredPlan };
+    case 'suggestions.proposed':
+      // The server sends the message's whole list as it stored it (D66), so a repeat changes nothing.
+      return { ...message, suggestions: { summary: event.summary, items: event.items } };
     case 'turn.starting':
     case 'engine.warning':
     case 'tool.blocked':

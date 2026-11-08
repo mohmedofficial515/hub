@@ -11,6 +11,7 @@ import type {
   ChatDto,
   ChatFullDto,
   ChatSuggestion,
+  ChatSuggestionDto,
   ChatTurnStarted,
   CreateChatInput,
   EngineStatus,
@@ -148,6 +149,24 @@ export function useAnswerQuestion(id: string) {
         answers ? { decision: 'allow', answers } : { decision: 'deny', ...(note ? { note } : {}) },
       ),
     onSettled: () => reread(id),
+  });
+}
+
+/**
+ * Accept or dismiss one of `/hub:suggest`'s proposals (D66). Accept makes it through the normal path on the server and answers what it made: a card key, or a skill's name.
+ * Refused: `hub.chats.suggestion_answered`, `hub.skills.name_taken`, `hub.common.forbidden` (a skill is the owner's alone).
+ */
+export function useAnswerSuggestion(id: string) {
+  const { base, reread } = useChatBase();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ suggestion, decision }: { suggestion: string; decision: 'accept' | 'dismiss' }) =>
+      post<ChatSuggestionDto>(`${base}/${id}/suggestions/${suggestion}`, { decision }),
+    onSettled: (answer) => {
+      reread(id);
+      // A new card or skill shows where it belongs without waiting for the stream.
+      if (answer?.proposal.kind === 'skill') void client.invalidateQueries({ queryKey: ['skills'] });
+    },
   });
 }
 

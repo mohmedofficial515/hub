@@ -41,6 +41,7 @@ const message = (over: Partial<ChatMessageDto>): ChatMessageDto => ({
   stages: [],
   plan: null,
   structuredPlan: null,
+  suggestions: null,
   changedFiles: [],
   steps: [],
   approvals: [],

@@ -13,6 +13,7 @@ import type {
   ChatProtocol,
   ChatQuestionDto,
   ChatStepDto,
+  ChatSuggestionsDto,
   EngineStatus,
   ProposedPlan,
   StartReason,
@@ -78,6 +79,7 @@ export type Item =
   | { kind: 'turn'; id: string; messageId: string; meta: TurnMeta }
   | { kind: 'protocol'; id: string; protocol: ChatProtocol; target: string; stages: Stage[] }
   | { kind: 'plan'; id: string; text: string; structured: ProposedPlan | null }
+  | { kind: 'suggestions'; id: string; messageId: string; suggestions: ChatSuggestionsDto }
   | { kind: 'report'; id: string; report: WorkReport }
   | { kind: 'refused'; id: string; cardKey: string; checks: { name: string; stepId: string }[] }
   | { kind: 'draft'; id: string; draft: ChatDocDraftDto; save: ChatApprovalDto | null }
@@ -252,6 +254,14 @@ function assistantItems(message: ChatMessageDto, before: ChatMessageDto | undefi
       id: `${message.id}:plan`,
       text: message.plan,
       structured: message.structuredPlan,
+    });
+  }
+  if (message.suggestions && message.suggestions.items.length > 0) {
+    items.push({
+      kind: 'suggestions',
+      id: `${message.id}:suggestions`,
+      messageId: message.id,
+      suggestions: message.suggestions,
     });
   }
   for (const draft of message.docDrafts) {
