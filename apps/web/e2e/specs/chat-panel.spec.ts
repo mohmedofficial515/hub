@@ -226,6 +226,8 @@ test.describe('chat panel, on the engine', () => {
     await expect(panel(page).locator('[data-wb-check="claimed"]')).toBeVisible();
     for (const dark of [false, true]) {
       await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
+      // Colours ease over 120 ms, and a reading mid-way is of no theme.
+      await page.waitForTimeout(400);
       const result = await audit(page);
       expect(result.fails).toEqual([]);
       expect(result.overflow).toBeLessThanOrEqual(0);
@@ -236,6 +238,8 @@ test.describe('chat panel, on the engine', () => {
     await panel(page).locator('[data-wb-turn-line]').click();
     for (const dark of [false, true]) {
       await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
+      // Colours ease over 120 ms, and a reading mid-way is of no theme.
+      await page.waitForTimeout(400);
       expect((await audit(page)).fails).toEqual([]);
     }
   });
