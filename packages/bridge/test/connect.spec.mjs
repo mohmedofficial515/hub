@@ -159,15 +159,39 @@ describe('connectionState', () => {
   it('tells paired from complete, for the main machine', async () => {
     const system = fakeSystem();
     fakeHub(system, { answers: [CLAIMED] });
-    expect(await connectionState(system, URL)).toEqual({ paired: false, complete: false });
+    expect(await connectionState(system, URL)).toEqual({ paired: false, online: null, complete: false });
     await connect(system, { url: URL });
     mkdirSync(join(hubPaths(system).app, 'bridge', 'bin'), { recursive: true });
     writeFileSync(hubPaths(system).bridgeBin, '');
-    expect(await connectionState(system, URL)).toEqual({ paired: true, complete: true });
+    expect(await connectionState(system, URL)).toEqual({ paired: true, online: true, complete: true });
     const config = system.readConfig();
     delete config.mcpServers.hub;
     system.writeConfig(config);
-    expect(await connectionState(system, URL)).toEqual({ paired: true, complete: false });
+    expect(await connectionState(system, URL)).toEqual({ paired: true, online: true, complete: false });
+  });
+
+  it('says whether Hub sees the bridge, in the same one request, and never sends the credential anywhere but the header', async () => {
+    const system = fakeSystem();
+    const hub = fakeHub(system, { answers: [CLAIMED] });
+    await connect(system, { url: URL });
+    hub.online = false;
+    const before = hub.requests.length;
+    expect((await connectionState(system, URL)).online).toBe(false);
+    const asked = hub.requests.slice(before);
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toMatchObject({ method: 'GET', authorization: `Bearer ${CREDENTIAL}` });
+    expect(asked[0].url).not.toContain(CREDENTIAL);
+  });
+
+  it('a refused credential is not paired, and a Hub without the route falls back to the MCP check', async () => {
+    const system = fakeSystem();
+    const hub = fakeHub(system, { answers: [CLAIMED] });
+    await connect(system, { url: URL });
+    hub.credentialGood = false;
+    expect(await connectionState(system, URL)).toMatchObject({ paired: false });
+    hub.credentialGood = true;
+    hub.online = undefined;
+    expect(await connectionState(system, URL)).toMatchObject({ paired: true, online: null });
   });
 
   it('a different Hub is not this pairing', async () => {

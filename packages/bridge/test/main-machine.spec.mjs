@@ -1,12 +1,15 @@
 /**
  * @file `pnpm start:local`'s connect step, in isolation: it decides from the state, passes credentials on stdin only, and a failure never stops Hub. Nothing real runs.
  */
+import { spawn } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
 import { connectMainMachine } from '../../../scripts/connect-main-machine.mjs';
 import { copyFromCheckout } from '../lib/connect.mjs';
+import { hubPaths } from '../lib/paths.mjs';
 import { CREDENTIAL, fakeSystem } from './helpers.mjs';
 
 const root = resolve(import.meta.dirname, '..', '..', '..');
@@ -28,6 +31,7 @@ async function go(state, options) {
   const lines = [];
   const system = fakeSystem();
   if (options?.installed) copyFromCheckout(system, resolve(root, 'packages'));
+  if (options?.bridgePid) writeFileSync(hubPaths(system).pid, JSON.stringify({ pid: options.bridgePid }));
   const { calls, run } = recorder(state, options);
   const answer = await connectMainMachine({
     root,
@@ -71,6 +75,55 @@ describe('connectMainMachine', () => {
     expect(lines.join('\n')).toContain('nothing changed');
     expect(calls.map((call) => call.args).flat()).not.toContain('connect');
     expect(system.detached).toHaveLength(1);
+  });
+
+  it('a bridge that is alive but that Hub does not see is restarted, and it says so in one line', async () => {
+    // A stand-in process, so the pid is alive. The fake system records the taskkill and kills nothing.
+    const standIn = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'ignore' });
+    try {
+      const { answer, lines, calls, system } = await go(
+        { paired: true, online: false, complete: true },
+        { installed: true, bridgePid: standIn.pid },
+      );
+      expect(answer.status).toBe('restarted');
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain('restarted');
+      expect(lines[0]).not.toContain('nothing changed');
+      expect(system.calls.find((call) => call.command === 'taskkill.exe')?.args).toContain(
+        String(standIn.pid),
+      );
+      expect(system.detached).toHaveLength(1);
+      expect(calls.filter((call) => call.args.includes('state'))).toHaveLength(1);
+    } finally {
+      standIn.kill();
+    }
+  });
+
+  it('Hub does not see the bridge and none runs: it starts one and says so', async () => {
+    const { answer, lines, system } = await go(
+      { paired: true, online: false, complete: true },
+      { installed: true },
+    );
+    expect(answer.status).toBe('restarted');
+    expect(lines.join(' ')).toContain('was started');
+    expect(system.calls.some((call) => call.command === 'taskkill.exe')).toBe(false);
+    expect(system.detached).toHaveLength(1);
+  });
+
+  it('a bridge Hub sees is left alone', async () => {
+    const standIn = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30000)'], { stdio: 'ignore' });
+    try {
+      const { answer, lines, system } = await go(
+        { paired: true, online: true, complete: true },
+        { installed: true, bridgePid: standIn.pid },
+      );
+      expect(answer.status).toBe('connected');
+      expect(lines.join(' ')).toContain('nothing changed');
+      expect(system.calls.some((call) => call.command === 'taskkill.exe')).toBe(false);
+      expect(system.detached).toHaveLength(0);
+    } finally {
+      standIn.kill();
+    }
   });
 
   it('a pull changes the bridge: the next start updates it', async () => {

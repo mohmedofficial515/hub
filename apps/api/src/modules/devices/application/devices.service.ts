@@ -72,6 +72,11 @@ export class DevicesService {
     return rows.map((row) => this.toDto(row));
   }
 
+  /** Whether Hub holds a ready socket from this device right now: what `pnpm start:local` asks, so a bridge that is alive but not connected is noticed. */
+  isOnline(deviceId: string): boolean {
+    return this.hub.isOnline(deviceId);
+  }
+
   /** Asks the device for its checks when it is online. Offline, the last report stands, with its time. */
   async health(principal: Principal, id: string): Promise<DeviceDto> {
     const device = await this.owned(principal.userId, id);

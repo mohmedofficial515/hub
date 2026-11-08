@@ -3806,6 +3806,26 @@
       }
     },
     "/api/v1/bridge/self": {
+      "get": {
+        "operationId": "BridgeSelfController_state",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BridgeSelfDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Whether Hub sees this device’s bridge connected right now",
+        "tags": [
+          "devices"
+        ]
+      },
       "delete": {
         "operationId": "BridgeSelfController_remove",
         "parameters": [],
@@ -28349,6 +28369,17 @@
         },
         "required": [
           "data"
+        ]
+      },
+      "BridgeSelfDto": {
+        "type": "object",
+        "properties": {
+          "online": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "online"
         ]
       },
       "DeviceRowDto": {

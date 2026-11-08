@@ -288,6 +288,25 @@ describe('devices', () => {
       await until(() => !hub.isOnline(deviceId));
     });
 
+    it('a device asks with its own credential whether Hub sees its bridge, which is what start:local checks', async () => {
+      const { credential } = await pair();
+      const self = () => api().get('/api/v1/bridge/self').set('authorization', `Bearer ${credential}`);
+      expect((await self().expect(200)).body.data).toEqual({ online: false });
+      const { socket } = await aSocket(credential);
+      const welcomed = new Promise<void>((done) =>
+        socket.on('message', (data) => {
+          if ((JSON.parse((data as Buffer).toString()) as { type: string }).type === 'welcome') done();
+        }),
+      );
+      socket.send(JSON.stringify({ type: 'hello', protocol: 1, status: {}, actions: [] }));
+      await welcomed;
+      expect((await self().expect(200)).body.data).toEqual({ online: true });
+      await api()
+        .get('/api/v1/bridge/self')
+        .set('authorization', `Bearer hub_abcd1234_${'0'.repeat(80)}`)
+        .expect(401);
+    });
+
     it('an unsupported protocol is told so', async () => {
       const { credential } = await pair();
       const { socket, closed } = await aSocket(credential);

@@ -19,6 +19,8 @@ export class FixDeviceDto extends createZodDto(fixDeviceSchema) {}
 export class LinkFolderDto extends createZodDto(linkFolderSchema) {}
 export class DeviceRowDto extends createZodDto(deviceSchema) {}
 export class LinkResultDto extends createZodDto(linkResultSchema) {}
+/** What a device's own credential may learn about itself: only whether Hub holds its bridge's socket. */
+export class BridgeSelfDto extends createZodDto(z.object({ online: z.boolean() })) {}
 
 export class PairingStartedDto extends createZodDto(
   z.object({

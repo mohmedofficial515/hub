@@ -139,10 +139,10 @@ export function fakeSystem(overrides = {}) {
 }
 
 /** A Hub that answers pairing, and says whether a credential is still good. */
-export function fakeHub(system, { answers = [], credentialGood = true } = {}) {
+export function fakeHub(system, { answers = [], credentialGood = true, online = true } = {}) {
   const requests = [];
   const queue = [...answers];
-  const hub = { requests, credentialGood };
+  const hub = { requests, credentialGood, online };
   system.fetch = async (url, init = {}) => {
     requests.push({ url, method: init.method, body: init.body, authorization: init.headers?.authorization });
     const json = (status, body) => new Response(JSON.stringify(body), { status });
@@ -160,6 +160,10 @@ export function fakeHub(system, { answers = [], credentialGood = true } = {}) {
     }
     if (url.endsWith('/api/v1/pairing/poll')) {
       return json(200, { data: queue.shift() ?? { status: 'pending' } });
+    }
+    if (url.endsWith('/api/v1/bridge/self') && init.method === 'GET') {
+      if (hub.online === undefined) return json(404, {});
+      return hub.credentialGood ? json(200, { data: { online: hub.online } }) : json(401, {});
     }
     if (url.endsWith('/api/v1/bridge/self')) return new Response(null, { status: 204 });
     return json(404, {});

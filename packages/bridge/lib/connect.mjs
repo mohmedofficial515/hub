@@ -138,20 +138,53 @@ export function ensureBridgeRunning(system) {
   return true;
 }
 
-/** What this device already has, for a quick answer on each `pnpm start:local`. No secret leaves this function. */
+/** For a bridge Hub does not see: ends the one running, if any, and starts a fresh one. Answers whether one was running. */
+export async function restartBridge(system) {
+  const pid = readJson(hubPaths(system).pid)?.pid;
+  const wasRunning = Boolean(pid && isAlive(pid));
+  await stopRunningBridge(system);
+  startBridge(system);
+  return wasRunning;
+}
+
+/**
+ * Asks Hub, with the device credential, whether it accepts it and holds this device's bridge right now. One request.
+ * Answers null when this Hub has no such route yet, so the caller can fall back to `credentialWorks`.
+ */
+export async function bridgeSelf(system, url, credential) {
+  const response = await system.fetch(`${url}/api/v1/bridge/self`, {
+    method: 'GET',
+    headers: { authorization: `Bearer ${credential}`, accept: 'application/json' },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 401 || response.status === 403) return { paired: false, online: false };
+  if (!response.ok) return null;
+  const body = await response.json().catch(() => null);
+  const online = body?.data?.online;
+  return { paired: true, online: online === true };
+}
+
+/**
+ * What this device already has, for a quick answer on each `pnpm start:local`. No secret leaves this function.
+ * `online` is whether Hub sees the bridge connected, or null when it could not tell: a live process alone does not mean a connected bridge.
+ */
 export async function connectionState(system, url) {
   const paths = hubPaths(system);
   const device = readJson(paths.device);
   let paired = false;
+  let online = null;
   if (device?.credential && device.url === url) {
     try {
-      paired = await credentialWorks(system, url, device.credential);
+      const self = await bridgeSelf(system, url, device.credential);
+      if (self) ({ paired, online } = self);
+      else paired = await credentialWorks(system, url, device.credential);
     } catch {
       paired = false;
     }
   }
   return {
     paired,
+    online,
     complete: paired && existsSync(paths.bridgeBin) && userServerIsRight(system, url),
   };
 }

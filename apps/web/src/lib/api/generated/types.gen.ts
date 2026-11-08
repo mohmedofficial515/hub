@@ -4324,6 +4324,10 @@ export type MentionsDto = {
     }>;
 };
 
+export type BridgeSelfDto = {
+    online: boolean;
+};
+
 export type DeviceRowDto = {
     id: string;
     name: string;
@@ -7397,6 +7401,19 @@ export type BridgeSelfControllerRemoveResponses = {
 };
 
 export type BridgeSelfControllerRemoveResponse = BridgeSelfControllerRemoveResponses[keyof BridgeSelfControllerRemoveResponses];
+
+export type BridgeSelfControllerStateData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/bridge/self';
+};
+
+export type BridgeSelfControllerStateResponses = {
+    200: BridgeSelfDto;
+};
+
+export type BridgeSelfControllerStateResponse = BridgeSelfControllerStateResponses[keyof BridgeSelfControllerStateResponses];
 
 export type DevicesControllerListData = {
     body?: never;

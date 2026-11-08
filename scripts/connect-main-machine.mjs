@@ -1,6 +1,7 @@
 /**
  * @file `pnpm start:local`'s connect step (docs/16 §5, D42): the main machine connects itself on first run, and every line says what changed.
- * @description On later runs it costs one request and one process check. It pairs through `apps/api/scripts/pair-main-machine.ts`, with no browser step, because whoever runs this already holds the database. Those
+ * @description On later runs it costs one request and one process check. That request also asks whether Hub sees this machine's bridge, because a bridge
+ * process can be alive and still not connected (2026-11-08: started before the API, it never came back). Hub not seeing it restarts it. It pairs through `apps/api/scripts/pair-main-machine.ts`, with no browser step, because whoever runs this already holds the database. Those
  * credentials pass from one child's stdout to the other's stdin and are never printed, logged or put in an argument. A failure here is a warning: Hub itself is running, and Settings › Devices has the one command.
  * `HUB_SKIP_CONNECT=1` leaves this machine's Claude Code alone. Everything from outside arrives as arguments, so tests run it in isolation.
  */
@@ -45,7 +46,7 @@ export async function connectMainMachine({
   }
   const packages = join(root, 'packages');
   const bridge = join(packages, 'bridge', 'bin', 'hub-bridge.mjs');
-  const { appMatchesCheckout, ensureBridgeRunning } = await import(
+  const { appMatchesCheckout, ensureBridgeRunning, restartBridge } = await import(
     pathToFileURL(join(packages, 'bridge', 'lib', 'connect.mjs')).href
   );
   const { realSystem } = await import(pathToFileURL(join(packages, 'bridge', 'lib', 'system.mjs')).href);
@@ -58,6 +59,15 @@ export async function connectMainMachine({
   }
   const state = JSON.parse(stateAnswer.stdout);
   if (state.complete && appMatchesCheckout(machine, packages)) {
+    if (state.online === false) {
+      const wasRunning = await restartBridge(machine);
+      say(
+        wasRunning
+          ? 'Claude Code: set up, but Hub did not see this machine’s bridge, so it was restarted.'
+          : 'Claude Code: set up, but the bridge was not running, so it was started.',
+      );
+      return { status: 'restarted' };
+    }
     const started = ensureBridgeRunning(machine);
     say(`Claude Code: already connected, nothing changed.${started ? ' Started the bridge.' : ''}`);
     return { status: 'connected' };
