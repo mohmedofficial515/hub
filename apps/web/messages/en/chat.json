@@ -1432,6 +1432,19 @@
       "doc:restore": {
         "what": "Brings back this revision’s text.",
         "then": "The current text stays as a revision, so you can undo."
+      },
+      "queue:run": {
+        "what": "Adds this to the agent queue to start now, in Execute, in the folder chosen in the panel.",
+        "then": "It starts when the limits allow, and pauses for you on commit, push, delete, deploy, a new branch and docker.",
+        "needs": "A paired device and a linked folder."
+      },
+      "queue:schedule": {
+        "what": "Picks a time to run it, once or every week.",
+        "then": "If the main machine is off then, it starts when the machine is back, oldest first."
+      },
+      "strip:run": {
+        "what": "A run from the agent queue. The icon says what it is doing now.",
+        "then": "Opens its chat, at the approval if it is waiting on you."
       }
     },
     "off": {

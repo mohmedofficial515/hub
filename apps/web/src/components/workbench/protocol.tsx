@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Ban,
+  CalendarClock,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -51,6 +52,7 @@ import {
   useRoving,
   useT,
 } from '@/components/kit';
+import { ScheduleDialog, useQueueWords } from '@/components/queue/run-bits';
 import {
   claimsWith,
   conflictLines,
@@ -251,6 +253,8 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   const off = offOf(wb.engine);
   const device = wb.deviceName;
   const aside = !!wb.plansAside[item.id];
+  const [scheduling, setScheduling] = useState(false);
+  const q = useQueueWords();
   // `planToPrompt`: what Run this plan sends, visible in the composer until the owner sends it (D51).
   const prompt = structured ? planToPrompt(structured) : `${p.promptText}\n\n${item.text}`;
   return (
@@ -354,11 +358,21 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
               {p.run}
             </Button>
           </Tip>
+          <Tip k="queue:schedule">
+            <Button variant="ghost" data-wb-plan-schedule onClick={() => setScheduling(true)}>
+              <CalendarClock aria-hidden className="size-4" strokeWidth={1.75} />
+              {q.schedule}
+            </Button>
+          </Tip>
           <Tip k="plan:aside">
             <Button variant="ghost" data-wb-plan-aside onClick={() => setPlanAside(item.id)}>
               {p.aside}
             </Button>
           </Tip>
+          <ScheduleDialog
+            target={scheduling ? { source: 'prompt', prompt, title: structured?.title ?? p.title } : null}
+            onClose={() => setScheduling(false)}
+          />
         </div>
       ) : (
         <p

@@ -43,6 +43,7 @@ import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/common/states';
 import { Bidi, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
+import { CardRuns } from '@/components/queue/run-entry';
 import {
   closeCard,
   openCard,
@@ -735,6 +736,7 @@ function SheetBody({
         </div>
         <ActionBar card={card} action={action} />
         {wb && <SheetClaudeBar cardKey={card.key} onAsk={onAsk} />}
+        {wb && (card.type === 'task' || card.type === 'plan') && <CardRuns cardKey={card.key} />}
         {card.archivedAt && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
             <p>

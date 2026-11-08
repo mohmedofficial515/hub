@@ -59,7 +59,10 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
+import { RunRow, useQueueWords } from '@/components/queue/run-bits';
+import { RunButtons } from '@/components/queue/run-entry';
 import { useOpenInVsCode } from '@/features/chat/queries';
+import { useQueue } from '@/features/queue/queries';
 import { isHubError } from '@/lib/api/errors';
 
 import { Suggestions } from './composer';
@@ -384,6 +387,9 @@ export function DoNext({
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5">
+                {item.type === 'task' && (
+                  <RunButtons target={{ source: 'task', cardKey: item.key, title: item.title }} />
+                )}
                 <Tip k="next:explain" off={off} vars={{ device: wb.deviceName }} label={t.next.explain}>
                   <Button size="sm" disabled={!!off} onClick={() => ask('explain', item.key)}>
                     {t.next.explain}
@@ -401,7 +407,7 @@ export function DoNext({
 
 // ── What runs today: real chats ─────────────────────────────────────────────────────────────────
 
-/** The queue is the next slice, so this is only what is true now: chats that wait on the owner and chats with a turn running. */
+/** Chats that wait on the owner and chats with a turn running, queued runs among them, then the queue's next runs and its last results (docs/16 §9). The whole queue is its page. */
 export function RunsList({
   onOpenChat,
   className,
@@ -414,6 +420,15 @@ export function RunsList({
   const wb = useWb();
   const waitingIds = new Set(wb.waiting.map((w) => w.id));
   const running = wb.chats.filter((c) => c.running && !waitingIds.has(c.id));
+  const q = useQueueWords();
+  const queue = useQueue();
+  const queued = (queue.data?.runs ?? []).filter((run) =>
+    ['next', 'scheduled', 'paused'].includes(run.state),
+  );
+  const recent = (queue.data?.runs ?? [])
+    .filter((run) => run.stored !== 'queued' && run.stored !== 'running')
+    .slice(0, 3);
+  const state = queue.data?.state;
   return (
     <div data-wb-runs className={cn('flex flex-col gap-3', className)}>
       {wb.waiting.length > 0 && (
@@ -472,9 +487,55 @@ export function RunsList({
           </ul>
         </section>
       )}
-      {wb.waiting.length === 0 && running.length === 0 && (
+      {(
+        [
+          { id: 'next', list: queued },
+          { id: 'recent', list: recent },
+        ] as const
+      ).map(({ id, list }) =>
+        list.length === 0 ? null : (
+          <section key={id} aria-labelledby={`wb-runs-${id}`} data-wb-queue={id}>
+            <h3
+              id={`wb-runs-${id}`}
+              className="flex items-center gap-1.5 text-body-sm font-semibold text-muted-foreground"
+            >
+              {q.sections[id]}
+              <Ltr className="text-body-sm tabular-nums">{list.length}</Ltr>
+            </h3>
+            <ul className="flex flex-col divide-y divide-border">
+              {list.map((run) => (
+                <li key={run.id} data-wb-run={run.state} className="py-2">
+                  <RunRow run={run} compact />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ),
+      )}
+      {wb.waiting.length === 0 && running.length === 0 && queued.length === 0 && recent.length === 0 && (
         <p data-wb-runs-empty className="text-body-sm text-muted-foreground">
           {r.empty}
+        </p>
+      )}
+      {state && (
+        <p className="flex flex-wrap gap-x-2 text-body-sm text-muted-foreground">
+          <span>
+            {state.paused
+              ? state.pausedReason === 'usage_limit'
+                ? q.holds.usage_limit
+                : q.holds.paused_all
+              : fmt(q.summary, {
+                  concurrent: state.maxConcurrent,
+                  used: state.usedToday,
+                  perDay: state.perDay,
+                })}
+          </span>
+          <AppLink
+            view="queue"
+            className={cn('rounded-sm text-primary underline-offset-2 hover:underline', focusRing)}
+          >
+            {q.title}
+          </AppLink>
         </p>
       )}
     </div>
@@ -805,6 +866,12 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
             {t.pro.sheet.do}
           </Button>
         </Tip>
+      )}
+      {isTask && !closed && (
+        <RunButtons
+          target={{ source: 'task', cardKey, title: card.title }}
+          disabledWhy={card.status === 'in_review' ? tipWords.off.taskInReview.why : null}
+        />
       )}
       {(isTask || isDoc) && !panelOffers && (
         <Tip

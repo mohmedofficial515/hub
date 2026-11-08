@@ -48,8 +48,11 @@ describe('chat.json', () => {
     }
   });
 
-  it('promises no queue or schedule that does not exist yet', () => {
+  it('keeps no prototype-only words; the queue words are the real queue’s (docs/16 §9)', () => {
     const paths = [...en.keys()];
-    expect(paths.filter((path) => /schedule|.demo|pro.gaps|pro.links/i.test(path))).toEqual([]);
+    expect(paths.filter((path) => /.demo|pro.gaps|pro.links/i.test(path))).toEqual([]);
+    expect(paths.filter((path) => /schedule/i.test(path) && !path.startsWith('tips.items.queue:'))).toEqual(
+      [],
+    );
   });
 });

@@ -69,9 +69,11 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
+import { RunIcon, useQueueWords } from '@/components/queue/run-bits';
 import { Header } from '@/components/shell/header';
 import { DesktopSidebar } from '@/components/shell/sidebar';
 import { QuietPrimary } from '@/components/ui/button';
+import { useQueue } from '@/features/queue/queries';
 import { setSidebarFolded } from '@/lib/preferences';
 
 import { Composer, Menu, useModeKeys } from './composer';
@@ -88,6 +90,7 @@ import {
   openChat,
   type PanelChat,
   revealApproval,
+  revealChat,
   setFollowGate,
   setPageAside,
   setPref,
@@ -127,6 +130,7 @@ const LIST_LIKE = new Set([
   'handoffs',
   'releases',
   'redesign',
+  'queue',
 ]);
 /** 08 §7: the sidebar is 248 px from 1280, 56 px of icons from 1024, and a drawer below that. */
 const sidebarAt = (w: number) => (w >= 1280 ? 248 : w >= 1024 ? 56 : 0);
@@ -255,6 +259,11 @@ function Strip({
     wb.engine !== 'claude_missing';
   const share = wb.usage?.utilization !== undefined ? usageShare(wb.usage.utilization) : null;
   const statusRoving = useRoving(0);
+  const q = useQueueWords();
+  // Live runs from the queue, always in sight: words in the name and the tip, so state is never colour or shape alone (v6).
+  const liveRuns = (useQueue().data?.runs ?? [])
+    .filter((run) => (run.state === 'running' || run.state === 'waiting') && run.chatId)
+    .slice(0, 3);
   return (
     <nav
       aria-label={m.label}
@@ -295,6 +304,31 @@ function Strip({
             )}
           >
             <Icon aria-hidden className="size-4.5" strokeWidth={1.75} />
+          </button>
+        </Tip>
+      ))}
+      {liveRuns.map((run) => (
+        <Tip
+          key={run.id}
+          k="strip:run"
+          side={side}
+          facts={[
+            [f.state, q.states[run.state]],
+            [f.folder, run.folder, true],
+            ...(run.waitingOn ? ([[f.command, run.waitingOn.command, true]] as TipFact[]) : []),
+          ]}
+        >
+          <button
+            type="button"
+            data-wb-strip-run={run.state}
+            aria-label={`${run.title}. ${q.states[run.state]}`}
+            onClick={() => (run.state === 'waiting' ? revealApproval(run.chatId!) : revealChat(run.chatId!))}
+            className={cn(
+              'flex size-9 items-center justify-center rounded-md transition-colors duration-120 hover:bg-accent',
+              focusRing,
+            )}
+          >
+            <RunIcon state={run.state} />
           </button>
         </Tip>
       ))}

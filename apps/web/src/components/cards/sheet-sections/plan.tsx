@@ -17,10 +17,12 @@ import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, SkeletonRows } from '@/components/common/states';
 import { Bidi, fill, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
+import { StepRunMenu } from '@/components/queue/run-entry';
 import { setQuery } from '@/components/shell/router';
 import { Button, IconButton } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { detectSecret, Field, SecretFilterError, Select, TextInput } from '@/components/ui/form';
+import { useMaybeWb } from '@/components/workbench/store';
 import type { PlanCard, PlanStep, Priority, Role } from '@/features/cards/types';
 import { linkedOfType, restoreRevision, savePlan, usePlanRevisions } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -393,7 +395,7 @@ function Revisions({ card, canRestore }: { card: PlanCard; canRestore: boolean }
   );
 }
 
-function StepLine({ step }: { step: PlanStep }) {
+function StepLine({ step, run }: { step: PlanStep; run?: { cardKey: string; index: number } | undefined }) {
   return (
     <li className="flex items-start gap-2 text-body text-foreground">
       {step.done ? (
@@ -406,6 +408,7 @@ function StepLine({ step }: { step: PlanStep }) {
       </span>
       {step.role && <RoleBadge role={step.role} outline={false} className="text-body-sm" />}
       {step.taskKey && <CardChip k={step.taskKey} type="task" showStatus />}
+      {run && !step.done && <StepRunMenu cardKey={run.cardKey} index={run.index} title={step.title} />}
     </li>
   );
 }
@@ -420,6 +423,7 @@ export function PlanSection({ card, action }: SectionProps<'plan'>) {
   const idea = linkedOfType(card, 'idea');
   const canEdit = !card.archivedAt && card.allowedActions.includes('plan.update');
   const canRestore = !card.archivedAt && card.allowedActions.includes('plan.restore_revision');
+  const wb = useMaybeWb();
 
   if (action === EDIT && canEdit) return <PlanEditForm card={card} />;
 
@@ -443,8 +447,12 @@ export function PlanSection({ card, action }: SectionProps<'plan'>) {
               {withoutTask > 0 && ` · ${fmt(p.tasksHint, { n: num(withoutTask, locale) })}`}
             </p>
             <ul className="flex flex-col gap-2">
-              {steps.map((step) => (
-                <StepLine key={step.id} step={step} />
+              {steps.map((step, index) => (
+                <StepLine
+                  key={step.id}
+                  step={step}
+                  run={card.archivedAt || !wb ? undefined : { cardKey: card.key, index }}
+                />
               ))}
             </ul>
           </>
