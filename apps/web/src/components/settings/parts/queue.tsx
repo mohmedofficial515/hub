@@ -9,17 +9,21 @@ import { useEffect, useId, useState } from 'react';
 
 import {
   Button,
+  cn,
   Field,
   fmt,
+  plural,
   SectionHeader,
   Select,
   showToast,
   Skeleton,
   TextInput,
+  useLocale,
   useT,
 } from '@/components/kit';
 import type { QueueMessages } from '@/components/queue/words';
 import { usePauseQueue, useQueue, useQueueSettings } from '@/features/queue/queries';
+import type { SettingsMessages } from '@/features/settings/messages';
 import { isHubError } from '@/lib/api/errors';
 
 import { FormSection } from './shared';
@@ -35,6 +39,8 @@ function zones(current: string): string[] {
 export function QueueTab() {
   const words = useT<QueueMessages>('queue');
   const t = words.limits;
+  const general = useT<SettingsMessages>('settings').general;
+  const locale = useLocale();
   const id = useId();
   const query = useQueue();
   const save = useQueueSettings();
@@ -46,8 +52,9 @@ export function QueueTab() {
   const [from, setFrom] = useState('22:00');
   const [to, setTo] = useState('07:00');
   const [zone, setZone] = useState(MACHINE);
+  const [perDayText, setPerDayText] = useState('5');
 
-  useEffect(() => {
+  const reset = () => {
     if (!state) return;
     setConcurrent(state.maxConcurrent);
     setPerDay(state.perDay);
@@ -57,7 +64,20 @@ export function QueueTab() {
       setTo(state.quietHours.to);
     }
     setZone(state.timezoneSource === 'setting' ? state.timezone : MACHINE);
-  }, [state]);
+    setPerDayText(String(state.perDay));
+  };
+  useEffect(reset, [state]);
+
+  // One save model with the other tabs (queue review M7): the limits save together from the bar, which shows only with unsaved changes.
+  const changed = state
+    ? [
+        concurrent !== state.maxConcurrent,
+        perDay !== state.perDay,
+        (quietOn ? `${from}-${to}` : null) !==
+          (state.quietHours ? `${state.quietHours.from}-${state.quietHours.to}` : null),
+        (zone === MACHINE ? null : zone) !== (state.timezoneSource === 'setting' ? state.timezone : null),
+      ].filter(Boolean).length
+    : 0;
 
   const failed = (error: unknown) =>
     showToast({ tone: 'error', message: isHubError(error) ? error.message : String(error) });
@@ -104,8 +124,18 @@ export function QueueTab() {
                 min={1}
                 max={50}
                 className="max-w-32"
-                value={perDay}
-                onChange={(e) => setPerDay(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                value={perDayText}
+                onChange={(e) => {
+                  setPerDayText(e.target.value);
+                  const n = Number(e.target.value);
+                  if (Number.isInteger(n) && n >= 1 && n <= 50) setPerDay(n);
+                }}
+                // Clamped when leaving the field, not on each key, so the value can be retyped (review minor 23).
+                onBlur={() => {
+                  const n = Math.max(1, Math.min(50, Math.round(Number(perDayText)) || 1));
+                  setPerDay(n);
+                  setPerDayText(String(n));
+                }}
               />
             </Field>
           </FormSection>
@@ -159,11 +189,6 @@ export function QueueTab() {
                 ))}
               </Select>
             </Field>
-            <div>
-              <Button variant="primary" busy={save.isPending} onClick={submit} data-queue-save-limits>
-                {t.save}
-              </Button>
-            </div>
           </FormSection>
           <FormSection title={t.pause} description={t.pauseHint}>
             <label className="flex min-h-11 items-center gap-2 text-body text-foreground md:min-h-0">
@@ -172,11 +197,34 @@ export function QueueTab() {
                 className="size-4 accent-(--primary)"
                 checked={state.paused}
                 disabled={pause.isPending}
-                onChange={(e) => pause.mutate(e.target.checked, { onError: failed })}
+                onChange={(e) => {
+                  const paused = e.target.checked;
+                  pause.mutate(paused, {
+                    onSuccess: () =>
+                      showToast({ message: paused ? words.toasts.pausedAll : words.toasts.resumedAll }),
+                    onError: failed,
+                  });
+                }}
               />
               {t.pause}
             </label>
           </FormSection>
+          <div
+            className={cn(
+              'sticky bottom-4 z-20 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-popover p-3 shadow-md',
+              changed === 0 && 'hidden',
+            )}
+          >
+            <p role="status" className="min-w-0 flex-1 basis-40 text-body-sm font-medium text-foreground">
+              {changed > 0 && plural(changed, locale, general.unsaved)}
+            </p>
+            <Button variant="ghost" onClick={reset}>
+              {general.discard}
+            </Button>
+            <Button variant="primary" busy={save.isPending} onClick={submit} data-queue-save-limits>
+              {t.save}
+            </Button>
+          </div>
         </>
       )}
     </section>

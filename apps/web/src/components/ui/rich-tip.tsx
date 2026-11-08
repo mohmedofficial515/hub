@@ -155,7 +155,7 @@ function TipBody({
       <div className="flex flex-col gap-1" data-wb-tiplevel={full ? 'full' : 'compact'} data-wb-tip-off>
         {copy && <p className="text-popover-foreground">{copy.what}</p>}
         <Line name={labels.why} text={off.why} />
-        <Line name={labels.fix} text={off.fix} />
+        {off.fix && <Line name={labels.fix} text={off.fix} />}
       </div>
     );
   }

@@ -736,7 +736,6 @@ function SheetBody({
         </div>
         <ActionBar card={card} action={action} />
         {wb && <SheetClaudeBar cardKey={card.key} onAsk={onAsk} />}
-        {wb && (card.type === 'task' || card.type === 'plan') && <CardRuns cardKey={card.key} />}
         {card.archivedAt && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
             <p>
@@ -781,6 +780,8 @@ function SheetBody({
             className={cn('wb-sheet-measure flex flex-col gap-5 p-4 md:p-6', focusRingInset)}
           >
             <Evidence cardKey={card.key} />
+            {/* Inside the scrolling body, so a card with many runs keeps its tabs reachable (queue review B2). */}
+            {wb && (card.type === 'task' || card.type === 'plan') && <CardRuns cardKey={card.key} />}
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
             {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
               // The sheet's title is an h2, so a body's `##` is an h3.

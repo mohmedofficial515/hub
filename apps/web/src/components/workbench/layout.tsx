@@ -261,9 +261,12 @@ function Strip({
   const statusRoving = useRoving(0);
   const q = useQueueWords();
   // Live runs from the queue, always in sight: words in the name and the tip, so state is never colour or shape alone (v6).
-  const liveRuns = (useQueue().data?.runs ?? [])
-    .filter((run) => (run.state === 'running' || run.state === 'waiting') && run.chatId)
-    .slice(0, 3);
+  const allLive = (useQueue().data?.runs ?? []).filter(
+    (run) => (run.state === 'running' || run.state === 'waiting') && run.chatId,
+  );
+  const liveRuns = allLive.slice(0, 3);
+  // More than the strip shows: a count that opens Runs (queue review minor 18).
+  const moreRuns = allLive.length - liveRuns.length;
   return (
     <nav
       aria-label={m.label}
@@ -332,6 +335,21 @@ function Strip({
           </button>
         </Tip>
       ))}
+      {moreRuns > 0 && (
+        <button
+          type="button"
+          data-wb-strip-more
+          aria-label={fmt(m.moreRuns, { n: moreRuns })}
+          title={fmt(m.moreRuns, { n: moreRuns })}
+          onClick={() => onView('runs')}
+          className={cn(
+            'flex size-9 items-center justify-center rounded-md text-caption font-medium text-muted-foreground tabular-nums transition-colors duration-120 hover:bg-accent hover:text-foreground',
+            focusRing,
+          )}
+        >
+          +{moreRuns}
+        </button>
+      )}
       {pending > 0 && (
         <Tip k="strip:pending" side={side} facts={waiting ? [[f.chat, waiting.title]] : undefined}>
           <button

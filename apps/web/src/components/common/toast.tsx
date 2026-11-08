@@ -22,6 +22,8 @@ export interface ToastOptions {
   cmd?: string | undefined;
   /** Shows Undo and enables the `u` shortcut. Runs once; the toast closes first. */
   onUndo?: (() => void) | undefined;
+  /** One follow-up action, such as Open chat after Run now. Runs once; the toast closes first. */
+  action?: { label: string; onSelect: () => void } | undefined;
   tone?: 'success' | 'error' | undefined;
   /** Stays until dismissed or replaced, never on a timer. For an action one stray key can take, such as Claim, which is the first Tab stop after a sheet's title (owner's choice on review m9). */
   sticky?: boolean | undefined;
@@ -43,7 +45,10 @@ const emit = () => listeners.forEach((l) => l());
 /** Callable from anywhere, including outside React. */
 export function showToast(options: ToastOptions) {
   const toast = { ...options, id: nextId++ };
-  slots = options.onUndo || options.cmd ? { lasting: toast, notice: null } : { ...slots, notice: toast };
+  slots =
+    options.onUndo || options.cmd || options.action
+      ? { lasting: toast, notice: null }
+      : { ...slots, notice: toast };
   emit();
 }
 
@@ -88,7 +93,7 @@ function ToastCard({ toast }: { toast: ToastData }) {
 
   useEffect(() => {
     if (toast.sticky) return;
-    let left = toast.onUndo || toast.cmd ? UNDO_MS : PLAIN_MS;
+    let left = toast.onUndo || toast.cmd || toast.action ? UNDO_MS : PLAIN_MS;
     const id = window.setInterval(() => {
       if (hovered.current || focused.current) return;
       if (toast.onUndo && focusInList()) return;
@@ -122,9 +127,21 @@ function ToastCard({ toast }: { toast: ToastData }) {
       />
       <div className="min-w-0 flex-1">
         <p className="text-body text-popover-foreground">{toast.message}</p>
-        {(toast.cmd || toast.onUndo) && (
+        {(toast.cmd || toast.onUndo || toast.action) && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {toast.cmd && <CopyButton text={toast.cmd} />}
+            {toast.action && (
+              <Button
+                size="sm"
+                data-toast-action
+                onClick={() => {
+                  dismissToast(toast.id);
+                  toast.action?.onSelect();
+                }}
+              >
+                {toast.action.label}
+              </Button>
+            )}
             {toast.onUndo && (
               <Button size="sm" onClick={runUndo} aria-keyshortcuts="u">
                 {t.undo}

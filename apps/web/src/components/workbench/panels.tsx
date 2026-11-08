@@ -3,7 +3,7 @@
 /**
  * @file panels.tsx
  * @description The panel's other views and notices: honest states, Do next, what is running now, history, the empty chat, Send to VS Code, and the bar the card sheet gains. Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/panels.tsx`.
- * Runs show only chats that are real today. The queue, Run now and Schedule are slice 5, so they are not here at all (docs/16 §9).
+ * Runs shows what is working now, the queue's next runs and last results, with the limits and a link to the queue page (docs/16 §9). Start with these offers Run now and Schedule on its task items.
  */
 import { doNext, type DoNextItem, vscodePrompt } from '@hub/contracts';
 import {

@@ -20,6 +20,7 @@ import {
   shortcutsEnabled,
   useRoute,
 } from '@/components/kit';
+import { RunCancelHost } from '@/components/queue/run-bits';
 import { CommandPalette } from '@/components/shell/command-palette';
 import { NewCardDialog, type NewCardType } from '@/components/shell/new-card-dialog';
 import { RouterBridge } from '@/components/shell/router';
@@ -242,6 +243,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </>
             )}
             <ToastRegion />
+            <RunCancelHost />
           </div>
         </RadixTooltip.Provider>
       </Direction.Provider>
