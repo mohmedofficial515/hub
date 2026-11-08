@@ -45,6 +45,38 @@ const device = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const DNS = 'main-pc.tail1234.ts.net';
+const publishing = (over: Record<string, unknown> = {}) => ({
+  publicUrl: 'http://localhost:7300',
+  apiPublicUrl: null,
+  secureCookies: false,
+  bindHost: null,
+  tailscale: {
+    installed: false,
+    running: false,
+    dnsName: null,
+    servesWeb: false,
+    servesApi: false,
+    matchesPublicUrl: false,
+  },
+  ...over,
+});
+const published = publishing({
+  publicUrl: `https://${DNS}`,
+  apiPublicUrl: `https://${DNS}`,
+  secureCookies: true,
+  bindHost: '127.0.0.1',
+  tailscale: {
+    installed: true,
+    running: true,
+    dnsName: DNS,
+    servesWeb: true,
+    servesApi: true,
+    matchesPublicUrl: true,
+  },
+});
+const reach = vi.hoisted(() => ({ value: null }));
+
 const COMMAND = {
   apiUrl: 'http://localhost:7310',
   connect: 'node -e "fetch(\'http://localhost:7310/api/v1/connect/bootstrap\')"',
@@ -56,6 +88,7 @@ function api(devices: unknown, extra: (url: string, method: string) => unknown =
     const special = extra(url, request?.method ?? 'GET');
     if (special) return special;
     if (url.includes('me/devices/connect-command')) return { body: { data: COMMAND } };
+    if (url.includes('me/devices/publishing')) return { body: { data: reach.value ?? publishing() } };
     if (url.endsWith('me/devices')) return { body: { data: devices } };
     return undefined;
   });
@@ -67,6 +100,49 @@ const show = (ui: React.ReactElement, locale: 'en' | 'ar' = 'en') =>
 describe('DevicesTab', () => {
   beforeEach(() => {
     search.value = 'code=ABCD-EFGH';
+    reach.value = null;
+  });
+
+  it('says Tailscale is not installed yet, and gives the steps for a second device (docs/16 §10)', async () => {
+    api([]);
+    show(<DevicesTab />);
+    expect(await screen.findByText('Reaching Hub from other devices')).toBeTruthy();
+    expect(await screen.findByText('Tailscale is not installed on this machine')).toBeTruthy();
+    expect(screen.getByText(/Cookies are not Secure yet/)).toBeTruthy();
+    expect(screen.getByText('Hub listens on every network interface of this machine')).toBeTruthy();
+    expect(screen.getByText('pnpm hub:tailscale serve')).toBeTruthy();
+    expect(screen.getByText(/Turn on two-step sign-in \(TOTP\)/)).toBeTruthy();
+  });
+
+  it('once published: the tailnet address, Secure cookies, localhost only, and what Tailscale serves', async () => {
+    reach.value = published;
+    api([]);
+    show(<DevicesTab />);
+    expect(await screen.findByText("Tailscale serves Hub's pages")).toBeTruthy();
+    expect(screen.getByText(DNS)).toBeTruthy();
+    expect(screen.getByText('Cookies are Secure')).toBeTruthy();
+    expect(screen.getByText('127.0.0.1')).toBeTruthy();
+    expect(screen.getByText('Tailscale serves /mcp and /bridge for Claude Code and the bridge')).toBeTruthy();
+    expect(screen.getByText('HUB_PUBLIC_URL is the tailnet address')).toBeTruthy();
+    const facts = document.querySelectorAll('[data-devices-publishing] li[data-ok]');
+    expect([...facts].every((fact) => fact.getAttribute('data-ok') === 'true')).toBe(true);
+  });
+
+  it('says when Tailscale runs but does not serve Hub yet, in Arabic', async () => {
+    reach.value = publishing({
+      tailscale: {
+        installed: true,
+        running: true,
+        dnsName: DNS,
+        servesWeb: false,
+        servesApi: false,
+        matchesPublicUrl: false,
+      },
+    });
+    api([]);
+    show(<DevicesTab />, 'ar');
+    expect(await screen.findByText('لا يقدّم Tailscale صفحات Hub بعد')).toBeTruthy();
+    expect(screen.getByText('قيمة HUB_PUBLIC_URL ليست عنوان الشبكة بعد')).toBeTruthy();
   });
 
   it('with no device: an honest empty state, and the one command', async () => {

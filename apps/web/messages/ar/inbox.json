@@ -97,7 +97,8 @@
       "source_failing": "فشل المصدر {name} ثلاث مرات متتالية",
       "brief_ready": "موجزك ليوم {date} جاهز",
       "weekly_ready": "ملخص الأسبوع {date} جاهز",
-      "run_waiting": "تشغيل من الطابور ينتظر موافقتك: {title}"
+      "run_waiting": "تشغيل من الطابور ينتظر موافقتك: {title}",
+      "backup_failed": "فشل النسخ الاحتياطي الليلي: {reason}"
     }
   },
   "archive": {

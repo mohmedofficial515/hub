@@ -4,6 +4,7 @@
  * @file devices.tsx
  * @description Settings › Devices (docs/16 §5): each paired machine, whether it is online, its Claude Code, its health checks with a Fix button, Revoke, and the one command for a new device.
  * Styled from its neighbours, tokens and system: one neutral card per device, the state in a word and an icon. It replaces `hub doctor` for the owner, though that command stays.
+ * Below the command, how other devices reach Hub over Tailscale (docs/16 §10), in `publishing.tsx`.
  */
 import type { DeviceDto, HealthCheck } from '@hub/contracts';
 import {
@@ -42,6 +43,8 @@ import {
 } from '@/features/devices/queries';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { isHubError } from '@/lib/api/errors';
+
+import { PublishingSection } from './publishing';
 
 const STALE_REPORT_MS = 5 * 60_000;
 
@@ -249,6 +252,8 @@ export function DevicesTab() {
       </section>
 
       <ConnectSection />
+
+      <PublishingSection />
 
       <ConfirmDialog
         open={!!target}

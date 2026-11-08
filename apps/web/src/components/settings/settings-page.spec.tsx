@@ -108,17 +108,29 @@ describe('SettingsPage', () => {
     search.value = 'tab=general';
   });
 
-  it('gives a manager nine tabs and the project details', async () => {
+  it('gives the owner ten tabs, Backups among them, and the project details', async () => {
     stubFetch(answer(['owner']));
     renderWithApp(
       <Tooltip.Provider>
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(9));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(10));
+    expect(screen.getByRole('tab', { name: 'Backups' })).toBeTruthy();
     expect(await screen.findByDisplayValue('Demo')).toBeTruthy();
     expect(screen.getByDisplayValue('About')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close project' })).toBeTruthy();
+  }, 20_000);
+
+  it('gives a pm nine tabs: Backups is the owner’s alone (docs/16 D61)', async () => {
+    stubFetch(answer(['pm']));
+    renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(9));
+    expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
   }, 20_000);
 
   it('keeps the two-step roles editable', async () => {

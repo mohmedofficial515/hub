@@ -2,7 +2,7 @@
 
 /**
  * @file settings-page.tsx
- * @description Eight tabs in `?tab=` (docs/09 §18). Ported from the approved design, pages/settings. Contract: apps/web/README.md.
+ * @description The tabs in `?tab=` (docs/09 §18). Backups (docs/16 D61 to D63) shows for the owner alone. Ported from the approved design, pages/settings. Contract: apps/web/README.md.
  */
 import { Tabs } from 'radix-ui';
 import { useEffect, useRef } from 'react';
@@ -33,6 +33,7 @@ import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
 
 import { AuditTab } from './parts/audit';
+import { BackupsTab } from './parts/backups';
 import { DevicesTab } from './parts/devices';
 import { GeneralTab } from './parts/general';
 import { NotificationsTab } from './parts/notifications';
@@ -51,6 +52,7 @@ const TABS = [
   'devices',
   'queue',
   'system',
+  'backups',
   'audit',
 ] as const;
 type SettingsTab = (typeof TABS)[number];
@@ -67,6 +69,7 @@ const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
   devices: DevicesTab,
   queue: QueueTab,
   system: SystemTab,
+  backups: BackupsTab,
   audit: AuditTab,
 };
 
@@ -94,7 +97,7 @@ export function SettingsPage() {
   const t = useT<SettingsMessages>('settings');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const { isManager, loading, error } = useSession();
+  const { isManager, isOwner, loading, error } = useSession();
   const sources = useSources();
   const settings = useSettings().data;
   const problems = (sources.data ?? []).filter((s) => isProblem(sourceState(s, settings))).length;
@@ -108,7 +111,8 @@ export function SettingsPage() {
           ? 'sources'
           : 'general';
   const tab = useSettingsTab(landing);
-  const visible = isManager ? TABS : PERSONAL;
+  // Backups belong to the machine, and only its owner manages them.
+  const visible = isManager ? TABS.filter((id) => id !== 'backups' || isOwner) : PERSONAL;
   const allowed = !!tab && visible.includes(tab);
   const activeTab = useRef<HTMLButtonElement>(null);
 

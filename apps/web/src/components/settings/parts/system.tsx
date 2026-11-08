@@ -3,7 +3,7 @@
 /**
  * @file system.tsx
  * @description Ported from the approved design, pages/settings/parts/system.tsx, on `GET /workspaces/{ws}/system` and the public health checks.
- * What the API does not report is left out: there is no disk figure, and no backup job runs in this release, which it says.
+ * What the API does not report is left out: there is no disk figure. The last backup is Settings › Backups' (docs/16 D61 to D63).
  */
 import type { SystemData } from '@hub/contracts';
 import { CircleCheck, Clock, Database, Layers, RefreshCw, Server, TriangleAlert } from 'lucide-react';
@@ -35,7 +35,7 @@ import { isHubError } from '@/lib/api/errors';
 const SIZES = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 /** "18.4 GB" as an LTR isolate. Units stay Latin in both languages. */
-function Bytes({ value, className }: { value: number; className?: string }) {
+export function Bytes({ value, className }: { value: number; className?: string }) {
   const locale = useLocale();
   const power = Math.min(SIZES.length - 1, Math.floor(Math.log10(Math.max(1, value)) / 3));
   const scaled = value / 10 ** (power * 3);
