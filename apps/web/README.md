@@ -272,6 +272,12 @@ From `@hub/contracts`: `lineDiff(base, draft)` for the draft's diff, `applyClaim
 
 Layers: strip and panel are in the layout, a phone's panel is 45, its sheet 50. Touch targets follow `pointer: coarse` (`workbench.css`).
 
+## The agent queue
+
+`/[ws]/queue` (`docs/16` §9, D56). Hooks in `features/queue/queries.ts`: `useQueue({ card? })` (runs and the member's limits, live through `queue.changed` and `chat.changed`), `useAddRun`, `useRunAction` (`pause`, `resume`, `cancel`), `useReorderRuns` (optimistic), `usePauseQueue`, `useQueueSettings`. Words are `queue.json`.
+
+Parts in `components/queue/`: `RunRow` and `RunIcon` (one neutral card, state in a coloured icon and words), `useRunLine` (what a run waits on, why it is held, when it runs, how it ended), `useRunNow`, `ScheduleDialog` (quick choices in the queue's timezone, "Choose a time", weekly), `RunButtons` (Run now and Schedule on a task), `StepRunMenu` (a plan step) and `CardRuns` (a card's runs on its sheet). A run starts only from the owner's press (D51). Settings › Queue is `settings/parts/queue.tsx`. `revealChat(id)` in the workbench store opens any chat in the panel.
+
 ## i18n
 
 Every visible string is in both languages. `useT(kitMessages)` is card vocabulary (`types status actions done roles sheet`): never repeat it. `useT<Messages>('<view>')` is your page. Both return the namespace as an object. Use `fmt` and `fill` for `{name}`
@@ -329,7 +335,7 @@ Changed from the design:
 
 ## Tests
 
-`pnpm test:e2e:web` (root) is Playwright, `e2e/`: the chat panel on the scripted engine (`support/scripted-engine.ts`, `specs/chat-panel.spec.ts`), flows F1 to F5 of docs/11 and the live-update test of docs/15 §7 in `ar` and `en`, on throwaway containers with a built API and web on 7319 and 7359. It never touches the local database, and approves only in a temp lab. `E2E_SKIP_BUILD=1` reuses the builds. Timings land in `test-results/live-timings.jsonl`. `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix` runs the page matrix below, measured, and `E2E_MATRIX_PAGES` narrows it. The first run needs `pnpm --filter @hub/web exec playwright install chromium`.
+`pnpm test:e2e:web` (root) is Playwright, `e2e/`: the queue gate (`specs/agent-queue.spec.ts`, which restarts the throwaway API with `support/api-restart.ts`), the chat panel on the scripted engine (`support/scripted-engine.ts`, `specs/chat-panel.spec.ts`), flows F1 to F5 of docs/11 and the live-update test of docs/15 §7 in `ar` and `en`, on throwaway containers with a built API and web on 7319 and 7359. It never touches the local database, and approves only in a temp lab. `E2E_SKIP_BUILD=1` reuses the builds. Timings land in `test-results/live-timings.jsonl`. `E2E_MATRIX=1 pnpm test:e2e:web --grep matrix` runs the page matrix below, measured, and `E2E_MATRIX_PAGES` narrows it. The first run needs `pnpm --filter @hub/web exec playwright install chromium`.
 
 `src/test/render.tsx`: `renderWithApp(ui, { locale })` uses the real catalogs and a fresh query client. `stubFetch((url) => ({ body: { data } }))` answers from a table, and an unmatched call is the API's 404. Logic first: `*.spec.ts` beside the file. A page: one render test per state. Before handing back:
 

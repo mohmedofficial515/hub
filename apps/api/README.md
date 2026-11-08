@@ -207,6 +207,16 @@ Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a f
 
 `E2E_REAL_CLAUDE=1 pnpm test:e2e chats-real-binary` runs the real bridge and binary in an isolated home with a scripted model, and costs no usage. Run it before widening `CLAUDE_MAX_VERSION`.
 
+## The agent queue
+
+`modules/agent-queue` (`docs/16` §9, "Slice 5 as built"). Postgres is the truth: `agent_runs` and `agent_queue_settings`. A run is a panel chat turn in Execute, started by `AgentQueueDispatcher` through `ChatsService.startForQueue`, so everything in § Chats applies to it.
+
+- **One rule for holds.** `holdFor(run, gate)` in `domain/queue-rules.ts` says why a due run waits. The dispatcher starts what it lets through and the page shows its answer, so they cannot disagree. A new limit is a `HOLD_REASONS` entry in contracts, a line there, and words in `queue.json`.
+- **It runs where the sockets are.** The tick (15 s, plus device ready, turn end and owner changes, one per member at a time) is off in `PROCESS_ROLE=worker`, and the timer is off in `QUEUE_MODE=inline`, so e2e tests call `tickAll()` themselves. BullMQ is not used: its delayed jobs would copy the schedule.
+- **Turn facts** come from `ChatTurnEvents` (`onWaiting`, `onLimit`, `onEnded`), called after commit. Listen there rather than in the recorder.
+- **Routes** under `/workspaces/:ws/queue`: `GET` is `queue.read` (and `list_queue`); `POST runs`, `runs/:id/pause|resume|cancel`, `order`, `pause` and `PATCH settings` are `queue.manage`, web only and `@SessionOnly`, so an agent cannot start agents or lift its own limits.
+- Each change publishes `queue.changed` with `{ runId }` to the member; a run waiting on an approval writes a `system` inbox item, `run_waiting`, linking to the page.
+
 ## Writing docs
 
 `DocsWriteService` is `save_doc` (`docs/16` §10): a stale base is refused, the earlier text becomes a `doc_revisions` row, and the file is written atomically, by the API or, when the source has `config.deviceId`, by the bridge. It commits nothing.

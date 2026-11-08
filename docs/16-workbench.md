@@ -37,6 +37,8 @@ Hub becomes the place the owner works from, not only where they record work:
 | D53 | **Newer Claude Code: work with a warning (owner's choice).** A version above the tested one runs and shows a visible warning. Permission rules stay active. Older than the minimum stays refused. An unreadable event stops the turn with a clear message and offers Open in VS Code. |
 | D54 | **The page's fate follows the page (owner's choice).** At 1440 and up, the page stays beside the sheet and panel as long as it works at that width: list-like pages down to about 400 px, and Tasks shows its List in place of the Board when under 520 px. At 1280 and below it steps aside, with Previous and Next card on the sheet. It steps aside only while the panel is open, and never because of Follow. |
 | D55 | **Port directly (owner's choice):** after the blockers and majors of `v5-edge-strip-final/review.md` are fixed in `v6-edge-strip-port`, port with no further lab approval. The owner judges it live on the real app, after an independent review of the running app. |
+| D56 | **The queue page is built in Hub's own style (owner, 2026-11-08):** the kit and the patterns of the Tasks and Inbox pages, with no lab round. An independent critic reviews it afterwards. Calm and consistent: neutral cards, never a coloured side or top edge, coloured icons or small badges only, in `ar` (RTL, default) and `en`, light and dark. |
+| D57 | **A queued run follows D52 exactly (owner, 2026-11-08):** a task moves to In review only when Hub itself verified at least one check and every check passed. A run never completes anything by itself. |
 | D42 | **Connect:** automatic on the main machine, and one command with browser approval on any other. Linking a folder is a button in Hub. No token copying and no new terminal. |
 | D43 | **Devices reach Hub through Tailscale.** Hub is never open to the public internet. This amends D33 for those devices. |
 
@@ -343,6 +345,40 @@ If the device has no bridge, the button copies the prompt instead.
 - **Results go on the card:** summary, changed files and the chat link. The task does not complete itself: the owner confirms unless they set otherwise.
 - **Missed runs** start when the main machine is back, oldest first. A run that was cut off is marked interrupted and is not restarted automatically.
 - A run waiting for approval goes to the inbox and the panel, and it holds the queue's slot for its folder.
+
+### Slice 5 as built (2026-11-08)
+
+The API is in `apps/api/README.md` § The agent queue, the page and hooks in `apps/web/README.md` § The agent queue. Tests: `agent-queue.e2e-spec.ts` (API, scripted device, fake clock) and `e2e/specs/agent-queue.spec.ts` (browser, real bridge and binary, scripted model).
+
+**The gate (§12 step 5), proven with the scripted engine.** A prompt run is scheduled for the next whole minute at least 20 s away. The test stops the throwaway API before that time and starts it again after it, on the same database (`e2e/support/api-restart.ts`). With no one touching anything, the run starts as a missed run when the bridge reconnects, pauses on `git push origin main` for the owner, shows in the inbox (`run_waiting`) and under Waiting for your approval, holds its folder against a second run, and ends `done` only after Allow. It runs in `ar` and `en`, with screenshots of both. The API spec proves the same restart with a fake clock, plus a running run cut off by a restart, which is `interrupted` and never started again.
+
+**How it works.**
+
+- **Postgres is the truth.** `agent_runs` holds every run, its time and its weekly repeat; `agent_queue_settings` the owner's limits (migration `0006`, additive). `position` orders what has not started, and starts as the due time, so missed runs go oldest first and the owner's drag only changes `position`.
+- **No BullMQ for this.** A run is a chat turn, which needs the process holding the bridge's socket, and BullMQ's delayed jobs would be a second copy of the schedule that a worker without sockets could pick up. The dispatcher ticks every 15 s in the API process, when a device becomes ready (`BridgeHub.onReady`), when any turn ends, and after each owner change, one tick per member at a time. A run claims its slot in one statement (`queued` to `running`).
+- **A run is a normal panel turn.** `ChatsService.startForQueue` opens an Execute chat (D51) owned by the member and sends through the same path as Send, so D41's approvals, the recorder, the secret filter and `TurnRegistry`'s proof for `report_work` all apply. A task runs `/hub:work KEY`, so stages and the report land on the card, and D52 decides the move (D57). A plan step that already became a task runs as that task; one that did not runs "Carry out step N of plan KEY". Turn facts reach the queue through `ChatTurnEvents`, after commit.
+- **Limits** are the member's, across projects, since one plan pays for every run: runs at once (1), runs per day (5, counted from local midnight), quiet hours (off by default, so "Today 22:00" works), pause all. The timezone is the queue setting, else the machine's (`Intl` in the API process). `holdFor` (`domain/queue-rules.ts`) is the one rule, read by the dispatcher and the page, so the page's reason is the dispatcher's.
+- **One turn per folder**, counting panel chats too: a run waits while any turn works in that checkout, and a run waiting for approval keeps it.
+- **Usage limit:** a `rejected` limit or a turn ending `rate_limited` pauses the queue with `resumesAt` from the engine. It continues once at that time; with no time it waits for the owner. The run that hit it is `failed` and never retried. The owner's own pause is never overwritten by a limit.
+- **Signed out:** the run goes back in line with nothing spent, and the queue waits, checking `engine.status` past the cache at most once a minute (no model call). Offline: the run waits and says so.
+- **Restarts:** running runs become `interrupted` (`cut_off`) at boot and are never restarted by themselves; Run again is the owner's press. A weekly run leaves next week's copy as it starts, so weeks missed while the machine was off are one run, not several.
+- **Results on the card:** summary (the last report's, else the reply's start), changed files from the bridge, Hub's move decision, and Open chat, on the run and in the card sheet's Runs.
+
+**MCP.** Agents get `list_queue` only (`queue.read`, on the bridge's read list). Adding, ordering, pausing, resuming and cancelling runs and changing limits are `queue.manage`, web only and session only: an agent that could add a run would be starting an agent, and one that could resume a paused run or lift a limit would be approving itself. Reading the queue lets `/hub:plan` and the owner's chats see what is booked without changing it.
+
+**Do next** feeds Run now and Schedule on its task items; a suggestion never runs by itself (D51). Pressing Run now is the owner's act.
+
+**Back from v6** ("Panel as built" listed them as gone): the strip's live run icons, Run now and Schedule (Do next, the task sheet, a plan step's menu, a proposed plan's Schedule it), and pause and cancel in each run's menu. The panel's Runs adds the queue's next runs and last results, with the limits and a link to the page.
+
+**Choices the plan left open, none of which changes a decision:**
+
+- **Pause on a running run** stops its turn now and holds it; Resume sends the same prompt again in the same chat, so its session and context carry on. Pause all leaves running runs to finish.
+- **Cancel ends a weekly repeat** with that run.
+- **The schedule dialog** keeps v6's three choices and adds "Choose a time" (a date, a time, and "repeat every week on this day"), since the spec asks for any time. "Now" is offered only in the page's New run, where a typed prompt is the chat-prompt source.
+- **Where a run goes:** the panel's device and the folder chosen in the dialog, from the project's linked folders. There is no "main machine" field: a missed run starts when its own device is back.
+- **The queue page** is list-like for D54 (400 px), and `g q` reaches it.
+
+**For the owner to check with a real model:** a real `/hub:work` run from the queue, its card moving to In review only with verified checks; a real usage limit's `resetsAt`; a run left waiting on an approval past the bridge's 30-minute window (it is then denied, as in the panel, and the run carries on or ends).
 
 ## 10. Slice 6: devices and docs
 
