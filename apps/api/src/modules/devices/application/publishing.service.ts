@@ -24,6 +24,8 @@ import {
 
 const RUN_TIMEOUT_MS = 5_000;
 const CACHE_MS = 30_000;
+/** "Check again" asks past the cache, but two presses within this time share one answer. */
+const FRESH_MIN_MS = 3_000;
 
 export interface CommandResult {
   readonly status: number;
@@ -91,8 +93,10 @@ export class PublishingService {
 
   constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {}
 
-  async status(): Promise<PublishingDto> {
-    if (this.cached && Date.now() - this.cached.at < CACHE_MS) return this.cached.value;
+  /** `fresh` is Settings' "Check again", after the owner installed or published something. */
+  async status(options: { fresh?: boolean } = {}): Promise<PublishingDto> {
+    const age = this.cached ? Date.now() - this.cached.at : Number.POSITIVE_INFINITY;
+    if (this.cached && age < (options.fresh ? FRESH_MIN_MS : CACHE_MS)) return this.cached.value;
     const publicUrl = this.config.HUB_PUBLIC_URL;
     const value: PublishingDto = {
       publicUrl,

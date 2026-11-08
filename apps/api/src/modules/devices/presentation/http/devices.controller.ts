@@ -58,8 +58,9 @@ export class DevicesController {
       'How other devices reach Hub: the public URL, Secure cookies, where the API listens, and what Tailscale serves',
   })
   @ApiOkResponse({ type: PublishingDto })
-  publishingStatus(): Promise<PublishingDto> {
-    return this.publishing.status();
+  publishingStatus(@Req() request: Request): Promise<PublishingDto> {
+    // `Cache-Control: no-cache` is the page's "Check again": the facts are read again rather than from the 30 s cache.
+    return this.publishing.status({ fresh: /no-cache/i.test(request.headers['cache-control'] ?? '') });
   }
 
   @Get(':id/health')

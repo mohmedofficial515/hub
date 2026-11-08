@@ -1,7 +1,9 @@
 /**
  * @file Tailscale detection through a fake runner: absent, signed out, and serving Hub (docs/16 §10).
  */
-import { type CommandRunner, tailscaleFacts } from './publishing.service';
+import type { AppConfig } from '@/config/config.module';
+
+import { type CommandRunner, PublishingService, tailscaleFacts } from './publishing.service';
 
 const DNS = 'main-pc.tail1234.ts.net';
 
@@ -69,5 +71,30 @@ describe('tailscaleFacts', () => {
       servesApi: true,
       matchesPublicUrl: true,
     });
+  });
+});
+
+describe('PublishingService', () => {
+  it('keeps the answer 30 s, and a fresh check reads Tailscale again, at most once in 3 s', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-08T10:00:00Z') });
+    try {
+      const service = new PublishingService({
+        HUB_PUBLIC_URL: 'http://localhost:7300',
+        PORT: 7310,
+      } as unknown as AppConfig);
+      const run = runner({});
+      service.run = run;
+      await service.status();
+      const once = run.calls.length;
+      await service.status();
+      expect(run.calls.length).toBe(once);
+      await service.status({ fresh: true });
+      expect(run.calls.length).toBe(once);
+      jest.advanceTimersByTime(3_500);
+      await service.status({ fresh: true });
+      expect(run.calls.length).toBe(once * 2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });
