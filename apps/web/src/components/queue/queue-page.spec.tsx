@@ -41,6 +41,10 @@ const run = (over: Partial<AgentRunDto>): AgentRunDto => ({
   deviceId: 'd1',
   deviceName: 'Main',
   folder: 'F:/work/repo',
+  extraFolders: [],
+  mode: 'approval',
+  roles: [],
+  decisions: [],
   state: 'next',
   stored: 'queued',
   hold: null,
@@ -125,7 +129,7 @@ describe('QueuePage', () => {
     const next = screen.getByRole('region', { name: /Next/ });
     expect(within(next).getByText('Waits for a running run to finish')).toBeInTheDocument();
     expect(within(next).getByText('Every Monday at 08:00')).toBeInTheDocument();
-    const recent = screen.getByRole('region', { name: /Recent/ });
+    const recent = screen.getByRole('region', { name: /Ended lately/ });
     expect(within(recent).getByText('Rewrote the intro.')).toBeInTheDocument();
     expect(within(recent).getByText('1 changed file')).toBeInTheDocument();
   });
@@ -153,6 +157,73 @@ describe('QueuePage', () => {
     await waitFor(() => expect(calls.calls.some((call) => call.path.endsWith('/queue/order'))).toBe(true));
     const order = calls.calls.find((call) => call.path.endsWith('/queue/order'))!.body as { ids: string[] };
     expect(order.ids).toEqual(['b', 'a']);
-    expect(await screen.findByText('Moved to place 1 of 2')).toBeInTheDocument();
+    expect(await screen.findByText('Moved “B” to place 1 of 2')).toBeInTheDocument();
+  });
+
+  it('shows an automatic run’s decisions and its pending push, which runs later in a chat (D58)', async () => {
+    const calls = serve({
+      state,
+      runs: [
+        run({
+          id: 'auto',
+          title: 'Ship the fix',
+          state: 'done',
+          stored: 'done',
+          mode: 'automatic',
+          chatId: 'c1',
+          extraFolders: ['F:/work/web'],
+          roles: ['backend', 'frontend'],
+          summary: 'Fixed it.',
+          decisions: [
+            {
+              id: 'q1',
+              kind: 'answered',
+              command: 'Which store?',
+              category: 'other',
+              folder: 'F:/work/repo',
+              why: null,
+              answers: [{ question: 'Which store?', answer: 'Postgres (Recommended)' }],
+              at: '2026-11-08T08:01:00Z',
+              followChatId: null,
+            },
+            {
+              id: 'p1',
+              kind: 'skipped',
+              command: 'git push origin main',
+              category: 'push',
+              folder: 'F:/work/repo',
+              why: 'Publish the fix',
+              answers: [],
+              at: '2026-11-08T08:02:00Z',
+              followChatId: null,
+            },
+          ],
+        }),
+      ],
+    });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    const recent = await screen.findByRole('region', { name: /Ended lately/ });
+    expect(within(recent).getByText('Automatic')).toBeInTheDocument();
+    expect(within(recent).getByText('+1 folders')).toBeInTheDocument();
+    expect(within(recent).getByText(/Backend.*Frontend/)).toBeInTheDocument();
+    expect(within(recent).getByText(/1 choices taken · 1 commands kept for you/)).toBeInTheDocument();
+    expect(within(recent).getByText('git push origin main')).toBeInTheDocument();
+    expect(within(recent).getByText('Why: Publish the fix')).toBeInTheDocument();
+    expect(within(recent).getByText(/Took “Postgres \(Recommended\)”/)).toBeInTheDocument();
+    await userEvent.click(within(recent).getByRole('button', { name: /Run it now/ }));
+    await waitFor(() =>
+      expect(calls.calls.some((call) => call.path.endsWith('/runs/auto/pending/p1/run'))).toBe(true),
+    );
+  });
+
+  it('a run not started can switch to automatic from its menu, and each menu names its run', async () => {
+    const calls = serve({ state, runs: [run({ id: 'n', title: 'Lint' })] });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    await userEvent.click(await screen.findByRole('button', { name: 'More for “Lint”' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Run automatically' }));
+    await waitFor(() => {
+      const call = calls.calls.find((each) => each.path.endsWith('/runs/n/mode'));
+      expect(call?.body).toEqual({ mode: 'automatic' });
+    });
   });
 });

@@ -7,13 +7,15 @@
  */
 import type {
   AgentRunDto,
+  ChatTurnStarted,
   CreateRunInput,
   QueueDto,
   QueueSettingsInput,
   QueueStateDto,
+  RunMode,
   RunWhen,
 } from '@hub/contracts';
-import { localDateOf } from '@hub/contracts';
+import { localDateOf, localInstant } from '@hub/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
@@ -52,6 +54,26 @@ export function useRunAction() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: RunAction }) =>
       post<AgentRunDto>(`${base}/runs/${id}/${action}`),
+    onSettled: reread,
+  });
+}
+
+/** With my approval or Automatic, for a run that has not started (docs/16 D58). */
+export function useSetRunMode() {
+  const { base, reread } = useQueueBase();
+  return useMutation({
+    mutationFn: ({ id, mode }: { id: string; mode: RunMode }) =>
+      post<AgentRunDto>(`${base}/runs/${id}/mode`, { mode }),
+    onSettled: reread,
+  });
+}
+
+/** Run it later: a pending item of an automatic run opens a chat on its folder, where D41 still asks (D58). */
+export function useRunPending() {
+  const { base, reread } = useQueueBase();
+  return useMutation({
+    mutationFn: ({ id, decisionId }: { id: string; decisionId: string }) =>
+      post<ChatTurnStarted>(`${base}/runs/${id}/pending/${decisionId}/run`),
     onSettled: reread,
   });
 }
@@ -108,7 +130,11 @@ const nextDay = (date: string): string => {
 
 export function quickWhen(choice: QuickWhen, timezone: string, now = new Date()): RunWhen {
   const today = localDateOf(now, timezone);
-  if (choice === 'tonight') return { kind: 'once', date: today, time: '22:00' };
+  // A passed 22:00 rolls to tomorrow, so the quick choice never runs at once by surprise (review M1).
+  if (choice === 'tonight') {
+    const passed = localInstant(today, '22:00', timezone).getTime() <= now.getTime();
+    return { kind: 'once', date: passed ? nextDay(today) : today, time: '22:00' };
+  }
   if (choice === 'morning') return { kind: 'once', date: nextDay(today), time: '08:00' };
   return { kind: 'weekly', day: 'MON', time: '08:00' };
 }

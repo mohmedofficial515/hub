@@ -171,6 +171,47 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
     case 'tool.blocked':
     case 'report.refused':
       return notice({ ...event, at });
+    case 'auto.decision':
+      // An automatic queue run (D58) decided with nobody asked: one closed row, as the API stores it.
+      return event.decision === 'answered'
+        ? {
+            ...message,
+            questions: [
+              ...message.questions,
+              {
+                id: event.decisionId,
+                messageId: message.id,
+                toolUseId: event.toolUseId,
+                questions: event.questions ?? [],
+                status: 'auto_answered',
+                answers: event.answers ?? null,
+                expiresAt: at,
+                answeredAt: at,
+                createdAt: at,
+              },
+            ],
+          }
+        : {
+            ...message,
+            approvals: [
+              ...message.approvals,
+              {
+                id: event.decisionId,
+                messageId: message.id,
+                toolUseId: event.toolUseId,
+                toolName: event.toolName,
+                command: event.command,
+                category: event.category,
+                input: event.input,
+                effect: event.effect,
+                draftId: null,
+                status: 'skipped',
+                expiresAt: at,
+                answeredAt: at,
+                createdAt: at,
+              },
+            ],
+          };
     case 'question.asked':
       return {
         ...step(event.toolUseId, (item) => ({ ...item, status: 'waiting' })),

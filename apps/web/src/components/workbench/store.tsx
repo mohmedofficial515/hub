@@ -552,6 +552,8 @@ export interface Wb extends Local {
   devices: DeviceDto[];
   device: DeviceDto | null;
   deviceName: string;
+  /** Where a new chat or a queued run goes, resolved as the panel resolves it: the chosen device, else the first online, else the first; the chosen folder, else the project's first. */
+  place: { device: DeviceDto | null; folder: string | null };
   folders: readonly string[];
   folderNow: string | null;
   engine: EngineState;
@@ -737,6 +739,7 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
     deviceName: full?.deviceName ?? device?.name ?? '',
     folders,
     folderNow: full?.folder ?? folderNow,
+    place: { device, folder: folderNow },
     engine,
     engineStatus,
     resetsAt: honest.resetsAt,

@@ -5,7 +5,7 @@
  * @description What a turn ends in: the live checklist, a plan, a report with verified apart from claimed, a question, and a doc draft with its flags and duplicates (docs/16 §7.1, §7.2). Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/protocol.tsx`.
  */
 import type { CheckRun, DocDuplicate, ReportedCheck, WorkReport } from '@hub/contracts';
-import { openFlags, planToPrompt } from '@hub/contracts';
+import { hasNoTimeLimit, openFlags, planToPrompt } from '@hub/contracts';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -858,11 +858,13 @@ export function QuestionCard({
     const closedText =
       question.status === 'answered'
         ? fmt(t.pro.choice.chosen, { what: said.join('، ') })
-        : question.status === 'declined'
-          ? q.declined
-          : question.status === 'timed_out'
-            ? q.timedOut
-            : q.stopped[stoppedBy];
+        : question.status === 'auto_answered'
+          ? fmt(q.autoAnswered, { what: said.join('، ') })
+          : question.status === 'declined'
+            ? q.declined
+            : question.status === 'timed_out'
+              ? q.timedOut
+              : q.stopped[stoppedBy];
     return (
       <section
         aria-label={title}
@@ -875,14 +877,16 @@ export function QuestionCard({
             aria-hidden
             className={cn(
               'mt-0.5 size-4 shrink-0',
-              question.status === 'answered' ? tone : 'text-muted-foreground',
+              question.status === 'answered' || question.status === 'auto_answered'
+                ? tone
+                : 'text-muted-foreground',
             )}
             strokeWidth={1.75}
           />
           <span className="min-w-0">{title}</span>
         </p>
         <p role="status" className="inline-flex items-start gap-1.5 text-body-sm font-medium text-foreground">
-          {question.status === 'answered' ? (
+          {question.status === 'answered' || question.status === 'auto_answered' ? (
             <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           ) : (
             <Ban aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
@@ -1028,7 +1032,9 @@ export function QuestionCard({
         </Tip>
       </div>
       <p className="text-body-sm text-muted-foreground">
-        {fmt(q.expires, { time: clockOf(question.expiresAt, locale) })}
+        {hasNoTimeLimit(question.expiresAt)
+          ? q.noLimit
+          : fmt(q.expires, { time: clockOf(question.expiresAt, locale) })}
       </p>
     </section>
   );

@@ -34,10 +34,15 @@ export function RunButtons({
   const off = useRunOff();
   const [scheduling, setScheduling] = useState<RunTarget | null>(null);
   const blocked = !!off || !!disabledWhy;
-  const reason = off ? t.dialog[off] : (disabledWhy ?? undefined);
+  // Review B1 and minor 1: the real reason, and a fix line only when there is one.
+  const tip = off
+    ? { why: t.off[off].why, fix: t.off[off].fix }
+    : disabledWhy
+      ? { why: disabledWhy, fix: '' }
+      : null;
   return (
     <>
-      <Tip k="queue:run" off={reason ? { why: reason, fix: '' } : null} label={t.runNow}>
+      <Tip k="queue:run" off={tip} label={t.runNow}>
         <Button
           size="sm"
           variant="ghost"
@@ -49,7 +54,7 @@ export function RunButtons({
           {t.runNow}
         </Button>
       </Tip>
-      <Tip k="queue:schedule" off={reason ? { why: reason, fix: '' } : null} label={t.schedule}>
+      <Tip k="queue:schedule" off={tip} label={t.schedule}>
         <Button
           size="sm"
           variant="ghost"
@@ -76,7 +81,7 @@ export function StepRunMenu({ cardKey, index, title }: { cardKey: string; index:
   return (
     <>
       <RowMenu
-        label={t.actions.more}
+        label={t.actions.moreStep}
         items={[
           { label: t.runNow, icon: Play, disabled: !!off, onSelect: () => runNow(target) },
           { label: t.schedule, icon: CalendarClock, disabled: !!off, onSelect: () => setScheduling(target) },
@@ -102,7 +107,7 @@ export function CardRuns({ cardKey }: { cardKey: string }) {
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
         {runs.slice(0, 5).map((run) => (
           <li key={run.id} data-card-run={run.state} className="p-3">
-            <RunRow run={run} menu={runMenuItems(run, t, act)} />
+            <RunRow run={run} inCard menu={runMenuItems(run, t, act)} />
             {run.changedFiles.length > 0 && (
               <details className="mt-1.5 ps-6.5 text-body-sm text-muted-foreground">
                 <summary className="cursor-pointer select-none">{t.card.files}</summary>

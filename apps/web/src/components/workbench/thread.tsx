@@ -5,6 +5,7 @@
  * @description The transcript (docs/16 §7, §7.1). Everything on it comes from `itemsOf` in `features/chat/thread-items.ts`. Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/thread.tsx`.
  */
 import type { ChangedFile, ChatApprovalDto } from '@hub/contracts';
+import { hasNoTimeLimit } from '@hub/contracts';
 import {
   AlertTriangle,
   ArrowDown,
@@ -937,7 +938,9 @@ export function ApprovalPrompt({
               ? a.denied
               : request.status === 'timed_out'
                 ? a.timedOut
-                : a.stopped[stoppedBy]}
+                : request.status === 'skipped'
+                  ? a.skipped
+                  : a.stopped[stoppedBy]}
         </p>
       ) : (
         <>
@@ -959,7 +962,11 @@ export function ApprovalPrompt({
             </Button>
           </div>
           <p className="text-body-sm text-muted-foreground">
-            {a.once} {a.denyNote} {fmt(a.expires, { time: clockOf(request.expiresAt, locale) })}. {a.devices}.
+            {a.once} {a.denyNote}{' '}
+            {hasNoTimeLimit(request.expiresAt)
+              ? a.noLimit
+              : `${fmt(a.expires, { time: clockOf(request.expiresAt, locale) })}.`}{' '}
+            {a.devices}.
           </p>
         </>
       )}

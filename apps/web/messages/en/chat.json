@@ -379,7 +379,9 @@
         "hub_doc": "Writes a document",
         "hub_sensitive": "A sensitive Hub action",
         "other": "A command you have not allowed"
-      }
+      },
+      "skipped": "Skipped by an automatic run. It did not run, and waits for you in the queue.",
+      "noLimit": "It waits for you with no time limit."
     },
     "card": {
       "made": "Created by Claude",
@@ -428,7 +430,7 @@
       "needsCommand": "Paused on"
     },
     "next": {
-      "title": "Do next",
+      "title": "Start with these",
       "how": "Ranked from card state, with no AI: overdue, then what blocks others, then priority.",
       "why": {
         "overdue": "Overdue",
@@ -816,7 +818,9 @@
           "turn": "Cancelled when the turn stopped. It was not answered.",
           "bridge": "Stopped: the bridge dropped, so the turn ended and this was not answered.",
           "engine": "Stopped: the turn ended in an error, and this was not answered."
-        }
+        },
+        "autoAnswered": "Taken for you by an automatic run: {what}",
+        "noLimit": "It waits for you with no time limit."
       },
       "draft": {
         "label": "Draft",
@@ -1075,7 +1079,8 @@
           "other": "{n} answers waiting"
         },
         "pageHidden": "The page comes back when you close the card or the panel",
-        "pendingIn": "Waiting for you in: {chat}"
+        "pendingIn": "Waiting for you in: {chat}",
+        "moreRuns": "{n} more runs working or waiting"
       }
     },
     "listSeparator": ", ",

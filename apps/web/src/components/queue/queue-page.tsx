@@ -33,6 +33,7 @@ import { usePauseQueue, useQueue, useReorderRuns } from '@/features/queue/querie
 import { isHubError } from '@/lib/api/errors';
 
 import {
+  runAgainTarget,
   runMenuItems,
   RunRow,
   type RunTarget,
@@ -73,7 +74,14 @@ export function QueuePage() {
     ids.splice(place, 0, id);
     if (ids.join() === next.map((run) => run.id).join()) return;
     reorder.mutate(ids, {
-      onSuccess: () => setSaid(fmt(t.toasts.moved, { n: place + 1, total: ids.length })),
+      onSuccess: () =>
+        setSaid(
+          fmt(t.toasts.moved, {
+            title: next.find((run) => run.id === id)?.title ?? '',
+            n: place + 1,
+            total: ids.length,
+          }),
+        ),
       onError: (error) =>
         showToast({ tone: 'error', message: isHubError(error) ? error.message : String(error) }),
     });
@@ -231,7 +239,14 @@ export function QueuePage() {
               className="flex flex-col gap-2"
             >
               <SectionHeader id={`queue-${section}`} title={t.sections[section]} count={list.length} />
-              {hint && list.length > 1 && <p className="text-body-sm text-muted-foreground">{hint}</p>}
+              {hint && (
+                <p
+                  id={`queue-${section}-hint`}
+                  className={cn('text-body-sm text-muted-foreground', list.length > 1 ? '' : 'sr-only')}
+                >
+                  {hint}
+                </p>
+              )}
               {list.length === 0 ? (
                 <p className="text-body-sm text-muted-foreground">{t.sectionEmpty[section]}</p>
               ) : (
@@ -256,6 +271,8 @@ export function QueuePage() {
                         data-queue-state={run.state}
                         tabIndex={movable ? 0 : undefined}
                         aria-keyshortcuts={movable ? 'Alt+ArrowUp Alt+ArrowDown' : undefined}
+                        aria-label={movable ? run.title : undefined}
+                        aria-describedby={movable ? 'queue-next-hint' : undefined}
                         onKeyDown={movable ? (event) => onKey(event, run.id, index) : undefined}
                         onDragOver={
                           movable
@@ -284,12 +301,10 @@ export function QueuePage() {
                           menu={menu}
                           onRunAgain={
                             run.state === 'interrupted'
-                              ? () =>
-                                  runNow(
-                                    run.source === 'task' && run.cardKey
-                                      ? { source: 'task', cardKey: run.cardKey, title: run.title }
-                                      : { source: 'prompt', prompt: run.prompt, title: run.title },
-                                  )
+                              ? () => {
+                                  const again = runAgainTarget(run);
+                                  runNow(again.target, again.options);
+                                }
                               : undefined
                           }
                           handle={
