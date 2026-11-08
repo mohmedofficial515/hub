@@ -104,6 +104,7 @@ export function useRunLine() {
       const key = known ? (run.failure as 'rate_limited' | 'folder_not_allowed') : 'other';
       return { text: run.summary && !known ? run.summary : t.failures[key] };
     }
+    if (run.state === 'cancelled' || run.state === 'stopped') return { text: t.states[run.state] };
     if (run.summary) return { text: run.summary };
     if (run.endedAt) return { text: fmt(t.when.ended, { when: whenText(run.endedAt, locale) }) };
     return { text: t.states[run.state] };
