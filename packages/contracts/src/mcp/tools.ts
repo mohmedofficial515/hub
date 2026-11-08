@@ -79,6 +79,7 @@ import {
   updateSourceSchema,
 } from '../projects';
 import { roleSchema, specialtySchema } from '../roles';
+import { putAnnotationsSchema, refreshSchemaSchema, updateSchemaDraftSchema } from '../schema-studio';
 import { saveNarrativeSchema } from '../today';
 
 const key = z.object({ key: cardKeySchema.describe('The card key, such as GTV-123') });
@@ -934,6 +935,46 @@ const TOOL_TABLE = {
     input: queueRunsQuerySchema,
     actions: ['queue.read'],
     readOnly: true,
+  },
+
+  // Schema Studio (docs/17): the database design, its Arabic names and the drafts of changes reviewed in a chat.
+  get_schema: {
+    description:
+      "The project's database design as Hub last read it from the Prisma files: domains, models, fields, enums and relations, with the Arabic names and notes the team added. `domain` or `model` narrows it; `missingNames: true` lists only what has no Arabic name yet.",
+    input: z.object({
+      domain: z.string().max(64).optional(),
+      model: z.string().max(64).optional(),
+      missingNames: z.boolean().optional(),
+    }),
+    actions: ['schema.read'],
+    readOnly: true,
+  },
+  refresh_schema: {
+    description:
+      'Read the Prisma files again and keep a new snapshot when they changed. After applying a draft, pass its `draftId`: the draft becomes applied with this snapshot, and the page shows the new design.',
+    input: refreshSchemaSchema,
+    actions: ['schema.manage'],
+    routes: [`POST ${W}/schema/refresh`],
+  },
+  get_schema_draft: {
+    description: 'One draft of database changes: its proposed changes, status and the review so far.',
+    input: z.object({ draftId: z.uuid() }),
+    actions: ['schema.read'],
+    readOnly: true,
+  },
+  update_schema_draft: {
+    description:
+      "Save a draft's review (Markdown: what you found and what was agreed), its changes as agreed, or its status: `in_review`, `applying` while you edit the files, `editing` to hand it back.",
+    input: updateSchemaDraftSchema.extend({ draftId: z.uuid() }),
+    actions: ['schema.draft'],
+    routes: [`PATCH ${W}/schema/drafts/:id`],
+  },
+  set_schema_annotations: {
+    description:
+      'Save Arabic names, descriptions, notes, tags and sensitivity for models, fields and enums. `target` is `model:Booking`, `field:Booking.status`, `enum:BookingStatus` or `enumValue:BookingStatus.PAID`. A field left out keeps its value.',
+    input: putAnnotationsSchema,
+    actions: ['schema.annotate'],
+    routes: [`PUT ${W}/schema/annotations`],
   },
 
   // Administration

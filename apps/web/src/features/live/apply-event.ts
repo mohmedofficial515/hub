@@ -262,6 +262,11 @@ export function applyLiveMessage(
     applyChatChanged(client, ws, (data as ChatChanged).chatId);
     return true;
   }
+  if (event === 'schema.changed') {
+    // Schema Studio (docs/17): a refresh, a name, a draft, from this page, another tab or Claude.
+    void client.invalidateQueries({ queryKey: qk.schema(ws) });
+    return true;
+  }
   if (event === 'queue.changed') {
     void client.invalidateQueries({ queryKey: qk.queue(ws) });
     return true;

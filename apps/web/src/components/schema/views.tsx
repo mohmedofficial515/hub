@@ -1,0 +1,456 @@
+'use client';
+
+/**
+ * @file views.tsx
+ * @description Schema Studio's other three views (docs/17 §4). The dictionary: every column as a row, searchable and filterable, named in place, exported as Markdown. The enums: each list with its values,
+ * named one by one. The history: each version of the design with what changed, and the drafts that were applied or discarded with Claude's review.
+ */
+import type { SchemaChangeSummary, SchemaDraftDto } from '@hub/contracts';
+import { changeCount } from '@hub/contracts';
+import { motion, type MotionStyle } from 'framer-motion';
+import {
+  CheckCircle2,
+  Download,
+  GitCommitHorizontal,
+  History,
+  ListTree,
+  Search,
+  XCircle,
+} from 'lucide-react';
+import { useDeferredValue, useMemo, useState } from 'react';
+
+import {
+  Button,
+  cn,
+  EmptyState,
+  fmt,
+  MarkdownView,
+  num,
+  RelativeTime,
+  Select,
+  showToast,
+  SkeletonRows,
+  TextInput,
+  useLocale,
+} from '@/components/kit';
+import { useAnnotate, useSchemaHistory } from '@/features/schema/queries';
+
+import { dictionaryMarkdown, enumTarget, fieldTarget, modelTarget, toneStyle } from './model';
+import { useSchemaWords, useStudio } from './studio';
+
+const MAX_ROWS = 600;
+
+function InlineName({ target, placeholder }: { target: string; placeholder: string }) {
+  const studio = useStudio();
+  const annotate = useAnnotate();
+  const current = studio.annotations.get(target)?.nameAr ?? '';
+  const [text, setText] = useState<string | null>(null);
+  return (
+    <TextInput
+      aria-label={placeholder}
+      dir="rtl"
+      className="h-9 md:h-8"
+      placeholder={placeholder}
+      value={text ?? current}
+      readOnly={!studio.can.annotate}
+      onChange={(event) => setText(event.target.value)}
+      onBlur={() => {
+        if (text !== null && text.trim() !== current)
+          annotate.mutate([{ target, nameAr: text.trim() || null }]);
+        setText(null);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
+      }}
+    />
+  );
+}
+
+export function DictionaryView() {
+  const studio = useStudio();
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const [query, setQuery] = useState('');
+  const [domain, setDomain] = useState('');
+  const [unnamedOnly, setUnnamedOnly] = useState(false);
+  const deferred = useDeferredValue(query.trim().toLowerCase());
+
+  const rows = useMemo(() => {
+    const out: { model: string; field: string; type: string; domain: string; doc: string | null }[] = [];
+    for (const model of studio.doc.models) {
+      if (domain && model.domain !== domain) continue;
+      for (const field of model.fields) {
+        const entry = studio.annotations.get(fieldTarget(model.name, field.name));
+        if (unnamedOnly && entry?.nameAr) continue;
+        if (deferred) {
+          const hay =
+            `${model.name} ${field.name} ${field.type} ${entry?.nameAr ?? ''} ${entry?.descriptionAr ?? ''} ${studio.annotations.get(modelTarget(model.name))?.nameAr ?? ''}`.toLowerCase();
+          if (!hay.includes(deferred)) continue;
+        }
+        out.push({
+          model: model.name,
+          field: field.name,
+          type: field.type,
+          domain: model.domain,
+          doc: entry?.descriptionAr ?? field.doc,
+        });
+      }
+    }
+    return out;
+  }, [studio.doc, studio.annotations, domain, unnamedOnly, deferred]);
+
+  const exportMarkdown = () => {
+    const text = dictionaryMarkdown(
+      studio.doc,
+      studio.annotations,
+      `${t.title} · ${studio.data.source?.name ?? ''}`,
+    );
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${studio.data.source?.name ?? 'schema'}-dictionary.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast({ message: t.toasts.exported, tone: 'success' });
+  };
+
+  return (
+    <div className="schema-scroll">
+      <div className="schema-view-bar">
+        <div className="relative min-w-0 flex-1 md:max-w-80">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            strokeWidth={1.75}
+          />
+          <TextInput
+            aria-label={t.dictionary.search}
+            placeholder={t.dictionary.search}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="ps-9"
+          />
+        </div>
+        <Select
+          aria-label={t.dictionary.domain}
+          value={domain}
+          onChange={(event) => setDomain(event.target.value)}
+          className="w-auto"
+        >
+          <option value="">{t.dictionary.allDomains}</option>
+          {studio.doc.domains.map((entry) => (
+            <option key={entry.name} value={entry.name}>
+              {entry.name}
+            </option>
+          ))}
+        </Select>
+        <label className="schema-toggle">
+          <input
+            type="checkbox"
+            checked={unnamedOnly}
+            onChange={(event) => setUnnamedOnly(event.target.checked)}
+          />
+          <span>{t.dictionary.unnamedOnly}</span>
+        </label>
+        <span className="text-body-sm text-muted-foreground">
+          {fmt(t.dictionary.count, { n: num(rows.length, locale) })}
+        </span>
+        <span className="flex-1" />
+        <Button size="sm" variant="outline" onClick={exportMarkdown}>
+          <Download aria-hidden className="size-4" strokeWidth={1.75} />
+          {t.actions.exportMarkdown}
+        </Button>
+      </div>
+      {rows.length === 0 ? (
+        <EmptyState icon={ListTree} title={t.dictionary.empty} />
+      ) : (
+        <div className="schema-table-wrap">
+          <table className="schema-table">
+            <thead>
+              <tr>
+                <th>{t.dictionary.table}</th>
+                <th>{t.dictionary.column}</th>
+                <th>{t.dictionary.type}</th>
+                <th>{t.dictionary.nameAr}</th>
+                <th className="hidden lg:table-cell">{t.dictionary.descriptionAr}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice(0, MAX_ROWS).map((row) => (
+                <tr key={`${row.model}.${row.field}`} style={toneStyle(studio.tones.get(row.domain))}>
+                  <td>
+                    <button
+                      type="button"
+                      className="schema-link"
+                      onClick={() => {
+                        studio.select({ kind: 'model', name: row.model, field: row.field });
+                      }}
+                    >
+                      <span className="schema-node-dot" aria-hidden />
+                      <span dir="ltr" className="font-mono">
+                        {row.model}
+                      </span>
+                    </button>
+                  </td>
+                  <td className="font-mono text-foreground" dir="ltr">
+                    {row.field}
+                  </td>
+                  <td className="font-mono text-muted-foreground" dir="ltr">
+                    {row.type}
+                  </td>
+                  <td className="min-w-48">
+                    <InlineName target={fieldTarget(row.model, row.field)} placeholder={t.node.unnamed} />
+                  </td>
+                  <td
+                    className="hidden max-w-96 truncate text-muted-foreground lg:table-cell"
+                    title={row.doc ?? ''}
+                  >
+                    {row.doc}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function EnumsView() {
+  const studio = useStudio();
+  const t = useSchemaWords();
+  const locale = useLocale();
+  const [query, setQuery] = useState('');
+  const deferred = useDeferredValue(query.trim().toLowerCase());
+  const enums = studio.doc.enums.filter(
+    (value) =>
+      !deferred ||
+      `${value.name} ${value.values.map((item) => item.name).join(' ')} ${studio.annotations.get(enumTarget(value.name))?.nameAr ?? ''}`
+        .toLowerCase()
+        .includes(deferred),
+  );
+  return (
+    <div className="schema-scroll">
+      <div className="schema-view-bar">
+        <div className="relative min-w-0 flex-1 md:max-w-80">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            strokeWidth={1.75}
+          />
+          <TextInput
+            aria-label={t.enums.search}
+            placeholder={t.enums.search}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="ps-9"
+          />
+        </div>
+      </div>
+      {enums.length === 0 ? (
+        <EmptyState icon={ListTree} title={t.enums.empty} />
+      ) : (
+        <div className="schema-enum-grid">
+          {enums.map((value, index) => {
+            const name = studio.annotations.get(enumTarget(value.name))?.nameAr;
+            return (
+              <motion.button
+                type="button"
+                key={value.name}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(index, 20) * 0.015, duration: 0.2 }}
+                className={cn('schema-enum-card', studio.selection?.name === value.name && 'is-active')}
+                style={toneStyle(studio.tones.get(value.domain)) as MotionStyle}
+                onClick={() => studio.select({ kind: 'enum', name: value.name })}
+              >
+                <span className="flex items-center gap-2">
+                  <span className="schema-node-dot" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate text-start font-semibold text-foreground">
+                    {name ?? value.name}
+                  </span>
+                  <span className="shrink-0 text-caption text-muted-foreground">
+                    {fmt(t.enums.values, { n: num(value.values.length, locale) })}
+                  </span>
+                </span>
+                {name && (
+                  <span
+                    className="block truncate text-start font-mono text-caption text-muted-foreground"
+                    dir="ltr"
+                  >
+                    {value.name}
+                  </span>
+                )}
+                <span className="mt-2 flex flex-wrap gap-1" dir="ltr">
+                  {value.values.slice(0, 8).map((item) => (
+                    <span key={item.name} className="schema-chip">
+                      {studio.annotations.get(`enumValue:${value.name}.${item.name}`)?.nameAr ?? item.name}
+                    </span>
+                  ))}
+                  {value.values.length > 8 && <span className="schema-chip">+{value.values.length - 8}</span>}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChangeChips({ changes }: { changes: SchemaChangeSummary | null }) {
+  const t = useSchemaWords();
+  const locale = useLocale();
+  if (!changes) return <span className="text-body-sm text-muted-foreground">{t.history.first}</span>;
+  if (changeCount(changes) === 0)
+    return <span className="text-body-sm text-muted-foreground">{t.history.unchanged}</span>;
+  const groups: [string, string[], 'added' | 'removed' | 'changed'][] = [
+    [`${t.history.added} ${t.history.tablesWord}`, changes.addedModels, 'added'],
+    [`${t.history.removed} ${t.history.tablesWord}`, changes.removedModels, 'removed'],
+    [`${t.history.changed} ${t.history.tablesWord}`, changes.changedModels, 'changed'],
+    [`${t.history.added} ${t.history.columnsWord}`, changes.addedFields, 'added'],
+    [`${t.history.removed} ${t.history.columnsWord}`, changes.removedFields, 'removed'],
+    [`${t.history.changed} ${t.history.columnsWord}`, changes.changedFields, 'changed'],
+    [`${t.history.added} ${t.history.enumsWord}`, changes.addedEnums, 'added'],
+    [
+      `${t.history.changed} ${t.history.enumsWord}`,
+      [...changes.changedEnums, ...changes.removedEnums],
+      'changed',
+    ],
+  ];
+  return (
+    <div className="flex flex-col gap-1.5">
+      {groups
+        .filter(([, list]) => list.length > 0)
+        .map(([label, list, kind]) => (
+          <div key={label} className="flex flex-wrap items-baseline gap-1.5">
+            <span className="schema-chip" data-mark={kind}>
+              {label} · {num(list.length, locale)}
+            </span>
+            <span
+              className="min-w-0 truncate font-mono text-caption text-muted-foreground"
+              dir="ltr"
+              title={list.join(', ')}
+            >
+              {list.slice(0, 6).join(', ')}
+              {list.length > 6 ? '…' : ''}
+            </span>
+          </div>
+        ))}
+    </div>
+  );
+}
+
+function ClosedDraft({ draft }: { draft: SchemaDraftDto }) {
+  const t = useSchemaWords();
+  const [open, setOpen] = useState(false);
+  const Icon = draft.status === 'applied' ? CheckCircle2 : XCircle;
+  return (
+    <li className="schema-history-item">
+      <Icon
+        aria-hidden
+        className={cn(
+          'mt-0.5 size-4 shrink-0',
+          draft.status === 'applied' ? 'text-success-soft-foreground' : 'text-muted-foreground',
+        )}
+        strokeWidth={1.75}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-foreground">{draft.title}</p>
+        <p className="text-body-sm text-muted-foreground">
+          {t.draft.statuses[draft.status]} · {fmt(t.draft.count, { n: String(draft.changes.length) })} ·{' '}
+          <RelativeTime iso={draft.updatedAt} />
+        </p>
+        {draft.review && (
+          <>
+            <button
+              type="button"
+              className="schema-link mt-1 text-body-sm"
+              onClick={() => setOpen((value) => !value)}
+              aria-expanded={open}
+            >
+              {t.history.review}
+            </button>
+            {open && (
+              <div className="mt-2 rounded-md border border-border bg-muted p-3">
+                <MarkdownView source={draft.review} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
+export function HistoryView() {
+  const studio = useStudio();
+  const t = useSchemaWords();
+  const history = useSchemaHistory(true);
+  const closed = studio.data.drafts.filter(
+    (draft) => draft.status === 'applied' || draft.status === 'discarded',
+  );
+  return (
+    <div className="schema-scroll">
+      <div className="mx-auto grid w-full max-w-275 gap-8 p-4 md:p-6 lg:grid-cols-[3fr_2fr]">
+        <section className="flex flex-col gap-3">
+          <h2 className="flex items-center gap-2 text-title-sm font-semibold text-foreground">
+            <History aria-hidden className="size-5 text-muted-foreground" strokeWidth={1.75} />
+            {t.history.title}
+          </h2>
+          {history.isPending ? (
+            <SkeletonRows count={4} />
+          ) : (
+            <ol className="schema-timeline">
+              {(history.data?.snapshots ?? []).map((snapshot, index) => (
+                <motion.li
+                  key={snapshot.id}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(index, 12) * 0.03 }}
+                  className="schema-timeline-item"
+                  data-current={index === 0 || undefined}
+                >
+                  <span className="schema-timeline-dot" aria-hidden>
+                    <GitCommitHorizontal className="size-3.5" strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-2 text-body-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {t.history.triggers[snapshot.trigger]}
+                      </span>
+                      {snapshot.takenBy && <span>{fmt(t.history.by, { name: snapshot.takenBy })}</span>}
+                      <RelativeTime iso={snapshot.createdAt} />
+                      <span className="font-mono" dir="ltr">
+                        {snapshot.hash.slice(0, 8)}
+                      </span>
+                    </p>
+                    <div className="mt-1.5">
+                      <ChangeChips changes={snapshot.changes} />
+                    </div>
+                  </div>
+                </motion.li>
+              ))}
+            </ol>
+          )}
+          {history.data && history.data.snapshots.length <= 1 && (
+            <p className="text-body-sm text-muted-foreground">{t.history.empty}</p>
+          )}
+        </section>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-title-sm font-semibold text-foreground">{t.history.drafts}</h2>
+          {closed.length === 0 ? (
+            <p className="text-body-sm text-muted-foreground">{t.history.noDrafts}</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {closed.map((draft) => (
+                <ClosedDraft key={draft.id} draft={draft} />
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}

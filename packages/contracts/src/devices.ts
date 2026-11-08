@@ -41,6 +41,7 @@ export const BRIDGE_ACTIONS = [
   'engine.status',
   'doc.read',
   'doc.write',
+  'schema.read',
   'vscode.open',
 ] as const;
 export type BridgeAction = (typeof BRIDGE_ACTIONS)[number];

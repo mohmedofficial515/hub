@@ -27,16 +27,23 @@ import { McpDeps, ToolContext, type ToolHandler, type ToolHandlers } from './too
 import { cardToolHandlers } from './tools/card.tools';
 import { chatToolHandlers } from './tools/chat.tools';
 import { deviceToolHandlers } from './tools/device.tools';
+import { schemaToolHandlers } from './tools/schema.tools';
 import { workspaceToolHandlers } from './tools/workspace.tools';
 
 const HANDLERS: ToolHandlers = {
   ...cardToolHandlers,
   ...chatToolHandlers,
   ...deviceToolHandlers,
+  ...schemaToolHandlers,
   ...workspaceToolHandlers,
 };
 
-const LONG_OUTPUT: ReadonlySet<McpToolName> = new Set<McpToolName>(['get_card', 'get_plan', 'get_doc']);
+const LONG_OUTPUT: ReadonlySet<McpToolName> = new Set<McpToolName>([
+  'get_card',
+  'get_plan',
+  'get_doc',
+  'get_schema',
+]);
 
 const HINTS: Readonly<Record<string, string>> = {
   'hub.cards.not_found': 'Check the key and the project. A deleted card shows in list_deleted.',

@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CircleHelp,
   Compass,
+  Database,
   FileText,
   GitCommitHorizontal,
   Inbox,
@@ -68,7 +69,8 @@ export const views: ViewDef[] = [
   { id: 'onboarding', icon: Compass, group: 'knowledge', counter: 'onboarding' },
   { id: 'members', icon: Users, group: 'workspace', counter: 'members' },
   { id: 'settings', icon: Settings, group: 'workspace', counter: 'settings' },
+  { id: 'schema', icon: Database, group: 'admin', goKey: 'b' },
 ];
 
 export const viewById = (id: ViewId) => views.find((v) => v.id === id)!;
-export const NAV_GROUPS: NavGroup[] = ['work', 'knowledge', 'workspace'];
+export const NAV_GROUPS: NavGroup[] = ['work', 'knowledge', 'workspace', 'admin'];

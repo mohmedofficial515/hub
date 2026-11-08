@@ -20,6 +20,7 @@ export * from './notifications';
 export * from './permissions';
 export * from './projects';
 export * from './roles';
+export * from './schema-studio';
 export * from './secret-patterns';
 export * from './settings';
 export * from './today';

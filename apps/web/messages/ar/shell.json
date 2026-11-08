@@ -16,12 +16,14 @@
     "settings": "الإعدادات",
     "planning": "التخطيط",
     "gallery": "المعرض",
-    "queue": "طابور الوكلاء"
+    "queue": "طابور الوكلاء",
+    "schema": "قاعدة البيانات"
   },
   "groups": {
     "work": "العمل",
     "knowledge": "المعرفة",
-    "workspace": "المشروع"
+    "workspace": "المشروع",
+    "admin": "الإدارة"
   },
   "counts": {
     "inbox": {

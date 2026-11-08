@@ -19,6 +19,7 @@ export const VIEW_IDS = [
   'onboarding',
   'members',
   'settings',
+  'schema',
   // Not in the sidebar: the lab's own full page, opened in a new tab from Redesign, a card or the timeline.
   'gallery',
 ] as const;

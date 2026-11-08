@@ -291,6 +291,9 @@ async function chatToSend(fresh: boolean, mode: Mode): Promise<string | null> {
   return chat.id;
 }
 
+/** The chat the panel shows now: after `send`, the one the words went to. */
+export const activeChatId = (): string | null => local.activeId ?? null;
+
 /** False when it was refused, so the composer can give the words back. */
 export async function send(options: SendOptions): Promise<boolean> {
   const mode = options.mode ?? local.mode;

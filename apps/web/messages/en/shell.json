@@ -16,12 +16,14 @@
     "settings": "Settings",
     "planning": "Planning",
     "gallery": "Redesign Lab",
-    "queue": "Agent queue"
+    "queue": "Agent queue",
+    "schema": "Database"
   },
   "groups": {
     "work": "Work",
     "knowledge": "Knowledge",
-    "workspace": "Project"
+    "workspace": "Project",
+    "admin": "Admin"
   },
   "counts": {
     "inbox": {

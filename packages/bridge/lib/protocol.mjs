@@ -19,6 +19,7 @@ export const BRIDGE_ACTIONS = [
   'engine.status',
   'doc.read',
   'doc.write',
+  'schema.read',
   'vscode.open',
 ];
 export const BRIDGE_REFUSALS = [

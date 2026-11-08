@@ -15,6 +15,7 @@ import { IdentityModule } from '@/modules/identity';
 import { NotificationsModule } from '@/modules/notifications';
 import { PlansModule } from '@/modules/plans';
 import { ReleasesModule } from '@/modules/releases';
+import { SchemaStudioModule } from '@/modules/schema-studio';
 import { SearchModule } from '@/modules/search';
 import { SystemModule } from '@/modules/system';
 import { TasksModule } from '@/modules/tasks';
@@ -38,6 +39,7 @@ import { McpDeps } from './presentation/mcp/tool-context';
     NotificationsModule,
     PlansModule,
     ReleasesModule,
+    SchemaStudioModule,
     SearchModule,
     SystemModule,
     TasksModule,

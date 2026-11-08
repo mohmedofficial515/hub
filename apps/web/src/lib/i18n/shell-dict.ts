@@ -6,7 +6,7 @@ import type { ViewId } from '@/components/shell/router';
 import type { PluralForms } from '@/lib/format';
 
 /** Shell strings only. Pages keep their own in `pages/<view>/i18n.ts`, the card vocabulary is in `kit/i18n.ts`. */
-export type NavGroup = 'work' | 'knowledge' | 'workspace';
+export type NavGroup = 'work' | 'knowledge' | 'workspace' | 'admin';
 
 export interface ShellDict {
   gate: { session: string; notMember: string; notMemberBody: string; toProjects: string };

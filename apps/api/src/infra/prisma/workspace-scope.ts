@@ -33,6 +33,10 @@ export const WORKSPACE_SCOPED_MODELS: Readonly<Record<string, readonly string[]>
   ChannelPreference: ['workspaceId', 'userId'],
   Brief: ['workspaceId'],
   AuditLog: ['workspaceId', 'actorId'],
+  SchemaSource: ['workspaceId'],
+  SchemaSnapshot: ['workspaceId'],
+  SchemaAnnotation: ['workspaceId'],
+  SchemaDraft: ['workspaceId'],
 };
 
 export class WorkspaceScopeError extends Error {

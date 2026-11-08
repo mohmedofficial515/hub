@@ -130,6 +130,8 @@ export const HUB_READ_TOOLS = [
   'export_chat',
   'list_prompt_templates',
   'list_queue',
+  'get_schema',
+  'get_schema_draft',
   'list_work_reports',
   'report_stage',
   'propose_plan',
@@ -172,6 +174,9 @@ export const HUB_ASK_TOOLS = [
 
 /** The rest of the table, for the read-only deny list, so a write is refused by rule even under an allow the owner holds. */
 export const HUB_OTHER_TOOLS = [
+  'refresh_schema',
+  'update_schema_draft',
+  'set_schema_annotations',
   'create_task',
   'update_task',
   'claim_task',

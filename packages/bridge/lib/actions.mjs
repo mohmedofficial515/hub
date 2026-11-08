@@ -14,10 +14,11 @@ import { folderServerIsRight, installFolderServer } from './install.mjs';
 import { recordLink } from './links.mjs';
 import { claudeConfigFile } from './paths.mjs';
 import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
+import { schemaHandlers } from './schema-files.mjs';
 import { turnHandlers } from './turns.mjs';
 import { openInVsCode } from './vscode.mjs';
 
-const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'chat.diff', 'vscode.open']);
+const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'chat.diff', 'schema.read', 'vscode.open']);
 
 async function linkFolder(args, context) {
   const { system, url } = context;
@@ -56,6 +57,7 @@ const handlers = {
   'folder.link': linkFolder,
   ...turnHandlers,
   ...docHandlers,
+  ...schemaHandlers,
   'vscode.open': openInVsCode,
 };
 

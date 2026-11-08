@@ -31,6 +31,7 @@ import { ActorService, InviteService, MeService } from '@/modules/identity';
 import { InboxService } from '@/modules/notifications';
 import { PlanReadService } from '@/modules/plans';
 import { ReleaseNotesService } from '@/modules/releases';
+import { SchemaStudioService } from '@/modules/schema-studio';
 import { SearchService } from '@/modules/search';
 import { SourceRunnerService } from '@/modules/system';
 import { TasksReadService } from '@/modules/tasks';
@@ -69,6 +70,7 @@ export class McpDeps {
     readonly workReports: WorkReportsService,
     readonly docDrafts: DocDraftsService,
     readonly agentQueue: AgentQueueService,
+    readonly schema: SchemaStudioService,
     readonly search: SearchService,
     readonly runner: SourceRunnerService,
     readonly queues: QueueService,

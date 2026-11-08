@@ -22,5 +22,8 @@ export const qk = {
   admin: (ws: string, ...part: readonly unknown[]) => ['admin', ws, ...part] as const,
   search: (ws: string, q: string) => ['search', ws, q] as const,
   /** The agent queue (docs/16 §9), whatever its filter. `queue.changed` and `chat.changed` reread it. */
+  /** Schema Studio (docs/17). `schema.changed` rereads it. */
+  schema: (ws: string) => ['schema', ws] as const,
+  schemaHistory: (ws: string) => ['schema', ws, 'history'] as const,
   queue: (ws: string, card?: string) => (card ? (['queue', ws, card] as const) : (['queue', ws] as const)),
 };

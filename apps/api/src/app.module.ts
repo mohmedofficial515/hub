@@ -38,6 +38,7 @@ import { RealtimeModule } from './modules/realtime';
 import { RedesignModule } from './modules/redesign';
 import { ReleasesModule } from './modules/releases';
 import { SchedulerModule } from './modules/scheduler';
+import { SchemaStudioModule } from './modules/schema-studio';
 import { SearchModule } from './modules/search';
 import { SystemModule } from './modules/system';
 import { TasksModule } from './modules/tasks';
@@ -95,6 +96,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     DevicesModule,
     ChatsModule,
     AgentQueueModule,
+    SchemaStudioModule,
     McpModule,
   ],
   providers: [
