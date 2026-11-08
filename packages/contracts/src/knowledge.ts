@@ -234,9 +234,12 @@ export const systemSchema = z.object({
     oldestPendingAgeSec: z.number().int().nullable(),
   }),
   sse: z.object({ connections: z.number().int() }),
-  /** No backup job runs in this release, so both are null: an honest "not connected" (docs/15 §3). */
+  /** The last finished backup (docs/16 D61 to D63); both null before the first one. */
   backup: z.object({ lastAt: z.string().nullable(), sizeBytes: z.number().int().nullable() }),
   db: z.object({ sizeBytes: z.number().int(), cards: z.number().int(), events: z.number().int() }),
   worker: z.object({ alive: z.boolean(), lastHeartbeatAt: z.string().nullable() }),
 });
 export type SystemData = z.infer<typeof systemSchema>;
+
+// Backups and publishing (docs/16 §10, D61 to D63) belong with the system page, which reads the last backup.
+export * from './backups';
