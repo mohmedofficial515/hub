@@ -46,16 +46,18 @@ The Database page under **Admin** (`/<locale>/<project>/schema`) is where the te
 - **Header.** The source and when it was read, the counts, the Arabic-name coverage, and how many names are not in the files yet. Actions: Search (`/`), Suggest Arabic names, Write names to the files, Refresh design.
 - **Domains.** One per Prisma file, each with a colour, its table count and a coverage ring. You can show, hide or isolate a domain, or ask Claude to name it.
 - **Diagram** (React Flow).
-  - Each domain is a tinted zone, and each table shows its Arabic or code name and its key columns (or all of them).
+  - Each domain is a quiet zone with its coloured dot, and each table shows its Arabic or code name and its key columns (or all of them).
   - Hovering or selecting a table lights up its relations and fades the rest. Double-clicking focuses on a table and its neighbours.
   - Dragging a table keeps it there in this browser.
   - Zoomed far out, the domain names grow so the map stays readable.
-  - It also has a minimap, a legend, marks for what changed in the last version, and ghost marks for what the draft proposes.
+  - It also has a minimap, a legend, marks for what changed in the last version, and ghost marks for what the draft proposes. The minimap and the legend step aside while a table is open, and fitting or centring keeps clear of the toolbar and the dock.
 - **Inspector.** For a table, a column or an enum: the Arabic fields, saved on blur; what the files say; the relations both ways; indexes; and Propose a change.
 - **Dictionary.** Every column in one table that you can search and filter, with the Arabic name edited in place. It exports as Markdown.
 - **Enums.** Each enum with its values, each value named on its own.
 - **History.** The versions of the design with what changed, and the closed drafts with Claude's review.
-- **Draft dock.** The changes in order, which you can edit, reorder or remove. Its button is "Review and apply with Claude".
+- **Draft dock.** The changes in order, which you can edit, reorder or remove. Its button is "Review and apply with Claude". While Claude reviews or applies it, a status pill says so.
+- **Surfaces (owner, 2026-11-08, review B3).** Hub's own: every card is one neutral surface with one neutral border, a domain shows as its small coloured dot, no row is tinted, nothing has a gradient, no shadow is deeper than `shadow-md`. What changed in the last version is a sparkle icon, a proposed change a small badge or icon.
+- **Keyboard (review B2, M9).** `/` (or Ctrl+Shift+K) opens the page's search, not the global palette. The diagram's toolbar comes before its tables in Tab order; Enter or Space on a table opens it in the inspector, and a table reached by Tab far out is brought close. Opening from search, the dictionary or a table moves focus to the inspector's heading; Escape closes it and gives focus back. Below 68rem the domains are a drawer that takes focus and closes on Escape.
 
 ## 5. Out of the first release
 
