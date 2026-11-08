@@ -4,6 +4,8 @@
  * then runs the API with its workers on 7310, the web on 7300 and the lab on 7320 until Ctrl+C. Safe to run again. Written for Windows first: no shell
  * syntax, and stopping takes the whole process tree. Logs go to `.tmp/logs`. `pnpm stop:local` stops a run whose terminal is gone. The lab is a helper:
  * Hub stays up without it, and the Redesign page says so (docs/16 §6). The `HUB_*` variables below let a test run beside a real Hub.
+ * When HubServer, the logon task (`pnpm hub:service`), is already running Hub, this starts no second copy. Published over Tailscale (an https
+ * HUB_PUBLIC_URL), the web listens on 127.0.0.1 only, as the API does (docs/16 §10).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -23,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import { connectMainMachine } from './connect-main-machine.mjs';
 import { checkVersions, describe } from './lab-check.mjs';
+import { bindHostOf, runningHubServer } from './lib/hub-local.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const apiDir = join(root, 'apps/api');
@@ -130,6 +133,14 @@ async function waitFor(url, name, running, seconds = 120) {
 }
 
 async function main() {
+  const server = process.env.HUB_PID_FILE ? null : runningHubServer();
+  if (server) {
+    say(
+      `Hub is already running as HubServer, the logon task (process ${server.pid}). Open http://localhost:${WEB_PORT}`,
+    );
+    say('`pnpm hub:service stop` stops it, and `pnpm hub:service status` says more.');
+    return;
+  }
   say('Starting Hub.');
   mkdirSync(logDir, { recursive: true });
 
@@ -197,9 +208,16 @@ async function main() {
 
   say('Running:');
   const api = start('api', ['dist/main'], apiDir, { ...process.env });
+  const host = bindHostOf(env);
   const web = start(
     'web',
-    [join(webDir, 'node_modules/next/dist/bin/next'), 'start', '-p', String(WEB_PORT)],
+    [
+      join(webDir, 'node_modules/next/dist/bin/next'),
+      'start',
+      '-p',
+      String(WEB_PORT),
+      ...(host ? ['-H', host] : []),
+    ],
     webDir,
     webEnv,
   );
