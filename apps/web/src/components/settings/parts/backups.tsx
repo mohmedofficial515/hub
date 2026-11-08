@@ -7,7 +7,7 @@
  * a word and an icon for each state, the queue tab's save bar. There is no restore button: restoring is `pnpm hub:restore`, with Hub stopped.
  */
 import type { BackupDto, BackupsDto } from '@hub/contracts';
-import { BACKUP_LIMITS } from '@hub/contracts';
+import { BACKUP_LIMITS, backupFailureKind } from '@hub/contracts';
 import {
   ArchiveRestore,
   CircleCheck,
@@ -20,13 +20,14 @@ import {
   Trash2,
   TriangleAlert,
 } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   Button,
   cn,
   CommandBlock,
   ConfirmDialog,
+  CopyButton,
   EmptyState,
   ErrorState,
   Field,
@@ -41,6 +42,7 @@ import {
   showToast,
   SkeletonRows,
   TextInput,
+  Tooltip,
   useLocale,
   useSession,
   useT,
@@ -95,22 +97,43 @@ function StateOf({ backup, words }: { backup: BackupDto; words: Words }) {
   );
 }
 
+/** "today 23:05" starts an English line, so it takes a capital there. */
+function sentenceStart(text: string, locale: string): string {
+  return locale === 'en' ? text.charAt(0).toLocaleUpperCase('en') + text.slice(1) : text;
+}
+
+/** A failure in the owner's words with what to do next; the API's own text stays in Details, to copy (review M3). */
+function FailureNote({ failure, words }: { failure: string; words: Words }) {
+  return (
+    <div
+      className="mt-0.5 flex flex-col gap-0.5 text-body-sm"
+      data-backup-failure={backupFailureKind(failure)}
+    >
+      <p className="text-destructive-soft-foreground">{words.failure[backupFailureKind(failure)]}</p>
+      <details className="text-muted-foreground">
+        <summary className="hit-44 w-fit cursor-pointer select-none">{words.failureDetails}</summary>
+        <p className="mt-1 flex flex-wrap items-center gap-2">
+          <Ltr mono className="wrap-anywhere">
+            {failure}
+          </Ltr>
+          <CopyButton text={failure} label={words.copyFailure} showText={false} compact />
+        </p>
+      </details>
+    </div>
+  );
+}
+
 function BackupRow({ backup, onDelete }: { backup: BackupDto; onDelete: () => void }) {
   const words = useT<SettingsMessages>('settings').backups;
   const locale = useLocale();
   const pin = usePinBackup();
   const failed = useFailureToast();
-  const usable = backup.status === 'done' && !backup.deletedAt;
+  // A backup whose folder vanished has nothing left to pin.
+  const usable = backup.status === 'done' && !backup.deletedAt && !backup.missing;
   const removable = backup.status !== 'running' && !backup.deletedAt;
-  const startedAt = when(backup.startedAt, locale);
+  const startedAt = sentenceStart(when(backup.startedAt, locale), locale);
   return (
-    <li
-      className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3',
-        backup.deletedAt && 'opacity-75',
-      )}
-      data-backup={backup.id}
-    >
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3" data-backup={backup.id}>
       <DatabaseBackup aria-hidden className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
       <div className="min-w-0 flex-1 basis-56">
         <p className="flex flex-wrap items-center gap-2 text-body font-medium text-foreground">
@@ -134,11 +157,7 @@ function BackupRow({ backup, onDelete }: { backup: BackupDto; onDelete: () => vo
             </span>
           )}
         </p>
-        {backup.failure && (
-          <p className="mt-0.5 text-body-sm wrap-anywhere text-destructive-soft-foreground">
-            <Ltr mono>{backup.failure}</Ltr>
-          </p>
-        )}
+        {backup.failure && <FailureNote failure={backup.failure} words={words} />}
         {backup.missing && <p className="mt-0.5 text-body-sm text-muted-foreground">{words.missingNote}</p>}
         {usable && backup.path && (
           <p className="mt-0.5 text-body-sm wrap-anywhere text-muted-foreground">
@@ -150,30 +169,31 @@ function BackupRow({ backup, onDelete }: { backup: BackupDto; onDelete: () => vo
       {(usable || removable) && (
         <div className="flex items-center gap-2">
           {usable && (
-            <Button
-              size="sm"
-              busy={pin.isPending}
-              aria-pressed={backup.pinned}
-              aria-label={`${backup.pinned ? words.unkeep : words.keep}: ${startedAt}`}
-              title={words.keepHint}
-              onClick={() =>
-                pin.mutate(
-                  { id: backup.id, pinned: !backup.pinned },
-                  {
-                    onSuccess: () =>
-                      showToast({ message: backup.pinned ? words.unkeptToast : words.keptToast }),
-                    onError: failed,
-                  },
-                )
-              }
-            >
-              {backup.pinned ? (
-                <PinOff aria-hidden className="size-3.5" strokeWidth={1.75} />
-              ) : (
-                <Pin aria-hidden className="size-3.5" strokeWidth={1.75} />
-              )}
-              {backup.pinned ? words.unkeep : words.keep}
-            </Button>
+            <Tooltip content={words.keepHint}>
+              <Button
+                size="sm"
+                busy={pin.isPending}
+                aria-pressed={backup.pinned}
+                aria-label={`${backup.pinned ? words.unkeep : words.keep}: ${startedAt}`}
+                onClick={() =>
+                  pin.mutate(
+                    { id: backup.id, pinned: !backup.pinned },
+                    {
+                      onSuccess: () =>
+                        showToast({ message: backup.pinned ? words.unkeptToast : words.keptToast }),
+                      onError: failed,
+                    },
+                  )
+                }
+              >
+                {backup.pinned ? (
+                  <PinOff aria-hidden className="size-3.5" strokeWidth={1.75} />
+                ) : (
+                  <Pin aria-hidden className="size-3.5" strokeWidth={1.75} />
+                )}
+                {backup.pinned ? words.unkeep : words.keep}
+              </Button>
+            </Tooltip>
           )}
           {removable && (
             <Button size="sm" aria-label={`${words.delete}: ${startedAt}`} onClick={onDelete}>
@@ -186,6 +206,8 @@ function BackupRow({ backup, onDelete }: { backup: BackupDto; onDelete: () => vo
     </li>
   );
 }
+
+const folderName = (path: string | null) => path?.split(/[\\/]/).filter(Boolean).at(-1) ?? '';
 
 function History({ data }: { data: BackupsDto }) {
   const t = useT<SettingsMessages>('settings');
@@ -245,7 +267,21 @@ function History({ data }: { data: BackupsDto }) {
         open={!!target}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={target ? fmt(words.deleteTitle, { when: when(target.startedAt, locale) }) : ''}
-        description={target?.pinned ? words.deleteKeptBody : words.deleteBody}
+        description={
+          target && (
+            <>
+              {(target.sizeBytes !== null || target.path) && (
+                <span className="block">
+                  {fill(words.deleteWhat, {
+                    size: target.sizeBytes !== null ? <Bytes value={target.sizeBytes} /> : '—',
+                    folder: <Ltr mono>{folderName(target.path)}</Ltr>,
+                  })}
+                </span>
+              )}
+              {target.pinned ? words.deleteKeptBody : words.deleteBody}
+            </>
+          )
+        }
         confirmLabel={words.delete}
         onConfirm={() =>
           target &&
@@ -257,6 +293,14 @@ function History({ data }: { data: BackupsDto }) {
       />
     </section>
   );
+}
+
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** "3:5" or "3:05" becomes "03:05"; anything else is left for the field to say it is wrong. */
+export function paddedTime(value: string): string {
+  const match = /^(\d{1,2}):(\d{1,2})$/.exec(value.trim());
+  return match ? `${match[1]!.padStart(2, '0')}:${match[2]!.padStart(2, '0')}` : value.trim();
 }
 
 function SettingsForm({ data }: { data: BackupsDto }) {
@@ -287,13 +331,29 @@ function SettingsForm({ data }: { data: BackupsDto }) {
   );
   const chosenFolder = folder.trim() === '' ? null : folder.trim();
   const savedFolder = settings.folderSource === 'setting' ? settings.folder : null;
+  // A 24-hour text field, so it reads like "next backup tomorrow 03:00" below it whatever the browser's own clock format.
+  const timeValid = TIME_OF_DAY.test(time);
   const changes = {
     ...(enabled !== settings.enabled ? { enabled } : {}),
-    ...(time !== settings.time ? { time } : {}),
+    ...(timeValid && time !== settings.time ? { time } : {}),
     ...(keep !== settings.keep ? { keep } : {}),
     ...(chosenFolder !== savedFolder ? { folder: chosenFolder } : {}),
   };
   const changed = Object.keys(changes).length;
+
+  // The save bar appears under the field being typed in: bring that field above it once.
+  const hadChanges = useRef(false);
+  useEffect(() => {
+    const active = document.activeElement;
+    if (
+      changed > 0 &&
+      !hadChanges.current &&
+      active instanceof HTMLElement &&
+      active.dataset.backupsField !== undefined
+    )
+      active.scrollIntoView?.({ block: 'nearest' });
+    hadChanges.current = changed > 0;
+  }, [changed]);
   const restoreCommand = `pnpm hub:restore "${data.items.find((item) => item.status === 'done' && !item.deletedAt && !item.missing)?.path ?? `${settings.folder}${settings.folder.includes('\\') ? '\\' : '/'}hub-…`}"`;
 
   return (
@@ -312,15 +372,20 @@ function SettingsForm({ data }: { data: BackupsDto }) {
           />
           {words.enabled}
         </label>
-        <Field id={`${id}-time`} label={words.time}>
+        <Field id={`${id}-time`} label={words.time} error={timeValid ? undefined : words.timeInvalid}>
           <TextInput
             id={`${id}-time`}
-            type="time"
             dir="ltr"
-            className="max-w-40"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={5}
+            placeholder="03:00"
+            className="max-w-40 scroll-mb-28"
             value={time}
             disabled={!enabled}
-            onChange={(e) => setTime(e.target.value)}
+            onChange={(e) => setTime(e.target.value.trim())}
+            onBlur={() => setTime((value) => paddedTime(value))}
+            data-backups-field
           />
         </Field>
         <p className="text-body-sm text-muted-foreground">
@@ -336,11 +401,12 @@ function SettingsForm({ data }: { data: BackupsDto }) {
             dir="ltr"
             min={BACKUP_LIMITS.keepMin}
             max={BACKUP_LIMITS.keepMax}
-            className="max-w-32"
+            className="max-w-32 scroll-mb-28"
             value={keepText}
             onChange={(e) => setKeepText(e.target.value)}
             onBlur={() => setKeepText(String(keep))}
             data-backups-keep
+            data-backups-field
           />
         </Field>
       </FormSection>
@@ -349,10 +415,11 @@ function SettingsForm({ data }: { data: BackupsDto }) {
           <TextInput
             id={`${id}-folder`}
             dir="ltr"
-            className="text-start"
-            placeholder={settings.defaultFolder}
+            className="scroll-mb-28 text-start"
+            placeholder={words.folderPlaceholder}
             value={folder}
             onChange={(e) => setFolder(e.target.value)}
+            data-backups-field
           />
         </Field>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">

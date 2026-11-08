@@ -692,30 +692,58 @@
     "publishing": {
       "title": "Reaching Hub from other devices",
       "intro": "Your other devices reach Hub through Tailscale, inside your own private network, and never from the open internet.",
+      "checkAgain": "Check again",
+      "checkAgainLabel": "Check Tailscale on the main machine again",
+      "summary": {
+        "install": "Hub is not published yet. Next: install Tailscale on the main machine and sign in.",
+        "https": "Hub is not published yet. Next: turn on HTTPS certificates for your tailnet, then run the publish command.",
+        "serve": "Hub is not published yet. Next: run the publish command on the main machine.",
+        "env": "Tailscale serves Hub's pages. Next: put the two lines in .env and restart Hub.",
+        "published": "Hub is published inside your tailnet. You can connect your other devices."
+      },
+      "levels": {
+        "ok": "done",
+        "warn": "needs a step"
+      },
       "address": "Hub's address",
       "secureOn": "Cookies are Secure",
       "secureOff": "Cookies are not Secure yet: they turn on with an https address",
       "listenLocal": "Hub listens on {host} only",
-      "listenAll": "Hub listens on every network interface of this machine",
-      "notInstalled": "Tailscale is not installed on this machine",
-      "notRunning": "Tailscale is installed but not connected",
-      "running": "Connected to your tailnet as {name}",
+      "listenAll": "Hub listens on every network interface of the main machine",
+      "notInstalled": "Tailscale is not installed on the main machine (the one running Hub)",
+      "notRunning": "Tailscale is installed on the main machine but not connected",
+      "running": "The main machine is connected to your tailnet as {name}",
       "servesWeb": "Tailscale serves Hub's pages",
       "notServesWeb": "Tailscale does not serve Hub's pages yet",
       "servesApi": "Tailscale serves /mcp and /bridge for Claude Code and the bridge",
       "notServesApi": "Tailscale does not serve /mcp and /bridge yet",
       "matches": "HUB_PUBLIC_URL is the tailnet address",
       "notMatches": "HUB_PUBLIC_URL is not the tailnet address yet",
-      "stepsTitle": "To connect another device",
-      "steps": [
-        "Install Tailscale on this machine and sign in.",
-        "Run this here, then put the two lines it prints in .env and restart Hub:",
-        "Turn on two-step sign-in (TOTP) in your profile.",
-        "On the other device: install Tailscale, sign in to the same account, and open Hub's address.",
-        "Pair its bridge with the command under Connect a new device."
-      ],
-      "guide": "The full steps are in docs/13-operations.md, \"Other devices over Tailscale\".",
-      "serveLabel": "Publish command"
+      "state": {
+        "done": "Done",
+        "next": "Next step"
+      },
+      "mainTitle": "On the main machine, once",
+      "main": {
+        "install": "Install Tailscale on the main machine and sign in.",
+        "https": "If Tailscale asks, turn on HTTPS certificates for your tailnet in its admin console (DNS › HTTPS Certificates).",
+        "serve": "Run the publish command on the main machine. It prints two lines:",
+        "env": "Put those two lines in .env, then restart Hub:",
+        "envService": "Or, when Hub runs as the HubServer task:",
+        "totp": "Turn on two-step sign-in (TOTP) in your profile."
+      },
+      "otherTitle": "On each other device",
+      "other": {
+        "install": "Install Tailscale and sign in with the same account.",
+        "open": "Open Hub's address, which starts with https:// and ends with .ts.net, and sign in.",
+        "openAt": "Open Hub's address, {address}, and sign in.",
+        "pair": "To run chats there, open this section on that device and run the command under {link}."
+      },
+      "download": "Tailscale's official download page",
+      "serveLabel": "Publish command",
+      "restartLabel": "Restart Hub",
+      "restartServiceLabel": "Restart HubServer",
+      "guide": "The full steps are in docs/13-operations.md, section 14."
     }
   },
   "backups": {
@@ -736,7 +764,7 @@
     },
     "trigger": {
       "scheduled": "Nightly",
-      "catch_up": "Caught up",
+      "catch_up": "Catch-up for a missed night",
       "manual": "By you"
     },
     "docs": {
@@ -750,29 +778,30 @@
     "deletedByOwner": "Deleted by you {when}",
     "deletedByRetention": "Removed by the keep rule {when}",
     "missingNote": "Its folder is no longer on the disk.",
-    "kept": "Kept",
-    "keep": "Keep",
-    "unkeep": "Stop keeping",
-    "keepHint": "A kept backup is never removed by the keep rule.",
-    "keptToast": "Kept forever",
-    "unkeptToast": "Back under the keep rule",
+    "kept": "Pinned",
+    "keep": "Pin",
+    "unkeep": "Unpin",
+    "keepHint": "A pinned backup is never removed by the keep rule.",
+    "keptToast": "Pinned: it stays forever",
+    "unkeptToast": "Unpinned: back under the keep rule",
     "delete": "Delete",
     "deleteTitle": "Delete the backup of {when}?",
     "deleteBody": "Its folder is removed from the disk, and this cannot be undone. The line stays in the history.",
-    "deleteKeptBody": "This backup is kept. Its folder is removed from the disk, and this cannot be undone. The line stays in the history.",
+    "deleteKeptBody": "This backup is pinned. Its folder is removed from the disk, and this cannot be undone. The line stays in the history.",
     "deleted": "Backup deleted",
     "openFolder": "Folder",
     "lowDisk": "The backup drive is low on space: {free} free of {total}. Free some space or choose another folder.",
     "disk": "{free} free of {total} on the backup drive",
     "scheduleTitle": "Nightly backup",
-    "scheduleHint": "At this time on this machine's clock ({zone}). If Hub is off then, it backs up as soon as it is back.",
+    "scheduleHint": "At this time on this machine's clock ({zone}), in 24-hour time. If Hub is off then, it backs up as soon as it is back.",
     "enabled": "Back up every night",
     "time": "Time",
+    "timeInvalid": "Write the time in 24-hour form, such as 03:00 or 23:30.",
     "next": "Next backup {when}",
     "off": "Nightly backups are off.",
     "keepTitle": "How many to keep",
-    "keepCount": "Backups to keep",
-    "keepHelp": "The newest ones stay; older ones are removed. Kept backups don't count and stay forever. Default: 14.",
+    "keepCount": "Newest backups to keep",
+    "keepHelp": "The newest ones stay; older ones are removed. Pinned backups don't count and stay forever. Default: 14.",
     "folderTitle": "Folder",
     "folderHint": "Outside every Git repository, so a backup never ends up in a commit.",
     "folder": "Backup folder",
@@ -782,6 +811,19 @@
     "restoreBody": "There is no restore button: stop Hub, then run this with the folder of the backup you want. It asks you to type the database's name first.",
     "restoreLabel": "Restore command",
     "save": "Save backup settings",
-    "saved": "Backup settings saved"
+    "saved": "Backup settings saved",
+    "failure": {
+      "docker": "Hub could not find its database container running. Start Docker Desktop, wait until it is ready, then press Back up now.",
+      "foreign_container": "Hub refused the named container because it belongs to another project. Fix or remove HUB_BACKUP_PG_CONTAINER in .env, then restart Hub.",
+      "dump": "The database could not be read. Check that Docker is running, then try again. If it happens again, the details below say why.",
+      "disk_full": "The backup drive is full. Free some space or choose a folder on another drive, then try again.",
+      "folder": "Hub could not write to the backup folder. Check that it exists, accepts writing and is outside every Git repository, or choose another folder below.",
+      "cut_off": "Hub stopped while taking this backup, so it is incomplete. Nothing to fix: back up now, or wait for tonight's.",
+      "other": "This backup could not finish. Try again, and if it happens again, copy the details below."
+    },
+    "failureDetails": "Details",
+    "copyFailure": "Copy the error text",
+    "deleteWhat": "{size}, in the folder {folder}.",
+    "folderPlaceholder": "such as D:\\HubBackups"
   }
 }

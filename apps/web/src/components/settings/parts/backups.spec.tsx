@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
-import { BackupsTab } from './backups';
+import { BackupsTab, paddedTime } from './backups';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -114,7 +114,7 @@ describe('BackupsTab', () => {
             path: null,
             sizeBytes: null,
             docs: null,
-            failure: 'pg_dump failed: no container',
+            failure: 'No running Postgres container publishes the database port. Is Docker running?',
           }),
           backup({ id: '0193ab12-0000-7000-8000-00000000000b', pinned: true, trigger: 'catch_up' }),
           backup({ deletedAt: '2026-11-08T05:00:00.000Z', deletedBy: 'retention' }),
@@ -125,12 +125,22 @@ describe('BackupsTab', () => {
     show();
     expect(await screen.findByText('Running')).toBeTruthy();
     expect(screen.getByText('Failed')).toBeTruthy();
-    expect(screen.getByText('pg_dump failed: no container')).toBeTruthy();
+    // The failure in words with a next step; the API's own text only under Details, to copy (review M3).
+    expect(
+      screen.getByText(/Start Docker Desktop, wait until it is ready, then press Back up now/),
+    ).toBeTruthy();
+    const details = screen.getByText('Details').closest('details')!;
+    expect(details.open).toBe(false);
+    expect(within(details).getByText(/No running Postgres container/)).toBeTruthy();
+    expect(within(details).getByRole('button', { name: 'Copy the error text' })).toBeTruthy();
     expect(screen.getByText('Done')).toBeTruthy();
-    expect(screen.getByText('Kept')).toBeTruthy();
+    expect(screen.getByText('Pinned')).toBeTruthy();
     expect(screen.getByText('Deleted')).toBeTruthy();
     expect(screen.getByText(/Removed by the keep rule/)).toBeTruthy();
-    expect(screen.getByText('Caught up')).toBeTruthy();
+    expect(screen.getByText('Catch-up for a missed night')).toBeTruthy();
+    // A deleted line is not faded: its text keeps its contrast (review M5).
+    const deleted = document.querySelector('[data-backup="0193ab12-0000-7000-8000-00000000000a"]')!;
+    expect(deleted.className).not.toMatch(/opacity/);
     expect(screen.getAllByText('3 documents').length).toBeGreaterThan(0);
     expect(screen.getAllByText('52.4 MB').length).toBeGreaterThan(0);
     // A running backup holds the button, and says so.
@@ -161,7 +171,7 @@ describe('BackupsTab', () => {
       return undefined;
     });
     show();
-    const stop = await screen.findByRole('button', { name: /^Stop keeping/ });
+    const stop = await screen.findByRole('button', { name: /^Unpin/ });
     expect(stop.getAttribute('aria-pressed')).toBe('true');
     await userEvent.click(stop);
     await waitFor(() =>
@@ -170,7 +180,10 @@ describe('BackupsTab', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /^Delete/ }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/This backup is kept/)).toBeTruthy();
+    expect(within(dialog).getByText(/This backup is pinned/)).toBeTruthy();
+    // It names what goes: the size and the folder, since it cannot be undone.
+    expect(within(dialog).getByText(/52.4 MB/)).toBeTruthy();
+    expect(within(dialog).getByText('hub-20261108-000000-0000000a')).toBeTruthy();
     expect(calls.some((call) => call.method === 'DELETE')).toBe(false);
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() =>
@@ -195,7 +208,7 @@ describe('BackupsTab', () => {
       method === 'PATCH' ? { body: { data: history().settings } } : undefined,
     );
     show();
-    const keep = await screen.findByLabelText('Backups to keep');
+    const keep = await screen.findByLabelText('Newest backups to keep');
     await userEvent.clear(keep);
     await userEvent.type(keep, '30');
     await userEvent.type(screen.getByLabelText('Backup folder'), 'E:\\Safe');
@@ -225,7 +238,77 @@ describe('BackupsTab', () => {
     api(history({ items: [backup()] }));
     show('ar');
     expect(await screen.findByText('تمت')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /انسخ الآن/ })).toBeTruthy();
+    // "Back up" and "copy" are different words in Arabic, and so are "pinned" and "kept by the rule" (review M4).
+    expect(screen.getByRole('button', { name: /خذ نسخة احتياطية الآن/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^ثبّتها/ })).toBeTruthy();
+    expect(screen.getByLabelText('عدد أحدث النسخ التي تبقى')).toBeTruthy();
     expect(screen.getByText('ليلية')).toBeTruthy();
+  });
+
+  it('offers no pin for a backup whose folder is gone', async () => {
+    api(history({ items: [backup({ missing: true })] }));
+    show();
+    expect(await screen.findByText('Folder missing')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Pin/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Delete/ })).toBeTruthy();
+  });
+
+  it('says a refused folder or a full drive in words, with what to do', async () => {
+    api(
+      history({
+        items: [
+          backup({ status: 'failed', path: null, sizeBytes: null, failure: 'hub.backups.folder_in_repo' }),
+          backup({
+            id: '0193ab12-0000-7000-8000-00000000000e',
+            status: 'failed',
+            path: null,
+            sizeBytes: null,
+            failure: 'ENOSPC: no space left on device, write',
+          }),
+        ],
+      }),
+    );
+    show();
+    expect(await screen.findByText(/could not write to the backup folder/)).toBeTruthy();
+    expect(screen.getByText(/The backup drive is full/)).toBeTruthy();
+  });
+
+  it('reads the nightly time in 24-hour form, pads it, and refuses what is not a time', async () => {
+    const { calls } = api(history(), ['owner'], (path, method) =>
+      method === 'PATCH' ? { body: { data: history().settings } } : undefined,
+    );
+    show();
+    const time = await screen.findByLabelText('Time');
+    expect(time.getAttribute('type')).not.toBe('time');
+    await userEvent.clear(time);
+    await userEvent.type(time, '25:00');
+    expect(await screen.findByText(/24-hour form/)).toBeTruthy();
+    // Not a change to save: the bar stays hidden.
+    expect(screen.getByRole('button', { name: 'Save backup settings' }).parentElement!.className).toMatch(
+      /\bhidden\b/,
+    );
+    await userEvent.clear(time);
+    await userEvent.type(time, '4:30');
+    await userEvent.tab();
+    expect((time as HTMLInputElement).value).toBe('04:30');
+    await userEvent.click(screen.getByRole('button', { name: 'Save backup settings' }));
+    await waitFor(() =>
+      expect(calls.find((call) => call.method === 'PATCH')?.body).toEqual({ time: '04:30' }),
+    );
+  });
+
+  it('shows a neutral example in the empty folder field, not the default path', async () => {
+    api(history());
+    show();
+    const folder = await screen.findByLabelText('Backup folder');
+    expect(folder.getAttribute('placeholder')).toBe('such as D:\\HubBackups');
+  });
+});
+
+describe('paddedTime', () => {
+  it('pads hours and minutes, and leaves anything else', () => {
+    expect(paddedTime('3:5')).toBe('03:05');
+    expect(paddedTime(' 23:30 ')).toBe('23:30');
+    expect(paddedTime('noon')).toBe('noon');
   });
 });

@@ -76,6 +76,7 @@ const published = publishing({
   },
 });
 const reach = vi.hoisted((): { value: unknown } => ({ value: null }));
+const fresh = vi.hoisted(() => ({ value: false }));
 
 const COMMAND = {
   apiUrl: 'http://localhost:7310',
@@ -101,17 +102,54 @@ describe('DevicesTab', () => {
   beforeEach(() => {
     search.value = 'code=ABCD-EFGH';
     reach.value = null;
+    fresh.value = false;
   });
 
   it('says Tailscale is not installed yet, and gives the steps for a second device (docs/16 §10)', async () => {
     api([]);
     show(<DevicesTab />);
     expect(await screen.findByText('Reaching Hub from other devices')).toBeTruthy();
-    expect(await screen.findByText('Tailscale is not installed on this machine')).toBeTruthy();
+    // The facts name the main machine, since the owner reads them on another device too (review M6).
+    expect(
+      await screen.findByText('Tailscale is not installed on the main machine (the one running Hub)'),
+    ).toBeTruthy();
     expect(screen.getByText(/Cookies are not Secure yet/)).toBeTruthy();
-    expect(screen.getByText('Hub listens on every network interface of this machine')).toBeTruthy();
+    expect(screen.getByText('Hub listens on every network interface of the main machine')).toBeTruthy();
     expect(screen.getByText('pnpm hub:tailscale serve')).toBeTruthy();
     expect(screen.getByText(/Turn on two-step sign-in \(TOTP\)/)).toBeTruthy();
+    // One line says where the owner is, and the first step is marked next (review M7).
+    expect(document.querySelector('[data-publishing-summary="install"]')?.textContent).toMatch(
+      /Next: install Tailscale on the main machine/,
+    );
+    expect(document.querySelector('[data-step="main-install"]')?.getAttribute('data-state')).toBe('next');
+    expect(document.querySelector('[data-step="main-serve"]')?.getAttribute('data-state')).toBe('later');
+    expect(screen.getByText('On the main machine, once')).toBeTruthy();
+    expect(screen.getByText('On each other device')).toBeTruthy();
+    const download = screen.getAllByRole('link', { name: /official download page/ });
+    expect(download[0]?.getAttribute('href')).toBe('https://tailscale.com/download');
+    expect(screen.getByText('pnpm stop:local; pnpm start:local')).toBeTruthy();
+    expect(screen.getByText('pnpm hub:service stop; pnpm hub:service start')).toBeTruthy();
+    expect(screen.getByText(/HTTPS certificates for your tailnet in its admin console/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Connect a new device' }).getAttribute('href')).toBe(
+      '#devices-connect',
+    );
+  });
+
+  it('Check again reads Tailscale past the cache, and the steps follow the answer', async () => {
+    const { calls } = api([], (url, method) =>
+      url.includes('me/devices/publishing') && method === 'GET' && fresh.value
+        ? { body: { data: published } }
+        : undefined,
+    );
+    show(<DevicesTab />);
+    const button = await screen.findByRole('button', { name: 'Check Tailscale on the main machine again' });
+    fresh.value = true;
+    await userEvent.click(button);
+    expect(await screen.findByText(/Hub is published inside your tailnet/)).toBeTruthy();
+    expect(calls.filter((call) => call.path.endsWith('me/devices/publishing')).length).toBe(2);
+    expect(document.querySelector('[data-step="main-env"]')?.getAttribute('data-state')).toBe('done');
+    expect(document.querySelector('[data-step="other-install"]')?.getAttribute('data-state')).toBe('next');
+    expect(document.querySelector('[data-step="other-open"]')?.textContent).toContain(`https://${DNS}`);
   });
 
   it('once published: the tailnet address, Secure cookies, localhost only, and what Tailscale serves', async () => {

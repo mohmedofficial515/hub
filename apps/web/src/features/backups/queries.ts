@@ -78,11 +78,23 @@ export function useSaveBackupSettings() {
   });
 }
 
+const publishingKey = ['publishing'] as const;
+
 /** What Tailscale and the config say about reaching Hub from other devices. The API keeps it for 30 s. */
 export function usePublishing() {
   return useQuery({
-    queryKey: ['publishing'],
+    queryKey: publishingKey,
     staleTime: 30_000,
     queryFn: () => get<PublishingDto>('me/devices/publishing'),
+  });
+}
+
+/** "Check again": the API reads Tailscale again past its cache (`Cache-Control: no-cache`), and the section shows the answer. */
+export function useRecheckPublishing() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      get<PublishingDto>('me/devices/publishing', undefined, { headers: { 'Cache-Control': 'no-cache' } }),
+    onSuccess: (data) => client.setQueryData(publishingKey, data),
   });
 }
