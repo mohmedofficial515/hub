@@ -2,7 +2,10 @@
  * @file H1-02: one card per session, whichever of the hook and `log_session` comes first (docs/05 §5), and the context
  * a new chat receives. The grace job is run by hand after moving the clock, because the delay is BullMQ's.
  */
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { type HookSessionPayload, hookSessionPayloadSchema, type MemberActor } from '@hub/contracts';
 import type { INestApplication } from '@nestjs/common';
@@ -10,6 +13,7 @@ import request from 'supertest';
 
 import type { FakeClock } from '@/infra/clock/clock';
 import { SessionsService } from '@/modules/capture';
+import { DocsIndexerService } from '@/modules/docs';
 
 import { agentActor, aMember, aWorkspace } from '../factories';
 import { aToken } from '../helpers/auth';
@@ -221,6 +225,50 @@ describe('session capture', () => {
       expect((await get({ cwd: 'F:\\Goteav\\other\\src' })).body.data.project).toBe(other.slug);
       expect((await get({ cwd: 'F:/Goteav/other' }, workspace.slug)).body.data.project).toBe(workspace.slug);
       expect(plain.body.data.text.length).toBeLessThanOrEqual(8500);
+    });
+
+    it('GET /me/context gives the project brief and the doc index, with the rule to search before writing (docs/16 §10)', async () => {
+      const { workspace, user } = await setup();
+      await db().workspace.update({
+        where: { id: workspace.id },
+        data: {
+          description: 'Hub for the travel team.\n\nIt holds **every** decision.',
+          goals: 'Ship the queue.',
+        },
+      });
+      const folder = mkdtempSync(join(tmpdir(), 'hub-e2e-context-'));
+      try {
+        writeFileSync(join(folder, 'refunds.md'), '# Refund rules\n\nWallet first.\n');
+        const source = await db().source.create({
+          data: {
+            workspaceId: workspace.id,
+            kind: 'local_path',
+            name: 'docs',
+            config: { path: folder, purpose: 'docs' },
+          },
+        });
+        await app.get(DocsIndexerService, { strict: false }).index({
+          id: source.id,
+          name: 'docs',
+          workspaceId: workspace.id,
+          config: { path: folder, purpose: 'docs' },
+        });
+        const { token } = await aToken(db(), user.id, 'hook');
+        const answer = await request(server())
+          .get('/api/v1/me/context')
+          .set('authorization', `Bearer ${token}`)
+          .expect(200);
+        const text = answer.body.data.text as string;
+        expect(text).toContain('## Project brief\nHub for the travel team. It holds **every** decision.');
+        expect(text).toContain('Goals: Ship the queue.');
+        expect(text).toMatch(/## Documents \(1\)/);
+        expect(text).toMatch(new RegExp(`- ${workspace.keyPrefix}-\\d+ — Refund rules · refunds\\.md`));
+        expect(text).toContain('search them (hub.search_docs)');
+        // The lists still come first.
+        expect(text.indexOf('## Ready tasks')).toBeLessThan(text.indexOf('## Project brief'));
+      } finally {
+        rmSync(folder, { recursive: true, force: true });
+      }
     });
 
     it('a hook token reaches no other project route', async () => {
