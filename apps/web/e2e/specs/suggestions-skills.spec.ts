@@ -121,6 +121,12 @@ test.describe('Slice 7: suggestions, skills and projects', () => {
     await expect(done).toBeVisible();
     const key = /[A-Z]{2,6}-\d+/.exec((await done.textContent()) ?? '')?.[0] ?? '';
     expect((await owner.card<{ title: string; createdBy: { via: string } }>(key)).title).toBe(proposedTitle);
+
+    // Leave the project as it was: a ready P0 task would take the filled button from later tests' pages.
+    for (const card of [task.key, waiting.key, key]) {
+      await owner.post(`workspaces/${ws}/tasks/${card}/cancel`, { reason: 'Slice 7 browser test' });
+    }
+    await owner.post(`workspaces/${ws}/plans/${plan.key}/abandon`, { reason: 'Slice 7 browser test' });
   });
 
   test('the Skills page creates and edits a Hub skill, and moves personal ones, a clash under another name', async ({
@@ -240,5 +246,23 @@ test.describe('Slice 7: suggestions, skills and projects', () => {
     const linked = word(w, 'wizard.linked').replace('{project}', slug).replace('{folder}', folder);
     await expect(page.getByText(linked)).toBeVisible();
     await page.screenshot({ path: info.outputPath(`new-project-today-${locale}.png`) });
+  });
+
+  test('Sync devices now gives a connected device the plugin through the real binary, and its skills read as on it', async ({
+    engine,
+    page,
+    locale,
+    ws,
+  }, info) => {
+    const s = words(locale, 'skills');
+    await page.goto(view(locale, ws, 'skills'));
+    const device = page.locator(`[data-skills-device="${engine.deviceId}"]`);
+    await expect(device).toHaveAttribute('data-skills-device-state', 'never');
+    await page.locator('[data-skills-sync]').click();
+    // The bridge writes the plugin as its marketplace and Claude Code installs that version, in the engine's isolated home.
+    await expect(device).toHaveAttribute('data-skills-device-state', 'current', { timeout: 120_000 });
+    await expect(device).toContainText(word(s, 'devices.current'));
+    await expect(page.locator('[data-skill="suggest"] [data-skill-reach]')).toBeVisible();
+    await page.screenshot({ path: info.outputPath(`skills-synced-${locale}.png`) });
   });
 });
