@@ -154,7 +154,7 @@ export function ModeSwitch() {
       {MODES.map((mode, i) => {
         const active = wb.mode === mode;
         return (
-          <Tip key={mode} k={`mode.${mode}` as 'mode:ask'} keys={[`Alt ${i + 1}`]}>
+          <Tip key={mode} k={`mode:${mode}` as const} keys={[`Alt ${i + 1}`]}>
             <button
               type="button"
               data-wb-mode={mode}

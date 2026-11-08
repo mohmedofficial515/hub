@@ -570,6 +570,8 @@ test.describe('chat panel, the layout', () => {
     const tip = page.locator('[data-wb-tipbox]');
     await expect(tip).toBeVisible();
     await expect(tip.locator('[data-wb-tiplevel="full"]')).toBeVisible();
+    // Review 2026-11-08 B1: the mode tips once held only their shortcut.
+    await expect(tip).toContainText(word(words(locale, 'chat'), 'tips.items.mode:plan.what'));
     await page.mouse.move(0, 0);
     await panel(page).locator('[data-wb-chat-menu]').click();
     await page.locator('[data-wb-menu-item="settings"]').click();
