@@ -17,6 +17,7 @@ import { PlansModule } from '@/modules/plans';
 import { ReleasesModule } from '@/modules/releases';
 import { SchemaStudioModule } from '@/modules/schema-studio';
 import { SearchModule } from '@/modules/search';
+import { SkillsModule } from '@/modules/skills';
 import { SystemModule } from '@/modules/system';
 import { TasksModule } from '@/modules/tasks';
 import { WorkspacesModule } from '@/modules/workspaces';
@@ -41,6 +42,7 @@ import { McpDeps } from './presentation/mcp/tool-context';
     ReleasesModule,
     SchemaStudioModule,
     SearchModule,
+    SkillsModule,
     SystemModule,
     TasksModule,
     WorkspacesModule,

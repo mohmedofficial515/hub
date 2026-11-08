@@ -18,6 +18,7 @@ import {
   type ChatNotice,
   type ChatQuestionDto,
   type ChatStepDto,
+  chatSuggestionsSchema,
   chatToMarkdown,
   type ChatTurnStarted,
   contextPrefix,
@@ -200,6 +201,7 @@ export class ChatsService implements OnApplicationBootstrap {
         stages: message.stages as ChatMessageDto['stages'],
         plan: message.plan,
         structuredPlan: (message.structuredPlan as ChatMessageDto['structuredPlan']) ?? null,
+        suggestions: suggestionsOf(message.suggestions),
         engineFacts: (message.engineFacts as ChatMessageDto['engineFacts']) ?? null,
         reports: message.reports as unknown as WorkReport[],
         notices: message.notices as unknown as ChatNotice[],
@@ -868,4 +870,10 @@ export class ChatsService implements OnApplicationBootstrap {
       audience: { userIds: [actor.userId] },
     });
   }
+}
+
+/** A message's proposals as stored, or null when it has none or they no longer read (D66). */
+function suggestionsOf(value: unknown): ChatMessageDto['suggestions'] {
+  const parsed = chatSuggestionsSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }

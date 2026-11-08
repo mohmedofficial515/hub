@@ -7,10 +7,12 @@ import { AuditModule } from '@/modules/audit';
 import { CardsModule } from '@/modules/cards';
 import { DevicesModule } from '@/modules/devices';
 import { DocsModule } from '@/modules/docs';
+import { SkillsModule } from '@/modules/skills';
 import { WorkspacesModule } from '@/modules/workspaces';
 
 import { ChatsService } from './application/chats.service';
 import { DocDraftsService } from './application/doc-drafts.service';
+import { SuggestionsService } from './application/suggestions.service';
 import { ChatTurnEvents } from './application/turn-events';
 import { TurnRegistry } from './application/turn-registry';
 import { WorkReportsService } from './application/work-reports.service';
@@ -21,9 +23,16 @@ import {
 } from './presentation/http/chats.controller';
 
 @Module({
-  imports: [AuditModule, CardsModule, DevicesModule, DocsModule, WorkspacesModule],
+  imports: [AuditModule, CardsModule, DevicesModule, DocsModule, SkillsModule, WorkspacesModule],
   controllers: [ChatsController, PromptTemplatesController, WorkReportsController],
-  providers: [ChatsService, TurnRegistry, WorkReportsService, DocDraftsService, ChatTurnEvents],
-  exports: [ChatsService, WorkReportsService, DocDraftsService, ChatTurnEvents],
+  providers: [
+    ChatsService,
+    TurnRegistry,
+    WorkReportsService,
+    DocDraftsService,
+    SuggestionsService,
+    ChatTurnEvents,
+  ],
+  exports: [ChatsService, WorkReportsService, DocDraftsService, SuggestionsService, ChatTurnEvents],
 })
 export class ChatsModule {}

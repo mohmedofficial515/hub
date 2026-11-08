@@ -4,12 +4,14 @@
  */
 import {
   answerApprovalSchema,
+  answerSuggestionSchema,
   branchChatSchema,
   chatDiffQuerySchema,
   chatDiffSchema,
   chatFullSchema,
   chatListQuerySchema,
   chatSchema,
+  chatSuggestionSchema,
   chatTurnStartedSchema,
   createChatSchema,
   engineQuerySchema,
@@ -39,6 +41,7 @@ import { SessionOnly } from '@/modules/identity';
 import { Actor, Permissions } from '@/shared/http';
 
 import { ChatsService } from '../../application/chats.service';
+import { SuggestionsService } from '../../application/suggestions.service';
 import { WorkReportsService } from '../../application/work-reports.service';
 
 class CreateChatDto extends createZodDto(createChatSchema) {}
@@ -60,12 +63,17 @@ class ChatDiffDto extends createZodDto(chatDiffSchema) {}
 class EngineStatusDto extends createZodDto(engineStatusSchema) {}
 class PromptTemplateDto extends createZodDto(promptTemplateSchema) {}
 class WorkReportDto extends createZodDto(workReportSchema) {}
+class AnswerSuggestionDto extends createZodDto(answerSuggestionSchema) {}
+class ChatSuggestionDto extends createZodDto(chatSuggestionSchema) {}
 class ChatExportDto extends createZodDto(z.object({ fileName: z.string(), markdown: z.string() })) {}
 
 @ApiTags('chats')
 @Controller('workspaces/:ws/chats')
 export class ChatsController {
-  constructor(private readonly chats: ChatsService) {}
+  constructor(
+    private readonly chats: ChatsService,
+    private readonly suggestions: SuggestionsService,
+  ) {}
 
   @Get()
   @Permissions('chat.read')
@@ -221,6 +229,24 @@ export class ChatsController {
     @Body() body: AnswerApprovalDto,
   ): Promise<void> {
     await this.chats.answer(actor, id, approval, body);
+  }
+
+  @Post(':id/suggestions/:suggestion')
+  @HttpCode(200)
+  @Permissions('chat.answer')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      'Accept or dismiss a proposal of /hub:suggest. Accept creates it through the normal path (a task, a plan, or a Hub skill for the owner) and answers what it made; a proposal is settled once',
+  })
+  @ApiOkResponse({ type: ChatSuggestionDto })
+  answerSuggestion(
+    @Actor() actor: MemberActor,
+    @Param('id') id: string,
+    @Param('suggestion') suggestion: string,
+    @Body() body: AnswerSuggestionDto,
+  ): Promise<ChatSuggestionDto> {
+    return this.suggestions.answer(actor, id, suggestion, body);
   }
 
   @Get(':id/export')

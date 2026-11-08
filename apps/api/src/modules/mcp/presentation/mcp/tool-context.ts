@@ -23,7 +23,7 @@ import { AgentQueueService } from '@/modules/agent-queue';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
-import { ChatsService, DocDraftsService, WorkReportsService } from '@/modules/chats';
+import { ChatsService, DocDraftsService, SuggestionsService, WorkReportsService } from '@/modules/chats';
 import { DevicesService } from '@/modules/devices';
 import { BriefsService } from '@/modules/digests';
 import { DocsReadService, DocsWriteService } from '@/modules/docs';
@@ -33,6 +33,7 @@ import { PlanReadService } from '@/modules/plans';
 import { ReleaseNotesService } from '@/modules/releases';
 import { SchemaStudioService } from '@/modules/schema-studio';
 import { SearchService } from '@/modules/search';
+import { SkillsService } from '@/modules/skills';
 import { SourceRunnerService } from '@/modules/system';
 import { TasksReadService } from '@/modules/tasks';
 import {
@@ -69,6 +70,8 @@ export class McpDeps {
     readonly chats: ChatsService,
     readonly workReports: WorkReportsService,
     readonly docDrafts: DocDraftsService,
+    readonly suggestions: SuggestionsService,
+    readonly skills: SkillsService,
     readonly agentQueue: AgentQueueService,
     readonly schema: SchemaStudioService,
     readonly search: SearchService,

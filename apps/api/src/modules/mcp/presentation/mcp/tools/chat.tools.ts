@@ -178,6 +178,41 @@ export const chatToolHandlers = {
       ? 'The plan is in the panel, with Run this plan. Stop here and wait for the owner.'
       : `Show the user this plan in your reply:\n\n${text}`;
   },
+  async propose_suggestions(context, input) {
+    const actor = await context.allowed('chat.read');
+    const { project: _project, ...proposals } = input;
+    const { inPanel, text } = await context.deps.suggestions.propose(actor, context.toolUseId, proposals);
+    return inPanel
+      ? 'The proposals are in the panel, each with Accept and Dismiss. Nothing was created. Stop here and wait for the owner.'
+      : `Nothing was created. Show the user these proposals in your reply, and create one only if they ask:\n\n${text}`;
+  },
+  async list_skills(context, input) {
+    const actor = await context.allowed('skill.read');
+    const skills = await context.deps.skills.list(actor);
+    const line = (
+      skill: { name: string; description: string; core: boolean; userInvocable: boolean },
+      prefix: string,
+    ) =>
+      `- ${skill.userInvocable ? `${prefix}${skill.name}` : skill.name}${skill.core ? ' (Hub protocol)' : ''}: ${skill.description || 'no description'}`;
+    const parts: string[] = [];
+    if (input.source !== 'personal') {
+      parts.push(
+        "Hub's skills, on every device:",
+        ...(skills.hub.length ? skills.hub.map((skill) => line(skill, '/hub:')) : ['- none']),
+      );
+    }
+    if (input.source !== 'hub') {
+      parts.push(
+        '',
+        "The owner's personal skills on the main machine (only the owner sees these; Move to Hub copies one into Hub):",
+        ...(skills.personal.length
+          ? skills.personal.map((skill) => line(skill, '/'))
+          : ['- none you can see']),
+      );
+    }
+    parts.push('', 'Only the owner creates, edits or moves a skill, on the Skills page.');
+    return parts.join('\n').trim();
+  },
   async propose_doc(context, input) {
     const actor = await context.allowed('chat.read');
     const { project: _project, ...proposal } = input;

@@ -31,6 +31,7 @@ import type { AuditService } from '@/modules/audit';
 import type { BridgeEvent } from '@/modules/devices';
 
 import { capJson } from '../domain/folders';
+import { withProposals } from '../domain/suggestions';
 import type { ChatTurnEvents } from './turn-events';
 
 const TEXT_FLUSH_MS = 120;
@@ -374,6 +375,21 @@ export class TurnRecorder {
           data: { plan: text, ...(structured ? { structuredPlan: structured } : {}) },
         });
         return { ...event, plan: text };
+      }
+      case 'suggestions.proposed': {
+        // Proposals create nothing: they wait on the message for the owner's Accept or Dismiss (D66).
+        const items = redactDeep(event.items) as typeof event.items;
+        const summary = event.summary ? capText(redactSecrets(event.summary), 2_000).text : null;
+        const current = await this.tx.chatMessage.findUnique({
+          where: { id: messageId, workspaceId },
+          select: { suggestions: true },
+        });
+        const merged = withProposals(current?.suggestions ?? null, summary, items);
+        await this.tx.chatMessage.update({
+          where: { id: messageId, workspaceId },
+          data: { suggestions: merged },
+        });
+        return { ...event, summary: merged.summary, items: merged.items };
       }
       case 'auto.decision': {
         // An automatic queue run (D58) decided with nobody asked: one closed row, so the chat and the run's summary both show it, and nothing waits.
