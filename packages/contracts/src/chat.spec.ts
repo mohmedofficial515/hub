@@ -14,6 +14,7 @@ import {
   contextPrefix,
   historyPrefix,
   HUB_SKILLS,
+  isCoreSkill,
   stageFitsProtocol,
   suggestedPrompts,
   TURN_EVENT_KINDS,
@@ -211,6 +212,7 @@ describe('suggestedPrompts', () => {
     const task = { ...base, key: 'T-2', type: 'task' as const, status: 'ready', archivedAt: '2026-11-06' };
     expect(ids({ page: 'today', card: task, roles, memberId: 'me' })).toEqual([
       'summarize_today',
+      'suggest_next',
       'whats_next',
     ]);
   });
@@ -293,9 +295,11 @@ describe('turn events', () => {
 });
 
 describe('HUB_SKILLS', () => {
-  it('lists exactly what the plugin really offers a person to type', () => {
+  it("lists exactly what Hub's own skills offer a person to type", () => {
     const root = resolve(__dirname, '../../team-pack/plugin/skills');
+    // Skills the owner adds on the Skills page live beside these, and reach the slash menu from the engine's own list (D64).
     const invocable = readdirSync(root)
+      .filter((name) => isCoreSkill(name))
       .filter((name) => /^user-invocable: true\r?$/m.test(readFileSync(join(root, name, 'SKILL.md'), 'utf8')))
       .map((name) => `/hub:${name}`);
     expect([...HUB_SKILLS].sort()).toEqual(invocable.sort());

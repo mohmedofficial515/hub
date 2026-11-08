@@ -80,6 +80,8 @@ import {
 } from '../projects';
 import { roleSchema, specialtySchema } from '../roles';
 import { putAnnotationsSchema, refreshSchemaSchema, updateSchemaDraftSchema } from '../schema-studio';
+import { SKILL_SOURCES } from '../skills';
+import { proposeSuggestionsSchema } from '../suggestions';
 import { saveNarrativeSchema } from '../today';
 
 const key = z.object({ key: cardKeySchema.describe('The card key, such as GTV-123') });
@@ -925,6 +927,23 @@ const TOOL_TABLE = {
       "Propose a document's new text before saving it. Give `doc` for an existing one (with baseVersion, the Version line of get_doc), or `source` and `path` for a new file. List each claim you checked as `verified` with its source, and each one you could not check as `unverified`: its text must appear in the draft word for word. Hub finds real duplicates itself and answers with them and a draft id. In the panel the owner sees a diff and answers each flag. Then call save_doc with `draft`; it refuses while a flag is unanswered.",
     input: proposeDocSchema,
     actions: ['chat.read'],
+    readOnly: true,
+  },
+
+  propose_suggestions: {
+    description:
+      "Propose what is worth doing next as structured items, so the panel shows each one with Accept and Dismiss: `task` (title, why, priority, ownerRole, specialty, effort, related, body), `plan` (title, why, steps) or `skill` (name, description, why, body). It stores the proposals on this turn and creates nothing: the owner's Accept creates each one in Hub. Every `why` names the cards or docs it rests on. Outside a panel, show the answer to the user in your reply.",
+    input: proposeSuggestionsSchema,
+    actions: ['chat.read'],
+    readOnly: true,
+  },
+
+  // Skills (docs/16 §11, D64 to D66). Reading only: creating, editing and Move to Hub are the owner's press on the Skills page, because a skill reaches every device and would steer every later chat.
+  list_skills: {
+    description:
+      "The skills Hub's plugin carries to every device (`hub`, with `core` for Hub's own protocols), and the owner's personal skills on the main machine (`personal`), each with its name and when to use it. Read it before proposing a skill, so you never propose one that exists. It cannot create or change a skill.",
+    input: z.object({ source: z.enum(SKILL_SOURCES).optional() }),
+    actions: ['skill.read'],
     readOnly: true,
   },
 

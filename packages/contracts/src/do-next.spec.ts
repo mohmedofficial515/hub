@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CardSummary } from './cards';
-import { doNext, type DoNextCard } from './do-next';
+import { doNext, type DoNextCard, doNextId, type DoNextPlanStep, nextPlanSteps } from './do-next';
 
 const NOW = Date.parse('2026-11-06T12:00:00Z');
 
@@ -153,5 +153,139 @@ describe('an item', () => {
       flags: { blocked: false, overdue: false, escalated: false, stale: false, noSummary: false },
     };
     expect(keys(doNext([summary], {}))).toEqual(['A-1']);
+  });
+});
+
+describe('ready and small, and plans next in line (Slice 7)', () => {
+  const step = (planKey: string, extra: Partial<DoNextPlanStep> = {}): DoNextPlanStep => ({
+    planKey,
+    planTitle: `Plan ${planKey}`,
+    planPriority: 'P2',
+    index: 0,
+    title: `First step of ${planKey}`,
+    role: null,
+    taskKey: null,
+    ...extra,
+  });
+
+  it('a small task says so and comes before a plain one', () => {
+    const items = doNext([card('A-1'), card('A-2', { effort: 'S' }), card('A-3', { effort: 'L' })], {});
+    expect(keys(items)).toEqual(['A-2', 'A-1', 'A-3']);
+    expect(items[0]).toMatchObject({ reasons: ['small', 'ready'], score: 8 });
+    expect(items[2]?.reasons).toEqual(['ready']);
+  });
+
+  it('a decision is never small, whatever it carries', () => {
+    const [item] = doNext([card('A-1', { type: 'decision', status: 'open', effort: 'S' })], {});
+    expect(item?.reasons).toEqual(['decision']);
+  });
+
+  it("a task that is its plan's next step carries the plan, and ranks above a plain one", () => {
+    const items = doNext([card('A-1'), card('A-2')], {
+      planSteps: [step('P-1', { taskKey: 'A-2', index: 3 })],
+    });
+    expect(keys(items)).toEqual(['A-2', 'A-1']);
+    expect(items[0]).toMatchObject({
+      reasons: ['plan_next', 'ready'],
+      score: 15,
+      plan: { key: 'P-1', title: 'Plan P-1', index: 3 },
+    });
+    expect(items[0]).not.toHaveProperty('step');
+  });
+
+  it('a step with no task yet is its own item, runnable as a plan step', () => {
+    const [item] = doNext([], { planSteps: [step('P-1', { index: 2, planPriority: 'P0' })] });
+    expect(item).toEqual({
+      key: 'P-1',
+      type: 'plan',
+      title: 'First step of P-1',
+      reasons: ['plan_next'],
+      blocks: 0,
+      runnable: true,
+      score: 40,
+      plan: { key: 'P-1', title: 'Plan P-1', index: 2 },
+      step: { index: 2 },
+    });
+    expect(doNextId(item!)).toBe('P-1#2');
+  });
+
+  it('a step whose task already moved on is not offered at all', () => {
+    expect(
+      doNext([card('A-1', { status: 'in_progress' })], { planSteps: [step('P-1', { taskKey: 'A-1' })] }),
+    ).toEqual([]);
+  });
+
+  it("a role sees its own steps, and the owner sees every plan's", () => {
+    const planSteps = [step('P-1', { role: 'backend' }), step('P-2', { role: 'frontend' }), step('P-3')];
+    expect(keys(doNext([], { role: 'backend', planSteps }))).toEqual(['P-1']);
+    expect(doNext([], { role: 'owner', planSteps })).toHaveLength(3);
+  });
+
+  it('overdue still wins over everything Slice 7 adds', () => {
+    const items = doNext(
+      [card('A-1', { effort: 'S' }), card('A-2', { flags: { blocked: false, overdue: true } })],
+      {
+        planSteps: [step('P-1', { planPriority: 'P0' })],
+      },
+    );
+    expect(keys(items)).toEqual(['A-2', 'P-1', 'A-1']);
+  });
+});
+
+describe('nextPlanSteps', () => {
+  const plan = (
+    key: string,
+    status: string,
+    steps: { title: string; done: boolean; taskKey?: string; role?: string }[],
+  ) => ({
+    key,
+    title: `Plan ${key}`,
+    status,
+    priority: 'P1' as const,
+    archivedAt: null,
+    steps,
+  });
+
+  it('the first step not done, of an approved or running plan', () => {
+    const steps = nextPlanSteps([
+      plan('P-1', 'in_progress', [
+        { title: 'one', done: true, taskKey: 'A-1' },
+        { title: 'two', done: false, taskKey: 'A-2', role: 'backend' },
+        { title: 'three', done: false },
+      ]),
+      plan('P-2', 'approved', [{ title: 'only', done: false, role: 'not-a-role' }]),
+    ]);
+    expect(steps).toEqual([
+      {
+        planKey: 'P-1',
+        planTitle: 'Plan P-1',
+        planPriority: 'P1',
+        index: 1,
+        title: 'two',
+        role: 'backend',
+        taskKey: 'A-2',
+      },
+      {
+        planKey: 'P-2',
+        planTitle: 'Plan P-2',
+        planPriority: 'P1',
+        index: 0,
+        title: 'only',
+        role: null,
+        taskKey: null,
+      },
+    ]);
+  });
+
+  it('nothing from a draft, a plan in review, a finished plan, or one with every step done', () => {
+    expect(
+      nextPlanSteps([
+        plan('P-1', 'draft', [{ title: 'a', done: false }]),
+        plan('P-2', 'in_review', [{ title: 'a', done: false }]),
+        plan('P-3', 'done', [{ title: 'a', done: false }]),
+        plan('P-4', 'in_progress', [{ title: 'a', done: true }]),
+        { ...plan('P-5', 'in_progress', [{ title: 'a', done: false }]), archivedAt: '2026-01-01T00:00:00Z' },
+      ]),
+    ).toEqual([]);
   });
 });

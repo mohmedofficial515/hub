@@ -23,4 +23,6 @@ export * from './roles';
 export * from './schema-studio';
 export * from './secret-patterns';
 export * from './settings';
+export * from './skills';
+export * from './suggestions';
 export * from './today';

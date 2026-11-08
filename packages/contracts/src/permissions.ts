@@ -190,6 +190,10 @@ const MATRIX = {
   'schema.annotate': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
   'schema.draft': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
   'schema.manage': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
+  // Skills (docs/16 §11, D64 to D66). Everyone reads them, as every chat loads them. Writing one, or moving a personal one into Hub, is the owner's alone and only from the web:
+  // a skill reaches every device and steers every later chat there, so no agent may write one.
+  'skill.read': EVERYONE,
+  'skill.manage': OWNER_ONLY,
 } as const satisfies Record<string, Row>;
 
 export type PermissionAction = keyof typeof MATRIX;
@@ -205,6 +209,7 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'chat.answer',
   'queue.manage',
   'backup.manage',
+  'skill.manage',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {

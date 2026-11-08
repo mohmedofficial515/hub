@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { cardKeySchema } from './cards';
 import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
+import { chatSuggestionSchema, chatSuggestionsSchema } from './suggestions';
 
 export const CHAT_MODES = ['ask', 'plan', 'execute'] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];
@@ -557,6 +558,12 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('doc.draft.updated'), draft: chatDocDraftSchema }),
   z.object({ kind: z.literal('limit'), limit: limitSchema }),
   /** The last event of a turn: only what the engine reported. */
+  /** `propose_suggestions` (D66): proposals the owner accepts or dismisses one by one. Nothing is created by the event. */
+  z.object({
+    kind: z.literal('suggestions.proposed'),
+    summary: z.string().nullable(),
+    items: z.array(chatSuggestionSchema),
+  }),
   z.object({
     kind: z.literal('turn.ended'),
     status: z.enum(['done', 'failed', 'stopped', 'interrupted']),
@@ -639,9 +646,9 @@ export const engineStatusSchema = z.object({
 export type EngineStatus = z.infer<typeof engineStatusSchema>;
 
 /**
- * The plugin's commands a person can type, for the slash menu. A spec holds this to `packages/team-pack/plugin/skills`: `guide` is background reading and not listed, and a command with no skill behind it must not appear.
+ * Hub's own commands a person can type, for the slash menu. A spec holds this to the core skills of `packages/team-pack/plugin/skills` (`HUB_CORE_SKILLS`): `guide` is background reading and not listed, and a command with no skill behind it must not appear. Skills the owner adds through the Skills page reach the menu from the engine's own list.
  */
-export const HUB_SKILLS = ['/hub:ask', '/hub:doc', '/hub:plan', '/hub:work'] as const;
+export const HUB_SKILLS = ['/hub:ask', '/hub:doc', '/hub:plan', '/hub:suggest', '/hub:work'] as const;
 export type HubSkill = (typeof HUB_SKILLS)[number];
 
 // ── Requests ───────────────────────────────────────────────────────────────────────────────────────
@@ -876,6 +883,8 @@ export const chatMessageSchema = z.object({
   plan: z.string().nullable(),
   /** `propose_plan`'s plan. Null when only the text exists. */
   structuredPlan: proposedPlanSchema.nullable(),
+  /** `propose_suggestions`' proposals and what the owner did with each (D66). Null when none were made. */
+  suggestions: chatSuggestionsSchema.nullable(),
   engineFacts: engineFactsSchema.nullable(),
   changedFiles: z.array(changedFileSchema),
   steps: z.array(chatStepSchema),

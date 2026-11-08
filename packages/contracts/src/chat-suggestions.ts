@@ -23,6 +23,7 @@ export const CHAT_SUGGESTION_IDS = [
   'summarize_today',
   'plan_topic',
   'find_docs',
+  'suggest_next',
 ] as const;
 export type ChatSuggestionId = (typeof CHAT_SUGGESTION_IDS)[number];
 
@@ -30,7 +31,7 @@ export interface ChatSuggestion {
   readonly id: ChatSuggestionId;
   readonly key?: string;
   /** The Hub skill it starts, for the panel's tooltip. */
-  readonly skill?: 'hub:work' | 'hub:doc';
+  readonly skill?: 'hub:work' | 'hub:doc' | 'hub:suggest';
   /** The mode this prompt needs. Ask cannot run a command, so a prompt that does has `execute`. */
   readonly mode: ChatMode;
   /**
@@ -97,12 +98,14 @@ const PLAN_TOPIC: ChatSuggestion = { id: 'plan_topic', mode: 'plan', onPress: 'f
 const FIND_DOCS: ChatSuggestion = { id: 'find_docs', mode: 'ask', onPress: 'fill' };
 const FIND_GAPS: ChatSuggestion = { id: 'find_doc_gaps', skill: 'hub:doc', mode: 'ask', onPress: 'run' };
 const SUM_UP: ChatSuggestion = { id: 'summarize_today', mode: 'ask', onPress: 'run' };
+/** `/hub:suggest` reads and proposes, and creates nothing, so it runs in Ask (D51, D66). */
+const SUGGEST: ChatSuggestion = { id: 'suggest_next', skill: 'hub:suggest', mode: 'ask', onPress: 'run' };
 
 function forPage(page: string | null): ChatSuggestion[] {
   if (page === 'docs') return [FIND_DOCS, FIND_GAPS, WHATS_NEXT];
-  if (page === 'planning' || page === 'plans' || page === 'ideas') return [PLAN_TOPIC, WHATS_NEXT];
-  if (page === 'today') return [SUM_UP, WHATS_NEXT];
-  return [WHATS_NEXT, PLAN_TOPIC];
+  if (page === 'planning' || page === 'plans' || page === 'ideas') return [PLAN_TOPIC, SUGGEST, WHATS_NEXT];
+  if (page === 'today') return [SUM_UP, SUGGEST, WHATS_NEXT];
+  return [WHATS_NEXT, SUGGEST, PLAN_TOPIC];
 }
 
 /** The open card first, since that is what the owner is looking at. A deleted card offers only the page's. */
