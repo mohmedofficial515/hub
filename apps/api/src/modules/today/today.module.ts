@@ -9,6 +9,7 @@ import { NotificationsModule } from '@/modules/notifications';
 import { WorkspacesModule } from '@/modules/workspaces';
 
 import { CountersService } from './application/counters.service';
+import { NextService } from './application/next.service';
 import { SeenStore } from './application/seen.store';
 import { SourceHealthService } from './application/source-health.service';
 import { TeamService } from './application/team.service';
@@ -18,7 +19,7 @@ import { TodayController } from './presentation/http/today.controller';
 @Module({
   imports: [CardsModule, DigestsModule, NotificationsModule, WorkspacesModule],
   controllers: [TodayController],
-  providers: [CountersService, SeenStore, SourceHealthService, TeamService, TodayService],
-  exports: [CountersService, SeenStore, SourceHealthService, TodayService],
+  providers: [CountersService, NextService, SeenStore, SourceHealthService, TeamService, TodayService],
+  exports: [CountersService, NextService, SeenStore, SourceHealthService, TodayService],
 })
 export class TodayModule {}
