@@ -321,8 +321,10 @@ export function DoNext({
   const off = offOf(wb.engine);
   const query = useDoNext({ role: (wb.persona as Role | null) ?? null, limit });
   const items = query.data?.items ?? [];
+  // A step's own line already names its plan, so its reasons leave that out.
   const why = (item: DoNextItem) =>
     item.reasons
+      .filter((reason) => !(item.step && reason === 'plan_next'))
       .map((reason) => {
         if (reason === 'overdue') return t.next.why.overdue;
         if (reason === 'blocks') return counted(item.blocks, locale, t.next.why.blocks);

@@ -121,6 +121,29 @@ function withFrames(root: string): string {
   return root;
 }
 
+/** A copy of the team pack and a personal skills folder with skills to move, one per language, and one whose name Hub already has. */
+function aSkillsPlace(labRoot: string): { teamPack: string; personal: string } {
+  const teamPack = join(labRoot, '.team-pack');
+  for (const entry of ['.claude-plugin', 'plugin', 'package.json']) {
+    cpSync(join(ROOT, 'packages', 'team-pack', entry), join(teamPack, entry), { recursive: true });
+  }
+  const personal = join(labRoot, '.personal-skills');
+  const skill = (name: string, files: Record<string, string>) => {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(personal, name, path, '..'), { recursive: true });
+      writeFileSync(join(personal, name, path), text);
+    }
+  };
+  for (const locale of ['ar', 'en']) {
+    skill(`notes-${locale}`, {
+      'SKILL.md': `---\nname: notes-${locale}\ndescription: Keep daily notes in the repository\nuser-invocable: true\n---\n\nWrite today's notes.\n`,
+      'references/format.md': '# Format\n',
+    });
+  }
+  skill('suggest', { 'SKILL.md': '---\nname: suggest\ndescription: My own way to suggest\n---\n\nMine.\n' });
+  return { teamPack, personal };
+}
+
 async function waitFor(url: string, name: string, log: string) {
   const deadline = Date.now() + 180_000;
   while (Date.now() < deadline) {
@@ -147,6 +170,7 @@ export async function startStack(): Promise<RunningStack> {
     new RedisContainer('redis:7-alpine').start(),
   ]);
   const labRoot = aLab();
+  const skills = aSkillsPlace(labRoot);
   const logs = join(WEB_DIR, 'test-results');
   mkdirSync(logs, { recursive: true });
 
@@ -172,6 +196,10 @@ export async function startStack(): Promise<RunningStack> {
     // Backups go to a temp folder, never F:/HubBackups, and no nightly run starts by itself (docs/16 D61 to D63).
     HUB_BACKUP_DIR: join(labRoot, '.backups'),
     HUB_BACKUP_SCHEDULE: 'off',
+    // Skills go to a copy of the team pack and come from a scratch personal folder, never the repository or `~/.claude` (docs/16 §11). The plugin syncs only on Sync now.
+    HUB_TEAM_PACK_DIR: skills.teamPack,
+    HUB_PERSONAL_SKILLS_DIR: skills.personal,
+    HUB_PLUGIN_SYNC: 'manual',
     // The real path: an invite must not wait for this, and a mail server that is absent is only a warning.
     MAIL_PROVIDER: 'smtp',
     SMTP_HOST: 'localhost',
