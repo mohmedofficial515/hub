@@ -59,6 +59,19 @@ const handlers = {
   'vscode.open': openInVsCode,
 };
 
+/**
+ * A run's extra folders (docs/16 D59): each must be registered on the same project as the main folder, by the same rule, so `--add-dir` can never reach past the allowlist.
+ */
+function checkAddDirs(addDirs, project, context) {
+  if (addDirs === undefined) return;
+  if (!Array.isArray(addDirs) || addDirs.length > 8) throw new Refusal('bad_arguments');
+  for (const dir of addDirs) {
+    if (!allowedEntry(dir, context.folders(), context.system.platform, project)) {
+      throw new Refusal('folder_not_allowed');
+    }
+  }
+}
+
 /** Runs one action frame. `emit` sends an `event` frame for this action. */
 export async function dispatch(frame, context, emit) {
   try {
@@ -67,11 +80,10 @@ export async function dispatch(frame, context, emit) {
     }
     const args = frame.args ?? {};
     if (typeof args !== 'object' || Array.isArray(args)) throw new Refusal('bad_arguments');
-    if (
-      FOLDER_ACTIONS.has(frame.action) &&
-      !allowedEntry(args.folder, context.folders(), context.system.platform)
-    ) {
-      throw new Refusal('folder_not_allowed');
+    if (FOLDER_ACTIONS.has(frame.action)) {
+      const main = allowedEntry(args.folder, context.folders(), context.system.platform);
+      if (!main) throw new Refusal('folder_not_allowed');
+      if (frame.action === 'turn.start') checkAddDirs(args.addDirs, main.project, context);
     }
     return { ok: true, data: await handlers[frame.action](args, context, emit) };
   } catch (error) {

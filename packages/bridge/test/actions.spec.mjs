@@ -55,6 +55,34 @@ describe('the closed list', () => {
     expect(system.calls).toEqual([]);
   });
 
+  it('refuses an extra folder (--add-dir) outside the allowlist or on another project (D59)', async () => {
+    const system = fakeSystem();
+    const main = aFolder(system, 'backend');
+    const web = aFolder(system, 'web');
+    const other = aFolder(system, 'other-project');
+    const outside = aFolder(system, 'outside');
+    const folders = [
+      { path: main, project: 'demo' },
+      { path: web, project: 'demo' },
+      { path: other, project: 'elsewhere' },
+    ];
+    for (const addDirs of [[outside], [other], [web, outside]]) {
+      const answer = await dispatch(
+        { action: 'turn.start', args: { folder: main, addDirs } },
+        contextFor(system, folders),
+        noEmit,
+      );
+      expect(answer).toMatchObject({ ok: false, error: { code: 'folder_not_allowed' } });
+    }
+    const wrongShape = await dispatch(
+      { action: 'turn.start', args: { folder: main, addDirs: web } },
+      contextFor(system, folders),
+      noEmit,
+    );
+    expect(wrongShape).toMatchObject({ ok: false, error: { code: 'bad_arguments' } });
+    expect(system.calls).toEqual([]);
+  });
+
   it('refuses a fix that is not on the list: a name never becomes a command', async () => {
     const system = fakeSystem();
     const answer = await dispatch(

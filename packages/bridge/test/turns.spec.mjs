@@ -849,3 +849,110 @@ describe('how a turn ends', () => {
     expect(world.of('turn.ended')[0].changedFiles).toEqual([{ path: 'a.md', source: 'tool' }]);
   });
 });
+
+describe('queued runs: run mode and extra folders (docs/16 D58, D59)', () => {
+  const QUESTION = {
+    questions: [
+      {
+        question: 'Which store?',
+        multiSelect: false,
+        options: [{ label: 'Redis' }, { label: 'Postgres (Recommended)' }],
+      },
+    ],
+  };
+
+  it('passes each extra folder as its own --add-dir, and a missing one starts nothing', async () => {
+    const world = aWorld();
+    const web = aFolder(world.system, 'web');
+    world.context.folders = () => [
+      { path: world.folder, project: 'demo' },
+      { path: web, project: 'demo' },
+    ];
+    const { answer, child } = await started(world, { addDirs: [web] });
+    const { args } = world.spawned.at(-1);
+    const at = args.indexOf('--add-dir');
+    expect(args[at + 1]).toBe(web);
+    expect(args[at + 2]?.startsWith('--')).toBe(true);
+    child.say(RESULT);
+    await answer;
+    const missing = await world.begin({ addDirs: [`${web}-gone`] });
+    expect(missing).toMatchObject({ ok: false });
+  });
+
+  it('automatic refuses a push at once, with a message to carry on, and records it as skipped', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { runMode: 'automatic' });
+    child.say(toolStart('t1'));
+    const decided = await askAsShim(
+      world,
+      'Bash',
+      { command: 'git push origin main', description: 'Push' },
+      't1',
+    );
+    expect(decided.behavior).toBe('deny');
+    expect(decided.message).toContain('automatic Hub run');
+    expect(decided.message).toContain('Carry on without this step');
+    expect(world.of('approval.requested')).toEqual([]);
+    expect(world.of('auto.decision')).toEqual([
+      expect.objectContaining({
+        decision: 'skipped',
+        command: 'git push origin main',
+        category: 'push',
+        toolUseId: 't1',
+      }),
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('automatic answers a question with its recommended option, else the first, and nobody is asked', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { runMode: 'automatic' });
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = await askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    expect(asked).toEqual({
+      behavior: 'allow',
+      updatedInput: { ...QUESTION, answers: { 'Which store?': 'Postgres (Recommended)' } },
+    });
+    expect(world.of('question.asked')).toEqual([]);
+    expect(world.of('auto.decision')[0]).toMatchObject({
+      decision: 'answered',
+      answers: { 'Which store?': 'Postgres (Recommended)' },
+    });
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('untimed waits past the panel window, and sets the engine limit above it', async () => {
+    const world = aWorld({ HUB_BRIDGE_APPROVAL_TIMEOUT_MS: '30' });
+    const { answer, child } = await started(world, { runMode: 'approval', untimed: true });
+    expect(Number(world.spawned.at(-1).options.env.CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT)).toBeGreaterThan(
+      19 * 24 * 60 * 60_000,
+    );
+    child.say(toolStart('t1'));
+    const asked = askAsShim(world, 'Bash', { command: 'git push origin main' }, 't1');
+    await until(() => world.of('approval.requested').length === 1);
+    const [request] = world.of('approval.requested');
+    expect(Date.parse(request.expiresAt) - Date.now()).toBeGreaterThan(19 * 24 * 60 * 60_000);
+    await new Promise((done) => setTimeout(done, 80));
+    expect(world.of('approval.resolved')).toEqual([]);
+    await answerApproval(world, request.approvalId, 'allow');
+    expect((await asked).behavior).toBe('allow');
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('a run mode outside Execute, or an unknown one, is refused', async () => {
+    const world = aWorld();
+    expect(await world.begin({ mode: 'plan', runMode: 'automatic' })).toMatchObject({
+      ok: false,
+      error: { code: 'bad_arguments' },
+    });
+    expect(await world.begin({ runMode: 'yolo' })).toMatchObject({
+      ok: false,
+      error: { code: 'bad_arguments' },
+    });
+    expect(world.spawned).toEqual([]);
+  });
+});

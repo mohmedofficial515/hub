@@ -49,6 +49,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const IDLE_MS = 10 * 60_000;
 const APPROVAL_WINDOW_MS = 30 * 60_000;
+/** A queued run in With my approval waits with no time limit (docs/16 D58). A timer still exists, far ahead, so `expiresAt` stays a date; `@hub/contracts` (`APPROVAL_NO_TIME_LIMIT_MS`) holds the same number, and Node caps a timer near 24.8 days. */
+const UNTIMED_WINDOW_MS = 20 * 24 * 60 * 60_000;
+export const RUN_MODES = ['approval', 'automatic'];
+const MAX_ADD_DIRS = 8;
+/** How an option says it is the recommended one, in English or Arabic. */
+const RECOMMENDED = /recommended|\u0645\u0648\u0635\u0649/i;
 const ENGINE_LIMIT_MARGIN_MS = 10 * 60_000;
 const STOP_GRACE_MS = 5_000;
 const EXIT_GRACE_MS = 3_000;
@@ -114,6 +120,8 @@ function createManager(context) {
   let engineCache = null;
 
   const approvalWindow = () => number(system.env.HUB_BRIDGE_APPROVAL_TIMEOUT_MS, APPROVAL_WINDOW_MS);
+  /** A process's own window: the panel's, or none for a queued run that waits on the owner (D58). */
+  const windowOf = (proc) => (proc.options.untimed ? UNTIMED_WINDOW_MS : approvalWindow());
   const idleWindow = () => number(system.env.HUB_BRIDGE_IDLE_MS, IDLE_MS);
 
   function ensureChatDir() {
@@ -200,7 +208,10 @@ function createManager(context) {
       return refuse('This does not match a tool call in the stream, so it is refused.');
     }
     if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
-    if (isQuestionTool(toolName)) return askOwner(turn, message, reply, socket, refuse);
+    if (isQuestionTool(toolName)) {
+      if (proc.options.runMode === 'automatic') return answerForOwner(turn, message, reply, refuse);
+      return askOwner(proc, turn, message, reply, socket, refuse);
+    }
     if (MODE_FLAGS[proc.options.mode].readOnly) {
       if (toolName === 'ExitPlanMode') {
         if (typeof input?.plan === 'string' && !proc.mapper.state.planSent) {
@@ -214,8 +225,9 @@ function createManager(context) {
       }
       return refuse(`This chat is in ${proc.options.mode} mode, which is read only.`);
     }
+    if (proc.options.runMode === 'automatic') return skipForOwner(turn, message, reply);
     const approvalId = randomUUID();
-    const window = approvalWindow();
+    const window = windowOf(proc);
     const pending = {
       approvalId,
       turn,
@@ -257,13 +269,72 @@ function createManager(context) {
     return undefined;
   }
 
+  /**
+   * An automatic run (docs/16 D58): a call that needs the owner is refused at once and never runs. It is recorded as a pending item, which the owner may run later through a normal approval. Nothing waits, so the run never stalls.
+   * This only narrows: the same call in With my approval would pause, and nothing is allowed here that would not be allowed there.
+   */
+  function skipForOwner(turn, message, reply) {
+    const { toolName, input, toolUseId } = message;
+    const category = categoryOf(toolName, input);
+    const command = describeCall(toolName, input);
+    turn.emit('auto.decision', {
+      kind: 'auto.decision',
+      decisionId: randomUUID(),
+      toolUseId,
+      decision: 'skipped',
+      toolName,
+      command,
+      category,
+      input: input ?? {},
+      effect: APPROVAL_EFFECTS[category],
+    });
+    reply({
+      behavior: 'deny',
+      message: `This is an automatic Hub run, so this was not run and will not be: ${command}. Hub kept it for the owner to run later. Carry on without this step, and say in your report that it waits for the owner.`,
+    });
+    return undefined;
+  }
+
+  /** An automatic run's question takes the recommended option of each: the one marked recommended, else the first (docs/16 D58). The choice is recorded for the run's decisions summary. */
+  function answerForOwner(turn, message, reply, refuse) {
+    const { input, toolUseId } = message;
+    const questions = questionsFromInput(input);
+    if (!questions) {
+      return refuse(
+        'Hub could not read this question. Nobody will answer in this automatic run: take the option you would recommend, and say which.',
+      );
+    }
+    const answers = Object.fromEntries(
+      questions.map((question) => [
+        question.text,
+        (question.options.find((option) => RECOMMENDED.test(option.label)) ?? question.options[0])?.label ??
+          'Take the option you would recommend, and say which.',
+      ]),
+    );
+    turn.emit('auto.decision', {
+      kind: 'auto.decision',
+      decisionId: randomUUID(),
+      toolUseId,
+      decision: 'answered',
+      toolName: 'question',
+      command: questions[0]?.text ?? '',
+      category: 'other',
+      input: {},
+      effect: '',
+      questions,
+      answers,
+    });
+    reply({ behavior: 'allow', updatedInput: questionAnswerInput(input, answers) });
+    return undefined;
+  }
+
   /** `AskUserQuestion`: the same wait and the same route as an approval, and it never runs anything, so every mode has it (docs/16 §7.2). */
-  function askOwner(turn, message, reply, socket, refuse) {
+  function askOwner(proc, turn, message, reply, socket, refuse) {
     const { input, toolUseId } = message;
     const questions = questionsFromInput(input);
     if (!questions) return refuse('Hub could not read this question, so ask it in your reply.');
     const questionId = randomUUID();
-    const window = approvalWindow();
+    const window = windowOf(proc);
     const pending = {
       approvalId: questionId,
       kind: 'question',
@@ -396,6 +467,8 @@ function createManager(context) {
     if (options.model) args.push('--model', options.model);
     if (options.effort && engineInfo.effortSupported) args.push('--effort', options.effort);
     if (options.sessionId) args.push('--resume', options.sessionId);
+    // `--add-dir` takes several values: each goes as its own pair, and a flag always follows, so nothing else is read as a folder (D59).
+    for (const dir of options.addDirs ?? []) args.push('--add-dir', dir);
     args.push('--append-system-prompt', PANEL_PROMPT);
     // For a test on a real sign-in: this session's plugin in place of the installed one, whose hooks would reach the owner's own Hub.
     if (system.env.HUB_BRIDGE_PLUGIN_DIR) args.push('--plugin-dir', system.env.HUB_BRIDGE_PLUGIN_DIR);
@@ -403,7 +476,15 @@ function createManager(context) {
   }
 
   const processKey = (options) =>
-    [options.folder, options.mode, options.model ?? '', options.effort ?? ''].join('\u0000');
+    [
+      options.folder,
+      options.mode,
+      options.model ?? '',
+      options.effort ?? '',
+      (options.addDirs ?? []).join('|'),
+      options.runMode ?? '',
+      options.untimed ? 'untimed' : '',
+    ].join('\u0000');
 
   function closeIdle(proc) {
     clearTimeout(proc.idleTimer);
@@ -535,7 +616,9 @@ function createManager(context) {
     const env = {
       ...childEnv(system.env),
       ...extraEnv(system.env),
-      CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: String(approvalWindow() + ENGINE_LIMIT_MARGIN_MS),
+      CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: String(
+        (options.untimed ? UNTIMED_WINDOW_MS : approvalWindow()) + ENGINE_LIMIT_MARGIN_MS,
+      ),
     };
     const child = system.spawnStream(
       engineInfo.best.path,
@@ -606,7 +689,7 @@ function createManager(context) {
   }
 
   function validateStart(args) {
-    const { chatId, prompt, mode, model, effort, sessionId, folder } = args;
+    const { chatId, prompt, mode, model, effort, sessionId, folder, addDirs, runMode, untimed } = args;
     const fine =
       typeof chatId === 'string' &&
       UUID.test(chatId) &&
@@ -615,9 +698,17 @@ function createManager(context) {
       CHAT_MODES.includes(mode) &&
       (model === undefined || (typeof model === 'string' && MODEL.test(model))) &&
       (effort === undefined || CHAT_EFFORTS.includes(effort)) &&
-      (sessionId === undefined || (typeof sessionId === 'string' && UUID.test(sessionId)));
+      (sessionId === undefined || (typeof sessionId === 'string' && UUID.test(sessionId))) &&
+      (addDirs === undefined ||
+        (Array.isArray(addDirs) &&
+          addDirs.length <= MAX_ADD_DIRS &&
+          addDirs.every((dir) => typeof dir === 'string' && dir !== ''))) &&
+      (runMode === undefined || (RUN_MODES.includes(runMode) && mode === 'execute')) &&
+      (untimed === undefined || typeof untimed === 'boolean');
     if (!fine) throw new Refusal('bad_arguments');
-    if (!existsSync(folder) || !statSync(folder).isDirectory()) throw new Refusal('folder_missing');
+    for (const dir of [folder, ...(addDirs ?? [])]) {
+      if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Refusal('folder_missing');
+    }
   }
 
   async function start(args, emit) {
@@ -628,6 +719,9 @@ function createManager(context) {
       ...(args.model ? { model: args.model } : {}),
       ...(args.effort ? { effort: args.effort } : {}),
       ...(args.sessionId ? { sessionId: args.sessionId } : {}),
+      ...(args.addDirs?.length ? { addDirs: [...args.addDirs] } : {}),
+      ...(args.runMode ? { runMode: args.runMode } : {}),
+      ...(args.untimed ? { untimed: true } : {}),
     };
     const chatId = args.chatId;
     if (chats.get(chatId)?.turn || starting.has(chatId)) throw new Refusal('turn_running');
