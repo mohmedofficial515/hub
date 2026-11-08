@@ -607,7 +607,7 @@ export function HistoryList({
       )}
       {sorted.length === 0 && (
         <p data-wb-history-empty className="px-2 text-body-sm text-muted-foreground">
-          {t.historyPanel.empty}
+          {needle ? t.historyPanel.empty : t.historyPanel.none}
         </p>
       )}
     </div>
@@ -770,8 +770,9 @@ export function SheetClaudeBar({ cardKey, onAsk }: { cardKey: string; onAsk?: ((
   const isDoc = card?.type === 'doc';
   const closed = isTask && (card.status === 'done' || card.status === 'cancelled');
   const doOff = engineOff ?? (closed ? 'taskClosed' : card?.status === 'in_review' ? 'taskInReview' : null);
-  // One rule: while the panel's empty chat offers these same acts, the sheet does not offer them twice.
-  const panelOffers = wb.activeId === null && !!document.querySelector('[data-wb-panel]');
+  // One rule: while the panel's empty chat offers these same acts, the sheet does not offer them twice. Blocked, the empty chat shows no suggestions,
+  // so the sheet keeps its buttons, disabled with the reason (review M3).
+  const panelOffers = wb.activeId === null && !engineOff && !!document.querySelector('[data-wb-panel]');
   const noBridge = !wb.device?.online;
   const skill = (text: string) => {
     void startSkill(text, { card: cardKey });

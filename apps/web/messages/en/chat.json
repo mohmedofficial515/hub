@@ -459,6 +459,7 @@
       "title": "History",
       "search": "Search chats",
       "empty": "No chats by that name.",
+      "none": "No chats in this project yet. One starts when you send your first message.",
       "delete": "Delete",
       "deleted": "Chat deleted",
       "open": "Open"
@@ -994,6 +995,7 @@
       "strip": {
         "bridge": "Bridge",
         "bridgeOn": "Connected",
+        "bridgeOff": "Offline",
         "usage": "Usage",
         "usageShort": "{n}%",
         "unknown": "Not reported yet"
@@ -1109,7 +1111,6 @@
       "model": "Model",
       "effort": "Effort",
       "version": "Claude Code version",
-      "since": "Connected since",
       "servers": "MCP servers",
       "skills": "Skills",
       "used": "Used",
