@@ -91,6 +91,35 @@ export type BackupSettingsInput = z.infer<typeof backupSettingsInputSchema>;
 export const pinBackupSchema = z.object({ pinned: z.boolean() });
 export type PinBackupInput = z.infer<typeof pinBackupSchema>;
 
+/**
+ * What kind of failure a backup's `failure` text is, so the page can say it in the owner's language with a next step and keep the
+ * raw text for a details view (review M3). The texts are the API's own: `backup-machine.ts`, `backups.service.ts` and Node's errors.
+ */
+export const BACKUP_FAILURE_KINDS = [
+  'docker',
+  'foreign_container',
+  'dump',
+  'disk_full',
+  'folder',
+  'cut_off',
+  'other',
+] as const;
+export type BackupFailureKind = (typeof BACKUP_FAILURE_KINDS)[number];
+
+const FAILURE_RULES: readonly [BackupFailureKind, RegExp][] = [
+  ['cut_off', /^Cut off by a restart of Hub/i],
+  ['docker', /No running Postgres container|docker was not found|Is Docker running/i],
+  ['foreign_container', /^Refused container/i],
+  ['disk_full', /ENOSPC|no space left/i],
+  ['folder', /hub\.backups\.folder_|EACCES|EPERM|EROFS|ENOENT|ENOTDIR/i],
+  ['dump', /^pg_dump failed/i],
+];
+
+export function backupFailureKind(failure: string | null | undefined): BackupFailureKind {
+  if (!failure) return 'other';
+  return FAILURE_RULES.find(([, rule]) => rule.test(failure))?.[0] ?? 'other';
+}
+
 /** True when the drive is short of space, by either rule. */
 export function isLowDisk(freeBytes: number, totalBytes: number): boolean {
   if (freeBytes < BACKUP_LOW_DISK.minFreeBytes) return true;
