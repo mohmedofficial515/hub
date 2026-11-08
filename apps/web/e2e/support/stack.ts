@@ -24,6 +24,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 
 import { API_PORT, API_URL, LAB_PORT, WEB_PORT, WEB_URL } from './ports';
+import { API_FILE } from './state';
 
 const WEB_DIR = resolve(__dirname, '../..');
 const API_DIR = resolve(WEB_DIR, '../api');
@@ -211,6 +212,8 @@ export async function startStack(): Promise<RunningStack> {
     ),
   ];
   await waitFor(`${API_URL}/api/v1/health/ready`, 'API', apiLog);
+  mkdirSync(join(API_FILE, '..'), { recursive: true });
+  writeFileSync(API_FILE, JSON.stringify({ pid: processes[0]!.pid, cwd: API_DIR, env: apiEnv, log: apiLog }));
   await waitFor(WEB_URL, 'web', webLog);
   await waitFor(`http://127.0.0.1:${LAB_PORT}/lab/frame-hub.html`, 'lab', labLog);
   const scriptEnv = {

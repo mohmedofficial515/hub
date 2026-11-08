@@ -3,7 +3,7 @@
  * member and a backend member with their own sessions, and an MCP token for the owner. Sign-in is limited to 10 a minute, so tests reuse
  * these sessions rather than signing in each time.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 import { type APIRequestContext, request } from '@playwright/test';
@@ -11,7 +11,7 @@ import { type APIRequestContext, request } from '@playwright/test';
 import { WEB_URL } from './ports';
 import { OWNER, startStack } from './stack';
 import { stackHolder } from './stack-holder';
-import { type Person, type Shared, SHARED_FILE, storageFile } from './state';
+import { API_PIDS_FILE, type Person, type Shared, SHARED_FILE, storageFile } from './state';
 
 const HEADERS = { 'X-Requested-With': 'hub' };
 
@@ -28,6 +28,8 @@ async function acceptInvite(owner: APIRequestContext, slug: string, email: strin
 }
 
 export default async function globalSetup() {
+  // Pids from an earlier run mean nothing now, and one could be reused by another process: only this run's are ever stopped.
+  rmSync(API_PIDS_FILE, { force: true });
   stackHolder.stack = await startStack();
   mkdirSync(dirname(SHARED_FILE), { recursive: true });
 

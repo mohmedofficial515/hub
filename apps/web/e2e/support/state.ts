@@ -9,6 +9,10 @@ const DIR = resolve(process.env['E2E_RESULTS'] ?? resolve(__dirname, '../../test
 export const SHARED_FILE = join(DIR, 'shared.json');
 /** Every bridge a test started, so the run's teardown can stop one a dead worker left behind. */
 export const BRIDGE_PIDS_FILE = join(DIR, 'scripted-bridges.txt');
+/** How a test restarts the API on the same database (`api-restart.ts`): its command, folder and throwaway variables. */
+export const API_FILE = join(DIR, 'api.json');
+/** Every API a test started, so the run's teardown stops them. */
+export const API_PIDS_FILE = join(DIR, 'api-pids.txt');
 export const storageFile = (who: string) => join(DIR, `${who}.storage.json`);
 
 export interface Person {
