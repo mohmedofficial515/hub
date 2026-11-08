@@ -169,6 +169,9 @@ export async function startStack(): Promise<RunningStack> {
     HUB_OWNER_NAME: OWNER.name,
     LAB_ROOT: labRoot,
     REPOS_ROOT: join(labRoot, '.repos'),
+    // Backups go to a temp folder, never F:/HubBackups, and no nightly run starts by itself (docs/16 D61 to D63).
+    HUB_BACKUP_DIR: join(labRoot, '.backups'),
+    HUB_BACKUP_SCHEDULE: 'off',
     // The real path: an invite must not wait for this, and a mail server that is absent is only a warning.
     MAIL_PROVIDER: 'smtp',
     SMTP_HOST: 'localhost',
