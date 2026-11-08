@@ -477,3 +477,78 @@ Checklist, in order:
 | Backups | ~50 MB per daily dump compressed → 14 days ≈ 1 GB + weekly set ≈ 1 GB |
 | Lab dist | ~30 MB |
 | Network | LAN only; GitHub polling ≈ 4 sources × 30 requests/h |
+
+## 14. Other devices over Tailscale (the owner's steps, docs/16 §10, D43)
+
+Hub runs on the main machine and is never open to the internet. Your other devices reach it through Tailscale, which only
+the devices signed in to your own tailnet can use. Installing Tailscale and signing in cannot be done for you, so these steps
+are yours. Check where you are any time in Settings › Devices › Reaching Hub from other devices, or with `pnpm hub:tailscale`.
+
+**On the main machine, once:**
+
+1. Install Tailscale from <https://tailscale.com/download> and sign in.
+2. If Tailscale asks, turn on HTTPS certificates for your tailnet in its admin console (DNS › HTTPS Certificates).
+3. Run `pnpm hub:tailscale serve`. It sends `https://<this machine>.<tailnet>.ts.net/` to Hub's web, and `/mcp` and `/bridge`
+   to Hub's API, with `tailscale serve` (never `funnel`). It prints two lines.
+4. Put those two lines in `.env` (`HUB_PUBLIC_URL=https://…` and `HUB_API_PUBLIC_URL=https://…`) and restart Hub
+   (`pnpm stop:local` then `pnpm start:local`, or `pnpm hub:service stop` then `start`). Hub then sets Secure cookies and
+   listens on 127.0.0.1 only, so the tailnet address is the one way in. `pnpm hub:tailscale reset` undoes step 3.
+5. Turn on two-step sign-in (TOTP) in your profile. Hub recommends it once another device can reach it (docs/16 §13).
+
+**On each other device:**
+
+1. Install Tailscale and sign in with the same account.
+2. Open Hub's address, `https://<main machine>.<tailnet>.ts.net`, and sign in.
+3. To run chats there, open Settings › Devices on that device and run the one command it shows, in any terminal (it needs
+   Node 22). Approve in the browser. It installs the bridge, the `hub` MCP server and the plugin on that device.
+4. Documents stay on the main machine: that device reads, searches and saves them through Hub and keeps no copy (D37). If
+   the main machine is off, the other devices cannot reach Hub.
+
+**بالعربية، باختصار:**
+
+على الجهاز الرئيسي مرة واحدة:
+1. ثبّت Tailscale من tailscale.com/download وسجّل الدخول.
+2. إن طلب منك Tailscale تفعيل شهادات HTTPS لشبكتك، فعّلها من لوحة التحكم الخاصة به.
+3. شغّل `pnpm hub:tailscale serve`، فيطبع سطرين.
+4. ضع السطرين في ملف `.env` ثم أعد تشغيل Hub.
+5. فعّل الدخول بخطوتين (TOTP) من ملفك الشخصي.
+
+على كل جهاز آخر:
+1. ثبّت Tailscale وسجّل الدخول بالحساب نفسه.
+2. افتح عنوان Hub الذي يبدأ بـ `https://` وينتهي بـ `.ts.net`، ثم سجّل الدخول.
+3. لتشغيل المحادثات عليه: افتح الإعدادات › الأجهزة من ذلك الجهاز، وشغّل الأمر الظاهر هناك، ثم وافق في المتصفح.
+4. المستندات تبقى على الجهاز الرئيسي، ولا يحتفظ الجهاز الآخر بنسخة منها. وإن كان الجهاز الرئيسي مطفأً فلن يصل إليه أي جهاز.
+
+## 15. Backups and HubServer on the owner's Windows machine (docs/16 D61 to D63)
+
+This is what runs today, on the owner's machine. §9 describes the LAN host of the plan.
+
+**Backups.** Every night at 03:00 machine time Hub writes one folder to `F:\HubBackups` (the default: `HubBackups` at the root
+of Hub's drive, outside every Git checkout). Each folder holds `hub.dump` (a `pg_dump` of Hub's database, with every document
+revision), `docs/` (the current text of each document Hub wrote) and `manifest.json`. **Never** `.env`, a device credential or
+the Claude sign-in: Hub stores no secret, and keeping `.env` safe is yours. The newest 14 backups are kept; one you Keep (pin)
+stays forever. Settings › Backups shows the history, the free space, and changes the time, the number kept and the folder.
+If Hub was off at 03:00 it backs up as soon as it is back. A failed night shows in the history and in your inbox.
+
+**Restore**, with Hub stopped:
+
+```bash
+pnpm stop:local                       # or: pnpm hub:service stop
+pnpm hub:restore "F:\HubBackups\hub-20261108-030000-0193ab12"
+pnpm start:local                      # or: pnpm hub:service start
+```
+
+It refuses while Hub answers, asks you to type the database's name, and restores in one transaction. The documents in the
+backup's `docs/` folder are not written back by themselves: copy what you need.
+
+**HubServer**, Hub started at logon with no terminal (optional):
+
+```bash
+pnpm hub:service build      # after every pull: the task never builds
+pnpm hub:service install    # the logon task, no admin rights
+pnpm hub:service start      # now, instead of at the next logon
+pnpm hub:service status     # task, runner, build, logs (.tmp/logs/hub-server.log)
+pnpm hub:service stop       # until the next logon; uninstall removes the task
+```
+
+While HubServer runs, `pnpm start:local` says so and starts no second copy, and `pnpm stop:local` stops it.

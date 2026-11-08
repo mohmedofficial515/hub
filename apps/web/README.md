@@ -283,6 +283,10 @@ Parts in `components/queue/`: `RunRow` and `RunIcon` (one neutral card, state in
 - **`RunDecisions`** shows what an automatic run decided and its pending items; Run it now opens a chat on that folder where D41 still asks. In a chat, `skipped` and `auto_answered` read as closed cards, and `hasNoTimeLimit(expiresAt)` (contracts) says "no time limit" for a queued run's approval.
 - **Cancel** of a running run or a weekly one asks first through `RunCancelHost`, mounted once in the shell beside the toasts. `showToast({ action })` adds one follow-up button, such as Open chat after Run now.
 
+## Settings › Backups
+
+`settings/parts/backups.tsx` (`docs/16` D61 to D63), shown to the owner alone (`settings-page.tsx` filters the tab by `isOwner`). Hooks in `features/backups/queries.ts`: `useBackups(enabled)` (the history, settings, free space and next time; every 2 s while a backup runs, else every minute, since the end comes with no stream event), `useBackUpNow`, `usePinBackup`, `useDeleteBackup`, `useSaveBackupSettings`, and `usePublishing` for Settings › Devices. The history is one neutral card with a word and an icon per state (Running, Done, Failed, Deleted, Folder missing, Kept); Delete asks with `ConfirmDialog`; the settings save together from the queue tab's bar. The restore is a command in a `CommandBlock`, never a button. Settings › Devices › Reaching Hub from other devices is `settings/parts/publishing.tsx`. Words are `settings.json` under `backups` and `devices.publishing`.
+
 ## i18n
 
 Every visible string is in both languages. `useT(kitMessages)` is card vocabulary (`types status actions done roles sheet`): never repeat it. `useT<Messages>('<view>')` is your page. Both return the namespace as an object. Use `fmt` and `fill` for `{name}`

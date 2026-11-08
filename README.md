@@ -45,6 +45,12 @@ pnpm import:goteav --workspace goteav --root F:/Goteav
 
 **Another device.** Settings › Devices shows one command for any terminal. It opens your browser, you approve, and it sets up the rest. It needs Node 22 and Hub's address, and it is safe to run again. The same page has the command that removes everything.
 
+**From your other devices, over Tailscale.** Never the open internet: install Tailscale, run `pnpm hub:tailscale serve` and put the two lines it prints in `.env`. The steps for each device are in [`docs/13-operations.md`](docs/13-operations.md) §14.
+
+**Backups.** Every night at 03:00 Hub backs itself up to `HubBackups` at the root of its drive (`F:\HubBackups`): the database and the documents it wrote, never `.env` or a secret. Settings › Backups shows the history; `pnpm hub:restore <folder>` restores, with Hub stopped. See `docs/13` §15.
+
+**At logon, with no terminal.** `pnpm hub:service build`, then `pnpm hub:service install` (no admin rights). `status`, `start`, `stop` and `uninstall` do what they say; the task never builds.
+
 **The older way still works**, for a machine that will not run the bridge: an `mcp` token with `node packages/team-pack/bin/hub.mjs init`, `doctor` and `link`. See [`packages/team-pack/README.md`](packages/team-pack/README.md).
 
 ### While developing

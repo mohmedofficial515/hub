@@ -222,7 +222,24 @@ Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a f
 
 ## Writing docs
 
-`DocsWriteService` is `save_doc` (`docs/16` §10): a stale base is refused, the earlier text becomes a `doc_revisions` row, and the file is written atomically, by the API or, when the source has `config.deviceId`, by the bridge. It commits nothing.
+`DocsWriteService` is `save_doc` (`docs/16` §10): a stale base is refused, the earlier text becomes a `doc_revisions` row, and the file is written atomically, by the API or, when the source has `config.deviceId`, by the bridge. It commits nothing. `GET /me/context` (`SessionContextService`), which the plugin's SessionStart hook injects, ends with the project's brief and its document index and the rule to search before writing a new one.
+
+## Backups
+
+`modules/backups` (`docs/16` D61 to D63, "Slice 6 as built"). `backups` is the history and `backup_settings` the owner's one row (migration `0009`); neither has a `workspace_id`, because one Hub has one history.
+
+- **`BackupsService`**: `runNow(actor)` answers the running row and works on; `runScheduled(trigger, slotAt)` waits for the end; `idle()` waits for the backup in this process (tests). `pin`, `remove` (the folder goes, the row stays), `applyRetention`, `updateSettings`, `list`, and `latest()`, which the System tab reads.
+- **`BackupMachine`** is everything outside: `dump(file)` (`pg_dump --format=custom` inside the container that publishes DATABASE_URL's port, never a `goteav-*` one) and `disk(folder)` (`statfs`). Tests spy on it to fake a failure or a full drive.
+- **`BackupScheduler`** ticks each minute in the API process (off in a worker, in `QUEUE_MODE=inline` and with `HUB_BACKUP_SCHEDULE=off`). `tick()` runs the latest night if it has no run yet, so a missed night is caught up once. The rules are pure, in `domain/backup-rules.ts`.
+- **Routes** under `/workspaces/:ws/backups`: `GET`, `POST` (Back up now, 202), `PATCH settings`, `POST :id/pin`, `DELETE :id`. All `backup.manage` (owner only, `web_only`) and `@SessionOnly`: no tool and no token.
+- `HUB_BACKUP_DIR` is the default folder (else `HubBackups` at the root of the API's drive). A folder inside a Git checkout is refused (`hub.backups.folder_in_repo`). Only a folder named by `isBackupFolderName` is ever removed.
+- Restore is `pnpm hub:restore` at the root, with the API stopped. There is no route for it.
+
+`backups.e2e-spec.ts` makes real dumps of the test database into a temp folder; nothing may point a test at `F:\HubBackups` or the owner's database.
+
+## Reaching Hub from other devices
+
+`GET me/devices/publishing` (`PublishingService`, `modules/devices`, `docs/16` §10) answers the public URL, whether cookies are Secure, where the API listens (`bindHostOf`: `HUB_BIND_HOST`, else 127.0.0.1 for an https `HUB_PUBLIC_URL`, else every interface), and what `tailscale status --json` and `tailscale serve status --json` say. It only reads, with no shell and a 30-second cache; the parsing is pure in `domain/tailscale.ts`. Publishing is `pnpm hub:tailscale serve`, the owner's step.
 
 ## Sources and local path mode
 
