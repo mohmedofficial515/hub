@@ -625,6 +625,157 @@ describe('structured results', () => {
     });
   });
 
+  describe('propose_suggestions (D66)', () => {
+    const PROPOSALS = {
+      summary: 'Two gaps and a repeated chore.',
+      items: [
+        {
+          kind: 'task',
+          title: 'Write the README',
+          why: 'Nobody knows how to start',
+          priority: 'P1',
+          ownerRole: 'frontend',
+          effort: 'S',
+          body: 'Check: the README exists',
+        },
+        {
+          kind: 'plan',
+          title: 'Refunds',
+          why: 'The idea was never planned',
+          steps: [{ title: 'Queue', role: 'backend' }, { title: 'Page' }],
+        },
+        { kind: 'plan', title: 'Not this one', why: 'A weak idea', steps: [{ title: 'Nothing' }] },
+        {
+          kind: 'skill',
+          name: 'tidy-before-merge',
+          description: 'Tidy before a merge',
+          why: 'Done by hand three times',
+          body: '# Tidy\n\nRun the formatter.',
+        },
+      ],
+    };
+    type Suggestion = { id: string; state: string; ref: string | null; proposal: { kind: string } };
+    const suggestionsOf = async (chatId: string) =>
+      (
+        (await last(chatId)) as unknown as {
+          suggestions: { summary: string | null; items: Suggestion[] } | null;
+        }
+      ).suggestions;
+    const skillFolder = () =>
+      join(process.env['HUB_TEAM_PACK_DIR'] ?? '', 'plugin', 'skills', 'tidy-before-merge');
+
+    afterEach(() => rmSync(skillFolder(), { recursive: true, force: true }));
+
+    it('in the panel: proposals wait on the turn and create nothing; Accept makes each one through the normal path, once', async () => {
+      const cardsBefore = await prisma().card.count({ where: { workspaceId } });
+      const { chatId, id } = await aTurn({ mode: 'ask' });
+      aToolStep(id, 'suggest-1', 'mcp__hub__propose_suggestions');
+      const answer = await call('propose_suggestions', PROPOSALS, 'suggest-1');
+      expect(answer.text).toContain('Nothing was created');
+      const proposed = await until(() => suggestionsOf(chatId));
+      expect(proposed.summary).toBe('Two gaps and a repeated chore.');
+      expect(proposed.items.map((item) => [item.proposal.kind, item.state])).toEqual([
+        ['task', 'open'],
+        ['plan', 'open'],
+        ['plan', 'open'],
+        ['skill', 'open'],
+      ]);
+      expect(await prisma().card.count({ where: { workspaceId } })).toBe(cardsBefore);
+      const [task, plan, weak, skill] = proposed.items as [Suggestion, Suggestion, Suggestion, Suggestion];
+      const press = (item: Suggestion, decision: string) =>
+        browser.post(`${base()}/${chatId}/suggestions/${item.id}`, { decision });
+
+      const accepted = (await press(task, 'accept').expect(200)).body.data as Suggestion;
+      expect(accepted).toMatchObject({
+        state: 'accepted',
+        ref: expect.stringMatching(/^[A-Z]+-\d+$/) as unknown,
+      });
+      const card = (await browser.get(`/workspaces/${slug}/cards/${accepted.ref}`).expect(200)).body.data;
+      expect(card).toMatchObject({
+        type: 'task',
+        title: 'Write the README',
+        priority: 'P1',
+        ownerRole: 'frontend',
+        body: 'Check: the README exists',
+        detail: { specialty: 'frontend', effort: 'S' },
+        createdBy: { userId, via: 'web' },
+      });
+      expect((await press(task, 'accept').expect(409)).body.error.code).toBe('hub.chats.suggestion_answered');
+
+      const madePlan = (await press(plan, 'accept').expect(200)).body.data as Suggestion;
+      const planCard = (await browser.get(`/workspaces/${slug}/cards/${madePlan.ref}`).expect(200)).body.data;
+      expect(planCard).toMatchObject({ type: 'plan', title: 'Refunds', status: 'draft' });
+      expect(planCard.detail.steps.map((step: { title: string }) => step.title)).toEqual(['Queue', 'Page']);
+
+      expect((await press(weak, 'dismiss').expect(200)).body.data).toMatchObject({
+        state: 'dismissed',
+        ref: null,
+      });
+      expect((await press(weak, 'accept').expect(409)).body.error.code).toBe('hub.chats.suggestion_answered');
+
+      expect((await press(skill, 'accept').expect(200)).body.data).toMatchObject({
+        state: 'accepted',
+        ref: 'tidy-before-merge',
+      });
+      expect(readFileSync(join(skillFolder(), 'SKILL.md'), 'utf8')).toContain('Run the formatter.');
+
+      const settled = await suggestionsOf(chatId);
+      expect(settled?.items.map((item) => item.state)).toEqual([
+        'accepted',
+        'accepted',
+        'dismissed',
+        'accepted',
+      ]);
+      expect(await prisma().card.count({ where: { workspaceId } })).toBe(cardsBefore + 2);
+      device.end(id);
+    });
+
+    it('a pm accepts tasks and plans, and never a skill: that is the owner’s alone', async () => {
+      const { chatId, id } = await aTurn({ mode: 'ask' });
+      aToolStep(id, 'suggest-2', 'mcp__hub__propose_suggestions');
+      await call('propose_suggestions', PROPOSALS, 'suggest-2');
+      const proposed = await until(() => suggestionsOf(chatId));
+      await prisma().membership.updateMany({ where: { workspaceId, userId }, data: { roles: ['pm'] } });
+      const skill = proposed.items[3]!;
+      const refused = await browser
+        .post(`${base()}/${chatId}/suggestions/${skill.id}`, { decision: 'accept' })
+        .expect(403);
+      expect(refused.body.error.code).toBe('hub.common.forbidden');
+      expect((await suggestionsOf(chatId))?.items[3]?.state).toBe('open');
+      await prisma().membership.updateMany({ where: { workspaceId, userId }, data: { roles: ['owner'] } });
+      device.end(id);
+    });
+
+    it('outside the panel: words to show, and nothing stored or created', async () => {
+      const before = await prisma().card.count({ where: { workspaceId } });
+      const answer = await call('propose_suggestions', PROPOSALS);
+      expect(answer.text).toContain('Nothing was created');
+      expect(answer.text).toContain('Task: Write the README');
+      expect(answer.text).toContain('Skill /hub:tidy-before-merge');
+      expect(await prisma().card.count({ where: { workspaceId } })).toBe(before);
+    });
+
+    it('Accept is session only: no token, so no agent, can accept its own proposal', async () => {
+      const { chatId, id } = await aTurn({ mode: 'ask' });
+      aToolStep(id, 'suggest-3', 'mcp__hub__propose_suggestions');
+      await call('propose_suggestions', PROPOSALS, 'suggest-3');
+      const proposed = await until(() => suggestionsOf(chatId));
+      const { token } = await aToken(prisma(), userId, 'mcp');
+      await api()
+        .post(`/api/v1${base()}/${chatId}/suggestions/${proposed.items[0]!.id}`)
+        .set('authorization', `Bearer ${token}`)
+        .send({ decision: 'accept' })
+        .expect(403);
+      device.end(id);
+    });
+
+    it('list_skills names Hub’s skills and marks its protocols', async () => {
+      const listed = await call('list_skills', {});
+      expect(listed.text).toContain('/hub:suggest (Hub protocol)');
+      expect(listed.text).toContain('Only the owner creates, edits or moves a skill');
+    });
+  });
+
   describe('propose_plan', () => {
     const PLAN = {
       title: 'Add a README',

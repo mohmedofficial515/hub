@@ -300,4 +300,107 @@ describe('today', () => {
     const other = await pm.get('/timeline/summary', { period: 'day', date: '2026-11-05' }).expect(200);
     expect(other.body.data.byKind).toEqual({});
   });
+  describe('do next (docs/16 §11)', () => {
+    const plan = (title: string, steps: object[]) => ({
+      type: 'plan',
+      title,
+      body: 'How',
+      detail: { steps },
+    });
+    const ready = async (
+      pm: Awaited<ReturnType<Awaited<ReturnType<typeof aProject>>['member']>>,
+      body: object,
+    ) => {
+      const card = (await created(pm, aTask(body))) as { key: string; id: string; status?: string };
+      // A task with a prompt starts ready; one without starts in backlog.
+      if (card.status !== 'ready') await pm.post(`/tasks/${card.key}/mark-ready`).expect(200);
+      return card;
+    };
+
+    it('ranks overdue, blocking, plan steps next in line and ready and small, each with its reasons', async () => {
+      const project = await aProject(testApp.app);
+      const pm = await project.member(['pm']);
+      const plain = await ready(pm, { title: 'Plain', detail: { specialty: 'backend', effort: 'L' } });
+      const small = await ready(pm, { title: 'Small', detail: { specialty: 'backend', effort: 'S' } });
+      const blocker = await ready(pm, { title: 'Blocker', priority: 'P1' });
+      const waiting = await created(pm, aTask({ title: 'Waits on the blocker' }));
+      await pm.post(`/cards/${blocker.key}/links`, { kind: 'blocks', key: waiting.key }).expect(201);
+      const late = await ready(pm, {
+        title: 'Late',
+        dueAt: new Date(testApp.clock.now().getTime() + HOUR).toISOString(),
+      });
+      const backlog = await created(pm, aTask({ title: 'Not ready', detail: { specialty: 'backend' } }));
+      const decision = await created(pm, aDecision('owner'));
+
+      // An approved plan: its first step has no task, so the step itself is offered.
+      const approved = await created(
+        pm,
+        plan('Approved plan', [{ title: 'Write the queue', role: 'backend' }, { title: 'Then this' }]),
+      );
+      await pm.post(`/plans/${approved.key}/submit-review`).expect(200);
+      await pm.post(`/plans/${approved.key}/approve`).expect(200);
+      // A running plan whose steps became tasks: its first step's task is offered as the plan's next step.
+      const running = await created(
+        pm,
+        plan('Running plan', [
+          { title: 'Step one', role: 'frontend' },
+          { title: 'Step two', role: 'frontend' },
+        ]),
+      );
+      const steps = (await pm.post(`/plans/${running.key}/to-tasks`).expect(200)).body.data.detail.steps as {
+        taskKey: string;
+      }[];
+      // A draft plan offers nothing.
+      await created(pm, plan('Draft plan', [{ title: 'Not yet' }]));
+
+      testApp.clock.advance(2 * HOUR);
+      const next = (await pm.get('/today/next', { limit: 20 }).expect(200)).body.data.items as {
+        key: string;
+        type: string;
+        reasons: string[];
+        runnable: boolean;
+        plan?: { key: string; index: number };
+        step?: { index: number };
+      }[];
+      const byKey = (key: string) => next.filter((item) => item.key === key);
+
+      expect(next[0]).toMatchObject({ key: late.key, reasons: ['overdue', 'ready'] });
+      expect(next[1]).toMatchObject({ key: blocker.key, reasons: ['blocks', 'ready'] });
+      expect(byKey(approved.key)).toEqual([
+        expect.objectContaining({
+          type: 'plan',
+          reasons: ['plan_next'],
+          runnable: true,
+          step: { index: 0 },
+          plan: expect.objectContaining({ index: 0 }) as unknown,
+        }),
+      ]);
+      expect(byKey(steps[0]!.taskKey)[0]).toMatchObject({
+        type: 'task',
+        reasons: ['plan_next', 'ready'],
+        plan: { key: running.key, index: 0 },
+      });
+      expect(byKey(steps[0]!.taskKey)[0]).not.toHaveProperty('step');
+      // The running plan's second step is a ready task too, but not the one next in line.
+      expect(byKey(steps[1]!.taskKey)[0]?.reasons).toEqual(['ready']);
+      expect(byKey(running.key)).toEqual([]);
+      expect(byKey(small.key)[0]?.reasons).toEqual(['small', 'ready']);
+      expect(byKey(plain.key)[0]?.reasons).toEqual(['ready']);
+      expect(next.findIndex((item) => item.key === small.key)).toBeLessThan(
+        next.findIndex((item) => item.key === plain.key),
+      );
+      expect(byKey(decision.key)[0]).toMatchObject({ reasons: ['decision'], runnable: false });
+      expect(byKey(backlog.key)).toEqual([]);
+      expect(byKey(waiting.key)).toEqual([]);
+
+      // The same rule, by role and with the default length.
+      const backend = (await pm.get('/today/next', { role: 'backend' }).expect(200)).body.data.items as {
+        key: string;
+      }[];
+      expect(backend.length).toBeLessThanOrEqual(5);
+      expect(backend.map((item) => item.key)).not.toContain(steps[0]!.taskKey);
+      expect(backend.map((item) => item.key)).toContain(approved.key);
+      await pm.get('/today/next', { limit: 0 }).expect(400);
+    });
+  });
 });

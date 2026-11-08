@@ -3,7 +3,7 @@
  * `hub-bridge` process refusing a folder outside its allowlist. The bridge runs in a temp home with `claude` absent from its view, so nothing of the owner's is touched.
  */
 import { type ChildProcess, spawn } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -437,6 +437,51 @@ describe('devices', () => {
         where: { action: 'devices.link', targetId: deviceId },
       });
       expect(audit?.summary).toContain('shape_unexpected');
+    });
+
+    it('New project, then Link in the same flow (docs/16 §11): the creator owns it, and the folder goes on the new project alone', async () => {
+      const { deviceId, credential } = await pair();
+      const home = aBridge(deviceId, credential);
+      await until(() => hub.isOnline(deviceId));
+      // The route `create_project` stands for, as the panel's New project sends it.
+      const suffix = Math.random().toString(36).slice(2, 8);
+      const made = await browser
+        .post('/workspaces', {
+          name: 'Side project',
+          slug: `side-${suffix}`,
+          keyPrefix: 'SIDE',
+          timezone: 'UTC',
+        })
+        .expect(201);
+      const newSlug = made.body.data.slug as string;
+      const membership = await prisma().membership.findFirstOrThrow({
+        where: { userId, workspace: { slug: newSlug } },
+      });
+      expect(membership.roles).toEqual(['owner']);
+
+      const folder = join(home, 'side-repo');
+      mkdirSync(folder);
+      // A Claude config of the shape D44 expects, in a home with no Claude Code: the press asks for the folder's server, finds no Claude Code, and writes nothing.
+      mkdirSync(join(home, 'claude'), { recursive: true });
+      writeFileSync(join(home, 'claude', '.claude.json'), JSON.stringify({ projects: {} }));
+      const pressed = await browser
+        .post(`/workspaces/${newSlug}/devices/${deviceId}/link`, { folder })
+        .expect(200);
+      expect(pressed.body.data).toMatchObject({
+        project: newSlug,
+        registered: true,
+        outcome: 'mcp_failed',
+        backup: null,
+      });
+      expect(JSON.parse(readFileSync(join(home, 'claude', '.claude.json'), 'utf8'))).toEqual({
+        projects: {},
+      });
+      const side = await prisma().workspace.findUniqueOrThrow({ where: { slug: newSlug } });
+      expect(side.repoPaths).toEqual([folder]);
+      const first = await prisma().workspace.findUniqueOrThrow({ where: { slug } });
+      expect(first.repoPaths).toEqual([]);
+      // The bridge's allowlist now has the folder on the new project, so a turn there would be allowed.
+      expect(await hub.foldersFor(userId)).toContainEqual({ path: folder, project: newSlug });
     });
 
     it('the Link button is session only, so no token and no agent can press it', async () => {
