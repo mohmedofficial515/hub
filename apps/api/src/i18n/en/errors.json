@@ -1,5 +1,12 @@
 {
   "hub": {
+    "backups": {
+      "not_found": "This backup no longer exists.",
+      "running": "A backup is already running. Wait for it to finish.",
+      "folder_invalid": "Use a full folder path on this machine, such as F:/HubBackups.",
+      "folder_in_repo": "This folder is inside a Git checkout. Choose a folder outside every repository, so a backup is never committed.",
+      "wrong_state": "This backup has changed. Reload the page."
+    },
     "common": {
       "validation": "The request is not valid.",
       "unauthorized": "Sign in to continue.",
@@ -164,6 +171,13 @@
       "plan_step_missing": "The plan has no such step.",
       "wrong_state": "The run has moved on, so this no longer applies. Reread the queue.",
       "timezone_invalid": "That timezone is not one this machine knows."
+    },
+    "schema": {
+      "no_source": "No schema source is set for this project yet. Set the repository folder first.",
+      "folder_not_allowed": "This folder is not one of the project's folders.",
+      "unreadable": "The schema files could not be read from this folder.",
+      "draft_not_found": "This draft no longer exists.",
+      "draft_wrong_state": "The draft's status has changed, so this is no longer possible. Reload the page."
     }
   },
   "hub.audit.export_too_large": "Too many rows to export. Narrow the filters."

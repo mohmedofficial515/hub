@@ -122,6 +122,11 @@ export const ERROR_CATALOGUE = {
   'hub.chats.nothing_to_retry': 409,
   'hub.chats.report_contradicted': 409,
   'hub.chats.approval_device_offline': 409,
+  'hub.backups.not_found': 404,
+  'hub.backups.running': 409,
+  'hub.backups.folder_invalid': 422,
+  'hub.backups.folder_in_repo': 422,
+  'hub.backups.wrong_state': 409,
   'hub.queue.run_not_found': 404,
   'hub.queue.card_not_runnable': 422,
   'hub.queue.plan_step_missing': 422,
@@ -146,6 +151,11 @@ export const ERROR_CATALOGUE = {
   'hub.devices.vscode_missing': 422,
   'hub.devices.pairing_not_found': 404,
   'hub.devices.pairing_closed': 409,
+  'hub.schema.no_source': 409,
+  'hub.schema.folder_not_allowed': 422,
+  'hub.schema.unreadable': 422,
+  'hub.schema.draft_not_found': 404,
+  'hub.schema.draft_wrong_state': 409,
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CATALOGUE;

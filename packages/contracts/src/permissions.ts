@@ -162,6 +162,8 @@ const MATRIX = {
   'source.run': OWNER_PM,
   'source.set_secret': OWNER_PM,
   'audit.read': OWNER_PM,
+  // Backups of the main machine (docs/16 D61 to D63): the owner's alone, and only from the web, so no agent can delete or reshape them.
+  'backup.manage': OWNER_ONLY,
   'notification.read': EVERYONE,
   'onboarding.use': EVERYONE,
 
@@ -183,6 +185,11 @@ const MATRIX = {
   'queue.manage': EVERYONE,
   // Writing a local-path doc (docs/16 §10). The accountant reads.
   'docs.write': ['Y', 'Y', 'N', 'Y', 'Y', 'Y', 'Y'],
+  // Schema Studio (docs/17). Everyone reads the design; the owner, the pm and the backend name it, draft changes and refresh it.
+  'schema.read': EVERYONE,
+  'schema.annotate': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
+  'schema.draft': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
+  'schema.manage': ['Y', 'Y', 'N', 'Y', 'N', 'N', 'N'],
 } as const satisfies Record<string, Row>;
 
 export type PermissionAction = keyof typeof MATRIX;
@@ -197,6 +204,7 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'chat.run',
   'chat.answer',
   'queue.manage',
+  'backup.manage',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {
