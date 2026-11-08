@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
-import { WorkbenchLayout } from './layout';
+import { opensByDefault, WorkbenchLayout } from './layout';
 import { openChat, WorkbenchProvider } from './store';
 
 const search = vi.hoisted(() => ({ value: '' }));
@@ -260,6 +260,22 @@ describe('WorkbenchLayout', () => {
     expect(screen.getByText('Pushing now.')).toBeTruthy();
     expect(screen.getByText('push it')).toBeTruthy();
     await waitFor(() => expect(document.querySelector('[data-wb-pending]')).toBeTruthy());
+  });
+
+  it('a first visit opens the panel only where the page keeps D54’s 400 px beside it', () => {
+    expect([390, 768, 820].map(opensByDefault)).toEqual([false, false, false]);
+    expect([1024, 1280, 1366, 1440].map(opensByDefault)).toEqual([true, true, true, true]);
+  });
+
+  it('an empty History says no chat exists yet, and only a search says none matches', async () => {
+    answers();
+    draw();
+    await waitFor(() => expect(document.querySelector('[data-wb-view="history"]')).toBeTruthy());
+    (document.querySelector('[data-wb-view="history"]') as HTMLButtonElement).click();
+    await waitFor(() => expect(document.querySelector('[data-wb-history-empty]')).toBeTruthy());
+    expect(document.querySelector('[data-wb-history-empty]')?.textContent).toContain(
+      'No chats in this project yet',
+    );
   });
 
   it('has no dialog for the sheet', async () => {

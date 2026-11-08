@@ -374,15 +374,22 @@ test.describe('chat panel, on the engine', () => {
   test('offline blocks the composer and says so, and it clears when the device returns', async ({
     page,
     engine,
+    owner,
     locale,
     ws,
   }) => {
-    await open(page, locale, ws);
+    const task = await newTask(owner, `Offline ${locale} ${Date.now()}`);
+    await open(page, locale, ws, 'tasks', `card=${task.key}`);
     await expect(page.locator('[data-wb-input]')).toBeEnabled(LONG);
     await engine.goOffline();
     try {
       await expect(panel(page).locator('[data-wb-engine="offline"]')).toBeVisible(LONG);
       await expect(page.locator('[data-wb-input]')).toBeDisabled();
+      // Review M3: the sheet's own Claude actions stay, disabled, with their reason, while the empty chat has no suggestions to offer.
+      for (const act of ['[data-wb-do]', '[data-wb-explain]', '[data-wb-plan-card]']) {
+        await expect(sheet(page).locator(act)).toBeVisible();
+        await expect(sheet(page).locator(act)).toBeDisabled();
+      }
     } finally {
       await engine.goOnline();
     }
@@ -551,6 +558,45 @@ test.describe('chat panel, the layout', () => {
     await expect(panel(page)).toBeVisible();
     const box = await panel(page).evaluate((el) => el.getBoundingClientRect().width);
     expect(box).toBeGreaterThanOrEqual(375);
+  });
+
+  test('a portrait tablet starts with the panel closed, so the page keeps its room', async ({
+    page,
+    locale,
+    ws,
+  }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await page.goto(view(locale, ws, 'today'));
+    await expect(page.locator('#main')).toBeVisible();
+    await expect(page.locator('[data-wb-strip]')).toBeVisible();
+    await expect(panel(page)).toBeHidden();
+  });
+
+  test('on a phone the covered layer leaves the focus order, and focus follows each switch', async ({
+    page,
+    owner,
+    locale,
+    ws,
+  }) => {
+    const task = await newTask(owner, `Phone ${locale} ${Date.now()}`);
+    await page.setViewportSize({ width: 390, height: 800 });
+    await page.goto(view(locale, ws, 'tasks', `card=${task.key}`));
+    await expect(sheet(page)).toBeVisible();
+    await sheet(page).locator('[data-wb-phone-tochat]').click();
+    await expect(panel(page)).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-wb-panel]')))
+      .toBe(true);
+    await panel(page).locator('[data-wb-phone-tocard]').click();
+    await expect(sheet(page)).toBeVisible();
+    await expect(panel(page)).toHaveAttribute('inert', '');
+    await expect
+      .poll(() => page.evaluate(() => !!document.activeElement?.closest('[data-card-sheet]')))
+      .toBe(true);
+    for (let i = 0; i < 12; i += 1) {
+      await page.keyboard.press('Tab');
+      expect(await page.evaluate(() => !!document.activeElement?.closest('[data-wb-panel]'))).toBe(false);
+    }
   });
 
   test('the lab’s own page has no panel', async ({ page, locale, ws }) => {

@@ -119,6 +119,13 @@ const LIST_LIKE = new Set([
   'releases',
   'redesign',
 ]);
+/** 08 §7: the sidebar is 248 px from 1280, 56 px of icons from 1024, and a drawer below that. */
+const sidebarAt = (w: number) => (w >= 1280 ? 248 : w >= 1024 ? 56 : 0);
+/**
+ * Whether a first visit opens the panel: only where the panel at its default width still leaves the page D54's 400 px (review M5).
+ * A portrait tablet (768, 820) would leave about 300, so it starts closed, as a phone does. After that the owner's choice is remembered.
+ */
+export const opensByDefault = (w: number) => w - sidebarAt(w) - STRIP - GRIP - DEFAULT_PANEL >= PAGE_MIN_LIST;
 const SHEET_BESIDE = 460;
 /** The sheet's width with the panel closed, as v5. */
 const SHEET_ALONE = 560;
@@ -165,11 +172,9 @@ function useBridgeFacts(): TipFact[] {
   const seen = device?.lastSeenAt ? when.format(new Date(device.lastSeenAt)) : null;
   return [
     [f.device, wb.deviceName || t.pro.strip.unknown],
-    [
-      f.state,
-      device?.online ? t.pro.strip.bridgeOn : t.engine.offline.title.replace('{device}', wb.deviceName),
-    ],
-    ...(seen ? ([[f.since, seen]] as TipFact[]) : []),
+    // The device is named on the line above, so the state is one word. The time is when Hub last heard from it, not a connected-since (review M1).
+    [f.state, device?.online ? t.pro.strip.bridgeOn : t.pro.strip.bridgeOff],
+    ...(seen ? ([[f.lastSeen, seen]] as TipFact[]) : []),
     ...(version ? ([[f.version, version, true]] as TipFact[]) : []),
     ...(wb.folderNow ? ([[f.folder, wb.folderNow, true]] as TipFact[]) : []),
   ];
@@ -954,8 +959,11 @@ export function WorkbenchLayout({
   const desktop = useMedia('(min-width: 1024px)');
   const vw = useWindowWidth();
   const label = useKeyLabels();
-  // A phone's first visit lands on the page, not a full-screen chat over it (review N3).
-  const [open, setOpenRaw] = useRemembered('open', window.innerWidth >= 768);
+  // A phone's or a portrait tablet's first visit lands on the page, not a panel that squeezes it (review N3, M5).
+  const [open, setOpenRaw] = useRemembered(
+    'open',
+    opensByDefault(document.getElementById('hub-root')?.clientWidth || window.innerWidth),
+  );
   const [width, setWidth] = useRemembered('width', DEFAULT_PANEL);
   const [view, setView] = useState<PanelView>('chat');
   const [dragging, setDragging] = useState(false);
@@ -1058,6 +1066,14 @@ export function WorkbenchLayout({
       document.querySelector<HTMLElement>('[data-wb-panel] button');
     target?.focus({ preventScroll: false });
   }, []);
+  /** The same, except that on touch it does not put focus in the message box, so the keyboard does not jump up. */
+  const focusPanelSoft = useCallback(() => {
+    if (!matchMedia('(hover: none)').matches) return focusPanel();
+    const target =
+      document.querySelector<HTMLElement>('[data-wb-waiting]') ??
+      document.querySelector<HTMLElement>('[data-wb-panel] button');
+    target?.focus({ preventScroll: true });
+  }, [focusPanel]);
   useEffect(() => {
     const onSkip = () => {
       if (!open) setOpen(true);
@@ -1203,6 +1219,8 @@ export function WorkbenchLayout({
                             if (!open) setOpen(true);
                             setView('chat');
                             setPhoneFront('chat');
+                            // The button's own sheet is hidden now, so focus goes into the panel, not to the page's body (review M4).
+                            window.setTimeout(focusPanelSoft, 0);
                           }}
                         >
                           <ArrowRight aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
@@ -1237,6 +1255,8 @@ export function WorkbenchLayout({
               aria-label={t.panelLabel}
               id="wb-panel"
               data-wb-panel
+              // On a phone the card covers the panel, so the panel leaves the focus order and the reading order, as the page does (review M4).
+              inert={phone && !!cardKey && phoneFront === 'card'}
               style={phone ? undefined : { width: panel }}
               onDragOver={(e) => {
                 if (
@@ -1272,7 +1292,10 @@ export function WorkbenchLayout({
                 onVsCode={() => setVscode(true)}
                 onSettings={() => setSettings(true)}
                 onView={setView}
-                onToCard={() => setPhoneFront('card')}
+                onToCard={() => {
+                  setPhoneFront('card');
+                  window.setTimeout(focusSheetTitle, 0);
+                }}
               />
               {view === 'chat' && factsOpen && chat && <ChatFacts chat={chat} />}
               {view === 'chat' && (
