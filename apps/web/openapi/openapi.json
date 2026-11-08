@@ -7607,6 +7607,259 @@
           "chats"
         ]
       }
+    },
+    "/api/v1/workspaces/{ws}/queue": {
+      "get": {
+        "operationId": "AgentQueueController_list",
+        "parameters": [
+          {
+            "name": "card",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "pattern": "^[A-Z]{2,6}-\\d{1,7}$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "This project’s runs, not finished and the last finished, with the member’s limits and why a due run waits. `card` narrows to one card",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/runs": {
+      "post": {
+        "operationId": "AgentQueueController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Run now, at a local time, or every week: a task, a plan step or a prompt, in a linked folder",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/runs/{id}/pause": {
+      "post": {
+        "operationId": "AgentQueueController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Hold a run. A running one stops now and continues in its chat on Resume",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/runs/{id}/resume": {
+      "post": {
+        "operationId": "AgentQueueController_resume",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Put a paused run back in line",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/runs/{id}/cancel": {
+      "post": {
+        "operationId": "AgentQueueController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancel a run, stopping it if it runs. A weekly run repeats no more",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/order": {
+      "post": {
+        "operationId": "AgentQueueController_reorder",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderRunsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The order of the runs that have not started, first to start first",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/pause": {
+      "post": {
+        "operationId": "AgentQueueController_pauseAll",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueuePauseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Pause all, or resume. Running runs finish; nothing new starts while paused",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/settings": {
+      "patch": {
+        "operationId": "AgentQueueController_settings",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueueSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueStateDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Runs at once, runs per day, quiet hours and the timezone. The member’s, across projects",
+        "tags": [
+          "queue"
+        ]
+      }
     }
   },
   "info": {
@@ -35461,6 +35714,903 @@
           "move",
           "reportedAt"
         ]
+      },
+      "QueueDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "object",
+            "properties": {
+              "paused": {
+                "type": "boolean"
+              },
+              "pausedReason": {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "usage_limit",
+                  null
+                ],
+                "nullable": true
+              },
+              "resumesAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "maxConcurrent": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "perDay": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "usedToday": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "running": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "quietHours": {
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  },
+                  "to": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "nullable": true
+              },
+              "inQuietHours": {
+                "type": "boolean"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "timezoneSource": {
+                "type": "string",
+                "enum": [
+                  "setting",
+                  "machine"
+                ]
+              },
+              "machineTimezone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "paused",
+              "pausedReason",
+              "resumesAt",
+              "maxConcurrent",
+              "perDay",
+              "usedToday",
+              "running",
+              "quietHours",
+              "inQuietHours",
+              "timezone",
+              "timezoneSource",
+              "machineTimezone"
+            ]
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "plan_step",
+                    "prompt"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "cardKey": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "planStep": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "prompt": {
+                  "type": "string"
+                },
+                "deviceId": {
+                  "type": "string"
+                },
+                "deviceName": {
+                  "type": "string"
+                },
+                "folder": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "waiting",
+                    "running",
+                    "next",
+                    "scheduled",
+                    "paused",
+                    "done",
+                    "failed",
+                    "stopped",
+                    "interrupted",
+                    "cancelled"
+                  ]
+                },
+                "stored": {
+                  "type": "string",
+                  "enum": [
+                    "queued",
+                    "running",
+                    "done",
+                    "failed",
+                    "stopped",
+                    "interrupted",
+                    "cancelled"
+                  ]
+                },
+                "hold": {
+                  "type": "string",
+                  "enum": [
+                    "paused_all",
+                    "usage_limit",
+                    "quiet_hours",
+                    "daily_limit",
+                    "concurrency",
+                    "folder_busy",
+                    "device_offline",
+                    "signed_out",
+                    "engine_unavailable",
+                    "folder_not_allowed",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "runAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "repeat": {
+                  "type": "object",
+                  "properties": {
+                    "day": {
+                      "type": "string",
+                      "enum": [
+                        "MON",
+                        "TUE",
+                        "WED",
+                        "THU",
+                        "FRI",
+                        "SAT",
+                        "SUN"
+                      ]
+                    },
+                    "time": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "day",
+                    "time"
+                  ],
+                  "nullable": true
+                },
+                "paused": {
+                  "type": "boolean"
+                },
+                "position": {
+                  "type": "number"
+                },
+                "chatId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "messageId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "waitingOn": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "approval",
+                        "question"
+                      ]
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "category": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "command",
+                    "category"
+                  ],
+                  "nullable": true
+                },
+                "failure": {
+                  "type": "string",
+                  "enum": [
+                    "signed_out",
+                    "rate_limited",
+                    "billing",
+                    "overloaded",
+                    "version_out_of_range",
+                    "claude_missing",
+                    "session_missing",
+                    "folder_not_allowed",
+                    "folder_missing",
+                    "device_offline",
+                    "cut_off",
+                    "unreadable_event",
+                    "unknown",
+                    null
+                  ],
+                  "nullable": true
+                },
+                "summary": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "changedFiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "maxLength": 1000
+                      },
+                      "source": {
+                        "type": "string",
+                        "enum": [
+                          "tool",
+                          "git",
+                          "claimed"
+                        ]
+                      },
+                      "status": {
+                        "type": "string",
+                        "maxLength": 4
+                      },
+                      "additions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "deletions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "source"
+                    ]
+                  }
+                },
+                "moved": {
+                  "type": "boolean",
+                  "nullable": true
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "startedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "endedAt": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "source",
+                "title",
+                "cardKey",
+                "planStep",
+                "prompt",
+                "deviceId",
+                "deviceName",
+                "folder",
+                "state",
+                "stored",
+                "hold",
+                "runAt",
+                "repeat",
+                "paused",
+                "position",
+                "chatId",
+                "messageId",
+                "waitingOn",
+                "failure",
+                "summary",
+                "changedFiles",
+                "moved",
+                "createdAt",
+                "startedAt",
+                "endedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "state",
+          "runs"
+        ]
+      },
+      "CreateRunDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "task",
+              "plan_step",
+              "prompt"
+            ]
+          },
+          "cardKey": {
+            "type": "string",
+            "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+          },
+          "planStep": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 199
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50000
+          },
+          "device": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "folder": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "when": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "now"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "once"
+                    ]
+                  },
+                  "date": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$"
+                  },
+                  "time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "date",
+                  "time"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "weekly"
+                    ]
+                  },
+                  "day": {
+                    "type": "string",
+                    "enum": [
+                      "MON",
+                      "TUE",
+                      "WED",
+                      "THU",
+                      "FRI",
+                      "SAT",
+                      "SUN"
+                    ]
+                  },
+                  "time": {
+                    "type": "string",
+                    "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "day",
+                  "time"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "source",
+          "device",
+          "folder",
+          "when"
+        ]
+      },
+      "AgentRunDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "task",
+              "plan_step",
+              "prompt"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "cardKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "planStep": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "deviceId": {
+            "type": "string"
+          },
+          "deviceName": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "running",
+              "next",
+              "scheduled",
+              "paused",
+              "done",
+              "failed",
+              "stopped",
+              "interrupted",
+              "cancelled"
+            ]
+          },
+          "stored": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "failed",
+              "stopped",
+              "interrupted",
+              "cancelled"
+            ]
+          },
+          "hold": {
+            "type": "string",
+            "enum": [
+              "paused_all",
+              "usage_limit",
+              "quiet_hours",
+              "daily_limit",
+              "concurrency",
+              "folder_busy",
+              "device_offline",
+              "signed_out",
+              "engine_unavailable",
+              "folder_not_allowed",
+              null
+            ],
+            "nullable": true
+          },
+          "runAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "repeat": {
+            "type": "object",
+            "properties": {
+              "day": {
+                "type": "string",
+                "enum": [
+                  "MON",
+                  "TUE",
+                  "WED",
+                  "THU",
+                  "FRI",
+                  "SAT",
+                  "SUN"
+                ]
+              },
+              "time": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "day",
+              "time"
+            ],
+            "nullable": true
+          },
+          "paused": {
+            "type": "boolean"
+          },
+          "position": {
+            "type": "number"
+          },
+          "chatId": {
+            "type": "string",
+            "nullable": true
+          },
+          "messageId": {
+            "type": "string",
+            "nullable": true
+          },
+          "waitingOn": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "approval",
+                  "question"
+                ]
+              },
+              "command": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "command",
+              "category"
+            ],
+            "nullable": true
+          },
+          "failure": {
+            "type": "string",
+            "enum": [
+              "signed_out",
+              "rate_limited",
+              "billing",
+              "overloaded",
+              "version_out_of_range",
+              "claude_missing",
+              "session_missing",
+              "folder_not_allowed",
+              "folder_missing",
+              "device_offline",
+              "cut_off",
+              "unreadable_event",
+              "unknown",
+              null
+            ],
+            "nullable": true
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "tool",
+                    "git",
+                    "claimed"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "maxLength": 4
+                },
+                "additions": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "deletions": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "path",
+                "source"
+              ]
+            }
+          },
+          "moved": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "title",
+          "cardKey",
+          "planStep",
+          "prompt",
+          "deviceId",
+          "deviceName",
+          "folder",
+          "state",
+          "stored",
+          "hold",
+          "runAt",
+          "repeat",
+          "paused",
+          "position",
+          "chatId",
+          "messageId",
+          "waitingOn",
+          "failure",
+          "summary",
+          "changedFiles",
+          "moved",
+          "createdAt",
+          "startedAt",
+          "endedAt"
+        ]
+      },
+      "ReorderRunsDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "minItems": 1,
+            "maxItems": 500,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        },
+        "required": [
+          "ids"
+        ]
+      },
+      "QueuePauseDto": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paused"
+        ]
+      },
+      "QueueStateDto": {
+        "type": "object",
+        "properties": {
+          "paused": {
+            "type": "boolean"
+          },
+          "pausedReason": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "usage_limit",
+              null
+            ],
+            "nullable": true
+          },
+          "resumesAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "maxConcurrent": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "perDay": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "usedToday": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "running": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "quietHours": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "nullable": true
+          },
+          "inQuietHours": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "timezoneSource": {
+            "type": "string",
+            "enum": [
+              "setting",
+              "machine"
+            ]
+          },
+          "machineTimezone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "paused",
+          "pausedReason",
+          "resumesAt",
+          "maxConcurrent",
+          "perDay",
+          "usedToday",
+          "running",
+          "quietHours",
+          "inQuietHours",
+          "timezone",
+          "timezoneSource",
+          "machineTimezone"
+        ]
+      },
+      "QueueSettingsDto": {
+        "type": "object",
+        "properties": {
+          "maxConcurrent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "perDay": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "quietHours": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              "to": {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "nullable": true
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "nullable": true
+          }
+        }
       }
     }
   }

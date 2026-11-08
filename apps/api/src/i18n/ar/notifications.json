@@ -24,5 +24,6 @@
   "escalation": "تجاوز {cardKey} موعده وصُعّد: {title}",
   "source_failing": "فشل المصدر {name} ثلاث مرات متتالية",
   "brief_ready": "موجزك ليوم {date} جاهز",
-  "weekly_ready": "ملخص الأسبوع {date} جاهز"
+  "weekly_ready": "ملخص الأسبوع {date} جاهز",
+  "run_waiting": "تشغيل من الطابور ينتظر موافقتك: {title}"
 }

@@ -17,6 +17,7 @@ import { OutboxModule } from './infra/outbox/outbox';
 import { PrismaModule, prismaTransactionalPlugin } from './infra/prisma/prisma.module';
 import { QueueModule } from './infra/queue/queue.service';
 import { RedisModule } from './infra/redis/redis.module';
+import { AgentQueueModule } from './modules/agent-queue';
 import { AuditModule, CLS_IP, CLS_USER_AGENT } from './modules/audit';
 import { CaptureModule } from './modules/capture';
 import { CardsModule } from './modules/cards';
@@ -93,6 +94,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     CaptureModule,
     DevicesModule,
     ChatsModule,
+    AgentQueueModule,
     McpModule,
   ],
   providers: [

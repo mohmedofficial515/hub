@@ -5845,6 +5845,167 @@ export type WorkReportDto = {
     reportedAt: string;
 };
 
+export type QueueDto = {
+    state: {
+        paused: boolean;
+        pausedReason: 'owner' | 'usage_limit' | null;
+        resumesAt: string | null;
+        maxConcurrent: number;
+        perDay: number;
+        usedToday: number;
+        running: number;
+        quietHours: {
+            from: string;
+            to: string;
+        } | null;
+        inQuietHours: boolean;
+        timezone: string;
+        timezoneSource: 'setting' | 'machine';
+        machineTimezone: string;
+    };
+    runs: Array<{
+        id: string;
+        source: 'task' | 'plan_step' | 'prompt';
+        title: string;
+        cardKey: string | null;
+        planStep: number | null;
+        prompt: string;
+        deviceId: string;
+        deviceName: string;
+        folder: string;
+        state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
+        stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
+        hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+        runAt: string | null;
+        repeat: {
+            day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+            time: string;
+        } | null;
+        paused: boolean;
+        position: number;
+        chatId: string | null;
+        messageId: string | null;
+        waitingOn: {
+            id: string;
+            kind: 'approval' | 'question';
+            command: string;
+            category: string;
+        } | null;
+        failure: 'signed_out' | 'rate_limited' | 'billing' | 'overloaded' | 'version_out_of_range' | 'claude_missing' | 'session_missing' | 'folder_not_allowed' | 'folder_missing' | 'device_offline' | 'cut_off' | 'unreadable_event' | 'unknown' | null;
+        summary: string | null;
+        changedFiles: Array<{
+            path: string;
+            source: 'tool' | 'git' | 'claimed';
+            status?: string;
+            additions?: number;
+            deletions?: number;
+        }>;
+        moved: boolean | null;
+        createdAt: string;
+        startedAt: string | null;
+        endedAt: string | null;
+    }>;
+};
+
+export type CreateRunDto = {
+    source: 'task' | 'plan_step' | 'prompt';
+    cardKey?: string;
+    planStep?: number;
+    prompt?: string;
+    device: string;
+    folder: string;
+    when: {
+        kind: 'now';
+    } | {
+        kind: 'once';
+        date: string;
+        time: string;
+    } | {
+        kind: 'weekly';
+        day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+        time: string;
+    };
+};
+
+export type AgentRunDto = {
+    id: string;
+    source: 'task' | 'plan_step' | 'prompt';
+    title: string;
+    cardKey: string | null;
+    planStep: number | null;
+    prompt: string;
+    deviceId: string;
+    deviceName: string;
+    folder: string;
+    state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
+    stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
+    hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+    runAt: string | null;
+    repeat: {
+        day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+        time: string;
+    } | null;
+    paused: boolean;
+    position: number;
+    chatId: string | null;
+    messageId: string | null;
+    waitingOn: {
+        id: string;
+        kind: 'approval' | 'question';
+        command: string;
+        category: string;
+    } | null;
+    failure: 'signed_out' | 'rate_limited' | 'billing' | 'overloaded' | 'version_out_of_range' | 'claude_missing' | 'session_missing' | 'folder_not_allowed' | 'folder_missing' | 'device_offline' | 'cut_off' | 'unreadable_event' | 'unknown' | null;
+    summary: string | null;
+    changedFiles: Array<{
+        path: string;
+        source: 'tool' | 'git' | 'claimed';
+        status?: string;
+        additions?: number;
+        deletions?: number;
+    }>;
+    moved: boolean | null;
+    createdAt: string;
+    startedAt: string | null;
+    endedAt: string | null;
+};
+
+export type ReorderRunsDto = {
+    ids: Array<string>;
+};
+
+export type QueuePauseDto = {
+    paused: boolean;
+};
+
+export type QueueStateDto = {
+    paused: boolean;
+    pausedReason: 'owner' | 'usage_limit' | null;
+    resumesAt: string | null;
+    maxConcurrent: number;
+    perDay: number;
+    usedToday: number;
+    running: number;
+    quietHours: {
+        from: string;
+        to: string;
+    } | null;
+    inQuietHours: boolean;
+    timezone: string;
+    timezoneSource: 'setting' | 'machine';
+    machineTimezone: string;
+};
+
+export type QueueSettingsDto = {
+    maxConcurrent?: number;
+    perDay?: number;
+    quietHours?: {
+        from: string;
+        to: string;
+    } | null;
+    timezone?: string | null;
+};
+
 export type AuthControllerSignInData = {
     body: SignInDto;
     path?: never;
@@ -8882,3 +9043,115 @@ export type WorkReportsControllerListResponses = {
 };
 
 export type WorkReportsControllerListResponse = WorkReportsControllerListResponses[keyof WorkReportsControllerListResponses];
+
+export type AgentQueueControllerListData = {
+    body?: never;
+    path?: never;
+    query?: {
+        card?: string;
+    };
+    url: '/api/v1/workspaces/{ws}/queue';
+};
+
+export type AgentQueueControllerListResponses = {
+    200: QueueDto;
+};
+
+export type AgentQueueControllerListResponse = AgentQueueControllerListResponses[keyof AgentQueueControllerListResponses];
+
+export type AgentQueueControllerCreateData = {
+    body: CreateRunDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs';
+};
+
+export type AgentQueueControllerCreateResponses = {
+    201: AgentRunDto;
+};
+
+export type AgentQueueControllerCreateResponse = AgentQueueControllerCreateResponses[keyof AgentQueueControllerCreateResponses];
+
+export type AgentQueueControllerPauseData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/pause';
+};
+
+export type AgentQueueControllerPauseResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerPauseResponse = AgentQueueControllerPauseResponses[keyof AgentQueueControllerPauseResponses];
+
+export type AgentQueueControllerResumeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/resume';
+};
+
+export type AgentQueueControllerResumeResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerResumeResponse = AgentQueueControllerResumeResponses[keyof AgentQueueControllerResumeResponses];
+
+export type AgentQueueControllerCancelData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/cancel';
+};
+
+export type AgentQueueControllerCancelResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerCancelResponse = AgentQueueControllerCancelResponses[keyof AgentQueueControllerCancelResponses];
+
+export type AgentQueueControllerReorderData = {
+    body: ReorderRunsDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/order';
+};
+
+export type AgentQueueControllerReorderResponses = {
+    200: QueueDto;
+};
+
+export type AgentQueueControllerReorderResponse = AgentQueueControllerReorderResponses[keyof AgentQueueControllerReorderResponses];
+
+export type AgentQueueControllerPauseAllData = {
+    body: QueuePauseDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/pause';
+};
+
+export type AgentQueueControllerPauseAllResponses = {
+    200: QueueStateDto;
+};
+
+export type AgentQueueControllerPauseAllResponse = AgentQueueControllerPauseAllResponses[keyof AgentQueueControllerPauseAllResponses];
+
+export type AgentQueueControllerSettingsData = {
+    body: QueueSettingsDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/settings';
+};
+
+export type AgentQueueControllerSettingsResponses = {
+    200: QueueStateDto;
+};
+
+export type AgentQueueControllerSettingsResponse = AgentQueueControllerSettingsResponses[keyof AgentQueueControllerSettingsResponses];

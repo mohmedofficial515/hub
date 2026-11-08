@@ -3,6 +3,7 @@
  * @description Starting, sending to, stopping or answering a chat has no tool: those are the owner's own press (`chat.run`, `chat.answer`), so an agent cannot start agents or approve its own call.
  */
 import {
+  type AgentRunDto,
   type ChatDocDraftDto,
   type ChatDto,
   type SaveDocResult,
@@ -70,7 +71,33 @@ function renderDraft(draft: ChatDocDraftDto, inPanel: boolean): string {
   ].join('\n');
 }
 
+function renderRun(run: AgentRunDto): string {
+  const when = run.state === 'scheduled' && run.runAt ? `, at ${run.runAt}` : '';
+  const repeat = run.repeat ? `, every ${run.repeat.day} ${run.repeat.time}` : '';
+  const hold = run.hold ? `, held: ${run.hold}` : '';
+  const waiting = run.waitingOn ? `, waiting on: ${run.waitingOn.command}` : '';
+  const ended = run.summary
+    ? `
+  ${run.summary}`
+    : '';
+  return `- ${run.title}${run.cardKey ? ` (${run.cardKey})` : ''}: ${run.state}${when}${repeat}${hold}${waiting}, ${run.folder} on ${run.deviceName}${run.failure ? `, ${run.failure}` : ''}${ended}`;
+}
+
 export const chatToolHandlers = {
+  async list_queue(context, input) {
+    const actor = await context.allowed('queue.read');
+    const { state, runs } = await context.deps.agentQueue.queue(
+      actor,
+      input.card ? { card: input.card } : {},
+    );
+    const head = [
+      `Queue: ${state.paused ? `paused (${state.pausedReason ?? 'owner'}${state.resumesAt ? `, until ${state.resumesAt}` : ''})` : 'running'}. ${state.running} of ${state.maxConcurrent} at once, ${state.usedToday} of ${state.perDay} today, timezone ${state.timezone}${state.quietHours ? `, quiet ${state.quietHours.from}-${state.quietHours.to}` : ''}.`,
+      'Only the owner can add, move, pause or cancel a run, in Hub.',
+    ];
+    const lines = runs.length === 0 ? [...head, 'No runs.'] : [...head, ...runs.map(renderRun)];
+    return lines.join('\n');
+  },
+
   async list_chats(context, input) {
     const actor = await context.allowed('chat.read');
     const chats = await context.deps.chats.list(actor, { deleted: input.deleted === true });

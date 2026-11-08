@@ -157,6 +157,13 @@
       "vscode_missing": "VS Code was not found on that device. Install it, or copy the prompt instead.",
       "pairing_not_found": "That code is not valid, or it has expired. Run the command again.",
       "pairing_closed": "This code was already answered."
+    },
+    "queue": {
+      "run_not_found": "This run no longer exists.",
+      "card_not_runnable": "This card cannot run in the queue. Only an open task, a plan step or a prompt can.",
+      "plan_step_missing": "The plan has no such step.",
+      "wrong_state": "The run has moved on, so this no longer applies. Reread the queue.",
+      "timezone_invalid": "That timezone is not one this machine knows."
     }
   },
   "hub.audit.export_too_large": "Too many rows to export. Narrow the filters."

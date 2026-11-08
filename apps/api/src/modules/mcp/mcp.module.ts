@@ -3,6 +3,7 @@
  */
 import { Module } from '@nestjs/common';
 
+import { AgentQueueModule } from '@/modules/agent-queue';
 import { AuditModule } from '@/modules/audit';
 import { CaptureModule } from '@/modules/capture';
 import { CardsModule } from '@/modules/cards';
@@ -25,6 +26,7 @@ import { McpDeps } from './presentation/mcp/tool-context';
 
 @Module({
   imports: [
+    AgentQueueModule,
     AuditModule,
     CaptureModule,
     CardsModule,
