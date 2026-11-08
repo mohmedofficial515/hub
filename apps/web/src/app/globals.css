@@ -436,6 +436,17 @@ a,
   touch-action: manipulation;
 }
 
+/* A strip that scrolls sideways with no scrollbar fades the edge that hides more (`useScrollCue`, settings tabs, review M2). A mask, so no colour is drawn. */
+.scroll-cue[data-more-left] {
+  mask-image: linear-gradient(to right, transparent, black 2.5rem);
+}
+.scroll-cue[data-more-right] {
+  mask-image: linear-gradient(to left, transparent, black 2.5rem);
+}
+.scroll-cue[data-more-left][data-more-right] {
+  mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
+}
+
 /* A larger hit area without changing how a small inline control looks: 24 px tall on desktop, 44 px both ways on phones (review, touch targets). */
 .hit-44 {
   position: relative;

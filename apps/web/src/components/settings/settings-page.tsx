@@ -31,6 +31,7 @@ import {
 import type { SettingsMessages } from '@/features/settings/messages';
 import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
+import { useScrollCue } from '@/lib/scroll-cue';
 
 import { AuditTab } from './parts/audit';
 import { BackupsTab } from './parts/backups';
@@ -115,10 +116,14 @@ export function SettingsPage() {
   const visible = isManager ? TABS.filter((id) => id !== 'backups' || isOwner) : PERSONAL;
   const allowed = !!tab && visible.includes(tab);
   const activeTab = useRef<HTMLButtonElement>(null);
+  const strip = useRef<HTMLDivElement>(null);
+  const ready = !!tab && !loading;
 
+  // The selected tab comes into view once it exists: on a direct load it appears only after the session answers (review M2).
   useEffect(() => {
     activeTab.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
-  }, [tab]);
+  }, [tab, ready, visible.length]);
+  useScrollCue(strip, [ready, visible.length]);
 
   const header = <PageHeader title={t.title} meta={!loading && !isManager ? t.personalNote : undefined} />;
 
@@ -131,7 +136,8 @@ export function SettingsPage() {
     );
   }
 
-  if (!tab) {
+  // While the session loads nobody is a manager yet, so deciding now would flash "no access" at the owner (review M1).
+  if (!ready) {
     return (
       <PageContainer>
         {header}
@@ -159,8 +165,9 @@ export function SettingsPage() {
         className="flex min-w-0 flex-col gap-6"
       >
         <Tabs.List
+          ref={strip}
           aria-label={t.tabsLabel}
-          className="-mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 [scrollbar-width:none] md:mx-0 md:px-0"
+          className="scroll-cue -mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 [scrollbar-width:none] md:mx-0 md:px-0"
         >
           {visible.map((id) => (
             <Tabs.Trigger

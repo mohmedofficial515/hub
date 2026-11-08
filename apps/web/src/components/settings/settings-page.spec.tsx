@@ -122,6 +122,31 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: 'Close project' })).toBeTruthy();
   }, 20_000);
 
+  it('waits for the session on a direct load, so the owner never sees "no access" first (review M1)', async () => {
+    search.value = 'tab=backups';
+    const { fake } = stubFetch(answer(['owner']));
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const raw = input instanceof Request ? input.url : String(input);
+      if (raw.includes('/auth/me')) await gate;
+      return fake(input, init);
+    });
+    renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    expect(await screen.findByRole('status', { name: /Loading/i })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByText(/You don.t have access/)).toBeNull();
+    release();
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Backups' }).getAttribute('aria-selected')).toBe('true'),
+    );
+    expect(screen.queryByText(/You don.t have access/)).toBeNull();
+  }, 20_000);
+
   it('gives a pm nine tabs: Backups is the owner’s alone (docs/16 D61)', async () => {
     stubFetch(answer(['pm']));
     renderWithApp(
