@@ -54,6 +54,8 @@ model ChatMessage {
   stages         Json           @default("[]")
   plan           String?
   structuredPlan Json?          @map("structured_plan")
+  /// `propose_suggestions` (D66): `{ summary, items }`, each item with its state.
+  suggestions    Json?
   engineFacts    Json?          @map("engine_facts")
   reports        Json           @default("[]")
   notices        Json           @default("[]")

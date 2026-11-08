@@ -107,6 +107,11 @@ model Device {
   lastSeenAt    DateTime?       @map("last_seen_at") @db.Timestamptz(3)
   pairedAt      DateTime        @map("paired_at") @db.Timestamptz(3)
   revokedAt     DateTime?       @map("revoked_at") @db.Timestamptz(3)
+  /// Hub's plugin as this device last took it (docs/16 §11): the version, `{ skill: hash }`, when, and the last failure.
+  pluginVersion   String?   @map("plugin_version")
+  pluginSkills    Json?     @map("plugin_skills")
+  pluginSyncedAt  DateTime? @map("plugin_synced_at") @db.Timestamptz(3)
+  pluginSyncError String?   @map("plugin_sync_error")
   user          User            @relation(fields: [userId], references: [id])
   tokens        ApiToken[]
   pairings      DevicePairing[]

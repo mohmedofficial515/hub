@@ -123,8 +123,8 @@ export const updateSkillSchema = z.object({
 export type UpdateSkillInput = z.infer<typeof updateSkillSchema>;
 
 export const moveSkillSchema = z.object({
-  /** The personal skill's folder. */
-  name: skillNameSchema,
+  /** The personal skill's folder, as listed. It need not follow Hub's naming: then `as` gives the name in Hub. */
+  name: z.string().trim().min(1).max(128),
   /** The name in Hub, when the folder's own name is taken. */
   as: skillNameSchema.optional(),
 });

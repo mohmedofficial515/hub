@@ -33,6 +33,16 @@ export const envSchema = z.object({
   /** The Postgres container `pg_dump` runs in. Unset: the container that publishes DATABASE_URL's port. Never a `goteav-*` one. */
   HUB_BACKUP_PG_CONTAINER: optionalText,
 
+  // Skills (docs/16 §11, D64 to D66). Paths are the machine's; tests point them at temp folders, so nothing writes to the repository or `~/.claude`.
+  /** The team pack Hub's plugin is built from. Unset: `packages/team-pack` of the checkout the API runs from. */
+  HUB_TEAM_PACK_DIR: optionalText,
+  /** The owner's personal skills, read only. Unset: `skills` in CLAUDE_CONFIG_DIR, else `~/.claude/skills`. */
+  HUB_PERSONAL_SKILLS_DIR: optionalText,
+  /** Claude Code's own setting, read only to find the personal skills when HUB_PERSONAL_SKILLS_DIR is unset. */
+  CLAUDE_CONFIG_DIR: optionalText,
+  /** `auto` syncs the plugin when a bridge connects and after each change; `manual` only on Sync now (a throwaway stack). */
+  HUB_PLUGIN_SYNC: z.enum(['auto', 'manual']).default('auto'),
+
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
   HUB_SECRET_KEY: z

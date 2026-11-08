@@ -1,0 +1,17 @@
+/// The earlier text of one of Hub's skills (docs/16 §11, D64): what `SKILL.md` held before a save from the panel. Not scoped to a project: one Hub, one plugin.
+/// A row is never removed. Restoring one writes its text back and keeps the text it replaces as a new row.
+model SkillRevision {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  /// The skill's folder.
+  name        String
+  /// The hash of `content`.
+  contentHash String   @map("content_hash")
+  content     String
+  /// edit | restore
+  reason      String
+  savedById   String?  @map("saved_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([name, createdAt])
+  @@map("skill_revisions")
+}

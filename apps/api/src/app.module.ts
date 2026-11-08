@@ -40,6 +40,7 @@ import { ReleasesModule } from './modules/releases';
 import { SchedulerModule } from './modules/scheduler';
 import { SchemaStudioModule } from './modules/schema-studio';
 import { SearchModule } from './modules/search';
+import { SkillsModule } from './modules/skills';
 import { SystemModule } from './modules/system';
 import { TasksModule } from './modules/tasks';
 import { TodayModule } from './modules/today';
@@ -97,6 +98,7 @@ const REQUEST_ID_HEADER = 'x-request-id';
     ChatsModule,
     AgentQueueModule,
     SchemaStudioModule,
+    SkillsModule,
     McpModule,
   ],
   providers: [

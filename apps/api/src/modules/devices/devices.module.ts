@@ -11,6 +11,8 @@ import { BridgeHub } from './application/bridge-hub';
 import { ConnectBundleService } from './application/connect-bundle.service';
 import { DevicesService } from './application/devices.service';
 import { PairingService } from './application/pairing.service';
+import { PluginBundleService } from './application/plugin-bundle.service';
+import { PluginSyncService } from './application/plugin-sync.service';
 import { PublishingService } from './application/publishing.service';
 import { BridgeGateway } from './presentation/bridge.gateway';
 import { BridgeSelfController } from './presentation/http/bridge-self.controller';
@@ -33,8 +35,17 @@ import { PairingController } from './presentation/http/pairing.controller';
     ConnectBundleService,
     DevicesService,
     PairingService,
+    PluginBundleService,
+    PluginSyncService,
     PublishingService,
   ],
-  exports: [BridgeHub, DevicesService, PairingService, PublishingService],
+  exports: [
+    BridgeHub,
+    DevicesService,
+    PairingService,
+    PluginBundleService,
+    PluginSyncService,
+    PublishingService,
+  ],
 })
 export class DevicesModule {}

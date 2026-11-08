@@ -80,6 +80,13 @@ export class BridgeHub {
     this.readyListeners.push(listener);
   }
 
+  /** Every device whose bridge is connected and welcomed now. */
+  onlineDeviceIds(): string[] {
+    return [...this.connections.values()]
+      .filter((connection) => connection.ready)
+      .map((connection) => connection.deviceId);
+  }
+
   isOnline(deviceId: string): boolean {
     return this.connections.get(deviceId)?.ready === true;
   }

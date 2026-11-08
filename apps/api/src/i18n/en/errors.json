@@ -1,5 +1,16 @@
 {
   "hub": {
+    "skills": {
+      "not_found": "This skill is not one of Hub's skills.",
+      "personal_not_found": "This personal skill is no longer in your skills folder.",
+      "name_taken": "Hub already has a skill named {name}. Choose another name.",
+      "core_read_only": "{name} is one of Hub's own protocols. It changes with Hub's code, not here.",
+      "stale_base": "This skill changed since you opened it. Reload it, then save again.",
+      "too_large": "This skill is too large to copy: up to {files} files and {megabytes} MB in all.",
+      "not_text": "{file} is not a text file, so the skill was not copied. A skill in Hub is text only.",
+      "unavailable": "Hub's skills folder cannot be reached on the main machine.",
+      "revision_not_found": "This earlier text no longer exists."
+    },
     "backups": {
       "not_found": "This backup no longer exists.",
       "running": "A backup is already running. Wait for it to finish.",
@@ -153,7 +164,9 @@
       "message_not_found": "That message is not in this chat.",
       "nothing_to_retry": "There is no earlier message to retry.",
       "report_contradicted": "This report says a check passed, and the real step failed. Nothing was stored on the card.",
-      "approval_device_offline": "The device went offline, so nothing can run on this answer. Its turn was stopped and marked as cut off. Send again once the device is back."
+      "approval_device_offline": "The device went offline, so nothing can run on this answer. Its turn was stopped and marked as cut off. Send again once the device is back.",
+      "suggestion_not_found": "This proposal is no longer in the chat.",
+      "suggestion_answered": "This proposal was already accepted or dismissed."
     },
     "devices": {
       "not_found": "No such device.",
