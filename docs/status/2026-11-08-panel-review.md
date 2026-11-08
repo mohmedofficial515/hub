@@ -29,7 +29,7 @@ Fixed on `feat/first-release`. Details in `docs/16-workbench.md`, "After the pan
 | m6 | **Fixed** (`97f5c68`). Device name on the chip with no folder, and one line "The device … is also offline" |
 | m7 | **Partly fixed** (`97f5c68`). Timeline is list-like now (measured at 409). Planning and Docs were not measured, so they still step aside |
 | m8 | **Fixed** (`97f5c68`). Closing after Previous or Next returns to the last card's row |
-| m9 | **Skipped, owner decision.** Either the header's order changes (a visible change to the approved sheet) or a claim's Undo stays until dismissed (a change to the toast rules). See the report |
+| m9 | **Fixed, owner's choice (2026-11-08).** The sheet's order stays. A claim's toast is `sticky`: Undo stays until the owner dismisses it or another action replaces it (`toast.tsx`, `features/cards/actions.tsx`, `toast.spec.tsx`) |
 | m10 | **Fixed** (`ef2369c`). The control's `what` comes first, above Why and How to fix |
 | m11 | **Skipped.** The tallest tip measured 225 px. Letting the box grow past the available height would put its end off screen, which is worse than the scroll it has now |
 | m12 | **Fixed** (`97f5c68`). The fold runs in a layout effect, before paint. Not re-measured in the real app |

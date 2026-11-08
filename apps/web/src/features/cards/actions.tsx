@@ -65,6 +65,7 @@ export function usePerformAction() {
     showToast({
       message,
       ...(cmd ? { cmd } : {}),
+      ...(action === 'claim' ? { sticky: true } : {}),
       ...(inverse
         ? {
             onUndo: () => {

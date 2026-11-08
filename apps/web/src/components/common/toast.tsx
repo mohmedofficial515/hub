@@ -23,6 +23,8 @@ export interface ToastOptions {
   /** Shows Undo and enables the `u` shortcut. Runs once; the toast closes first. */
   onUndo?: (() => void) | undefined;
   tone?: 'success' | 'error' | undefined;
+  /** Stays until dismissed or replaced, never on a timer. For an action one stray key can take, such as Claim, which is the first Tab stop after a sheet's title (owner's choice on review m9). */
+  sticky?: boolean | undefined;
 }
 
 interface ToastData extends ToastOptions {
@@ -85,6 +87,7 @@ function ToastCard({ toast }: { toast: ToastData }) {
   const focused = useRef(false);
 
   useEffect(() => {
+    if (toast.sticky) return;
     let left = toast.onUndo || toast.cmd ? UNDO_MS : PLAIN_MS;
     const id = window.setInterval(() => {
       if (hovered.current || focused.current) return;
