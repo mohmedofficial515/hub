@@ -2,19 +2,22 @@
  * @file Restarts the throwaway API on the same database, as a restart of the owner's machine would: the gate of docs/16 §12 step 5, a scheduled run that survives a restart.
  * @description Only the stack's own API, by the pid global setup wrote, never anything on the owner's ports. The new one is recorded so the run's teardown stops it. Tests run one at a time (`workers: 1`), so nothing else is using the API while it is down.
  */
-import { spawn, spawnSync } from 'node:child_process';
-import {
-  appendFileSync,
-  closeSync,
-  existsSync,
-  openSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { API_URL } from './ports';
 import { API_FILE, API_PIDS_FILE } from './state';
+
+/** Starts `dist/main` detached with the recorded folder, variables and log, prints its pid, and exits. */
+const LAUNCHER = `
+const { spawn } = require('node:child_process');
+const { openSync } = require('node:fs');
+const record = JSON.parse(process.argv[1]);
+const log = openSync(record.log, 'a');
+const child = spawn(process.execPath, ['dist/main'], { cwd: record.cwd, env: record.env, stdio: ['ignore', log, log], detached: true, windowsHide: true });
+child.unref();
+process.stdout.write(String(child.pid));
+`;
 
 interface ApiRecord {
   pid: number;
@@ -58,17 +61,15 @@ export async function restartApi(downMs: number): Promise<void> {
   killTree(record.pid);
   await until(async () => !(await ready()), 'the API to stop', 30_000);
   await new Promise((done) => setTimeout(done, downMs));
-  const log = openSync(record.log, 'a');
-  const child = spawn(process.execPath, ['dist/main'], {
-    cwd: record.cwd,
-    env: record.env,
-    stdio: ['ignore', log, log],
+  // A launcher that exits at once leaves the API with no living parent, so Playwright's tree kill of this worker, between projects, cannot reach it.
+  const launched = spawnSync(process.execPath, ['-e', LAUNCHER, JSON.stringify(record)], {
+    encoding: 'utf8',
     windowsHide: true,
   });
-  closeSync(log);
-  if (!child.pid) throw new Error('The API did not start again');
-  appendFileSync(API_PIDS_FILE, `${child.pid}\n`);
-  writeFileSync(API_FILE, JSON.stringify({ ...record, pid: child.pid }));
+  const pid = Number(launched.stdout.trim());
+  if (!(pid > 0)) throw new Error(`The API did not start again: ${launched.stderr}`);
+  appendFileSync(API_PIDS_FILE, `${pid}\n`);
+  writeFileSync(API_FILE, JSON.stringify({ ...record, pid }));
   await until(ready, 'the API to come back');
 }
 
