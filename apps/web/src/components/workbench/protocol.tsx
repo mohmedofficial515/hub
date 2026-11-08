@@ -387,7 +387,8 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   );
 }
 
-const clock = clockOf;
+// A call, not a copy: thread.tsx and this file import each other, so `clockOf` is not defined yet while this module first runs.
+const clock = (...args: Parameters<typeof clockOf>) => clockOf(...args);
 
 /** A check's standing, in the words the section asks for: verified against a real step, or only claimed. */
 function checkStanding(c: ReportedCheck) {
