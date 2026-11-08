@@ -5,6 +5,7 @@
  */
 import {
   type AgentRunDto,
+  type ChatTurnStarted,
   type CreateRunInput,
   firstRunAt,
   isTimezone,
@@ -14,6 +15,8 @@ import {
   type QueueSettingsInput,
   type QueueStateDto,
   type ReorderRunsInput,
+  type Role,
+  type RunMode,
   runPrompt,
   WEEKDAYS,
 } from '@hub/contracts';
@@ -101,8 +104,12 @@ export class AgentQueueService {
     assertNoSecrets({ prompt: input.prompt });
     const device = await this.devices.owned(actor.userId, input.device);
     const project = await this.projects.get(actor);
-    if (!registered(input.folder, project.repoPaths, device.platform)) {
-      throw new AppException('hub.chats.folder_not_allowed');
+    // D59: the main folder and every extra one must be registered on this project; the bridge checks again.
+    const extraFolders = input.extraFolders ?? [];
+    for (const folder of [input.folder, ...extraFolders]) {
+      if (!registered(folder, project.repoPaths, device.platform)) {
+        throw new AppException('hub.chats.folder_not_allowed');
+      }
     }
     const what = await this.whatToRun(actor, input);
     const limits = await this.store.limits(actor.userId);
@@ -119,6 +126,10 @@ export class AgentQueueService {
         planStep: what.planStep,
         prompt: what.prompt,
         title: what.title.slice(0, QUEUE_LIMITS.titleChars),
+        mode: input.mode ?? 'approval',
+        extraFolders,
+        // D60: the roles chosen, else the one the card already names (a task's role, a step's role).
+        roles: input.roles ?? what.roles,
         position: (runAt ?? now).getTime(),
         runAt,
         ...(input.when.kind === 'weekly'
@@ -130,7 +141,11 @@ export class AgentQueueService {
       action: 'queue.create',
       targetType: 'agent_run',
       targetId: row.id,
-      summary: `Queued "${row.title}" in ${row.folder} (${input.when.kind})`.slice(0, 1_000),
+      summary:
+        `Queued "${row.title}" in ${[row.folder, ...extraFolders].join(', ')} (${input.when.kind}, ${row.mode})`.slice(
+          0,
+          1_000,
+        ),
     });
     await this.store.changed(actor.userId, row.id, actor.workspaceId);
     void this.dispatcher.kick(actor.userId);
@@ -146,10 +161,11 @@ export class AgentQueueService {
     planStep: number | null;
     prompt: string;
     title: string;
+    roles: Role[];
   }> {
     if (input.source === 'prompt') {
       const prompt = input.prompt ?? '';
-      return { source: 'prompt', cardKey: null, planStep: null, prompt, title: titleOf(prompt) };
+      return { source: 'prompt', cardKey: null, planStep: null, prompt, title: titleOf(prompt), roles: [] };
     }
     const card = await this.cards.full(actor, input.cardKey ?? '');
     if (input.source === 'task') {
@@ -162,10 +178,12 @@ export class AgentQueueService {
         planStep: null,
         prompt: runPrompt({ source: 'task', cardKey: card.key }),
         title: card.title,
+        roles: card.ownerRole ? [card.ownerRole as Role] : [],
       };
     }
     if (card.type !== 'plan' || card.archivedAt) throw new AppException('hub.queue.card_not_runnable');
-    const steps = (card.detail as { steps?: { title: string; taskKey?: string }[] } | null)?.steps ?? [];
+    const steps =
+      (card.detail as { steps?: { title: string; taskKey?: string; role?: Role }[] } | null)?.steps ?? [];
     const step = steps[input.planStep ?? -1];
     if (!step) throw new AppException('hub.queue.plan_step_missing');
     if (step.taskKey) {
@@ -183,6 +201,7 @@ export class AgentQueueService {
         stepTitle: step.title,
       }),
       title: step.title,
+      roles: step.role ? [step.role] : [],
     };
   }
 
@@ -210,6 +229,50 @@ export class AgentQueueService {
     await this.record(actor, run, 'queue.resume', `Resumed "${run.title}"`);
     void this.dispatcher.kick(actor.userId);
     return this.one(actor, id);
+  }
+
+  /** The mode of a run that has not started (D58). The owner's press only: no agent tool reaches this. */
+  async setMode(actor: MemberActor, id: string, mode: RunMode): Promise<AgentRunDto> {
+    const run = await this.owned(actor, id);
+    if (run.state !== 'queued') throw new AppException('hub.queue.wrong_state');
+    if (run.mode !== mode) {
+      await this.patch(actor, run, { mode });
+      await this.record(actor, run, 'queue.mode', `"${run.title}" runs ${mode}`);
+    }
+    return this.one(actor, id);
+  }
+
+  /**
+   * Run it later (D58): a pending item of an automatic run starts a new chat on its folder, in Execute and in the panel's own mode, so D41 asks the owner as usual and the bridge's window applies. It never runs by itself.
+   */
+  async runPending(actor: MemberActor, id: string, decisionId: string): Promise<ChatTurnStarted> {
+    const run = await this.owned(actor, id);
+    if (OPEN_STATES.includes(run.state)) throw new AppException('hub.queue.wrong_state');
+    const item = (await this.one(actor, id)).decisions.find(
+      (decision) => decision.id === decisionId && decision.kind === 'skipped',
+    );
+    if (!item) throw new AppException('hub.queue.run_not_found');
+    const why = item.why ? `\nWhy it was needed: ${item.why}` : '';
+    const started = await this.chats.startForQueue(actor, {
+      device: run.deviceId,
+      folder: item.folder,
+      title: `${run.title}: ${item.command}`.slice(0, 200),
+      prompt: `An automatic Hub run ("${run.title}") skipped this command because it needs the owner's approval:\n\n${item.command}${why}\n\nRun exactly this command in this folder now. Hub will ask the owner to approve it first. Do nothing else.`,
+      ...(run.cardKey ? { card: run.cardKey } : {}),
+    });
+    const followups = { ...((run.followups ?? {}) as Record<string, string>), [decisionId]: started.chatId };
+    await this.store.tx.agentRun.update({
+      where: { id: run.id, workspaceId: actor.workspaceId },
+      data: { followups },
+    });
+    await this.record(
+      actor,
+      run,
+      'queue.run_pending',
+      `Ran a pending item of "${run.title}": ${item.command}`,
+    );
+    await this.store.changed(actor.userId, run.id, actor.workspaceId);
+    return started;
   }
 
   /** Cancel ends a weekly repeat with this run. A running one is stopped first, as Stop in the panel does. */

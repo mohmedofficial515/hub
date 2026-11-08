@@ -212,7 +212,8 @@ export class TurnRecorder {
       raw.kind === 'approval.requested' ||
       raw.kind === 'approval.resolved' ||
       raw.kind === 'question.asked' ||
-      raw.kind === 'question.resolved'
+      raw.kind === 'question.resolved' ||
+      raw.kind === 'auto.decision'
     ) {
       await this.nudge('approval');
     }
@@ -373,6 +374,46 @@ export class TurnRecorder {
           data: { plan: text, ...(structured ? { structuredPlan: structured } : {}) },
         });
         return { ...event, plan: text };
+      }
+      case 'auto.decision': {
+        // An automatic queue run (D58) decided with nobody asked: one closed row, so the chat and the run's summary both show it, and nothing waits.
+        const input = capJson(redactDeep(event.input), CHAT_LIMITS.toolInputChars);
+        const command = capText(redactSecrets(event.command), CHAT_LIMITS.commandChars).text;
+        const question = event.decision === 'answered';
+        await this.tx.chatApproval.create({
+          data: {
+            id: event.decisionId,
+            workspaceId,
+            chatId,
+            messageId,
+            toolUseId: event.toolUseId,
+            toolName: event.toolName,
+            command,
+            category: event.category,
+            input: input as object,
+            effect: event.effect,
+            kind: question ? 'question' : 'approval',
+            ...(event.questions ? { questions: redactDeep(event.questions) as object } : {}),
+            ...(event.answers ? { answers: redactDeep(event.answers) as object } : {}),
+            status: question ? 'auto_answered' : 'skipped',
+            answeredAt: now,
+            expiresAt: now,
+          },
+        });
+        await this.deps.audit.record(
+          { kind: 'system', userId: null, via: 'adapter', workspaceId, roles: [] },
+          {
+            action: question ? 'queue.auto_answered' : 'queue.skipped',
+            targetType: 'chat_approval',
+            targetId: event.decisionId,
+            summary:
+              `${question ? 'Answered for the owner' : 'Skipped for the owner'} on ${this.turn.deviceName}: ${command}`.slice(
+                0,
+                AUDIT_SUMMARY_CHARS,
+              ),
+          },
+        );
+        return { ...event, input, command };
       }
       case 'question.asked': {
         const questions = redactDeep(event.questions) as typeof event.questions;

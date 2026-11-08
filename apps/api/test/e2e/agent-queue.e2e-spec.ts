@@ -477,4 +477,171 @@ describe('the agent queue', () => {
       .expect(403);
     await api().get(`/api/v1${base()}`).set('authorization', `Bearer ${token}`).expect(200);
   });
+
+  // ── D58 to D60 ────────────────────────────────────────────────────────────────────────────────
+
+  interface Decision {
+    id: string;
+    kind: string;
+    command: string;
+    category: string;
+    folder: string;
+    why: string | null;
+    answers: { question: string; answer: string }[];
+    followChatId: string | null;
+  }
+
+  it('automatic refuses a push, records it as a pending item with its folder and reason, and never waits (D58)', async () => {
+    const run = await addRun({ source: 'prompt', prompt: 'Ship the fix', mode: 'automatic' });
+    expect((run as Run & { mode: string }).mode).toBe('automatic');
+    await until(() => device.turns().length === 1);
+    const turn = device.turns()[0]!;
+    expect(turn.args['runMode']).toBe('automatic');
+    expect(turn.args['untimed']).toBeUndefined();
+    expect(String(turn.args['prompt'])).toContain('Run mode: automatic');
+    device.say(turn.id, { kind: 'tool.started', toolUseId: 'toolu_q', name: 'AskUserQuestion' });
+    device.say(turn.id, {
+      kind: 'auto.decision',
+      decisionId: '44444444-4444-4444-8444-444444444444',
+      toolUseId: 'toolu_q',
+      decision: 'answered',
+      toolName: 'question',
+      command: 'Which store?',
+      category: 'other',
+      input: {},
+      effect: '',
+      questions: [
+        { text: 'Which store?', multiSelect: false, options: [{ label: 'Postgres (Recommended)' }] },
+      ],
+      answers: { 'Which store?': 'Postgres (Recommended)' },
+    });
+    device.say(turn.id, { kind: 'tool.started', toolUseId: 'toolu_push', name: 'Bash' });
+    device.say(turn.id, {
+      kind: 'auto.decision',
+      decisionId: '55555555-5555-4555-8555-555555555555',
+      toolUseId: 'toolu_push',
+      decision: 'skipped',
+      toolName: 'Bash',
+      command: 'git push origin main',
+      category: 'push',
+      input: { command: 'git push origin main', description: 'Publish the fix' },
+      effect: 'Pushes to a remote',
+    });
+    // Nothing waits on the owner: the run is still running, not waiting.
+    await until(
+      async () =>
+        (await prisma().chatApproval.count({ where: { chatId: turn.args['chatId'] as string } })) === 2,
+    );
+    expect((await runOf(run.id)).state).toBe('running');
+    device.say(turn.id, { kind: 'text.delta', text: 'Fixed it. The push waits for the owner.' });
+    device.end(turn.id);
+    const done = await until(async () => {
+      const now = (await runOf(run.id)) as Run & { decisions: Decision[] };
+      return now.state === 'done' ? now : null;
+    });
+    expect(done.decisions.map((decision) => decision.kind)).toEqual(['answered', 'skipped']);
+    expect(done.decisions[0]!.answers).toEqual([
+      { question: 'Which store?', answer: 'Postgres (Recommended)' },
+    ]);
+    const pending = done.decisions[1]!;
+    expect(pending).toMatchObject({
+      command: 'git push origin main',
+      category: 'push',
+      folder: FOLDER,
+      why: 'Publish the fix',
+      followChatId: null,
+    });
+    const notices = await prisma().notification.findMany({ where: { workspaceId, userId } });
+    expect(
+      notices.some((item) => (item.data as { i18n?: { key?: string } }).i18n?.key === 'run_waiting'),
+    ).toBe(false);
+
+    // Run it later: a new chat on that folder, in the panel's own mode, so D41 still asks.
+    const later = await browser.post(`${base()}/runs/${run.id}/pending/${pending.id}/run`).expect(200);
+    await until(() => device.turns().length === 2);
+    const follow = device.turns()[1]!;
+    expect(follow.args['folder']).toBe(FOLDER);
+    expect(follow.args['runMode']).toBeUndefined();
+    expect(follow.args['untimed']).toBeUndefined();
+    expect(String(follow.args['prompt'])).toContain('git push origin main');
+    expect(later.body.data.chatId).toBe(follow.args['chatId']);
+    const after = (await runOf(run.id)) as Run & { decisions: Decision[] };
+    expect(after.decisions[1]!.followChatId).toBe(follow.args['chatId']);
+    // An answered question is not a pending item.
+    await browser.post(`${base()}/runs/${run.id}/pending/${done.decisions[0]!.id}/run`).expect(404);
+    device.end(follow.id);
+  });
+
+  it('With my approval waits with no time limit for a queued run, and the mode of a run not started can change (D58)', async () => {
+    await browser.post(`${base()}/pause`, { paused: true }).expect(200);
+    const run = await addRun({ source: 'prompt', prompt: 'Careful work', mode: 'automatic' });
+    const changed = await browser.post(`${base()}/runs/${run.id}/mode`, { mode: 'approval' }).expect(200);
+    expect(changed.body.data.mode).toBe('approval');
+    await browser.post(`${base()}/pause`, { paused: false }).expect(200);
+    await until(() => device.turns().length === 1);
+    const turn = device.turns()[0]!;
+    expect(turn.args['runMode']).toBe('approval');
+    expect(turn.args['untimed']).toBe(true);
+    await browser.post(`${base()}/runs/${run.id}/mode`, { mode: 'automatic' }).expect(409);
+    device.end(turn.id);
+  });
+
+  it('a run with extra folders holds all of them, and a folder not on the project is refused (D59)', async () => {
+    await settings({ maxConcurrent: 3 });
+    await addRun({ source: 'prompt', prompt: 'Across both', extraFolders: [OTHER] });
+    await until(() => device.turns().length === 1);
+    expect(device.turns()[0]!.args['addDirs']).toEqual([OTHER]);
+    expect(String(device.turns()[0]!.args['prompt'])).toContain(`Also work in: ${OTHER}`);
+    const blocked = await addRun({ source: 'prompt', prompt: 'In the extra folder', folder: OTHER });
+    await tick();
+    expect(device.turns()).toHaveLength(1);
+    expect((await runOf(blocked.id)).hold).toBe('folder_busy');
+    await browser
+      .post(`${base()}/runs`, {
+        source: 'prompt',
+        prompt: 'x',
+        device: deviceId,
+        folder: FOLDER,
+        extraFolders: ['D:/elsewhere'],
+        when: { kind: 'now' },
+      })
+      .expect(422);
+    await browser
+      .post(`${base()}/runs`, {
+        source: 'prompt',
+        prompt: 'x',
+        device: deviceId,
+        folder: FOLDER,
+        extraFolders: [FOLDER],
+        when: { kind: 'now' },
+      })
+      .expect(400);
+    await browser.post(`${base()}/runs/${blocked.id}/cancel`).expect(200);
+    device.end(device.turns()[0]!.id);
+  });
+
+  it('a run carries each of its roles into the prompt, and a task brings its own role by default (D60)', async () => {
+    await settings({ maxConcurrent: 2 });
+    const run = await addRun({ source: 'prompt', prompt: 'Build the page', roles: ['backend', 'frontend'] });
+    expect((run as Run & { roles: string[] }).roles).toEqual(['backend', 'frontend']);
+    await until(() => device.turns().length === 1);
+    const prompt = String(device.turns()[0]!.args['prompt']);
+    expect(prompt).toContain('Role: Backend (backend).');
+    expect(prompt).toContain('Role: Frontend (frontend).');
+    device.end(device.turns()[0]!.id);
+
+    const created = await browser
+      .post(`/workspaces/${slug}/cards`, {
+        type: 'task',
+        title: 'QA pass',
+        ownerRole: 'qa',
+        detail: { specialty: 'qa' },
+      })
+      .expect(201);
+    const task = await addRun({ source: 'task', cardKey: created.body.data.key, folder: OTHER });
+    expect((task as Run & { roles: string[] }).roles).toEqual(['qa']);
+    await until(() => device.turns().length === 2);
+    expect(String(device.turns()[1]!.args['prompt'])).toContain('Role: QA (qa).');
+    device.end(device.turns()[1]!.id);
+  });
 });

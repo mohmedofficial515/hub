@@ -1,4 +1,4 @@
-export { ChatsService } from './application/chats.service';
+export { ChatsService, type QueueTurn } from './application/chats.service';
 export { DocDraftsService } from './application/doc-drafts.service';
 export {
   ChatTurnEvents,

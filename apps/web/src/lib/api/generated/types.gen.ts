@@ -5567,7 +5567,7 @@ export type ChatFullDto = {
             category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
             input: unknown;
             effect: string;
-            status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped';
+            status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped' | 'skipped';
             draftId: string | null;
             expiresAt: string;
             answeredAt: string | null;
@@ -5586,7 +5586,7 @@ export type ChatFullDto = {
                     description?: string;
                 }>;
             }>;
-            status: 'pending' | 'answered' | 'declined' | 'timed_out' | 'stopped';
+            status: 'pending' | 'answered' | 'declined' | 'timed_out' | 'stopped' | 'auto_answered';
             answers: {
                 [key: string]: string;
             } | null;
@@ -5873,6 +5873,23 @@ export type QueueDto = {
         deviceId: string;
         deviceName: string;
         folder: string;
+        extraFolders: Array<string>;
+        mode: 'approval' | 'automatic';
+        roles: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+        decisions: Array<{
+            id: string;
+            kind: 'skipped' | 'answered';
+            command: string;
+            category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
+            folder: string;
+            why: string | null;
+            answers: Array<{
+                question: string;
+                answer: string;
+            }>;
+            at: string;
+            followChatId: string | null;
+        }>;
         state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
         stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
         hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
@@ -5925,6 +5942,9 @@ export type CreateRunDto = {
         day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
         time: string;
     };
+    mode?: 'approval' | 'automatic';
+    extraFolders?: Array<string>;
+    roles?: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
 };
 
 export type AgentRunDto = {
@@ -5937,6 +5957,23 @@ export type AgentRunDto = {
     deviceId: string;
     deviceName: string;
     folder: string;
+    extraFolders: Array<string>;
+    mode: 'approval' | 'automatic';
+    roles: Array<'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa'>;
+    decisions: Array<{
+        id: string;
+        kind: 'skipped' | 'answered';
+        command: string;
+        category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
+        folder: string;
+        why: string | null;
+        answers: Array<{
+            question: string;
+            answer: string;
+        }>;
+        at: string;
+        followChatId: string | null;
+    }>;
     state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
     stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
     hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
@@ -5968,6 +6005,10 @@ export type AgentRunDto = {
     createdAt: string;
     startedAt: string | null;
     endedAt: string | null;
+};
+
+export type SetRunModeDto = {
+    mode: 'approval' | 'automatic';
 };
 
 export type ReorderRunsDto = {
@@ -9116,6 +9157,37 @@ export type AgentQueueControllerCancelResponses = {
 };
 
 export type AgentQueueControllerCancelResponse = AgentQueueControllerCancelResponses[keyof AgentQueueControllerCancelResponses];
+
+export type AgentQueueControllerSetModeData = {
+    body: SetRunModeDto;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/mode';
+};
+
+export type AgentQueueControllerSetModeResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerSetModeResponse = AgentQueueControllerSetModeResponses[keyof AgentQueueControllerSetModeResponses];
+
+export type AgentQueueControllerRunPendingData = {
+    body?: never;
+    path: {
+        id: string;
+        decisionId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/pending/{decisionId}/run';
+};
+
+export type AgentQueueControllerRunPendingResponses = {
+    200: ChatTurnStartedDto;
+};
+
+export type AgentQueueControllerRunPendingResponse = AgentQueueControllerRunPendingResponses[keyof AgentQueueControllerRunPendingResponses];
 
 export type AgentQueueControllerReorderData = {
     body: ReorderRunsDto;

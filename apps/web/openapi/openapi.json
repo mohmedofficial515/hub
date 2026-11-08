@@ -7765,6 +7765,86 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/queue/runs/{id}/mode": {
+      "post": {
+        "operationId": "AgentQueueController_setMode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRunModeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "With my approval or Automatic, for a run that has not started (D58). Automatic skips what needs approval and keeps it as a pending item",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/queue/runs/{id}/pending/{decisionId}/run": {
+      "post": {
+        "operationId": "AgentQueueController_runPending",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "decisionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatTurnStartedDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Run a pending item of a finished automatic run: a new chat on its folder, where the command still asks for approval (D41, D58)",
+        "tags": [
+          "queue"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/queue/order": {
       "post": {
         "operationId": "AgentQueueController_reorder",
@@ -34265,7 +34345,8 @@
                           "allowed",
                           "denied",
                           "timed_out",
-                          "stopped"
+                          "stopped",
+                          "skipped"
                         ]
                       },
                       "draftId": {
@@ -34365,7 +34446,8 @@
                           "answered",
                           "declined",
                           "timed_out",
-                          "stopped"
+                          "stopped",
+                          "auto_answered"
                         ]
                       },
                       "answers": {
@@ -35848,6 +35930,115 @@
                 "folder": {
                   "type": "string"
                 },
+                "extraFolders": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "approval",
+                    "automatic"
+                  ]
+                },
+                "roles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "pm",
+                      "accountant",
+                      "backend",
+                      "frontend",
+                      "designer",
+                      "qa"
+                    ]
+                  }
+                },
+                "decisions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "skipped",
+                          "answered"
+                        ]
+                      },
+                      "command": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string",
+                        "enum": [
+                          "delete",
+                          "move",
+                          "commit",
+                          "push",
+                          "deploy",
+                          "branch",
+                          "worktree",
+                          "docker",
+                          "hub_project",
+                          "hub_doc",
+                          "hub_sensitive",
+                          "other"
+                        ]
+                      },
+                      "folder": {
+                        "type": "string"
+                      },
+                      "why": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "answers": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "question": {
+                              "type": "string"
+                            },
+                            "answer": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "question",
+                            "answer"
+                          ]
+                        }
+                      },
+                      "at": {
+                        "type": "string"
+                      },
+                      "followChatId": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "command",
+                      "category",
+                      "folder",
+                      "why",
+                      "answers",
+                      "at",
+                      "followChatId"
+                    ]
+                  }
+                },
                 "state": {
                   "type": "string",
                   "enum": [
@@ -36051,6 +36242,10 @@
                 "deviceId",
                 "deviceName",
                 "folder",
+                "extraFolders",
+                "mode",
+                "roles",
+                "decisions",
                 "state",
                 "stored",
                 "hold",
@@ -36185,6 +36380,38 @@
                 ]
               }
             ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "automatic"
+            ]
+          },
+          "extraFolders": {
+            "maxItems": 8,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            }
+          },
+          "roles": {
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "pm",
+                "accountant",
+                "backend",
+                "frontend",
+                "designer",
+                "qa"
+              ]
+            }
           }
         },
         "required": [
@@ -36232,6 +36459,115 @@
           },
           "folder": {
             "type": "string"
+          },
+          "extraFolders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "automatic"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "pm",
+                "accountant",
+                "backend",
+                "frontend",
+                "designer",
+                "qa"
+              ]
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "skipped",
+                    "answered"
+                  ]
+                },
+                "command": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "delete",
+                    "move",
+                    "commit",
+                    "push",
+                    "deploy",
+                    "branch",
+                    "worktree",
+                    "docker",
+                    "hub_project",
+                    "hub_doc",
+                    "hub_sensitive",
+                    "other"
+                  ]
+                },
+                "folder": {
+                  "type": "string"
+                },
+                "why": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "answers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "question": {
+                        "type": "string"
+                      },
+                      "answer": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "question",
+                      "answer"
+                    ]
+                  }
+                },
+                "at": {
+                  "type": "string"
+                },
+                "followChatId": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "command",
+                "category",
+                "folder",
+                "why",
+                "answers",
+                "at",
+                "followChatId"
+              ]
+            }
           },
           "state": {
             "type": "string",
@@ -36436,6 +36772,10 @@
           "deviceId",
           "deviceName",
           "folder",
+          "extraFolders",
+          "mode",
+          "roles",
+          "decisions",
           "state",
           "stored",
           "hold",
@@ -36453,6 +36793,21 @@
           "createdAt",
           "startedAt",
           "endedAt"
+        ]
+      },
+      "SetRunModeDto": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "approval",
+              "automatic"
+            ]
+          }
+        },
+        "required": [
+          "mode"
         ]
       },
       "ReorderRunsDto": {

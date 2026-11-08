@@ -11,6 +11,7 @@ import {
   type MemberActor,
   nextWeekly,
   QUEUE_LIMITS,
+  type Role,
   WEEKDAYS,
   type WorkReport,
 } from '@hub/contracts';
@@ -26,12 +27,20 @@ import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { runUnscoped } from '@/infra/prisma/workspace-scope';
 import { RealtimePublisher } from '@/infra/redis/redis.module';
 import { AuditService } from '@/modules/audit';
-import { ChatsService, ChatTurnEvents, type TurnEndedFact, type TurnWaitingFact } from '@/modules/chats';
+import {
+  ChatsService,
+  ChatTurnEvents,
+  type QueueTurn,
+  type TurnEndedFact,
+  type TurnWaitingFact,
+} from '@/modules/chats';
 import { BridgeHub } from '@/modules/devices';
 import { ActorService } from '@/modules/identity';
 import { NotificationWriter } from '@/modules/notifications';
+import { SettingsService } from '@/modules/workspaces';
 
 import { holdFor, isDue } from '../domain/queue-rules';
+import { promptRoles } from '../domain/run-context';
 import { AgentQueueStore, type RunRow } from './queue-store';
 
 const TICK_MS = 15_000;
@@ -55,6 +64,7 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
     private readonly notices: NotificationWriter,
     private readonly realtime: RealtimePublisher,
     private readonly audit: AuditService,
+    private readonly settings: SettingsService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -185,11 +195,12 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
     if (run.repeatDay && run.repeatTime) await this.nextOccurrence(run);
     try {
       const actor = await this.actorFor(run);
+      const turn = await this.queueTurn(run);
       const started = run.chatId
-        ? await this.chats.send(actor, run.chatId, {
-            text: run.prompt,
-            context: { page: 'queue', ...(run.cardKey ? { card: run.cardKey } : {}) },
-            mode: 'execute',
+        ? await this.chats.sendForQueue(actor, run.chatId, {
+            prompt: run.prompt,
+            ...(run.cardKey ? { card: run.cardKey } : {}),
+            run: turn,
           })
         : await this.chats.startForQueue(actor, {
             device: run.deviceId,
@@ -197,6 +208,7 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
             title: run.title,
             prompt: run.prompt,
             ...(run.cardKey ? { card: run.cardKey } : {}),
+            run: turn,
           });
       await this.store.tx.agentRun.update({
         where: { id: run.id, userId: run.userId },
@@ -228,6 +240,17 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
     await this.store.changed(run.userId, run.id, run.workspaceId);
   }
 
+  /** The run's mode, extra folders and roles (D58 to D60), with each role's reading path as the project holds it now. */
+  private async queueTurn(run: RunRow): Promise<QueueTurn> {
+    const roles = run.roles as Role[];
+    const paths = roles.length > 0 ? await this.settings.value(run.workspaceId, 'onboarding.paths') : {};
+    return {
+      mode: run.mode === 'automatic' ? 'automatic' : 'approval',
+      extraFolders: run.extraFolders,
+      roles: promptRoles(roles, paths),
+    };
+  }
+
   /** A weekly run leaves next week's copy as it starts. Weeks missed while the machine was off are one run, not several. */
   private async nextOccurrence(run: RunRow): Promise<void> {
     const limits = await this.store.limits(run.userId);
@@ -240,6 +263,9 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
         userId: run.userId,
         deviceId: run.deviceId,
         folder: run.folder,
+        extraFolders: run.extraFolders,
+        mode: run.mode,
+        roles: run.roles,
         source: run.source,
         cardKey: run.cardKey,
         planStep: run.planStep,

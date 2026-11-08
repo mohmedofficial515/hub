@@ -26,6 +26,7 @@ import {
   engineStatusSchema,
   historyPrefix,
   type MemberActor,
+  type PromptRole,
   type PromptTemplateDto,
   type PromptTemplateInput,
   redactSecrets,
@@ -66,6 +67,13 @@ const VSCODE_TIMEOUT_MS = 30_000;
 const LIST_LIMIT = 50;
 const MESSAGE_LIMIT = 500;
 const AUDIT_SUMMARY_CHARS = 1_000;
+
+/** What a queued run adds to its turn (docs/16 D58 to D60). */
+export interface QueueTurn {
+  readonly mode: 'approval' | 'automatic';
+  readonly extraFolders: readonly string[];
+  readonly roles: readonly PromptRole[];
+}
 
 interface ChatRow {
   id: string;
@@ -423,10 +431,11 @@ export class ChatsService implements OnApplicationBootstrap {
 
   /**
    * A queued run (docs/16 §9): a new chat in Execute, owned by the member who queued it, and its first turn, through the same path as the panel's Send. So it carries the same D41 approvals, the same recorder, and the same proof for `report_work` (D52).
+   * `run` carries the run's mode (D58), its extra folders (D59) and its roles (D60). They reach the bridge and the engine only from here, never from a panel request or an agent tool.
    */
   async startForQueue(
     actor: MemberActor,
-    input: { device: string; folder: string; title: string; prompt: string; card?: string },
+    input: { device: string; folder: string; title: string; prompt: string; card?: string; run?: QueueTurn },
   ): Promise<ChatTurnStarted> {
     assertNoSecrets({ text: input.prompt });
     const chat = await this.create(actor, {
@@ -440,9 +449,25 @@ export class ChatsService implements OnApplicationBootstrap {
       chat.id,
       input.prompt,
       { page: 'queue', ...(input.card ? { card: input.card } : {}) },
-      {
-        mode: 'execute',
-      },
+      { mode: 'execute' },
+      input.run,
+    );
+  }
+
+  /** A paused run resumed in its own chat (docs/16 §9), with the same mode, folders and roles it started with. */
+  async sendForQueue(
+    actor: MemberActor,
+    id: string,
+    input: { prompt: string; card?: string; run?: QueueTurn },
+  ): Promise<ChatTurnStarted> {
+    assertNoSecrets({ text: input.prompt });
+    return this.startTurn(
+      actor,
+      id,
+      input.prompt,
+      { page: 'queue', ...(input.card ? { card: input.card } : {}) },
+      { mode: 'execute' },
+      input.run,
     );
   }
 
@@ -452,10 +477,19 @@ export class ChatsService implements OnApplicationBootstrap {
     text: string,
     context: SendChatMessageInput['context'] | null,
     options: Pick<SendChatMessageInput, 'mode' | 'model' | 'effort'>,
+    run?: QueueTurn,
   ): Promise<ChatTurnStarted> {
     const chat = await this.usable(actor, id);
     if (!this.hub.isOnline(chat.deviceId)) throw new AppException('hub.devices.offline');
     const project = await this.projects.get(actor);
+    const addDirs = run?.extraFolders ?? [];
+    const platform =
+      addDirs.length > 0 ? (await this.devices.owned(actor.userId, chat.deviceId)).platform : '';
+    for (const folder of addDirs) {
+      if (!folderIsRegistered(folder, project.repoPaths, platform)) {
+        throw new AppException('hub.chats.folder_not_allowed');
+      }
+    }
     const { workspaceId } = actor;
     const mode = (options.mode ?? chat.mode) as ChatMode;
     const model = options.model ?? chat.model;
@@ -496,10 +530,19 @@ export class ChatsService implements OnApplicationBootstrap {
 
     // A branch has words from another chat and no session: its first turn reads them.
     const history = chat.sessionId || !chat.parentChatId ? '' : historyPrefix(ids.earlier);
-    const prompt = turnPrompt(contextPrefix({ project: project.slug, ...(context ?? {}) }), history, text);
+    const prefix = contextPrefix({
+      project: project.slug,
+      ...(context ?? {}),
+      ...(run
+        ? { runMode: run.mode, extraFolders: addDirs, ...(run.roles.length > 0 ? { roles: run.roles } : {}) }
+        : {}),
+    });
+    const prompt = turnPrompt(prefix, history, text);
     this.run(actor, chat, ids.assistant, {
       chatId: id,
       folder: chat.folder,
+      ...(addDirs.length > 0 ? { addDirs } : {}),
+      ...(run ? { runMode: run.mode, ...(run.mode === 'approval' ? { untimed: true } : {}) } : {}),
       prompt,
       mode,
       ...(model ? { model } : {}),

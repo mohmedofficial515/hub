@@ -3,6 +3,7 @@
  */
 import {
   agentRunSchema,
+  chatTurnStartedSchema,
   createRunSchema,
   type MemberActor,
   queuePauseSchema,
@@ -11,6 +12,7 @@ import {
   queueSettingsInputSchema,
   queueStateSchema,
   reorderRunsSchema,
+  setRunModeSchema,
 } from '@hub/contracts';
 import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -29,6 +31,8 @@ class QueueRunsQueryDto extends createZodDto(queueRunsQuerySchema) {}
 class AgentRunDto extends createZodDto(agentRunSchema) {}
 class QueueDto extends createZodDto(queueSchema) {}
 class QueueStateDto extends createZodDto(queueStateSchema) {}
+class SetRunModeDto extends createZodDto(setRunModeSchema) {}
+class ChatTurnStartedDto extends createZodDto(chatTurnStartedSchema) {}
 
 @ApiTags('queue')
 @Controller('workspaces/:ws/queue')
@@ -85,6 +89,40 @@ export class AgentQueueController {
   @ApiOkResponse({ type: AgentRunDto })
   cancel(@Actor() actor: MemberActor, @Param('id') id: string): Promise<AgentRunDto> {
     return this.queue.cancel(actor, id);
+  }
+
+  @Post('runs/:id/mode')
+  @HttpCode(200)
+  @Permissions('queue.manage')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      'With my approval or Automatic, for a run that has not started (D58). Automatic skips what needs approval and keeps it as a pending item',
+  })
+  @ApiOkResponse({ type: AgentRunDto })
+  setMode(
+    @Actor() actor: MemberActor,
+    @Param('id') id: string,
+    @Body() body: SetRunModeDto,
+  ): Promise<AgentRunDto> {
+    return this.queue.setMode(actor, id, body.mode);
+  }
+
+  @Post('runs/:id/pending/:decisionId/run')
+  @HttpCode(200)
+  @Permissions('queue.manage')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      'Run a pending item of a finished automatic run: a new chat on its folder, where the command still asks for approval (D41, D58)',
+  })
+  @ApiOkResponse({ type: ChatTurnStartedDto })
+  runPending(
+    @Actor() actor: MemberActor,
+    @Param('id') id: string,
+    @Param('decisionId') decisionId: string,
+  ): Promise<ChatTurnStartedDto> {
+    return this.queue.runPending(actor, id, decisionId);
   }
 
   @Post('order')

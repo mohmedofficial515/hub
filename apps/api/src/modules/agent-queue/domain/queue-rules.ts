@@ -14,6 +14,8 @@ export interface RunFacts {
   readonly id: string;
   readonly deviceId: string;
   readonly folder: string;
+  /** D59: every folder of a run is held, the main one and these. */
+  readonly extraFolders?: readonly string[] | undefined;
   readonly state: string;
   readonly runAt: Date | null;
   readonly pausedAt: Date | null;
@@ -36,6 +38,12 @@ export const isDue = (run: RunFacts, now: Date): boolean =>
 /** One checkout, whatever the spelling: slashes and case do not make two folders. */
 export const folderKey = (deviceId: string, folder: string): string =>
   `${deviceId}|${folder.replaceAll('\\', '/').replace(/\/+$/, '').toLowerCase()}`;
+
+/** Every folder a run holds: its main folder and its extra ones (D59). */
+export const runFolders = (run: {
+  folder: string;
+  extraFolders?: readonly string[] | undefined;
+}): string[] => [run.folder, ...(run.extraFolders ?? [])];
 
 export interface QueueGate {
   readonly now: Date;
@@ -60,7 +68,9 @@ export function holdFor(run: RunFacts, gate: QueueGate): HoldReason | null {
   if (inQuietHours(gate.now, gate.quietHours, gate.timezone)) return 'quiet_hours';
   if (gate.usedToday >= gate.perDay) return 'daily_limit';
   if (gate.running >= gate.maxConcurrent) return 'concurrency';
-  if (gate.busyFolders.has(folderKey(run.deviceId, run.folder))) return 'folder_busy';
+  if (runFolders(run).some((folder) => gate.busyFolders.has(folderKey(run.deviceId, folder)))) {
+    return 'folder_busy';
+  }
   if (!gate.online(run.deviceId)) return 'device_offline';
   if (gate.signedOut(run.deviceId)) return 'signed_out';
   if (gate.engineUnavailable(run.deviceId)) return 'engine_unavailable';

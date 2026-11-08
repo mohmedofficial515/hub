@@ -11,6 +11,8 @@ import {
   QUEUE_DEFAULTS,
   type QueueStateDto,
   type QuietHours,
+  type Role,
+  type RunDecision,
   type RunSource,
   type RunState,
   startOfLocalDay,
@@ -26,7 +28,8 @@ import { type PrismaTransactionalAdapter } from '@/infra/prisma/prisma.module';
 import { RealtimePublisher } from '@/infra/redis/redis.module';
 import { BridgeHub } from '@/modules/devices';
 
-import { folderKey, holdFor, isDue, type QueueGate, viewStateOf } from '../domain/queue-rules';
+import { folderKey, holdFor, isDue, type QueueGate, runFolders, viewStateOf } from '../domain/queue-rules';
+import { decisionFolder, whyOf } from '../domain/run-context';
 
 export interface RunRow {
   id: string;
@@ -34,6 +37,10 @@ export interface RunRow {
   userId: string;
   deviceId: string;
   folder: string;
+  extraFolders: string[];
+  mode: string;
+  roles: string[];
+  followups: unknown;
   source: string;
   cardKey: string | null;
   planStep: number | null;
@@ -114,11 +121,12 @@ export class AgentQueueStore {
       WHERE m.status = 'running' AND c.user_id = ${userId}::uuid`;
     const runs = await this.tx.agentRun.findMany({
       where: { userId, state: 'running' },
-      select: { deviceId: true, folder: true },
+      select: { deviceId: true, folder: true, extraFolders: true },
     });
+    // D59: a running run holds every one of its folders.
     return new Set([
       ...turns.map((turn) => folderKey(turn.device_id, turn.folder)),
-      ...runs.map((run) => folderKey(run.deviceId, run.folder)),
+      ...runs.flatMap((run) => runFolders(run).map((folder) => folderKey(run.deviceId, folder))),
     ]);
   }
 
@@ -169,7 +177,8 @@ export class AgentQueueStore {
   async toDtos(rows: readonly RunRow[], gate: QueueGate): Promise<AgentRunDto[]> {
     const deviceIds = [...new Set(rows.map((row) => row.deviceId))];
     const chatIds = rows.filter((row) => row.state === 'running' && row.chatId).map((row) => row.chatId!);
-    const [devices, waits] = await Promise.all([
+    const autoChats = rows.filter((row) => row.mode === 'automatic' && row.chatId).map((row) => row.chatId!);
+    const [devices, waits, autos] = await Promise.all([
       deviceIds.length === 0
         ? []
         : this.tx.device.findMany({ where: { id: { in: deviceIds } }, select: { id: true, name: true } }),
@@ -181,12 +190,54 @@ export class AgentQueueStore {
             SELECT id::text, chat_id::text, kind, command, category FROM chat_approvals
             WHERE status = 'pending' AND chat_id = ANY(${chatIds}::uuid[])
             ORDER BY created_at ASC`,
+      autoChats.length === 0
+        ? []
+        : this.tx.chatApproval.findMany({
+            where: {
+              workspaceId: { in: [...new Set(rows.map((row) => row.workspaceId))] },
+              chatId: { in: autoChats },
+              status: { in: ['skipped', 'auto_answered'] },
+            },
+            orderBy: { createdAt: 'asc' },
+            select: {
+              id: true,
+              chatId: true,
+              kind: true,
+              command: true,
+              category: true,
+              input: true,
+              questions: true,
+              answers: true,
+              createdAt: true,
+            },
+          }),
     ]);
+    const decided = new Map<string, (typeof autos)[number][]>();
+    for (const row of autos) decided.set(row.chatId, [...(decided.get(row.chatId) ?? []), row]);
     const names = new Map(devices.map((device) => [device.id, device.name]));
     const waiting = new Map<string, (typeof waits)[number]>();
     for (const wait of waits) if (!waiting.has(wait.chat_id)) waiting.set(wait.chat_id, wait);
     return rows.map((row) => {
       const wait = row.chatId ? waiting.get(row.chatId) : undefined;
+      const followups = (row.followups ?? {}) as Record<string, string>;
+      const decisions: RunDecision[] = (row.chatId ? (decided.get(row.chatId) ?? []) : []).map((item) => {
+        const questions = (item.questions ?? []) as { text: string }[];
+        const answers = (item.answers ?? {}) as Record<string, string>;
+        return {
+          id: item.id,
+          kind: item.kind === 'question' ? 'answered' : 'skipped',
+          command: item.command,
+          category: item.category as RunDecision['category'],
+          folder: decisionFolder(item.command, row.folder, row.extraFolders),
+          why: whyOf(item.input),
+          answers: questions.map((question) => ({
+            question: question.text,
+            answer: answers[question.text] ?? '',
+          })),
+          at: item.createdAt.toISOString(),
+          followChatId: followups[item.id] ?? null,
+        };
+      });
       return {
         id: row.id,
         source: row.source as RunSource,
@@ -197,6 +248,10 @@ export class AgentQueueStore {
         deviceId: row.deviceId,
         deviceName: names.get(row.deviceId) ?? '',
         folder: row.folder,
+        extraFolders: row.extraFolders,
+        mode: row.mode === 'automatic' ? 'automatic' : 'approval',
+        roles: row.roles as Role[],
+        decisions,
         state: viewStateOf(row, gate.now, Boolean(wait)),
         stored: row.state as RunState,
         hold: isDue(row, gate.now) ? holdFor(row, gate) : null,
