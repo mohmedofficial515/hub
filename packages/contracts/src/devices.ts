@@ -14,11 +14,15 @@ export const BRIDGE_PROTOCOL_VERSION = 1;
 /** The socket's address on the API origin, outside `/api/v1`, as `/mcp` is. */
 export const BRIDGE_SOCKET_PATH = '/bridge';
 
-/** Close codes the bridge acts on. A revoked device stops trying; anything else retries with a backoff. */
+/**
+ * Close codes the bridge acts on. A revoked device stops trying; anything else retries with a backoff.
+ * `unavailable` (the standard "try again later") is sent when Hub could not check the credential, for example while its database is down, so a passing fault is never read as a revocation.
+ */
 export const BRIDGE_CLOSE = {
   revoked: 4401,
   replaced: 4409,
   unsupportedProtocol: 4426,
+  unavailable: 1013,
 } as const;
 
 /**

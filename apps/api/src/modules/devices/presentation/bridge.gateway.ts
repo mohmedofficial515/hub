@@ -3,6 +3,8 @@
  * @description A bridge connects out with its device credential in the `Authorization` header. A wrong or revoked credential completes the handshake and
  * closes with `BRIDGE_CLOSE.revoked`, because a client cannot read an HTTP refusal and must know to stop trying. Any request with an `Origin` is refused
  * outright: a bridge has none, and a browser page always does. The credential is checked again once a minute, so disabling a member reaches a live socket too.
+ * Only a credential Hub has read and refused counts as revoked. When the check itself fails (the database is down), a new socket closes with `BRIDGE_CLOSE.unavailable`
+ * and the bridge tries again, and a live socket is left alone until the next check: on 2026-11-06 a passing database fault stopped the owner's bridge for good.
  */
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
@@ -14,12 +16,26 @@ import { ClsService } from 'nestjs-cls';
 import { type RawData, type WebSocket, WebSocketServer } from 'ws';
 
 import { ApiTokenService } from '@/modules/identity';
+import { AppException } from '@/shared/errors';
 
 import { BridgeHub } from '../application/bridge-hub';
 
 const PING_MS = 30_000;
 const RECHECK_MS = 60_000;
 const MAX_FRAME_BYTES = 1_048_576;
+
+/** What Hub concluded about a credential. `unavailable` means it could not tell, and must never be taken as a refusal. */
+type Check =
+  | { readonly kind: 'device'; readonly deviceId: string; readonly userId: string }
+  | { readonly kind: 'refused' }
+  | { readonly kind: 'unavailable' };
+
+/** The answers that mean the credential itself is wrong. Anything else thrown is a fault in Hub, and the bridge should come back. */
+const REFUSALS = new Set([
+  'hub.identity.token_invalid',
+  'hub.identity.token_revoked',
+  'hub.identity.account_disabled',
+]);
 
 interface Live {
   alive: boolean;
@@ -74,13 +90,17 @@ export class BridgeGateway implements OnApplicationBootstrap, OnApplicationShutd
       return;
     }
     const raw = /^Bearer (\S+)$/i.exec(request.headers.authorization ?? '')?.[1];
-    const device = raw ? await this.authenticate(raw) : null;
+    const check: Check = raw ? await this.authenticate(raw) : { kind: 'refused' };
     this.sockets.handleUpgrade(request, socket, head, (client) => {
-      if (!raw || !device) {
+      if (check.kind === 'unavailable') {
+        client.close(BRIDGE_CLOSE.unavailable, 'try again');
+        return;
+      }
+      if (!raw || check.kind !== 'device') {
         client.close(BRIDGE_CLOSE.revoked, 'not paired');
         return;
       }
-      this.accept(client, raw, device.deviceId, device.userId);
+      this.accept(client, raw, check.deviceId, check.userId);
     });
   }
 
@@ -120,20 +140,25 @@ export class BridgeGateway implements OnApplicationBootstrap, OnApplicationShutd
       if (now - entry.checkedAt < RECHECK_MS) continue;
       entry.checkedAt = now;
       const still = await this.authenticate(entry.token);
-      if (still?.deviceId !== entry.deviceId) {
+      if (still.kind === 'unavailable') continue;
+      if (still.kind !== 'device' || still.deviceId !== entry.deviceId) {
         this.hub.disconnect(entry.deviceId, BRIDGE_CLOSE.revoked, 'revoked');
         client.close(BRIDGE_CLOSE.revoked, 'revoked');
       }
     }
   }
 
-  private async authenticate(raw: string): Promise<{ deviceId: string; userId: string } | null> {
+  private async authenticate(raw: string): Promise<Check> {
     try {
       const principal = await this.cls.run(() => this.tokens.authenticate(raw));
-      if (principal.kind !== 'agent' || !principal.deviceId) return null;
-      return { deviceId: principal.deviceId, userId: principal.userId };
-    } catch {
-      return null;
+      if (principal.kind !== 'agent' || !principal.deviceId) return { kind: 'refused' };
+      return { kind: 'device', deviceId: principal.deviceId, userId: principal.userId };
+    } catch (error: unknown) {
+      if (error instanceof AppException && REFUSALS.has(error.code)) return { kind: 'refused' };
+      this.logger.warn(
+        `A bridge credential could not be checked: ${error instanceof Error ? error.name : 'unknown'}`,
+      );
+      return { kind: 'unavailable' };
     }
   }
 }

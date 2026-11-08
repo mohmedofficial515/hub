@@ -135,16 +135,24 @@ export class BridgeHub {
           connection.socket.close(BRIDGE_CLOSE.unsupportedProtocol, 'protocol');
           return;
         }
-        await this.writeStatus(deviceId, frame.data.status, true);
-        const folders = await this.foldersFor(connection.userId);
-        this.send(connection, {
-          type: 'welcome',
-          protocol: BRIDGE_PROTOCOL_VERSION,
-          deviceId,
-          folders,
-          docRoots: await this.docRootsFor(connection.userId, deviceId),
-        });
-        connection.ready = true;
+        try {
+          await this.writeStatus(deviceId, frame.data.status, true);
+          const folders = await this.foldersFor(connection.userId);
+          this.send(connection, {
+            type: 'welcome',
+            protocol: BRIDGE_PROTOCOL_VERSION,
+            deviceId,
+            folders,
+            docRoots: await this.docRootsFor(connection.userId, deviceId),
+          });
+          connection.ready = true;
+        } catch (error: unknown) {
+          // With no welcome the socket would stay open and never ready, and the bridge would wait on it forever. It comes back instead.
+          this.logger.warn(
+            `A hello from device ${deviceId} could not be answered: ${error instanceof Error ? error.name : 'unknown'}`,
+          );
+          connection.socket.close(BRIDGE_CLOSE.unavailable, 'try again');
+        }
         return;
       }
       case 'heartbeat':

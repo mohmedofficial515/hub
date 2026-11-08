@@ -5,7 +5,7 @@
 export const BRIDGE_VERSION = '0.1.0';
 export const BRIDGE_PROTOCOL_VERSION = 1;
 export const BRIDGE_SOCKET_PATH = '/bridge';
-export const BRIDGE_CLOSE = { revoked: 4401, replaced: 4409, unsupportedProtocol: 4426 };
+export const BRIDGE_CLOSE = { revoked: 4401, replaced: 4409, unsupportedProtocol: 4426, unavailable: 1013 };
 export const BRIDGE_ACTIONS = [
   'health.check',
   'health.fix',
