@@ -149,10 +149,11 @@ function TipBody({
       <span className="text-muted-foreground">{text}</span>
     </p>
   );
-  // A control that is off says why and how to fix it, and not what would happen on a press that cannot happen.
+  // A control that is off says what it is for, then why it is off and how to fix it, and not what would happen on a press that cannot happen (review m10).
   if (off) {
     return (
       <div className="flex flex-col gap-1" data-wb-tiplevel={full ? 'full' : 'compact'} data-wb-tip-off>
+        {copy && <p className="text-popover-foreground">{copy.what}</p>}
         <Line name={labels.why} text={off.why} />
         <Line name={labels.fix} text={off.fix} />
       </div>

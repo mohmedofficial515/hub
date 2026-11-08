@@ -44,6 +44,32 @@ describe('Tip', () => {
     expect(wrapper.getAttribute('tabindex')).toBe('0');
   });
 
+  it('a control that is off still says what it is for, then why and how to fix it', async () => {
+    renderWithApp(
+      <TipProvider>
+        <Tip
+          content={{ what: 'Sends the message', then: 'Claude answers' }}
+          off={{ why: 'Offline', fix: 'Reconnect' }}
+          label="Send"
+        >
+          <button type="button" disabled>
+            Send
+          </button>
+        </Tip>
+      </TipProvider>,
+      { locale: 'en' },
+    );
+    const wrapper = screen.getAllByRole('button', { name: 'Send' })[0] as HTMLElement;
+    fireEvent.pointerMove(wrapper, { pointerType: 'mouse' });
+    fireEvent.pointerEnter(wrapper, { pointerType: 'mouse' });
+    fireEvent.focus(wrapper);
+    await waitFor(() => expect(document.querySelector('[data-wb-tip-off]')).toBeTruthy());
+    const text = document.querySelector('[data-wb-tip-off]')?.textContent ?? '';
+    expect(text.indexOf('Sends the message')).toBeLessThan(text.indexOf('Offline'));
+    expect(text).toContain('Reconnect');
+    expect(text).not.toContain('Claude answers');
+  });
+
   it('is told how much to say by the preference', async () => {
     setPreference('tipLevel', 'compact');
     renderWithApp(

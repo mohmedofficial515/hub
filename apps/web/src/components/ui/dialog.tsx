@@ -27,6 +27,7 @@ export function Modal({
   children,
   footer,
   className,
+  returnFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,9 +36,11 @@ export function Modal({
   children?: ReactNode | undefined;
   footer?: ReactNode | undefined;
   className?: string | undefined;
+  /** Where focus goes on close when the opener is gone, such as the menu item that opened it. */
+  returnFocus?: (() => HTMLElement | null) | undefined;
 }) {
   const t = useT(kitMessages);
-  const onCloseAutoFocus = useFocusReturn(open);
+  const onCloseAutoFocus = useFocusReturn(open, returnFocus);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal container={portalRoot()}>
