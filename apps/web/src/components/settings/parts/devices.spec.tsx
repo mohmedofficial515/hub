@@ -75,7 +75,7 @@ const published = publishing({
     matchesPublicUrl: true,
   },
 });
-const reach = vi.hoisted(() => ({ value: null }));
+const reach = vi.hoisted((): { value: unknown } => ({ value: null }));
 
 const COMMAND = {
   apiUrl: 'http://localhost:7310',
