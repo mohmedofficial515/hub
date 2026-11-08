@@ -712,7 +712,7 @@
         "Run this here, then put the two lines it prints in .env and restart Hub:",
         "Turn on two-step sign-in (TOTP) in your profile.",
         "On the other device: install Tailscale, sign in to the same account, and open Hub's address.",
-        "Pair its bridge with the command under Connect a device."
+        "Pair its bridge with the command under Connect a new device."
       ],
       "guide": "The full steps are in docs/13-operations.md, \"Other devices over Tailscale\".",
       "serveLabel": "Publish command"
