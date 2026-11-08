@@ -283,6 +283,18 @@ Parts in `components/queue/`: `RunRow` and `RunIcon` (one neutral card, state in
 - **`RunDecisions`** shows what an automatic run decided and its pending items; Run it now opens a chat on that folder where D41 still asks. In a chat, `skipped` and `auto_answered` read as closed cards, and `hasNoTimeLimit(expiresAt)` (contracts) says "no time limit" for a queued run's approval.
 - **Cancel** of a running run or a weekly one asks first through `RunCancelHost`, mounted once in the shell beside the toasts. `showToast({ action })` adds one follow-up button, such as Open chat after Run now.
 
+## Do next, suggestions with AI and New project
+
+`docs/16` §11, D64 to D67.
+
+- **Do next** is `DoNext` in `components/workbench/panels.tsx`, on the panel's Runs and on Today (`PageDoNext`, mounted only where the workbench is). It reads `useDoNext({ role, limit })` (`features/next/queries.ts`, `GET today/next`), which sits under `qk.today`, so the stream keeps it live. Each item says why (`panel.next.why.*`), a task or a plan step (`item.step`) offers `RunButtons`, and Ask Claude for more is `suggestWithClaude(context)` in the store: `/hub:suggest` in a new chat, in Ask, with the panel brought forward.
+- **Proposals** of `/hub:suggest` are the thread item `suggestions` (`features/chat/thread-items.ts`) drawn by `ProposalsCard` (`components/workbench/proposals.tsx`). `useAnswerSuggestion(chatId)` accepts or dismisses one; the server makes it and answers `ref`. `live.ts` takes `suggestions.proposed` as the message's whole list.
+- **New project** in the panel's menu is `PanelNewProject` (`components/workbench/new-project.tsx`) around the Projects page's `NewProjectWizard`, whose third step links a folder on a connected device after `POST /workspaces`, on the same press (D44).
+
+## Skills
+
+`/[ws]/skills` (`components/skills/`), in the Knowledge group. Hooks in `features/skills/queries.ts`: `useSkills`, `useSkill(source, name)`, `useCreateSkill`, `useUpdateSkill(name)`, `useMoveSkill`, `useSkillRevisions`, `useSkillRevision`, `useRestoreSkill`, `useSyncSkills`. A write rereads the list then and again after a few seconds, since a device's sync ends with no stream event. Parts: `SkillEditor` (new and edit, with `detectSecret`), `SkillView` (read, the folder's other files by name, earlier texts with Bring this back), `MoveDialog` (asks first; a name Hub has, or one outside Hub's naming, gets a field with a free one from `hubNameFor`). `?skill=<name>` opens a Hub skill, as an accepted proposal links. Writes show to `skill.manage` alone; Hub's protocols (`core`) have no Edit. Words are `skills.json`.
+
 ## Settings › Backups
 
 `settings/parts/backups.tsx` (`docs/16` D61 to D63), shown to the owner alone (`settings-page.tsx` filters the tab by `isOwner`). Hooks in `features/backups/queries.ts`: `useBackups(enabled)` (the history, settings, free space and next time; every 2 s while a backup runs, else every minute, since the end comes with no stream event), `useBackUpNow`, `usePinBackup`, `useDeleteBackup`, `useSaveBackupSettings`, and `usePublishing` for Settings › Devices. The history is one neutral card with a word and an icon per state (Running, Done, Failed, Deleted, Folder missing, Kept); Delete asks with `ConfirmDialog`; the settings save together from the queue tab's bar. The restore is a command in a `CommandBlock`, never a button. Settings › Devices › Reaching Hub from other devices is `settings/parts/publishing.tsx`. Words are `settings.json` under `backups` and `devices.publishing`.

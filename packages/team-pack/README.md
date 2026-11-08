@@ -28,4 +28,8 @@ Code). `.mcp.json` has only `Bearer ${HUB_MCP_BEARER}`, which Claude Code expand
 tools would be named `mcp__plugin_hub_hub__*`; the server is added separately as `hub`, so tools are `mcp__hub__*` and prompts
 `/hub:start`, `/hub:next`, `/hub:done`.
 
+**Skills.** `plugin/skills` holds Hub's own protocols (`ask`, `doc`, `guide`, `plan`, `suggest`, `work`: `HUB_CORE_SKILLS` in contracts, which the tests hold to their words) and any skill the owner adds or moves in on Hub's Skills page (docs/16 §11, D64). Hub writes those folders on the main machine and commits nothing, so a new one shows in `git status` until the owner commits it. `/hub:suggest` reads the project through Hub's read tools and proposes with `propose_suggestions`; it creates nothing.
+
+**Sync.** A device takes this plugin from Hub, not from Git: on connect and after each change on the Skills page, Hub sends `plugin.sync` with these files and a version carrying their hash, and the bridge has Claude Code update to it (`packages/bridge/lib/plugin-sync.mjs`). A chat already open keeps the old skills until it starts again.
+
 **Tests.** `pnpm --filter @hub/team-pack test`. `pnpm --filter @hub/team-pack plugin:validate` runs `claude plugin validate --strict`.

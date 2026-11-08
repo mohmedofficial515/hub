@@ -224,6 +224,25 @@ Only `BRIDGE_ACTIONS` (`@hub/contracts`) can be sent, and the bridge refuses a f
 
 `DocsWriteService` is `save_doc` (`docs/16` §10): a stale base is refused, the earlier text becomes a `doc_revisions` row, and the file is written atomically, by the API or, when the source has `config.deviceId`, by the bridge. It commits nothing. `GET /me/context` (`SessionContextService`), which the plugin's SessionStart hook injects, ends with the project's brief and its document index and the rule to search before writing a new one.
 
+## Do next
+
+`GET /workspaces/:ws/today/next?role=&limit=` (`NextService`, `modules/today`, `docs/16` §11) runs `doNext` from `@hub/contracts` over the open tasks with their effort, the open decisions and `nextPlanSteps` of each approved or running plan, so Today and the panel rank the same way: overdue, blocking others, a plan's next step, small (`effort: S`) and ready, then priority. A plan step with no task yet is its own item (`step.index`), which the queue runs as a `plan_step`. It reads only. A new reason is a `DO_NEXT_REASONS` entry, a line in `doNext`, and words in the web's `chat.json` (`panel.next.why`).
+
+## Skills and the plugin sync
+
+`modules/skills` and, in `modules/devices`, `PluginBundleService` and `PluginSyncService` (`docs/16` §11, D64 to D67). Hub's skills are the folders of the team pack's `plugin/skills` in the checkout the API runs from (`HUB_TEAM_PACK_DIR` in a test); the owner's personal ones are `~/.claude/skills` on the main machine (`HUB_PERSONAL_SKILLS_DIR`), read only.
+
+- **`SkillsService`**: `list` (both lists, personal only for `skill.manage`), `get`, `create`, `update` (refuses a stale `baseHash`, keeps the earlier `SKILL.md` as a `skill_revisions` row), `move` (copies a personal folder's text files into Hub under a free name; a binary file, a secret or more than `SKILL_LIMITS` refuses the whole copy; the original is never written), `revisions`, `revision`, `restore` (a save of its own). `HUB_CORE_SKILLS` are read only here (`hub.skills.core_read_only`). Each write runs under an advisory lock on the skill and is audited. `domain/skill-file.ts` reads and writes the front matter, keeping every field it does not own.
+- **`PluginBundleService.current()`** is the plugin as a device installs it: the team pack's `.claude-plugin` and `plugin`, with the version `0.1.0-sync.<hash>` written into both manifests, and each skill's hash (`skillHashOf`, the same the Skills page uses). `ConnectBundleService` serves the same files to a new device.
+- **`PluginSyncService`** sends the bridge action `plugin.sync` with the files: when a device becomes ready with an older `devices.plugin_version`, and to every online device after any skill write, in `HUB_PLUGIN_SYNC=auto` (the default). `manual` (the test stacks) syncs only on `POST skills/sync`. One sync per device at a time; a change during one runs once more after it. The device row keeps `plugin_version`, `plugin_skills` (`{ name: hash }`), `plugin_synced_at` and the last `plugin_sync_error`.
+- **Routes** under `/workspaces/:ws/skills`: `GET`, `GET hub/:name`, `GET hub/:name/revisions[/:id]` are `skill.read` (and `list_skills`); `GET personal/:name`, `POST` (new), `PUT hub/:name`, `POST move`, `POST hub/:name/revisions/:id/restore` and `POST sync` are `skill.manage`, the owner's alone, web only and `@SessionOnly`: a skill reaches every device, so no token or agent can write one.
+
+`skills.e2e-spec.ts` runs all of it on temp folders with a scripted device that answers `plugin.sync`.
+
+## Suggestions with AI
+
+`SuggestionsService` (`modules/chats`, `docs/16` §11, D66). `propose_suggestions` (a read tool, allowed in Ask and Plan) posts the turn event `suggestions.proposed`; `TurnRecorder` merges it into `chat_messages.suggestions` (`{ summary, items }`, capped at `SUGGESTIONS_PER_TURN`) and the event carries the whole list, so a repeat changes nothing. `POST chats/:id/suggestions/:suggestion` with `{ decision: 'accept' | 'dismiss' }` is `chat.answer`, web only and `@SessionOnly`: Accept makes a task (`task.create`) or a plan (`plan.create`) through `CardService.apply`, or a Hub skill through `SkillsService.create` for `skill.manage` alone, and records what it made in `ref`. A proposal is settled once (`hub.chats.suggestion_answered`), and a double press in one process cannot make two.
+
 ## Backups
 
 `modules/backups` (`docs/16` D61 to D63, "Slice 6 as built"). `backups` is the history and `backup_settings` the owner's one row (migration `0009`); neither has a `workspace_id`, because one Hub has one history.
