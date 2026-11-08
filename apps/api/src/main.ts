@@ -8,6 +8,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { configureApp } from './app.setup';
+import { bindHostOf } from './config/bind-host';
 import { loadConfig } from './config/config.module';
 import { buildOpenApiDocument } from './swagger';
 
@@ -24,7 +25,9 @@ async function bootstrap(): Promise<void> {
     const { SwaggerModule } = await import('@nestjs/swagger');
     SwaggerModule.setup('api/docs', app, buildOpenApiDocument(app));
   }
-  await app.listen(config.PORT);
+  const host = bindHostOf(config);
+  if (host) await app.listen(config.PORT, host);
+  else await app.listen(config.PORT);
 }
 
 void bootstrap();

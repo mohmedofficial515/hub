@@ -1,25 +1,30 @@
 /**
  * @file A member's devices (Settings › Devices), and the Link button on a project (D44).
  */
-import { type MemberActor, type Principal } from '@hub/contracts';
+import { type MemberActor, type Principal, publishingSchema } from '@hub/contracts';
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { createZodDto } from 'nestjs-zod';
 
 import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { SessionOnly } from '@/modules/identity';
 import { Actor, CurrentPrincipal, Permissions } from '@/shared/http';
 
 import { DevicesService } from '../../application/devices.service';
+import { PublishingService } from '../../application/publishing.service';
 import { connectCommand } from '../../domain/connect-script';
 import { ConnectCommandDto, DeviceRowDto, FixDeviceDto, LinkFolderDto, LinkResultDto } from './devices.dto';
 import { publicApiUrl } from './public-url';
+
+class PublishingDto extends createZodDto(publishingSchema) {}
 
 @ApiTags('devices')
 @Controller('me/devices')
 export class DevicesController {
   constructor(
     private readonly devices: DevicesService,
+    private readonly publishing: PublishingService,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
 
@@ -44,6 +49,17 @@ export class DevicesController {
       connect: connectCommand(apiUrl),
       uninstall: connectCommand(apiUrl, 'uninstall'),
     };
+  }
+
+  @Get('publishing')
+  @Permissions('device.manage')
+  @ApiOperation({
+    summary:
+      'How other devices reach Hub: the public URL, Secure cookies, where the API listens, and what Tailscale serves',
+  })
+  @ApiOkResponse({ type: PublishingDto })
+  publishingStatus(): Promise<PublishingDto> {
+    return this.publishing.status();
   }
 
   @Get(':id/health')
