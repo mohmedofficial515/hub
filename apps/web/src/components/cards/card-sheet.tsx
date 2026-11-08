@@ -634,10 +634,11 @@ function SheetBody({
         <div className="flex items-center gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
             <TypeBadge type={card.type} />
-            <Ltr mono className="text-body-sm text-muted-foreground">
+            {/* A key or a chip never breaks inside itself: "GTV-" over "34" reads as two values (review M6). */}
+            <Ltr mono className="text-body-sm whitespace-nowrap text-muted-foreground">
               {card.key}
             </Ltr>
-            <StatusBadge status={card.status} />
+            <StatusBadge status={card.status} className="whitespace-nowrap" />
             {card.flags?.overdue && (
               <StatusBadge
                 status="overdue"
@@ -645,7 +646,7 @@ function SheetBody({
               />
             )}
             {card.flags?.escalated && <StatusBadge status="escalated" />}
-            <PriorityBadge priority={card.priority} />
+            <PriorityBadge priority={card.priority} className="whitespace-nowrap" />
           </div>
           <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             <DropdownMenu.Trigger asChild>
@@ -684,7 +685,8 @@ function SheetBody({
           {stepAside ? (
             <Button size="sm" variant="ghost" data-sheet-close data-wb-step-back onClick={() => closeCard()}>
               <ArrowRight aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
-              {fmt(w.pro.stepAside, { page: stepAside })}
+              {/* In a narrow sheet the way back folds to its arrow, and keeps its name for a screen reader (review M6). */}
+              <span className="@max-md:sr-only">{fmt(w.pro.stepAside, { page: stepAside })}</span>
             </Button>
           ) : (
             <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
