@@ -2,8 +2,9 @@
 
 /**
  * @file views.tsx
- * @description Schema Studio's other three views (docs/17 §4). The dictionary: every column as a row, searchable and filterable, named in place, exported as Markdown. The enums: each list with its values,
- * named one by one. The history: each version of the design with what changed, and the drafts that were applied or discarded with Claude's review.
+ * @description Schema Studio's other three views (docs/17 §4). The dictionary: every column as a row, searchable and filterable, named in place, exported as Markdown, shown a page at a
+ * time with how many are shown of how many (review M11). The enums: each list with its values, named one by one. The history: each version of the design with what changed, and the
+ * drafts that were applied or discarded with Claude's review.
  */
 import type { SchemaChangeSummary, SchemaDraftDto } from '@hub/contracts';
 import { changeCount } from '@hub/contracts';
@@ -17,15 +18,17 @@ import {
   Search,
   XCircle,
 } from 'lucide-react';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 
 import {
   Button,
   cn,
+  detectSecret,
   EmptyState,
   fmt,
   MarkdownView,
   num,
+  plural,
   RelativeTime,
   Select,
   showToast,
@@ -34,30 +37,51 @@ import {
   useLocale,
 } from '@/components/kit';
 import { useAnnotate, useSchemaHistory } from '@/features/schema/queries';
+import { isHubError } from '@/lib/api/errors';
 
 import { dictionaryMarkdown, enumTarget, fieldTarget, modelTarget, toneStyle } from './model';
 import { useSchemaWords, useStudio } from './studio';
 
-const MAX_ROWS = 600;
+/** Rows shown at once; "Show more" adds as many again. */
+export const PAGE_ROWS = 600;
 
-function InlineName({ target, placeholder }: { target: string; placeholder: string }) {
+/** The Arabic name in place. A refused save keeps what was typed and says why (review M12); a secret is never sent. */
+function InlineName({ target, placeholder, label }: { target: string; placeholder: string; label: string }) {
   const studio = useStudio();
+  const t = useSchemaWords();
   const annotate = useAnnotate();
   const current = studio.annotations.get(target)?.nameAr ?? '';
   const [text, setText] = useState<string | null>(null);
   return (
     <TextInput
-      aria-label={placeholder}
+      aria-label={label}
       dir="rtl"
       className="h-9 md:h-8"
       placeholder={placeholder}
       value={text ?? current}
       readOnly={!studio.can.annotate}
+      aria-invalid={annotate.isError || undefined}
       onChange={(event) => setText(event.target.value)}
       onBlur={() => {
-        if (text !== null && text.trim() !== current)
-          annotate.mutate([{ target, nameAr: text.trim() || null }]);
-        setText(null);
+        if (text === null || text.trim() === current) {
+          setText(null);
+          return;
+        }
+        const found = detectSecret(text);
+        if (found) {
+          showToast({ tone: 'error', message: fmt(t.inspector.secret, { pattern: found }) });
+          return;
+        }
+        annotate.mutate([{ target, nameAr: text.trim() || null }], {
+          onSuccess: () => setText(null),
+          onError: (error) =>
+            showToast({
+              tone: 'error',
+              message: isHubError(error)
+                ? fmt(t.inspector.saveFailedWhy, { why: error.message })
+                : t.inspector.saveFailed,
+            }),
+        });
       }}
       onKeyDown={(event) => {
         if (event.key === 'Enter') (event.target as HTMLInputElement).blur();
@@ -73,10 +97,19 @@ export function DictionaryView() {
   const [query, setQuery] = useState('');
   const [domain, setDomain] = useState('');
   const [unnamedOnly, setUnnamedOnly] = useState(false);
+  const [limit, setLimit] = useState(PAGE_ROWS);
   const deferred = useDeferredValue(query.trim().toLowerCase());
+  useEffect(() => setLimit(PAGE_ROWS), [domain, unnamedOnly, deferred]);
 
   const rows = useMemo(() => {
-    const out: { model: string; field: string; type: string; domain: string; doc: string | null }[] = [];
+    const out: {
+      model: string;
+      field: string;
+      type: string;
+      domain: string;
+      descriptionAr: string | null;
+      doc: string | null;
+    }[] = [];
     for (const model of studio.doc.models) {
       if (domain && model.domain !== domain) continue;
       for (const field of model.fields) {
@@ -92,7 +125,8 @@ export function DictionaryView() {
           field: field.name,
           type: field.type,
           domain: model.domain,
-          doc: entry?.descriptionAr ?? field.doc,
+          descriptionAr: entry?.descriptionAr ?? null,
+          doc: field.doc,
         });
       }
     }
@@ -152,8 +186,10 @@ export function DictionaryView() {
           />
           <span>{t.dictionary.unnamedOnly}</span>
         </label>
-        <span className="text-body-sm text-muted-foreground">
-          {fmt(t.dictionary.count, { n: num(rows.length, locale) })}
+        <span className="text-body-sm text-muted-foreground" role="status" data-dictionary-count>
+          {rows.length > limit
+            ? fmt(t.dictionary.showing, { shown: num(limit, locale), total: num(rows.length, locale) })
+            : plural(rows.length, locale, t.dictionary.count)}
         </span>
         <span className="flex-1" />
         <Button size="sm" variant="outline" onClick={exportMarkdown}>
@@ -172,18 +208,18 @@ export function DictionaryView() {
                 <th>{t.dictionary.column}</th>
                 <th>{t.dictionary.type}</th>
                 <th>{t.dictionary.nameAr}</th>
-                <th className="hidden lg:table-cell">{t.dictionary.descriptionAr}</th>
+                <th className="hidden lg:@page-lg:table-cell">{t.dictionary.descriptionAr}</th>
               </tr>
             </thead>
             <tbody>
-              {rows.slice(0, MAX_ROWS).map((row) => (
+              {rows.slice(0, limit).map((row) => (
                 <tr key={`${row.model}.${row.field}`} style={toneStyle(studio.tones.get(row.domain))}>
                   <td>
                     <button
                       type="button"
                       className="schema-link"
                       onClick={() => {
-                        studio.select({ kind: 'model', name: row.model, field: row.field });
+                        studio.select({ kind: 'model', name: row.model, field: row.field }, { focus: true });
                       }}
                     >
                       <span className="schema-node-dot" aria-hidden />
@@ -199,18 +235,35 @@ export function DictionaryView() {
                     {row.type}
                   </td>
                   <td className="min-w-48">
-                    <InlineName target={fieldTarget(row.model, row.field)} placeholder={t.node.unnamed} />
+                    <InlineName
+                      target={fieldTarget(row.model, row.field)}
+                      placeholder={t.node.unnamed}
+                      label={fmt(t.dictionary.nameOf, { column: `${row.model}.${row.field}` })}
+                    />
                   </td>
                   <td
-                    className="hidden max-w-96 truncate text-muted-foreground lg:table-cell"
-                    title={row.doc ?? ''}
+                    className="hidden max-w-96 truncate text-muted-foreground lg:@page-lg:table-cell"
+                    title={row.descriptionAr ?? row.doc ?? ''}
                   >
-                    {row.doc}
+                    {row.descriptionAr ??
+                      (row.doc && (
+                        <span className="font-mono" dir="ltr">
+                          /// {row.doc}
+                        </span>
+                      ))}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {rows.length > limit && (
+            <div className="flex flex-wrap items-center gap-3 px-1 py-4 text-body-sm text-muted-foreground">
+              <span>{t.dictionary.moreHint}</span>
+              <Button size="sm" variant="outline" onClick={() => setLimit((value) => value + PAGE_ROWS)}>
+                {fmt(t.dictionary.showMore, { n: num(Math.min(PAGE_ROWS, rows.length - limit), locale) })}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -249,7 +302,7 @@ export function EnumsView() {
         </div>
       </div>
       {enums.length === 0 ? (
-        <EmptyState icon={ListTree} title={t.enums.empty} />
+        <EmptyState icon={ListTree} title={studio.doc.enums.length === 0 ? t.enums.none : t.enums.empty} />
       ) : (
         <div className="schema-enum-grid">
           {enums.map((value, index) => {
@@ -263,7 +316,7 @@ export function EnumsView() {
                 transition={{ delay: Math.min(index, 20) * 0.015, duration: 0.2 }}
                 className={cn('schema-enum-card', studio.selection?.name === value.name && 'is-active')}
                 style={toneStyle(studio.tones.get(value.domain)) as MotionStyle}
-                onClick={() => studio.select({ kind: 'enum', name: value.name })}
+                onClick={() => studio.select({ kind: 'enum', name: value.name }, { focus: true })}
               >
                 <span className="flex items-center gap-2">
                   <span className="schema-node-dot" aria-hidden />
@@ -271,7 +324,7 @@ export function EnumsView() {
                     {name ?? value.name}
                   </span>
                   <span className="shrink-0 text-caption text-muted-foreground">
-                    {fmt(t.enums.values, { n: num(value.values.length, locale) })}
+                    {plural(value.values.length, locale, t.enums.values)}
                   </span>
                 </span>
                 {name && (
@@ -306,18 +359,14 @@ function ChangeChips({ changes }: { changes: SchemaChangeSummary | null }) {
   if (changeCount(changes) === 0)
     return <span className="text-body-sm text-muted-foreground">{t.history.unchanged}</span>;
   const groups: [string, string[], 'added' | 'removed' | 'changed'][] = [
-    [`${t.history.added} ${t.history.tablesWord}`, changes.addedModels, 'added'],
-    [`${t.history.removed} ${t.history.tablesWord}`, changes.removedModels, 'removed'],
-    [`${t.history.changed} ${t.history.tablesWord}`, changes.changedModels, 'changed'],
-    [`${t.history.added} ${t.history.columnsWord}`, changes.addedFields, 'added'],
-    [`${t.history.removed} ${t.history.columnsWord}`, changes.removedFields, 'removed'],
-    [`${t.history.changed} ${t.history.columnsWord}`, changes.changedFields, 'changed'],
-    [`${t.history.added} ${t.history.enumsWord}`, changes.addedEnums, 'added'],
-    [
-      `${t.history.changed} ${t.history.enumsWord}`,
-      [...changes.changedEnums, ...changes.removedEnums],
-      'changed',
-    ],
+    [t.history.groups.addedModels, changes.addedModels, 'added'],
+    [t.history.groups.removedModels, changes.removedModels, 'removed'],
+    [t.history.groups.changedModels, changes.changedModels, 'changed'],
+    [t.history.groups.addedFields, changes.addedFields, 'added'],
+    [t.history.groups.removedFields, changes.removedFields, 'removed'],
+    [t.history.groups.changedFields, changes.changedFields, 'changed'],
+    [t.history.groups.addedEnums, changes.addedEnums, 'added'],
+    [t.history.groups.changedEnums, [...changes.changedEnums, ...changes.removedEnums], 'changed'],
   ];
   return (
     <div className="flex flex-col gap-1.5">
@@ -326,7 +375,7 @@ function ChangeChips({ changes }: { changes: SchemaChangeSummary | null }) {
         .map(([label, list, kind]) => (
           <div key={label} className="flex flex-wrap items-baseline gap-1.5">
             <span className="schema-chip" data-mark={kind}>
-              {label} · {num(list.length, locale)}
+              {fmt(label, { n: num(list.length, locale) })}
             </span>
             <span
               className="min-w-0 truncate font-mono text-caption text-muted-foreground"
@@ -344,6 +393,7 @@ function ChangeChips({ changes }: { changes: SchemaChangeSummary | null }) {
 
 function ClosedDraft({ draft }: { draft: SchemaDraftDto }) {
   const t = useSchemaWords();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const Icon = draft.status === 'applied' ? CheckCircle2 : XCircle;
   return (
@@ -359,7 +409,7 @@ function ClosedDraft({ draft }: { draft: SchemaDraftDto }) {
       <div className="min-w-0 flex-1">
         <p className="font-medium text-foreground">{draft.title}</p>
         <p className="text-body-sm text-muted-foreground">
-          {t.draft.statuses[draft.status]} · {fmt(t.draft.count, { n: String(draft.changes.length) })} ·{' '}
+          {t.draft.statuses[draft.status]} · {plural(draft.changes.length, locale, t.draft.count)} ·{' '}
           <RelativeTime iso={draft.updatedAt} />
         </p>
         {draft.review && (

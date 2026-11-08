@@ -3,7 +3,8 @@
 /**
  * @file draft-dock.tsx
  * @description The open draft (docs/17 §4, D63), docked at the bottom of the page: its changes in order, its status, and the one press that starts the review with Claude in the panel.
- * Changes are proposed in a dialog from a table, a column or here. While Claude reviews or applies it, the dock says what is happening and opens that chat.
+ * Changes are proposed in a dialog from a table, a column or here. While Claude reviews or applies it, the dock says so with a status pill, not a coloured border (owner's
+ * choice on review B3), and opens that chat. The dialog refuses text that looks like a secret before anything is sent (review M12).
  */
 import { SCHEMA_CHANGE_KINDS, type SchemaChange, type SchemaChangeKind } from '@hub/contracts';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -25,12 +26,15 @@ import {
   Button,
   cn,
   ConfirmDialog,
+  detectSecret,
   Field,
-  fmt,
   IconButton,
   Modal,
   num,
+  Pill,
+  plural,
   RowMenu,
+  SecretFilterError,
   Select,
   Textarea,
   TextInput,
@@ -65,10 +69,16 @@ export function ChangeDialog() {
   const [detail, setDetail] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [secret, setSecret] = useState<string | null>(null);
 
   useEffect(() => {
     if (!proposing) return;
-    setKind(existing?.kind ?? proposing.kind ?? 'change_field');
+    setSecret(null);
+    // A table's most common change is a new column; a column's is a change to it.
+    const given = proposing.target ?? '';
+    setKind(
+      existing?.kind ?? proposing.kind ?? (given && !given.includes('.') ? 'add_field' : 'change_field'),
+    );
     setTarget(existing?.target ?? proposing.target ?? '');
     setSummary(existing?.summary ?? '');
     setDetail(existing?.detail ?? '');
@@ -77,6 +87,9 @@ export function ChangeDialog() {
 
   const submit = async () => {
     if (!target.trim() || !summary.trim()) return;
+    const found = [target, summary, detail, reason].map(detectSecret).find(Boolean) ?? null;
+    setSecret(found);
+    if (found) return;
     setBusy(true);
     const change: SchemaChange = {
       id: existing?.id ?? newChangeId(),
@@ -176,6 +189,7 @@ export function ChangeDialog() {
             onChange={(event) => setReason(event.target.value)}
           />
         </Field>
+        {secret && <SecretFilterError pattern={secret} />}
       </form>
     </Modal>
   );
@@ -241,8 +255,15 @@ export function DraftDock() {
           </span>
           <span className="min-w-0 text-start">
             <span className="block truncate font-semibold text-foreground">{draft.title}</span>
-            <span className="block truncate text-caption text-muted-foreground">
-              {t.draft.statuses[status]} · {fmt(t.draft.count, { n: num(count, locale) })}
+            <span className="flex min-w-0 items-center gap-1.5 text-caption text-muted-foreground">
+              {working ? (
+                <Pill tone="info" className="shrink-0">
+                  {t.draft.statuses[status]}
+                </Pill>
+              ) : (
+                <span className="shrink-0">{t.draft.statuses[status]} ·</span>
+              )}
+              <span className="truncate">{plural(count, locale, t.draft.count)}</span>
             </span>
           </span>
           {open ? (

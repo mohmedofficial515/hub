@@ -13,7 +13,7 @@ import {
   schemaNamesPrompt,
   type SchemaStudioDto,
 } from '@hub/contracts';
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 import { fmt, showToast, useSession, useT } from '@/components/kit';
 import { activeChatId, revealChat, send, setFolder, useMaybeWb } from '@/components/workbench/store';
@@ -95,7 +95,15 @@ export interface Studio {
   view: StudioView;
   setView: (view: StudioView) => void;
   selection: Selection | null;
-  select: (selection: Selection | null) => void;
+  /**
+   * `focus` moves focus to the inspector's heading once it shows (a node opened by keyboard, a search pick, the dictionary), and closing it
+   * puts focus back where it was (review B2). A mouse click on the diagram leaves focus alone.
+   */
+  select: (selection: Selection | null, options?: { focus?: boolean }) => void;
+  /** Ticks each time the inspector should take focus. */
+  inspectorFocus: number;
+  /** Closes the inspector and returns focus to what opened it, or to the table on the diagram. */
+  closeInspector: () => void;
   focus: string | null;
   setFocus: (model: string | null) => void;
   prefs: Prefs;
@@ -178,7 +186,27 @@ export function StudioProvider({
     });
   }, []);
 
-  const select = useCallback((next: Selection | null) => setSelection(next), []);
+  const [inspectorFocus, setInspectorFocus] = useState(0);
+  const opener = useRef<HTMLElement | null>(null);
+  const select = useCallback((next: Selection | null, options?: { focus?: boolean }) => {
+    setSelection(next);
+    if (next && options?.focus) {
+      const active = document.activeElement as HTMLElement | null;
+      if (active && !active.closest('.schema-inspector')) opener.current = active;
+      setInspectorFocus((tick) => tick + 1);
+    }
+  }, []);
+  const closeInspector = useCallback(() => {
+    const was = selection;
+    setSelection(null);
+    const back =
+      (opener.current?.isConnected ? opener.current : null) ??
+      (was
+        ? document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(was.name)}"]`)
+        : null);
+    opener.current = null;
+    window.setTimeout(() => back?.focus({ preventScroll: true }), 0);
+  }, [selection]);
   const revealModel = useCallback(
     (model: string) => setReveal((before) => ({ model, tick: (before?.tick ?? 0) + 1 })),
     [],
@@ -333,6 +361,8 @@ export function StudioProvider({
     setView,
     selection,
     select,
+    inspectorFocus,
+    closeInspector,
     focus,
     setFocus,
     prefs,

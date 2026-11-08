@@ -7,7 +7,7 @@
 import { Eye, EyeOff, Search, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { cn, fmt, IconButton, num, Tooltip, useLocale } from '@/components/kit';
+import { cn, fmt, IconButton, num, plural, Tooltip, useLocale } from '@/components/kit';
 
 import { coverageOf, toneStyle } from './model';
 import { useSchemaWords, useStudio } from './studio';
@@ -68,7 +68,7 @@ export function DomainRail() {
         <div className="flex gap-1">
           <button
             type="button"
-            className="schema-link text-caption"
+            className="schema-link hit-44 text-caption"
             onClick={() => studio.setPrefs({ hidden: [] })}
           >
             {t.domains.all}
@@ -76,7 +76,7 @@ export function DomainRail() {
           <span className="text-caption text-muted-foreground">·</span>
           <button
             type="button"
-            className="schema-link text-caption"
+            className="schema-link hit-44 text-caption"
             onClick={() => studio.setPrefs({ hidden: domains.map((domain) => domain.name) })}
           >
             {t.domains.none}
@@ -119,7 +119,7 @@ export function DomainRail() {
                     {domain.name}
                   </span>
                   <span className="block truncate text-caption text-muted-foreground">
-                    {fmt(t.domains.tables, { n: num(domain.models.length, locale) })} ·{' '}
+                    {plural(domain.models.length, locale, t.domains.tables)} ·{' '}
                     {fmt(t.domains.coverage, { pct: num(domain.coverage.pct, locale) })}
                   </span>
                 </span>
@@ -141,7 +141,7 @@ export function DomainRail() {
               <div className="schema-rail-actions">
                 <button
                   type="button"
-                  className="schema-link text-caption"
+                  className="schema-link hit-44 text-caption"
                   onClick={() => {
                     studio.setFocus(null);
                     studio.setPrefs({

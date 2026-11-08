@@ -19,22 +19,31 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import {
   Button,
   cn,
+  detectSecret,
   Field,
+  fill,
   fmt,
+  focusRing,
   IconButton,
+  kitMessages,
+  matchKey,
   RelativeTime,
+  SecretFilterError,
   Select,
+  showToast,
   Textarea,
   TextInput,
   Tooltip,
   useLocale,
+  useT,
 } from '@/components/kit';
 import { useAnnotate } from '@/features/schema/queries';
+import { isHubError } from '@/lib/api/errors';
 
 import { enumTarget, enumValueTarget, fieldTarget, modelTarget, toneStyle } from './model';
 import { useSchemaWords, useStudio } from './studio';
@@ -63,26 +72,37 @@ function AnnotationForm({ target, compact = false }: { target: string; compact?:
   const t = useSchemaWords();
   const annotate = useAnnotate();
   const id = useId();
+  const kit = useT(kitMessages);
   const entry = studio.annotations.get(target);
   const [nameAr, setNameAr] = useState(entry?.nameAr ?? '');
   const [descriptionAr, setDescriptionAr] = useState(entry?.descriptionAr ?? '');
   const [notes, setNotes] = useState(entry?.notes ?? '');
   const [tags, setTags] = useState((entry?.tags ?? []).join('، '));
+  const [secret, setSecret] = useState<string | null>(null);
+  const last = useRef<Parameters<typeof annotate.mutate>[0][number] | null>(null);
+  const failed = annotate.isError;
 
-  // A save from Claude or another tab shows here, unless this field is being typed in.
+  // A save from Claude or another tab shows here, unless this field is being typed in, or a save of it was refused: then the typed text stays.
   useEffect(() => {
     const active = document.activeElement?.id ?? '';
-    if (!active.startsWith(id)) {
+    if (!active.startsWith(id) && !failed) {
       setNameAr(entry?.nameAr ?? '');
       setDescriptionAr(entry?.descriptionAr ?? '');
       setNotes(entry?.notes ?? '');
       setTags((entry?.tags ?? []).join('، '));
     }
-  }, [entry, id]);
+  }, [entry, id, failed]);
 
   const readOnly = !studio.can.annotate;
   const save = (change: Parameters<typeof annotate.mutate>[0][number]) => {
     if (readOnly) return;
+    const found = Object.values(change)
+      .flat()
+      .map((value) => (typeof value === 'string' ? detectSecret(value) : null))
+      .find(Boolean);
+    setSecret(found ?? null);
+    if (found) return;
+    last.current = change;
     annotate.mutate([change]);
   };
   const commit = (key: 'nameAr' | 'descriptionAr' | 'notes', value: string) => {
@@ -169,16 +189,32 @@ function AnnotationForm({ target, compact = false }: { target: string; compact?:
           />
         </Field>
       )}
+      {secret && <SecretFilterError pattern={secret} />}
       <div
         className="flex min-h-6 flex-wrap items-center gap-2 text-caption text-muted-foreground"
         aria-live="polite"
       >
         {annotate.isPending ? t.inspector.saving : annotate.isSuccess ? t.inspector.saved : null}
+        {failed && (
+          <span
+            className="flex flex-wrap items-center gap-2 text-destructive-soft-foreground"
+            data-annotation-failed
+          >
+            {isHubError(annotate.error)
+              ? fmt(t.inspector.saveFailedWhy, { why: annotate.error.message })
+              : t.inspector.saveFailed}
+            <Button size="sm" variant="ghost" onClick={() => last.current && annotate.mutate([last.current])}>
+              {kit.retry}
+            </Button>
+          </span>
+        )}
         <SyncMark entry={entry} />
         {entry?.updatedBy && (
           <span>
-            {fmt(t.inspector.updatedBy, { name: entry.updatedBy, when: '' })}
-            <RelativeTime iso={entry.updatedAt} />
+            {fill(t.inspector.updatedBy, {
+              name: <bdi>{entry.updatedBy}</bdi>,
+              when: <RelativeTime iso={entry.updatedAt} />,
+            })}
           </span>
         )}
       </div>
@@ -319,10 +355,17 @@ function ModelInspector({ model }: { model: SchemaModel }) {
   return (
     <>
       <header className="schema-inspector-head" style={toneStyle(studio.tones.get(model.domain))}>
-        <span className="schema-chip" data-tone="domain">
+        <span className="schema-chip">
+          <span className="schema-node-dot" aria-hidden />
           {t.inspector.table} · {model.domain}
         </span>
-        <h2 className="mt-1.5 text-title-sm font-semibold text-foreground">{named ?? model.name}</h2>
+        <h2
+          tabIndex={-1}
+          data-inspector-heading
+          className={cn('mt-1.5 rounded-sm text-title-sm font-semibold text-foreground', focusRing)}
+        >
+          {named ?? model.name}
+        </h2>
         <p className="font-mono text-body-sm text-muted-foreground" dir="ltr">
           {model.name}
           {model.dbName ? ` → ${model.dbName}` : ''}
@@ -333,11 +376,7 @@ function ModelInspector({ model }: { model: SchemaModel }) {
             {t.actions.focus}
           </Button>
           {studio.can.draft && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => studio.propose({ kind: 'change_field', target: model.name })}
-            >
+            <Button size="sm" variant="outline" onClick={() => studio.propose({ target: model.name })}>
               <GitPullRequestDraft aria-hidden className="size-4" strokeWidth={1.75} />
               {t.actions.propose}
             </Button>
@@ -462,7 +501,11 @@ function FieldInspector({ model, field }: { model: SchemaModel; field: SchemaFie
           <Back aria-hidden className="size-3.5" strokeWidth={2} />
           {fmt(t.inspector.backToTable, { name: tableName })}
         </button>
-        <h2 className="mt-1.5 text-title-sm font-semibold text-foreground">
+        <h2
+          tabIndex={-1}
+          data-inspector-heading
+          className={cn('mt-1.5 rounded-sm text-title-sm font-semibold text-foreground', focusRing)}
+        >
           {studio.annotations.get(fieldTarget(model.name, field.name))?.nameAr ?? field.name}
         </h2>
         <p className="font-mono text-body-sm text-muted-foreground" dir="ltr">
@@ -516,10 +559,15 @@ function EnumInspector({ value }: { value: SchemaEnum }) {
   return (
     <>
       <header className="schema-inspector-head" style={toneStyle(studio.tones.get(value.domain))}>
-        <span className="schema-chip" data-tone="domain">
+        <span className="schema-chip">
+          <span className="schema-node-dot" aria-hidden />
           {t.inspector.enum} · {value.domain}
         </span>
-        <h2 className="mt-1.5 text-title-sm font-semibold text-foreground">
+        <h2
+          tabIndex={-1}
+          data-inspector-heading
+          className={cn('mt-1.5 rounded-sm text-title-sm font-semibold text-foreground', focusRing)}
+        >
           {studio.annotations.get(enumTarget(value.name))?.nameAr ?? value.name}
         </h2>
         <p className="font-mono text-body-sm text-muted-foreground" dir="ltr">
@@ -550,11 +598,15 @@ function EnumInspector({ value }: { value: SchemaEnum }) {
 
 function EnumValueRow({ name, value, doc }: { name: string; value: string; doc: string | null }) {
   const studio = useStudio();
+  const t = useSchemaWords();
   const annotate = useAnnotate();
   const target = enumValueTarget(name, value);
   const current = studio.annotations.get(target)?.nameAr ?? '';
   const [text, setText] = useState(current);
-  useEffect(() => setText(current), [current]);
+  const failed = annotate.isError;
+  useEffect(() => {
+    if (!failed) setText(current);
+  }, [current, failed]);
   return (
     <li className="flex items-center gap-2">
       <span
@@ -570,8 +622,23 @@ function EnumValueRow({ name, value, doc }: { name: string; value: string; doc: 
         value={text}
         readOnly={!studio.can.annotate}
         onChange={(event) => setText(event.target.value)}
+        aria-invalid={failed || undefined}
         onBlur={() => {
-          if (text.trim() !== current) annotate.mutate([{ target, nameAr: text.trim() || null }]);
+          if (text.trim() === current) return;
+          const found = detectSecret(text);
+          if (found) {
+            showToast({ tone: 'error', message: fmt(t.inspector.secret, { pattern: found }) });
+            return;
+          }
+          annotate.mutate([{ target, nameAr: text.trim() || null }], {
+            onError: (error) =>
+              showToast({
+                tone: 'error',
+                message: isHubError(error)
+                  ? fmt(t.inspector.saveFailedWhy, { why: error.message })
+                  : t.inspector.saveFailed,
+              }),
+          });
         }}
       />
     </li>
@@ -582,6 +649,18 @@ export function Inspector() {
   const studio = useStudio();
   const t = useSchemaWords();
   const selection = studio.selection;
+  const aside = useRef<HTMLElement>(null);
+  const tick = studio.inspectorFocus;
+  useEffect(() => {
+    if (!tick) return;
+    // After a dialog that opened it has given focus back to its opener.
+    const id = window.setTimeout(
+      () =>
+        aside.current?.querySelector<HTMLElement>('[data-inspector-heading]')?.focus({ preventScroll: true }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [tick]);
   if (!selection) return null;
   const model =
     selection.kind === 'model' ? studio.doc.models.find((entry) => entry.name === selection.name) : undefined;
@@ -594,13 +673,23 @@ export function Inspector() {
       initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.22, ease: 'easeOut' }}
+      ref={aside}
       className="schema-inspector"
       aria-label={t.inspector.label}
+      onKeyDown={(event) => {
+        const typing = (event.target as HTMLElement).closest('input, textarea, select, [role="dialog"]');
+        if (matchKey(event, 'Escape') && !typing) {
+          event.preventDefault();
+          event.stopPropagation();
+          studio.closeInspector();
+        }
+      }}
+      data-schema-inspector
     >
       <IconButton
         label={t.actions.close}
         className="schema-inspector-close"
-        onClick={() => studio.select(null)}
+        onClick={() => studio.closeInspector()}
       >
         <X aria-hidden className="size-4" strokeWidth={1.75} />
       </IconButton>

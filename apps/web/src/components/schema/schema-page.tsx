@@ -3,23 +3,30 @@
 /**
  * @file schema-page.tsx
  * @description Schema Studio (docs/17): the project's database design as a workspace. A header with the design's numbers and its two presses (Refresh design, Suggest Arabic names), the domains on one
- * side, the diagram or the dictionary, enums and history in the middle, the details of what is selected on the other side, and the open draft docked below. `/` or Ctrl+K searches.
+ * side, the diagram or the dictionary, enums and history in the middle, the details of what is selected on the other side, and the open draft docked below. `/` or Ctrl+Shift+K
+ * searches the design: on this page `/` is the page's search, not the global palette (review M9). Below 68rem the domains are a drawer that takes focus and closes on Escape.
  */
 import { changeCount, type SchemaChangeSummary, type SchemaStudioDto } from '@hub/contracts';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Database, FolderCog, PanelLeft, RefreshCw, Search, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
   Button,
   cn,
   ErrorState,
+  fill,
   fmt,
   IconButton,
   LoadingRegion,
+  Ltr,
+  matchKey,
   num,
+  plural,
+  type PluralForms,
   RelativeTime,
   Segmented,
+  shortcutsEnabled,
   showToast,
   Skeleton,
   Tooltip,
@@ -51,9 +58,9 @@ function summaryOf(
   const columns = changes.addedFields.length + changes.removedFields.length + changes.changedFields.length;
   const enums = changes.addedEnums.length + changes.removedEnums.length + changes.changedEnums.length;
   return [
-    tables && fmt(t.summary.tables, { n: num(tables, locale) }),
-    columns && fmt(t.summary.columns, { n: num(columns, locale) }),
-    enums && fmt(t.summary.enums, { n: num(enums, locale) }),
+    tables && plural(tables, locale, t.summary.tables),
+    columns && plural(columns, locale, t.summary.columns),
+    enums && plural(enums, locale, t.summary.enums),
   ]
     .filter(Boolean)
     .join('، ');
@@ -64,15 +71,36 @@ function Stat({
   label,
   tone,
 }: {
-  value: string;
+  value: string | null;
   label: string;
   tone?: 'info' | 'warning' | undefined;
 }) {
   return (
     <span className="schema-stat" data-tone={tone}>
-      <span className="schema-stat-value">{value}</span>
+      {value && <span className="schema-stat-value">{value}</span>}
       <span className="schema-stat-label">{label}</span>
     </span>
+  );
+}
+
+/** A count with its plural noun, the number in bold: "119 جدولًا", "جدولان" (Arabic's dual takes no numeral), "1 table" (review M13). */
+function CountStat({
+  n,
+  forms,
+  tone,
+}: {
+  n: number;
+  forms: PluralForms;
+  tone?: 'info' | 'warning' | undefined;
+}) {
+  const locale = useLocale();
+  const text = plural(n, locale, forms);
+  const shown = num(n, locale);
+  const at = text.indexOf(shown);
+  return at < 0 ? (
+    <Stat value={null} label={text} tone={tone} />
+  ) : (
+    <Stat value={shown} label={(text.slice(0, at) + text.slice(at + shown.length)).trim()} tone={tone} />
   );
 }
 
@@ -80,10 +108,12 @@ function Header({
   onSearch,
   onSource,
   onRail,
+  railOpen,
 }: {
   onSearch: () => void;
   onSource: () => void;
   onRail: () => void;
+  railOpen: boolean;
 }) {
   const studio = useStudio();
   const t = useSchemaWords();
@@ -112,7 +142,13 @@ function Header({
   return (
     <header className="schema-header">
       <div className="flex min-w-0 items-center gap-3">
-        <IconButton label={t.domains.title} className="schema-rail-toggle" onClick={onRail}>
+        <IconButton
+          label={t.domains.title}
+          className="schema-rail-toggle"
+          onClick={onRail}
+          aria-expanded={railOpen}
+          data-schema-rail-toggle
+        >
           <PanelLeft aria-hidden className="size-4" strokeWidth={1.75} />
         </IconButton>
         <span className="schema-header-icon" aria-hidden>
@@ -123,7 +159,7 @@ function Header({
           <p className="flex flex-wrap items-center gap-x-2 text-caption text-muted-foreground">
             <button
               type="button"
-              className="schema-link font-mono"
+              className="schema-link block max-w-full truncate font-mono"
               dir="ltr"
               onClick={onSource}
               disabled={!studio.can.manage}
@@ -131,26 +167,29 @@ function Header({
             >
               {data.source?.path}/{data.source?.schemaDir}
             </button>
-            <span>·</span>
-            <span>
-              {fmt(t.stats.readAt, { when: '' })}
-              <RelativeTime iso={data.snapshot!.createdAt} />
+            <span aria-hidden>·</span>
+            <span>{fill(t.stats.readAt, { when: <RelativeTime iso={data.snapshot!.createdAt} /> })}</span>
+            <span aria-hidden className="hidden sm:inline">
+              ·
             </span>
-            <span className="hidden font-mono sm:inline" dir="ltr">
-              {fmt(t.stats.hash, { hash: data.snapshot!.hash.slice(0, 8) })}
+            <span className="hidden sm:inline">
+              {fill(t.stats.hash, { hash: <Ltr mono>{data.snapshot!.hash.slice(0, 8)}</Ltr> })}
             </span>
           </p>
         </div>
       </div>
 
       <div className="schema-stats" aria-label={t.title}>
-        <Stat value={num(doc.stats.models, locale)} label={t.stats.models} />
-        <Stat value={num(doc.stats.fields, locale)} label={t.stats.fields} />
+        <CountStat n={doc.stats.models} forms={t.stats.models} />
+        <CountStat n={doc.stats.fields} forms={t.stats.fields} />
         <Stat
-          value={`${num(doc.stats.relations, locale)}+${num(doc.stats.impliedRelations, locale)}`}
-          label={`${t.stats.relations} · ${t.stats.implied}`}
+          value={null}
+          label={fmt(t.stats.relationsPair, {
+            declared: num(doc.stats.relations, locale),
+            implied: num(doc.stats.impliedRelations, locale),
+          })}
         />
-        <Stat value={num(doc.stats.enums, locale)} label={t.stats.enums} />
+        <CountStat n={doc.stats.enums} forms={t.stats.enums} />
         <Tooltip
           content={fmt(t.stats.coverageTip, {
             named: num(coverage.named, locale),
@@ -158,7 +197,7 @@ function Header({
           })}
         >
           <span className="schema-stat schema-stat-meter" tabIndex={0} data-tone="info">
-            <span className="schema-stat-value">{num(coverage.pct, locale)}٪</span>
+            <span className="schema-stat-value">{fmt(t.stats.pct, { pct: num(coverage.pct, locale) })}</span>
             <span className="schema-stat-label">{t.stats.named}</span>
             <span className="schema-meter" aria-hidden>
               <motion.span
@@ -169,13 +208,13 @@ function Header({
             </span>
           </span>
         </Tooltip>
-        {unsynced > 0 && <Stat value={num(unsynced, locale)} label={t.stats.unsynced} tone="warning" />}
+        {unsynced > 0 && <CountStat n={unsynced} forms={t.stats.unsynced} tone="warning" />}
         {doc.warnings.length > 0 && (
           <Tooltip content={t.states.warningsTip}>
             <span className="schema-stat" data-tone="warning" tabIndex={0}>
               <AlertTriangle aria-hidden className="size-4" strokeWidth={1.75} />
               <span className="schema-stat-label">
-                {fmt(t.states.warnings, { n: num(doc.warnings.length, locale) })}
+                {plural(doc.warnings.length, locale, t.states.warnings)}
               </span>
             </span>
           </Tooltip>
@@ -185,14 +224,16 @@ function Header({
       <div className="flex flex-wrap items-center gap-2">
         <Button size="sm" variant="ghost" onClick={onSearch}>
           <Search aria-hidden className="size-4" strokeWidth={1.75} />
-          <span className="hidden md:inline">{t.actions.search}</span>
-          <kbd className="schema-kbd hidden md:inline">/</kbd>
+          <span className="sr-only md:not-sr-only">{t.actions.search}</span>
+          <kbd className="schema-kbd hidden md:inline" aria-hidden>
+            /
+          </kbd>
         </Button>
         {studio.can.annotate && (
           <Tooltip content={t.actions.suggestNamesTip}>
             <Button size="sm" variant="outline" onClick={() => void studio.suggestNames({})}>
               <Sparkles aria-hidden className="size-4" strokeWidth={1.75} />
-              <span className="hidden sm:inline">{t.actions.suggestNames}</span>
+              <span className="sr-only sm:not-sr-only">{t.actions.suggestNames}</span>
             </Button>
           </Tooltip>
         )}
@@ -200,7 +241,7 @@ function Header({
           <Tooltip content={t.actions.syncNamesTip}>
             <Button size="sm" variant="outline" onClick={() => void studio.syncNames()}>
               <FolderCog aria-hidden className="size-4" strokeWidth={1.75} />
-              <span className="hidden sm:inline">{t.actions.syncNames}</span>
+              <span className="sr-only sm:not-sr-only">{t.actions.syncNames}</span>
             </Button>
           </Tooltip>
         )}
@@ -212,7 +253,7 @@ function Header({
                 className={cn('size-4', refresh.isPending && 'motion-safe:animate-spin')}
                 strokeWidth={1.75}
               />
-              <span className="hidden sm:inline">
+              <span className="sr-only sm:not-sr-only">
                 {refresh.isPending ? t.actions.refreshing : t.actions.refresh}
               </span>
             </Button>
@@ -229,25 +270,41 @@ function Workspace() {
   const [searching, setSearching] = useState(false);
   const [sourceOpen, setSourceOpen] = useState(false);
   const [railOpen, setRailOpen] = useState(false);
+  const studioBox = useRef<HTMLDivElement>(null);
+  const railSlot = useRef<HTMLDivElement>(null);
+  const narrow = useNarrow(studioBox);
 
-  // `/` and Ctrl+K search the design while this page is open, unless typing somewhere.
+  // `/` and Ctrl+Shift+K search the design while this page is open, unless typing or in a dialog. It listens before the shell does and keeps `/`
+  // from reaching it, so the page's search wins over the global palette here (review M9). Ctrl+K stays the palette.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
-      const typing =
-        target && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
-      if (
-        (event.key === '/' && !typing) ||
-        ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && event.shiftKey)
-      ) {
+      const busy = target?.closest(
+        'input, textarea, select, [contenteditable="true"], [role="dialog"], [role="menu"]',
+      );
+      const slash = matchKey(event, '/') && !event.ctrlKey && !event.metaKey && !event.altKey;
+      const chord = (event.ctrlKey || event.metaKey) && matchKey(event, 'K');
+      if ((slash && !busy && shortcutsEnabled()) || chord) {
         event.preventDefault();
+        event.stopPropagation();
         setSearching(true);
+        return;
       }
-      if (event.key === 'Escape' && !typing && studio.focus) studio.setFocus(null);
+      if (matchKey(event, 'Escape') && !busy && studio.focus) studio.setFocus(null);
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [studio]);
+
+  // The drawer takes focus when it opens, and gives it back to its toggle when it closes (review B2).
+  const drawer = narrow && railOpen;
+  const wasDrawer = useRef(false);
+  useEffect(() => {
+    if (drawer) railSlot.current?.querySelector<HTMLElement>('button, input')?.focus();
+    else if (wasDrawer.current)
+      studioBox.current?.querySelector<HTMLElement>('[data-schema-rail-toggle]')?.focus();
+    wasDrawer.current = drawer;
+  }, [drawer]);
 
   const views: { value: StudioView; label: string }[] = [
     { value: 'diagram', label: t.views.diagram },
@@ -257,17 +314,33 @@ function Workspace() {
   ];
 
   return (
-    <div className="schema-studio">
+    <div ref={studioBox} className="schema-studio" data-inspecting={studio.selection ? '' : undefined}>
       <Header
         onSearch={() => setSearching(true)}
         onSource={() => setSourceOpen(true)}
         onRail={() => setRailOpen((value) => !value)}
+        railOpen={railOpen}
       />
       <div className="schema-viewbar">
         <Segmented label={t.views.label} value={studio.view} onChange={studio.setView} options={views} />
       </div>
       <div className="schema-body">
-        <div className={cn('schema-rail-slot', railOpen && 'is-open')}>
+        <div
+          ref={railSlot}
+          className={cn('schema-rail-slot', railOpen && 'is-open')}
+          // Below 68rem the rail is a drawer: a dialog while open, out of the Tab order while closed.
+          role={drawer ? 'dialog' : undefined}
+          aria-modal={drawer || undefined}
+          aria-label={drawer ? t.domains.title : undefined}
+          inert={narrow && !railOpen ? true : undefined}
+          onKeyDown={(event) => {
+            if (drawer && matchKey(event, 'Escape')) {
+              event.preventDefault();
+              event.stopPropagation();
+              setRailOpen(false);
+            }
+          }}
+        >
           <DomainRail />
         </div>
         {railOpen && (
@@ -307,6 +380,23 @@ function Workspace() {
   );
 }
 
+/** True while the studio is under 68rem, where schema.css turns the rail into a drawer. */
+function useNarrow(box: React.RefObject<HTMLDivElement | null>): boolean {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    const rem = () => parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const update = () => setNarrow(element.getBoundingClientRect().width <= 68 * rem());
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [box]);
+  return narrow;
+}
+
 function Loading() {
   const t = useSchemaWords();
   return (
@@ -326,7 +416,7 @@ export function SchemaPage() {
   const query = useSchemaStudio();
   const canManage = session.roles.some((role) => role === 'owner' || role === 'pm' || role === 'backend');
 
-  if (query.isPending) return <Loading />;
+  if (query.isPending || session.loading) return <Loading />;
   if (query.isError) {
     return (
       <ErrorState

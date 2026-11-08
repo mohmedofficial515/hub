@@ -2,13 +2,13 @@
 
 /**
  * @file search-dialog.tsx
- * @description Search the design (docs/17 §4): tables, columns and enums by code name, table name, Arabic name or description, with Arabic letters folded. `/` or Ctrl+K opens it on this page;
- * Enter opens the result on the diagram and in the inspector.
+ * @description Search the design (docs/17 §4): tables, columns and enums by code name, table name, Arabic name or description, with Arabic letters folded. `/` or Ctrl+Shift+K opens it on
+ * this page; Enter opens the result on the diagram and in the inspector, and focus moves to the inspector's heading (review B2). In Arabic a result leads with its Arabic name.
  */
 import { Hash, ListTree, Search, Table2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { cn, Modal } from '@/components/kit';
+import { cn, fill, Kbd, Modal, useLocale } from '@/components/kit';
 
 import { type SearchHit, searchSchema, toneStyle } from './model';
 import { useSchemaWords, useStudio } from './studio';
@@ -24,6 +24,7 @@ export function SearchDialog({
 }) {
   const studio = useStudio();
   const t = useSchemaWords();
+  const locale = useLocale();
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const input = useRef<HTMLInputElement>(null);
@@ -44,14 +45,14 @@ export function SearchDialog({
     onOpenChange(false);
     if (hit.kind === 'enum') {
       studio.setView('enums');
-      studio.select({ kind: 'enum', name: hit.model });
+      studio.select({ kind: 'enum', name: hit.model }, { focus: true });
       return;
     }
     studio.setFocus(null);
     if (studio.prefs.hidden.includes(hit.domain))
       studio.setPrefs({ hidden: studio.prefs.hidden.filter((name) => name !== hit.domain) });
     studio.setView('diagram');
-    studio.select({ kind: 'model', name: hit.model, field: hit.field });
+    studio.select({ kind: 'model', name: hit.model, field: hit.field }, { focus: true });
     window.setTimeout(() => studio.revealModel(hit.model), 80);
   };
 
@@ -94,6 +95,7 @@ export function SearchDialog({
           )}
           {hits.map((hit, position) => {
             const Icon = ICONS[hit.kind];
+            const arabicFirst = locale === 'ar' && !!hit.nameAr;
             return (
               <li
                 key={`${hit.kind}:${hit.code}`}
@@ -109,11 +111,30 @@ export function SearchDialog({
                   <Icon className="size-4" strokeWidth={1.75} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-mono text-body-sm text-foreground" dir="ltr">
-                    {hit.code}
-                  </span>
-                  {hit.nameAr && (
-                    <span className="block truncate text-caption text-muted-foreground">{hit.nameAr}</span>
+                  {arabicFirst ? (
+                    <>
+                      <span className="block truncate text-body-sm text-foreground">{hit.nameAr}</span>
+                      <span
+                        className="block truncate text-start font-mono text-caption text-muted-foreground"
+                        dir="ltr"
+                      >
+                        {hit.code}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className="block truncate text-start font-mono text-body-sm text-foreground"
+                        dir="ltr"
+                      >
+                        {hit.code}
+                      </span>
+                      {hit.nameAr && (
+                        <span className="block truncate text-caption text-muted-foreground">
+                          {hit.nameAr}
+                        </span>
+                      )}
+                    </>
                   )}
                 </span>
                 <span className="shrink-0 text-caption text-muted-foreground">{hit.domain}</span>
@@ -121,7 +142,7 @@ export function SearchDialog({
             );
           })}
         </ul>
-        <p className="text-caption text-muted-foreground">{t.search.hint}</p>
+        <p className="text-caption text-muted-foreground">{fill(t.search.hint, { key: <Kbd>Enter</Kbd> })}</p>
       </div>
     </Modal>
   );

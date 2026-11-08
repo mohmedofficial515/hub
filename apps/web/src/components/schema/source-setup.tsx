@@ -3,6 +3,7 @@
 /**
  * @file source-setup.tsx
  * @description Where the design is read from (docs/17 §3): one of the project's folders and the schema folder inside it, read on Hub's machine or through a paired device. Shown when nothing is set yet, and from the header to change it.
+ * The folder follows the project's folders until the owner picks one, so a direct load, before the project has answered, still lands on a folder (review B1).
  */
 import { SCHEMA_DEFAULT_DIR, type SchemaSourceDto } from '@hub/contracts';
 import { Database } from 'lucide-react';
@@ -24,11 +25,16 @@ function SourceForm({ current, onDone }: { current: SchemaSourceDto | null; onDo
   const folders = (workspace.data as { repoPaths?: string[] } | undefined)?.repoPaths ?? [];
   const suggested = current?.path ?? folders.find((folder) => /backend/i.test(folder)) ?? folders[0] ?? '';
   const [name, setName] = useState(current?.name ?? 'backend');
-  const [path, setPath] = useState(suggested);
+  // Null until the owner picks a folder: until then it is the suggestion, which arrives with the project.
+  const [picked, setPicked] = useState<string | null>(null);
+  const path = picked ?? suggested;
+  const setPath = setPicked;
   const [schemaDir, setSchemaDir] = useState(current?.schemaDir ?? SCHEMA_DEFAULT_DIR);
   const [deviceId, setDeviceId] = useState(current?.deviceId ?? '');
+  const missing = !path.trim() ? t.setup.needPath : !schemaDir.trim() ? t.setup.needSchemaDir : null;
 
   const submit = () => {
+    if (missing) return;
     save.mutate(
       { name, path, schemaDir, deviceId: deviceId || null },
       {
@@ -50,7 +56,7 @@ function SourceForm({ current, onDone }: { current: SchemaSourceDto | null; onDo
         submit();
       }}
     >
-      <Field id={`${id}-name`} label={t.setup.name}>
+      <Field id={`${id}-name`} label={t.setup.name} hint={t.setup.nameHint}>
         <TextInput
           id={`${id}-name`}
           dir="ltr"
@@ -98,10 +104,21 @@ function SourceForm({ current, onDone }: { current: SchemaSourceDto | null; onDo
           ))}
         </Select>
       </Field>
-      <div>
-        <Button type="submit" variant="primary" busy={save.isPending} disabled={!path || !schemaDir}>
+      <div className="flex flex-col items-start gap-1.5">
+        <Button
+          type="submit"
+          variant="primary"
+          busy={save.isPending}
+          disabled={!!missing}
+          aria-describedby={missing ? `${id}-missing` : undefined}
+        >
           {t.setup.save}
         </Button>
+        {missing && (
+          <p id={`${id}-missing`} className="text-body-sm text-muted-foreground">
+            {missing}
+          </p>
+        )}
       </div>
     </form>
   );

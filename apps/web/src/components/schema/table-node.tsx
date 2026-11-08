@@ -2,14 +2,15 @@
 
 /**
  * @file table-node.tsx
- * @description A table on the diagram (docs/17 §4): its domain's colour, its Arabic name above its code name, its columns with key marks, and the draft's and the last version's marks.
- * Far out, a table shrinks to its name so the whole design reads as a map. A domain is a soft tinted zone behind its tables, with its name and how much of it is named.
+ * @description A table on the diagram (docs/17 §4): one neutral card with its domain's coloured dot, its Arabic name above its code name, its columns with key marks, and the
+ * draft's and the last version's marks as icons and small badges, never a coloured edge or a tinted row (owner's choice on review B3, 2026-11-08).
+ * Far out, a table shrinks to its name so the whole design reads as a map. A domain is a quiet zone behind its tables, with its dot, its name and how much of it is named.
  */
 import { Handle, type NodeProps, Position, useStore } from '@xyflow/react';
-import { CircleDashed, Fingerprint, KeyRound, Link2, Plus, Sparkles } from 'lucide-react';
+import { CircleDashed, Fingerprint, KeyRound, Link2, Minus, PencilLine, Plus, Sparkles } from 'lucide-react';
 import { createContext, memo, useContext } from 'react';
 
-import { cn, fmt, num, useLocale } from '@/components/kit';
+import { cn, fmt, num, plural, useLocale } from '@/components/kit';
 
 import { type Coverage, fieldTarget, labelOf, modelTarget, toneStyle, visibleFields } from './model';
 import { useSchemaWords, useStudio } from './studio';
@@ -24,7 +25,7 @@ export interface DiagramHot {
 export const HotContext = createContext<DiagramHot>({ hot: null, active: null, hover: () => {} });
 
 export type TableNodeData = { model: string; ghost?: { summary: string } };
-export type DomainNodeData = { domain: string; coverage: Coverage; count: number };
+export type DomainNodeData = { domain: string; coverage: Coverage; count: number; width: number };
 
 const farOut = (zoom: number) => zoom < 0.42;
 
@@ -135,6 +136,11 @@ function TableNodeView({ data, selected }: NodeProps & { data: TableNodeData }) 
           <Sparkles aria-hidden className="size-3.5 shrink-0 text-info-soft-foreground" strokeWidth={2} />
         )}
         {model.block === 'view' && <span className="schema-chip">{t.node.view}</span>}
+        {!far && (mark === 'changed' || mark === 'removed') && (
+          <span className="schema-chip" data-mark={mark}>
+            {mark === 'removed' ? t.node.markRemoved : t.node.markChanged}
+          </span>
+        )}
       </div>
       {!far && (
         <ul className="schema-node-rows">
@@ -181,6 +187,27 @@ function TableNodeView({ data, selected }: NodeProps & { data: TableNodeData }) 
                 {sensitivity && sensitivity !== 'none' && (
                   <span className="schema-sensitive" data-kind={sensitivity} aria-hidden />
                 )}
+                {fieldMark === 'changed' && (
+                  <PencilLine
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-warning-soft-foreground"
+                    strokeWidth={2}
+                  />
+                )}
+                {fieldMark === 'removed' && (
+                  <Minus
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-destructive-soft-foreground"
+                    strokeWidth={2}
+                  />
+                )}
+                {isRecent && (
+                  <Sparkles
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-info-soft-foreground"
+                    strokeWidth={2}
+                  />
+                )}
                 <span className="schema-row-type" dir="ltr">
                   {field.type}
                 </span>
@@ -199,7 +226,7 @@ function TableNodeView({ data, selected }: NodeProps & { data: TableNodeData }) 
             </li>
           ))}
           {hidden > 0 && (
-            <li className="schema-row schema-row-more">{fmt(t.node.more, { n: num(hidden, locale) })}</li>
+            <li className="schema-row schema-row-more">{plural(hidden, locale, t.node.more)}</li>
           )}
         </ul>
       )}
@@ -216,19 +243,21 @@ function DomainNodeView({ data }: NodeProps & { data: DomainNodeData }) {
   const zoom = useStore((state) => state.transform[2]);
   const far = farOut(zoom);
   const tone = studio.tones.get(data.domain);
-  // Far out, the domain's name grows against the zoom, so the overview reads as a labelled map.
-  const titleSize = far ? Math.min(15 / zoom, 140) : undefined;
+  // Far out, the domain's name grows against the zoom, so the overview reads as a labelled map, but stays inside its zone (review M8).
+  const fitted = Math.max(12, (data.width - 48) / Math.max(4, data.domain.length * 0.62));
+  const titleSize = far ? Math.min(15 / zoom, 140, fitted) : undefined;
   return (
     <div dir={locale === 'ar' ? 'rtl' : 'ltr'} style={toneStyle(tone)} className="schema-domain">
       <div className="schema-domain-title">
+        <span className="schema-node-dot" aria-hidden />
         <span
-          className={cn('font-semibold text-foreground', !far && 'text-title-sm')}
+          className={cn('min-w-0 truncate font-semibold text-foreground', !far && 'text-title-sm')}
           style={titleSize ? { fontSize: titleSize, lineHeight: 1.1 } : undefined}
         >
           {data.domain}
         </span>
-        <span className="text-body-sm text-muted-foreground">
-          {fmt(t.domains.tables, { n: num(data.count, locale) })}
+        <span className="shrink-0 text-body-sm text-muted-foreground">
+          {plural(data.count, locale, t.domains.tables)}
         </span>
         <span
           className="schema-domain-meter"

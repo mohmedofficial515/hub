@@ -21,6 +21,7 @@ import arPlanning from '../../messages/ar/planning.json';
 import arQueue from '../../messages/ar/queue.json';
 import arRedesign from '../../messages/ar/redesign.json';
 import arReleases from '../../messages/ar/releases.json';
+import arSchema from '../../messages/ar/schema.json';
 import arSettings from '../../messages/ar/settings.json';
 import arShell from '../../messages/ar/shell.json';
 import arTasks from '../../messages/ar/tasks.json';
@@ -39,6 +40,7 @@ import enPlanning from '../../messages/en/planning.json';
 import enQueue from '../../messages/en/queue.json';
 import enRedesign from '../../messages/en/redesign.json';
 import enReleases from '../../messages/en/releases.json';
+import enSchema from '../../messages/en/schema.json';
 import enSettings from '../../messages/en/settings.json';
 import enShell from '../../messages/en/shell.json';
 import enTasks from '../../messages/en/tasks.json';
@@ -64,6 +66,7 @@ const catalogs = {
     decisions: arDecisions,
     planning: arPlanning,
     queue: arQueue,
+    schema: arSchema,
   },
   en: {
     kit: enKit,
@@ -84,6 +87,7 @@ const catalogs = {
     decisions: enDecisions,
     planning: enPlanning,
     queue: enQueue,
+    schema: enSchema,
   },
 };
 

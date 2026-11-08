@@ -4,6 +4,8 @@
  * @file diagram.tsx
  * @description The design as a map (docs/17 §4): domains as tinted zones, tables inside them, relations between them. Hover or select a table and its relations light up while the rest fades.
  * Focus shows one table with its neighbours, laid out again tightly. A table dragged keeps its place in this browser; Arrange again forgets them. In Arabic the map reads from the right.
+ * By keyboard (review B2): the toolbar comes before the tables in Tab order, Enter or Space on a table opens it in the inspector, and a table reached by Tab far
+ * out is brought close. Fitting and centring keep clear of the toolbar on top and the draft dock below (review M8).
  */
 import '@xyflow/react/dist/style.css';
 
@@ -21,10 +23,10 @@ import {
   useNodesState,
   useReactFlow,
 } from '@xyflow/react';
-import { Focus, LayoutGrid, Maximize, Minus, Plus, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Focus, LayoutGrid, Maximize, Minus, Plus, Sparkles, X } from 'lucide-react';
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Button, cn, IconButton, Segmented, Tooltip, useLocale, useRoute } from '@/components/kit';
+import { Button, cn, IconButton, matchKey, Segmented, Tooltip, useLocale, useRoute } from '@/components/kit';
 
 import {
   type Box,
@@ -60,6 +62,35 @@ function writePinned(ws: string, pinned: Record<string, Point>) {
   }
 }
 
+/** What covers the canvas: the toolbar on top and the draft dock below, in pixels from each edge. */
+function coveredEdges(canvas: HTMLElement | null): { top: number; bottom: number; height: number } {
+  if (!canvas) return { top: 0, bottom: 0, height: 0 };
+  const box = canvas.getBoundingClientRect();
+  const toolbar = canvas.querySelector<HTMLElement>('.schema-toolbar')?.getBoundingClientRect();
+  const dock = canvas
+    .closest('.schema-main')
+    ?.querySelector<HTMLElement>('.schema-dock')
+    ?.getBoundingClientRect();
+  return {
+    top: toolbar ? Math.max(0, toolbar.bottom - box.top) : 0,
+    bottom: dock ? Math.max(0, box.bottom - dock.top) : 0,
+    height: box.height,
+  };
+}
+
+/** Fit padding that keeps the top row of domains out from under the toolbar and the last one above the dock. */
+function fitPadding(canvas: HTMLElement | null) {
+  const covered = coveredEdges(canvas);
+  if (!covered.height) return INITIAL_FIT_PADDING;
+  return {
+    top: `${Math.round(covered.top + 16)}px`,
+    bottom: `${Math.round(covered.bottom + 16)}px`,
+    x: '4%',
+  } as const;
+}
+
+const INITIAL_FIT_PADDING = { top: '84px', bottom: '72px', x: '4%' } as const;
+
 function sides(from: Box, to: Box): { sourceHandle: string; targetHandle: string } {
   const fromCentre = from.x + from.width / 2;
   const toCentre = to.x + to.width / 2;
@@ -69,7 +100,7 @@ function sides(from: Box, to: Box): { sourceHandle: string; targetHandle: string
     : { sourceHandle: 'l', targetHandle: 'tr' };
 }
 
-function Canvas() {
+function Canvas({ canvas }: { canvas: RefObject<HTMLDivElement | null> }) {
   const studio = useStudio();
   const t = useSchemaWords();
   const locale = useLocale();
@@ -165,7 +196,12 @@ function Canvas() {
         id: `domain:${domain}`,
         type: 'domain',
         position: { x: box.x, y: box.y },
-        data: { domain, coverage: coverageOf(models, studio.annotations), count: boxes.length },
+        data: {
+          domain,
+          coverage: coverageOf(models, studio.annotations),
+          count: boxes.length,
+          width: box.width,
+        },
         style: { width: box.width, height: box.height },
         draggable: false,
         selectable: false,
@@ -275,6 +311,22 @@ function Canvas() {
       });
   }, [nodes, doc.relations, prefs.implied, active, heightOf]);
 
+  // Centre a table in the part of the canvas nothing covers: below the toolbar, above the dock. A table taller than that starts just under the toolbar.
+  const centreOn = useCallback(
+    (node: Node, zoom: number, duration: number) => {
+      const covered = coveredEdges(canvas.current);
+      const height = node.measured?.height ?? 200;
+      const clear = covered.height - covered.top - covered.bottom;
+      const x = node.position.x + NODE_WIDTH / 2;
+      const y =
+        height * zoom + 24 <= clear
+          ? node.position.y + height / 2 + (covered.bottom - covered.top) / 2 / zoom
+          : node.position.y + (covered.height / 2 - covered.top - 12) / zoom;
+      void flow.setCenter(x, y, { zoom, duration });
+    },
+    [canvas, flow],
+  );
+
   // Centre on a table asked for by search, the inspector or the dictionary.
   const lastReveal = useRef(0);
   useEffect(() => {
@@ -283,24 +335,60 @@ function Canvas() {
     lastReveal.current = reveal.tick;
     const node = nodes.find((entry) => entry.id === reveal.model);
     if (!node) return;
-    void flow.setCenter(
-      node.position.x + NODE_WIDTH / 2,
-      node.position.y + (node.measured?.height ?? 200) / 2,
-      { zoom: 1, duration: 600 },
-    );
-  }, [studio.reveal, nodes, flow]);
+    centreOn(node, 1, 600);
+  }, [studio.reveal, nodes, centreOn]);
 
   // A new focus or filter fits the view to what is shown.
   const fitKey = `${focus ?? ''}|${prefs.hidden.join(',')}`;
   useEffect(() => {
-    const id = window.setTimeout(() => void flow.fitView({ padding: 0.12, duration: 500 }), 60);
+    const id = window.setTimeout(
+      () => void flow.fitView({ padding: fitPadding(canvas.current), duration: 500 }),
+      60,
+    );
     return () => window.clearTimeout(id);
-  }, [fitKey, flow]);
+  }, [fitKey, flow, canvas]);
+
+  // A table reached by Tab while the map is far out comes close enough to read (review B2).
+  useEffect(() => {
+    const box = canvas.current;
+    if (!box) return;
+    const onFocus = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.classList.contains('react-flow__node-table') || !target.matches(':focus-visible')) return;
+      const node = flow.getNode(target.dataset.id ?? '');
+      if (node && flow.getZoom() < 0.6) centreOn(node, 0.85, 250);
+    };
+    box.addEventListener('focusin', onFocus);
+    return () => box.removeEventListener('focusin', onFocus);
+  }, [canvas, flow, centreOn]);
 
   const hotValue = useMemo(() => ({ hot, active, hover: setHovered }), [hot, active]);
 
   return (
     <HotContext.Provider value={hotValue}>
+      <Toolbar
+        onFit={() => void flow.fitView({ padding: fitPadding(canvas.current), duration: 400 })}
+        onRelayout={() => {
+          setPinned({});
+          writePinned(ws, {});
+          window.setTimeout(
+            () => void flow.fitView({ padding: fitPadding(canvas.current), duration: 400 }),
+            60,
+          );
+        }}
+      />
+      {focus && (
+        <div className="schema-focus-pill">
+          <Focus aria-hidden className="size-4" strokeWidth={1.75} />
+          <span className="font-mono text-body-sm" dir="ltr">
+            {focus}
+          </span>
+          <Button size="sm" variant="ghost" onClick={() => studio.setFocus(null)}>
+            <X aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.actions.focusOff}
+          </Button>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -320,7 +408,7 @@ function Canvas() {
         minZoom={0.08}
         maxZoom={2}
         fitView
-        fitViewOptions={{ padding: 0.12 }}
+        fitViewOptions={{ padding: INITIAL_FIT_PADDING }}
         proOptions={{ hideAttribution: true }}
         className="schema-flow"
       >
@@ -338,31 +426,12 @@ function Canvas() {
           maskColor="var(--schema-mask)"
         />
       </ReactFlow>
-      <Toolbar
-        onRelayout={() => {
-          setPinned({});
-          writePinned(ws, {});
-          window.setTimeout(() => void flow.fitView({ padding: 0.12, duration: 400 }), 60);
-        }}
-      />
       <Legend />
-      {focus && (
-        <div className="schema-focus-pill">
-          <Focus aria-hidden className="size-4" strokeWidth={1.75} />
-          <span className="font-mono text-body-sm" dir="ltr">
-            {focus}
-          </span>
-          <Button size="sm" variant="ghost" onClick={() => studio.setFocus(null)}>
-            <X aria-hidden className="size-4" strokeWidth={1.75} />
-            {t.actions.focusOff}
-          </Button>
-        </div>
-      )}
     </HotContext.Provider>
   );
 }
 
-function Toolbar({ onRelayout }: { onRelayout: () => void }) {
+function Toolbar({ onRelayout, onFit }: { onRelayout: () => void; onFit: () => void }) {
   const studio = useStudio();
   const t = useSchemaWords();
   const locale = useLocale();
@@ -408,7 +477,7 @@ function Toolbar({ onRelayout }: { onRelayout: () => void }) {
       <IconButton label={t.actions.zoomIn} onClick={() => void flow.zoomIn({ duration: 200 })}>
         <Plus aria-hidden className="size-4" strokeWidth={1.75} />
       </IconButton>
-      <IconButton label={t.actions.fit} onClick={() => void flow.fitView({ padding: 0.12, duration: 400 })}>
+      <IconButton label={t.actions.fit} onClick={onFit}>
         <Maximize aria-hidden className="size-4" strokeWidth={1.75} />
       </IconButton>
       <Tooltip content={t.actions.relayoutTip}>
@@ -433,11 +502,11 @@ function Legend() {
         {t.legend.implied}
       </span>
       <span className="schema-legend-item">
-        <span className="schema-legend-swatch" data-kind="recent" aria-hidden />
+        <Sparkles aria-hidden className="size-3.5 text-info-soft-foreground" strokeWidth={2} />
         {t.legend.changed}
       </span>
       <span className="schema-legend-item">
-        <span className="schema-legend-swatch" data-kind="proposed" aria-hidden />
+        <Plus aria-hidden className="size-3.5 text-success-soft-foreground" strokeWidth={2} />
         {t.legend.proposed}
       </span>
     </div>
@@ -445,10 +514,26 @@ function Legend() {
 }
 
 export function Diagram() {
+  const studio = useStudio();
+  const canvas = useRef<HTMLDivElement>(null);
   return (
-    <div className="schema-canvas" dir="ltr">
+    <div
+      ref={canvas}
+      className="schema-canvas"
+      dir="ltr"
+      // Enter or Space on a table opens it in the inspector, as a click does, and moves focus there (review B2).
+      onKeyDown={(event) => {
+        if (!matchKey(event, 'Enter') && !matchKey(event, ' ')) return;
+        const target = event.target as HTMLElement;
+        if (!target.classList.contains('react-flow__node-table')) return;
+        const name = target.dataset.id ?? '';
+        if (!studio.doc.models.some((model) => model.name === name)) return;
+        event.preventDefault();
+        studio.select({ kind: 'model', name }, { focus: true });
+      }}
+    >
       <ReactFlowProvider>
-        <Canvas />
+        <Canvas canvas={canvas} />
       </ReactFlowProvider>
     </div>
   );
