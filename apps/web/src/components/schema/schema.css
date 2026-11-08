@@ -1,9 +1,15 @@
 /*
  * Schema Studio (docs/17 §4), on the app's tokens only: a domain's colour comes in as --dom, --dom-soft and --dom-fg from the type families, and every other colour is a theme token,
  * so light and dark follow the theme. Layout: the page fills the window under the app header, the canvas fills what is left, and on a phone the rail and the inspector become sheets.
+ * Surfaces are Hub's (owner's choice on review B3, 2026-11-08): every card is one neutral surface with one neutral border, a domain shows only as its small coloured dot,
+ * no row is tinted, nothing has a gradient, and no shadow is deeper than shadow-md. Marks are icons and small badges.
  */
 
 .schema-studio {
+  --schema-shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--foreground) 6%, transparent);
+  --schema-shadow-md:
+    0 4px 6px -1px color-mix(in oklab, var(--foreground) 10%, transparent),
+    0 2px 4px -2px color-mix(in oklab, var(--foreground) 10%, transparent);
   --schema-mask: color-mix(in oklab, var(--background) 72%, transparent);
   --schema-edge: color-mix(in oklab, var(--muted-foreground) 55%, transparent);
   --schema-edge-lit: var(--primary);
@@ -26,18 +32,7 @@
   gap: 0.75rem 1.25rem;
   padding: 0.75rem 1rem;
   border-block-end: 1px solid var(--border);
-  background:
-    radial-gradient(
-      120% 140% at 100% 0%,
-      color-mix(in oklab, var(--primary) 9%, transparent),
-      transparent 60%
-    ),
-    var(--card);
-}
-[dir='ltr'] .schema-header {
-  background:
-    radial-gradient(120% 140% at 0% 0%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 60%),
-    var(--card);
+  background: var(--card);
 }
 .schema-header-icon,
 .schema-hero-icon {
@@ -48,9 +43,8 @@
   block-size: 2.5rem;
   flex-shrink: 0;
   border-radius: 0.75rem;
-  color: var(--primary-foreground);
-  background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 55%, var(--info)));
-  box-shadow: 0 6px 18px -8px color-mix(in oklab, var(--primary) 70%, transparent);
+  color: var(--muted-foreground);
+  background: var(--muted);
 }
 .schema-hero-icon {
   inline-size: 4rem;
@@ -77,7 +71,7 @@
   white-space: nowrap;
 }
 .schema-stat[data-tone='warning'] {
-  border-color: color-mix(in oklab, var(--warning) 45%, var(--border));
+  border-color: transparent;
   background: var(--warning-soft);
   color: var(--warning-soft-foreground);
   align-items: center;
@@ -111,7 +105,7 @@
   display: block;
   block-size: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--info), var(--success));
+  background: var(--info);
 }
 .schema-kbd {
   margin-inline-start: 0.25rem;
@@ -188,7 +182,6 @@
   flex-shrink: 0;
   border-radius: 0.2rem;
   background: var(--dom);
-  box-shadow: 0 0 0 3px var(--dom-soft);
 }
 .schema-rail-actions {
   display: flex;
@@ -206,6 +199,11 @@
 .schema-rail-item:hover .schema-rail-actions,
 .schema-rail-item:focus-within .schema-rail-actions {
   opacity: 1;
+}
+@media (hover: none) {
+  .schema-rail-actions {
+    opacity: 1;
+  }
 }
 .schema-ring {
   inline-size: 1.375rem;
@@ -306,10 +304,6 @@
   color: var(--warning-soft-foreground);
   background: var(--warning-soft);
 }
-.schema-chip[data-tone='domain'] {
-  color: var(--dom-fg);
-  background: var(--dom-soft);
-}
 .schema-chip[data-mark='added'] {
   color: var(--success-soft-foreground);
   background: var(--success-soft);
@@ -365,7 +359,7 @@
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   overflow: hidden;
-  box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--foreground) 40%, transparent);
+  box-shadow: var(--schema-shadow-md);
   margin-block-end: 4.5rem !important;
 }
 .schema-handle {
@@ -383,8 +377,8 @@
   inline-size: 100%;
   block-size: 100%;
   border-radius: 1.25rem;
-  border: 1px dashed color-mix(in oklab, var(--dom) 45%, transparent);
-  background: color-mix(in oklab, var(--dom-soft) 55%, transparent);
+  border: 1px dashed var(--border);
+  background: color-mix(in oklab, var(--muted) 45%, transparent);
   pointer-events: none;
 }
 .schema-domain-title {
@@ -395,15 +389,16 @@
 }
 .schema-domain-meter {
   inline-size: 4rem;
+  flex-shrink: 0;
   block-size: 4px;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--dom) 18%, transparent);
+  background: var(--muted);
   overflow: hidden;
 }
 .schema-domain-meter > span {
   display: block;
   block-size: 100%;
-  background: var(--dom);
+  background: var(--muted-foreground);
 }
 
 /* Tables. */
@@ -411,11 +406,9 @@
   position: relative;
   inline-size: 100%;
   border-radius: 0.75rem;
-  border: 1px solid color-mix(in oklab, var(--dom) 30%, var(--border));
+  border: 1px solid var(--border);
   background: var(--card);
-  box-shadow:
-    0 1px 0 color-mix(in oklab, var(--foreground) 4%, transparent),
-    0 10px 24px -18px color-mix(in oklab, var(--foreground) 50%, transparent);
+  box-shadow: var(--schema-shadow-sm);
   transition:
     opacity 200ms ease-out,
     transform 200ms ease-out,
@@ -424,41 +417,23 @@
   animation: schema-pop 360ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 .schema-node:hover {
-  border-color: var(--dom);
-  box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--dom) 22%, transparent),
-    0 16px 32px -18px color-mix(in oklab, var(--foreground) 55%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 30%, var(--border));
+  box-shadow: var(--schema-shadow-md);
 }
 .schema-node[data-active] {
-  border-color: var(--dom);
+  border-color: var(--foreground);
   box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--dom) 40%, transparent),
-    0 18px 36px -16px color-mix(in oklab, var(--dom) 50%, transparent);
+    0 0 0 1px var(--foreground),
+    var(--schema-shadow-md);
 }
 .schema-node[data-dimmed] {
   opacity: 0.28;
 }
-.schema-node[data-recent]::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 1rem;
-  border: 2px solid var(--info);
-  opacity: 0;
-  animation: schema-pulse 2.4s ease-out 3;
-  pointer-events: none;
-}
-.schema-node[data-mark='changed'] {
-  border-color: color-mix(in oklab, var(--warning) 70%, var(--border));
-}
-.schema-node[data-mark='removed'] {
-  border-color: var(--destructive);
-  border-style: dashed;
-}
+/* A proposed table is drawn dashed, neutral; its badge says what it is. A table the draft changes or removes carries a small badge in its head. */
+.schema-node[data-mark='removed'],
 .schema-node[data-mark='added'],
 .schema-node-ghost {
-  border: 1.5px dashed color-mix(in oklab, var(--success) 70%, transparent);
-  background: color-mix(in oklab, var(--success-soft) 60%, var(--card));
+  border-style: dashed;
 }
 .schema-node-badge {
   position: absolute;
@@ -467,8 +442,8 @@
   padding: 0 0.4rem;
   border-radius: 0.375rem;
   font-size: var(--text-caption);
-  color: var(--success-foreground);
-  background: var(--success);
+  color: var(--success-soft-foreground);
+  background: var(--success-soft);
 }
 .schema-node-head {
   display: flex;
@@ -478,8 +453,7 @@
   padding: 0.5rem 0.75rem;
   border-start-start-radius: 0.75rem;
   border-start-end-radius: 0.75rem;
-  background: linear-gradient(180deg, var(--dom-soft), color-mix(in oklab, var(--dom-soft) 30%, var(--card)));
-  border-block-end: 1px solid color-mix(in oklab, var(--dom) 22%, var(--border));
+  border-block-end: 1px solid var(--border);
 }
 .schema-node-far .schema-node-head {
   min-block-size: 80px;
@@ -492,7 +466,6 @@
   flex-shrink: 0;
   border-radius: 999px;
   background: var(--dom);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--dom) 25%, transparent);
 }
 .schema-node-unnamed {
   display: inline-flex;
@@ -514,25 +487,14 @@
   background: color-mix(in oklab, var(--muted) 45%, transparent);
 }
 .schema-row[data-selected] {
-  background: color-mix(in oklab, var(--dom) 18%, transparent);
+  background: var(--accent);
+  font-weight: 600;
 }
 .schema-row[data-mark='added'] {
-  color: var(--success-soft-foreground);
-  background: var(--success-soft);
   font-style: italic;
 }
-.schema-row[data-mark='changed'] {
-  background: var(--warning-soft);
-}
 .schema-row[data-mark='removed'] {
-  background: var(--destructive-soft);
   text-decoration: line-through;
-}
-.schema-row[data-recent] {
-  box-shadow: inset 3px 0 0 var(--info);
-}
-[dir='rtl'] .schema-row[data-recent] {
-  box-shadow: inset -3px 0 0 var(--info);
 }
 .schema-row-icon {
   display: inline-flex;
@@ -582,7 +544,6 @@
 .schema-edge-lit .react-flow__edge-path {
   stroke: var(--schema-edge-lit);
   stroke-width: 2.4;
-  filter: drop-shadow(0 0 4px color-mix(in oklab, var(--primary) 55%, transparent));
 }
 .schema-edge-faded {
   opacity: 0.12;
@@ -609,7 +570,7 @@
   border-radius: 0.875rem;
   background: color-mix(in oklab, var(--card) 88%, transparent);
   backdrop-filter: blur(10px);
-  box-shadow: 0 10px 30px -18px color-mix(in oklab, var(--foreground) 45%, transparent);
+  box-shadow: var(--schema-shadow-md);
 }
 .schema-toolbar-gap {
   inline-size: 1px;
@@ -621,11 +582,6 @@
 }
 .schema-rail-scrim {
   display: none;
-}
-@container studio (max-width: 80rem) {
-  .schema-legend {
-    display: none;
-  }
 }
 .schema-legend {
   position: absolute;
@@ -644,6 +600,21 @@
   font-size: var(--text-caption);
   color: var(--muted-foreground);
 }
+@container studio (max-width: 80rem) {
+  .schema-legend {
+    display: none;
+  }
+}
+@container studio (max-width: 70rem) {
+  .schema-minimap {
+    display: none;
+  }
+}
+/* An open table needs the canvas: the minimap and the legend would cover its columns (review M8). */
+.schema-studio[data-inspecting] .schema-minimap,
+.schema-studio[data-inspecting] .schema-legend {
+  display: none;
+}
 .schema-legend-item {
   display: inline-flex;
   align-items: center;
@@ -656,16 +627,6 @@
 }
 .schema-legend-dashed {
   border-block-start-style: dashed;
-}
-.schema-legend-swatch {
-  inline-size: 0.75rem;
-  block-size: 0.75rem;
-  border-radius: 0.2rem;
-  border: 2px solid var(--info);
-}
-.schema-legend-swatch[data-kind='proposed'] {
-  border: 2px dashed var(--success);
-  background: var(--success-soft);
 }
 .schema-focus-pill {
   position: absolute;
@@ -680,7 +641,7 @@
   border-radius: 999px;
   color: var(--primary-foreground);
   background: var(--primary);
-  box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--primary) 70%, transparent);
+  box-shadow: var(--schema-shadow-md);
   animation: schema-pop 300ms ease-out both;
 }
 [dir='rtl'] .schema-focus-pill {
@@ -701,7 +662,6 @@
   min-block-size: 0;
   border-inline-start: 1px solid var(--border);
   background: var(--card);
-  box-shadow: -18px 0 40px -32px color-mix(in oklab, var(--foreground) 60%, transparent);
 }
 .schema-inspector-close {
   position: absolute;
@@ -712,7 +672,6 @@
 .schema-inspector-head {
   padding: 1rem 3rem 1rem 1rem;
   border-block-end: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--dom-soft), transparent);
 }
 [dir='rtl'] .schema-inspector-head {
   padding: 1rem 1rem 1rem 3rem;
@@ -788,15 +747,8 @@
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--card);
-  box-shadow: 0 24px 60px -28px color-mix(in oklab, var(--foreground) 60%, transparent);
+  box-shadow: var(--schema-shadow-md);
   overflow: hidden;
-}
-.schema-dock[data-status='in_review'],
-.schema-dock[data-status='applying'] {
-  border-color: color-mix(in oklab, var(--primary) 60%, var(--border));
-  box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--primary) 18%, transparent),
-    0 24px 60px -28px color-mix(in oklab, var(--primary) 60%, transparent);
 }
 .schema-dock-idle {
   inline-size: auto;
@@ -904,7 +856,7 @@
   vertical-align: middle;
 }
 .schema-table tr:hover td {
-  background: color-mix(in oklab, var(--dom-soft) 50%, transparent);
+  background: var(--accent);
 }
 .schema-enum-grid {
   display: grid;
@@ -917,19 +869,24 @@
   flex-direction: column;
   padding: 0.875rem;
   border-radius: 0.875rem;
-  border: 1px solid color-mix(in oklab, var(--dom) 25%, var(--border));
-  background: linear-gradient(180deg, color-mix(in oklab, var(--dom-soft) 60%, var(--card)), var(--card) 60%);
+  border: 1px solid var(--border);
+  background: var(--card);
   text-align: start;
   transition:
     transform 160ms ease-out,
     box-shadow 160ms ease-out,
     border-color 160ms ease-out;
 }
-.schema-enum-card:hover,
-.schema-enum-card.is-active {
+.schema-enum-card:hover {
   transform: translateY(-2px);
-  border-color: var(--dom);
-  box-shadow: 0 14px 30px -20px color-mix(in oklab, var(--dom) 70%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 30%, var(--border));
+  box-shadow: var(--schema-shadow-md);
+}
+.schema-enum-card.is-active {
+  border-color: var(--foreground);
+  box-shadow:
+    0 0 0 1px var(--foreground),
+    var(--schema-shadow-md);
 }
 .schema-timeline {
   position: relative;
@@ -944,7 +901,7 @@
   inset-block: 0.5rem;
   inset-inline-start: 0.6875rem;
   inline-size: 2px;
-  background: linear-gradient(180deg, var(--primary), var(--border));
+  background: var(--border);
   border-radius: 2px;
 }
 .schema-timeline-item {
@@ -969,9 +926,6 @@
   color: var(--muted-foreground);
   background: var(--background);
   border: 2px solid var(--border);
-}
-.schema-timeline-item[data-current] {
-  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
 }
 .schema-timeline-item[data-current] .schema-timeline-dot {
   color: var(--primary-foreground);
@@ -1021,23 +975,9 @@
     transform: none;
   }
 }
-@keyframes schema-pulse {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.98);
-  }
-  70% {
-    opacity: 0;
-    transform: scale(1.04);
-  }
-  100% {
-    opacity: 0;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .schema-node,
-  .schema-focus-pill,
-  .schema-node[data-recent]::after {
+  .schema-focus-pill {
     animation: none;
   }
   .schema-node,
@@ -1058,13 +998,13 @@
     inline-size: min(18rem, 85vw);
     translate: -100% 0;
     transition: translate 220ms ease-out;
-    box-shadow: 0 0 40px -10px color-mix(in oklab, var(--foreground) 50%, transparent);
   }
   [dir='rtl'] .schema-rail-slot {
     translate: 100% 0;
   }
   .schema-rail-slot.is-open {
     translate: 0 0;
+    box-shadow: var(--schema-shadow-md);
   }
   .schema-rail-scrim {
     display: block;
@@ -1082,6 +1022,7 @@
     inset-inline-end: 0;
     z-index: 21;
     inline-size: min(26rem, 100%);
+    box-shadow: var(--schema-shadow-md);
   }
 }
 @container studio (max-width: 40rem) {
@@ -1104,6 +1045,10 @@
   .schema-legend,
   .schema-minimap {
     display: none;
+  }
+  .schema-rail-actions .size-7 {
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
   }
   .schema-inspector {
     inset-block-start: auto;
