@@ -295,6 +295,21 @@ The approved `v6-edge-strip-port` (D55) on the real shell, real API, real bridge
 | Models fixed at three | The three, plus Default | Default passes no model, which is the real choice |
 | Pending label "approvals" | "answers" | The count holds questions too |
 
+**After the panel review (2026-11-08).** The review is `docs/status/2026-11-08-panel-review.md`, and each finding's outcome is marked there.
+
+| Finding | Now |
+|---|---|
+| B1 mode tips empty | The key is `mode:${mode}` typed with `as const`, no cast. `tip-keys.spec.ts` holds every tip key the panel and the sheet name, template keys included, to both catalogs |
+| M1 bridge tip | "Last seen" for `lastSeenAt` (the code had kept "Connected since"), and State is one word: Connected or Offline |
+| M2 empty History | Two lines: no chats yet in this project, or none that match the search |
+| M3 offline sheet | The sheet hides its Claude actions only while the empty chat shows them, which it does only when the engine is not blocked. Offline they stay, disabled, with their reasons |
+| M4 phone focus | The panel is `inert` while the card covers it. To the chat puts focus in the panel (on touch, not in the message box), To the card on the sheet title |
+| M5 tablet | A first visit opens the panel only where its 440 px default leaves the page D54's 400 px (`opensByDefault`): closed at 768 and 820, open from 900 px of content width. The remembered choice wins after that |
+| M6 sheet header | The key and the chips never break inside themselves, and under 448 px of sheet the way back is its arrow, with its name kept for screen readers |
+| Minors | Settings returns focus to Chat options, an off tip names the control first, phone tabs use the strip's words, one header row on touch with no state, the where chip names the device with no folder, Timeline is list-like, Back after Previous and Next returns to the last card's row, the sidebar folds before paint |
+
+**The bridge, after the same day.** A credential check that fails (the database down) is no longer read as a revocation: only a refused credential closes with `BRIDGE_CLOSE.revoked`, and a check that cannot run closes with `unavailable` (1013), which the bridge retries. Node's own `WebSocket` fires `error` and never `close` when the connection is refused, so the bridge's loop now ends an attempt on that `error`, and gives up on a socket still connecting after 20 s. `pnpm start:local` asks `GET /api/v1/bridge/self` whether Hub holds the device's socket, in the one request it already made, and restarts a bridge that is alive but not seen.
+
 ## 8. Slice 4: send to VS Code
 
 A button on any card and in the panel: **Open in VS Code**.
