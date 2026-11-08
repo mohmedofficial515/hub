@@ -55,9 +55,9 @@ export interface DoNextItem {
   readonly runnable: boolean;
   readonly score: number;
   /** A task that is its plan's next step. */
-  readonly plan?: { readonly key: string; readonly title: string; readonly index: number };
+  readonly plan?: { readonly key: string; readonly title: string; readonly index: number } | undefined;
   /** A plan step that is not a task yet: it runs as "Carry out step N of plan KEY". */
-  readonly step?: { readonly index: number };
+  readonly step?: { readonly index: number } | undefined;
 }
 
 export interface DoNextOptions {

@@ -36,6 +36,7 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
+import { PageDoNext } from '@/components/workbench/panels';
 import { type CardSummaryDto, toListItem } from '@/features/cards/map';
 import { byPriority } from '@/features/tasks/model';
 import { toStreamRow } from '@/features/timeline/use-timeline';
@@ -274,6 +275,8 @@ export function TodayPage() {
         <div className="flex min-w-0 flex-col gap-8 lg:@page-lg:col-span-7">
           <AwaitingStack stack={stack} headingRef={stackHeading} />
           <DeadlineRunway cards={deadlines} stackKeys={stackKeys} />
+          {/* Do next (docs/16 §11): the panel's own list, ranked by the server, with Run now and Schedule. */}
+          <PageDoNext limit={5} />
           {showReady && (
             <ReadyTasks tasks={ready} fillFirst={seesAllReadyWork(roles) && stack.length === 0} />
           )}

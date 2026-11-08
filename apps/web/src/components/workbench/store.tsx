@@ -802,6 +802,15 @@ export function useAsk() {
   };
 }
 
+/**
+ * `/hub:suggest` in a new chat, in Ask (D51, D66): it reads the project and proposes, and creates nothing. The panel comes forward to show the chat, wherever this was pressed.
+ */
+export async function suggestWithClaude(context: ChatContext): Promise<boolean> {
+  const sent = await send({ text: '/hub:suggest', mode: 'ask', fresh: true, context });
+  if (sent && local.activeId) revealChat(local.activeId);
+  return sent;
+}
+
 /** Starts a Hub skill on a card: it runs at once, in Execute, and its tooltip has said so (D51). */
 export function startSkill(text: string, context: ChatContext) {
   return send({ text, mode: 'execute', fresh: true, context });

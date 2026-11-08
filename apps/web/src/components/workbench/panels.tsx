@@ -5,7 +5,7 @@
  * @description The panel's other views and notices: honest states, Do next, what is running now, history, the empty chat, Send to VS Code, and the bar the card sheet gains. Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/panels.tsx`.
  * Runs shows what is working now, the queue's next runs and last results, with the limits and a link to the queue page (docs/16 §9). Start with these offers Run now and Schedule on its task items.
  */
-import { doNext, type DoNextItem, vscodePrompt } from '@hub/contracts';
+import { doNextId, type DoNextItem, vscodePrompt } from '@hub/contracts';
 import {
   AlertTriangle,
   Check,
@@ -26,10 +26,11 @@ import {
   Search,
   ServerCrash,
   Settings2,
+  Sparkles,
   Trash2,
   UserX,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import {
   AppLink,
@@ -38,6 +39,7 @@ import {
   cn,
   CommandBlock,
   copyText,
+  fill,
   fmt,
   focusRing,
   kitMessages,
@@ -53,15 +55,15 @@ import {
   type TipFact,
   TypeIcon,
   useCard,
-  useCards,
   useLocale,
   useMedia,
   useRoute,
   useT,
 } from '@/components/kit';
-import { RunRow, useQueueWords } from '@/components/queue/run-bits';
+import { RunRow, type RunTarget, useQueueWords } from '@/components/queue/run-bits';
 import { RunButtons } from '@/components/queue/run-entry';
 import { useOpenInVsCode } from '@/features/chat/queries';
+import { useDoNext } from '@/features/next/queries';
 import { useQueue } from '@/features/queue/queries';
 import { isHubError } from '@/lib/api/errors';
 
@@ -75,6 +77,7 @@ import {
   retryTurn,
   revealApproval,
   startSkill,
+  suggestWithClaude,
   togglePin,
   useAsk,
   useMaybeWb,
@@ -294,115 +297,169 @@ export function EngineNotice({
 
 // ── Do next (docs/16 §11): ranked from real state, with no model involved ───────────────────────
 
+/**
+ * Start with these: the server's ranking (`GET today/next`, the one `doNext` rule), on the panel's Runs and on Today. Each item says why it leads. A task and a plan step
+ * offer Run now and Schedule, the queue's own entry points (D58 to D60 apply through them); a decision offers Explain. Ask Claude for more runs `/hub:suggest` in Ask (D66).
+ */
 export function DoNext({
   limit = 3,
   className,
+  variant = 'panel',
 }: {
   limit?: number | undefined;
   className?: string | undefined;
+  /** `page` is Today's: a section heading of the page's size. */
+  variant?: 'panel' | 'page' | undefined;
 }) {
   const t = useT<ChatMessages>('chat').panel;
   const tipWords = useT<ChatMessages>('chat').tips;
   const locale = useLocale();
   const ask = useAsk();
   const wb = useWb();
-  const cards = useCards();
+  const { view } = useRoute();
+  const nav = useT<{ nav: Record<string, string> }>('shell').nav;
   const off = offOf(wb.engine);
-  const items = useMemo(
-    () =>
-      doNext(
-        cards.map((c) => ({
-          key: c.key,
-          type: c.type,
-          title: c.title,
-          status: c.status,
-          priority: c.priority,
-          ownerRole: c.ownerRole,
-          blocksCount: c.blocksCount ?? 0,
-          awaiting: c.awaiting ?? null,
-          archivedAt: c.archivedAt ?? null,
-          closedAt: c.closedAt ?? null,
-          dueAt: c.dueAt ?? null,
-          flags: { blocked: !!c.flags?.blocked, overdue: !!c.flags?.overdue },
-        })),
-        { role: (wb.persona as Role | null) ?? null, limit, nowMs: Date.now() },
-      ),
-    [cards, wb.persona, limit],
-  );
+  const query = useDoNext({ role: (wb.persona as Role | null) ?? null, limit });
+  const items = query.data?.items ?? [];
   const why = (item: DoNextItem) =>
     item.reasons
       .map((reason) => {
         if (reason === 'overdue') return t.next.why.overdue;
         if (reason === 'blocks') return counted(item.blocks, locale, t.next.why.blocks);
+        if (reason === 'plan_next') return fmt(t.next.why.planNext, { plan: item.plan?.key ?? '' });
+        if (reason === 'small') return t.next.why.small;
         return reason === 'decision' ? t.next.why.decision : t.next.why.ready;
       })
       .join(t.listSeparator);
+  const target = (item: DoNextItem): RunTarget | null => {
+    if (item.step)
+      return { source: 'plan_step', cardKey: item.key, planStep: item.step.index, title: item.title };
+    return item.type === 'task' ? { source: 'task', cardKey: item.key, title: item.title } : null;
+  };
+  const page = variant === 'page';
+  const Heading = page ? 'h2' : 'h3';
   return (
-    <section aria-labelledby="wb-next" data-wb-next className={cn('flex flex-col gap-2', className)}>
-      <div className="flex flex-wrap items-baseline gap-x-2">
+    <section
+      aria-labelledby={page ? 'today-next' : 'wb-next'}
+      data-wb-next={variant}
+      className={cn('flex flex-col', page ? 'gap-3' : 'gap-2', className)}
+    >
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <Tip k="next:title" align="start">
-          <h3
-            id="wb-next"
+          <Heading
+            id={page ? 'today-next' : 'wb-next'}
             tabIndex={0}
-            className={cn('rounded-sm text-body font-semibold text-foreground', focusRing)}
+            className={cn(
+              'flex items-center gap-2 rounded-sm font-semibold text-foreground',
+              page ? 'text-title-sm' : 'text-body',
+              focusRing,
+            )}
           >
+            {page && <ListChecks aria-hidden className="size-5 text-muted-foreground" strokeWidth={1.75} />}
             {t.next.title}
-          </h3>
+          </Heading>
         </Tip>
-        <p className="text-body-sm text-muted-foreground">{t.next.how}</p>
+        <p className="min-w-0 flex-1 text-body-sm text-muted-foreground">{t.next.how}</p>
+        <Tip k="next:suggest" off={off} vars={{ device: wb.deviceName }} label={t.next.suggest}>
+          <Button
+            size="sm"
+            variant="ghost"
+            data-wb-next-suggest
+            disabled={!!off}
+            onClick={() => void suggestWithClaude({ page: nav[view] ?? view })}
+          >
+            <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
+            {t.next.suggest}
+          </Button>
+        </Tip>
       </div>
-      {items.length === 0 ? (
+      {query.isPending ? (
+        <ul aria-hidden className="flex flex-col gap-2">
+          {Array.from({ length: Math.min(limit, 3) }, (_, i) => (
+            <li key={i} className="h-24 rounded-lg border border-border bg-card motion-safe:animate-pulse" />
+          ))}
+        </ul>
+      ) : query.isError ? (
+        <p
+          data-wb-next-error
+          className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground"
+        >
+          {t.next.error}
+          <Button size="sm" variant="ghost" onClick={() => void query.refetch()}>
+            {t.next.retry}
+          </Button>
+        </p>
+      ) : items.length === 0 ? (
         <p data-wb-next-empty className="text-body-sm text-muted-foreground">
           {t.next.empty}
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {items.map((item) => (
-            <li
-              key={item.key}
-              data-wb-next-item={item.key}
-              className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3"
-            >
-              <div className="flex min-w-0 items-start gap-2">
-                <TypeIcon type={item.type} size="sm" className="mt-1" />
-                <div className="min-w-0 flex-1">
-                  <Tip k="next:open" align="start">
-                    <button
-                      type="button"
-                      onClick={() => openCard(item.key)}
-                      className={cn(
-                        'rounded-sm text-start text-body font-medium text-foreground hover:underline max-md:min-h-11',
-                        focusRing,
+          {items.map((item) => {
+            const run = target(item);
+            return (
+              <li
+                key={doNextId(item)}
+                data-wb-next-item={doNextId(item)}
+                className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3"
+              >
+                <div className="flex min-w-0 items-start gap-2">
+                  <TypeIcon type={item.type} size="sm" className="mt-1" />
+                  <div className="min-w-0 flex-1">
+                    <Tip k={item.step ? 'next:step' : 'next:open'} align="start">
+                      <button
+                        type="button"
+                        onClick={() => openCard(item.key)}
+                        className={cn(
+                          'rounded-sm text-start text-body font-medium text-foreground hover:underline max-md:min-h-11',
+                          focusRing,
+                        )}
+                      >
+                        <Bidi>{item.title}</Bidi>
+                      </button>
+                    </Tip>
+                    <p className="flex flex-wrap items-center gap-x-2 text-body-sm text-muted-foreground">
+                      {item.step ? (
+                        <span data-wb-next-step>
+                          {fill(t.next.step, {
+                            n: <Ltr className="text-body-sm tabular-nums">{item.step.index + 1}</Ltr>,
+                            plan: (
+                              <Ltr mono className="text-body-sm">
+                                {item.key}
+                              </Ltr>
+                            ),
+                          })}
+                        </span>
+                      ) : (
+                        <Ltr mono className="text-body-sm">
+                          {item.key}
+                        </Ltr>
                       )}
-                    >
-                      <Bidi>{item.title}</Bidi>
-                    </button>
-                  </Tip>
-                  <p className="flex flex-wrap items-center gap-x-2 text-body-sm text-muted-foreground">
-                    <Ltr mono className="text-body-sm">
-                      {item.key}
-                    </Ltr>
-                    <span data-wb-next-why>{why(item)}</span>
-                  </p>
+                      <span data-wb-next-why>{why(item)}</span>
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {item.type === 'task' && (
-                  <RunButtons target={{ source: 'task', cardKey: item.key, title: item.title }} />
-                )}
-                <Tip k="next:explain" off={off} vars={{ device: wb.deviceName }} label={t.next.explain}>
-                  <Button size="sm" disabled={!!off} onClick={() => ask('explain', item.key)}>
-                    {t.next.explain}
-                  </Button>
-                </Tip>
-              </div>
-            </li>
-          ))}
+                <div className="flex flex-wrap gap-1.5">
+                  {run && <RunButtons target={run} />}
+                  <Tip k="next:explain" off={off} vars={{ device: wb.deviceName }} label={t.next.explain}>
+                    <Button size="sm" disabled={!!off} onClick={() => ask('explain', item.key)}>
+                      {t.next.explain}
+                    </Button>
+                  </Tip>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
       <span className="sr-only">{tipWords.items['next:title'].what}</span>
     </section>
   );
+}
+
+/** Do next on a page: there only while the panel's workbench is mounted, which is every view but the lab's own. */
+export function PageDoNext({ limit = 5, className }: { limit?: number; className?: string }) {
+  return useMaybeWb() ? <DoNext variant="page" limit={limit} className={className} /> : null;
 }
 
 // ── What runs today: real chats ─────────────────────────────────────────────────────────────────

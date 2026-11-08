@@ -127,6 +127,10 @@
     "find_docs": {
       "label": "Find in the docs",
       "prompt": "Search this project's docs for: "
+    },
+    "suggest_next": {
+      "label": "Suggest what to do next",
+      "prompt": "/hub:suggest"
     }
   },
   "honest": {
@@ -431,7 +435,7 @@
     },
     "next": {
       "title": "Start with these",
-      "how": "Ranked from card state, with no AI: overdue, then what blocks others, then priority.",
+      "how": "Ranked from real state, with no AI: overdue, what blocks others, the next step of a running plan, small and ready, then priority.",
       "why": {
         "overdue": "Overdue",
         "blocks": {
@@ -443,10 +447,16 @@
           "zero": ""
         },
         "ready": "Ready to start",
-        "decision": "A decision waits for you"
+        "decision": "A decision waits for you",
+        "small": "Small",
+        "planNext": "Next step of {plan}"
       },
       "explain": "Explain",
-      "empty": "Nothing leads right now for this role."
+      "empty": "Nothing leads right now for this role.",
+      "step": "Step {n} of {plan}",
+      "suggest": "Ask Claude for more",
+      "error": "The list could not be read.",
+      "retry": "Try again"
     },
     "empty": {
       "title": "Ask from where you are",
@@ -954,7 +964,9 @@
         "newChat": "New chat",
         "newChatNote": "The current chat stays in History.",
         "delete": "Delete",
-        "deleteNote": "You can undo this."
+        "deleteNote": "You can undo this.",
+        "newProject": "New project",
+        "newProjectNote": "Name it, then link its folder on a device."
       },
       "settings": {
         "title": "Panel settings",
@@ -1065,7 +1077,8 @@
         "/hub:work": "Do a task in fixed stages, with a report on the card",
         "/hub:doc": "Improve or write a doc, with a diff and flagged claims",
         "/hub:plan": "Plan something new, ending in a plan to run",
-        "/hub:ask": "A question about the project docs, with sources"
+        "/hub:ask": "A question about the project docs, with sources",
+        "/hub:suggest": "Propose tasks, plans or skills; nothing is made until you accept"
       },
       "skillsOther": "From this folder and yours",
       "stripWords": {
@@ -1081,6 +1094,34 @@
         "pageHidden": "The page comes back when you close the card or the panel",
         "pendingIn": "Waiting for you in: {chat}",
         "moreRuns": "{n} more runs working or waiting"
+      },
+      "proposals": {
+        "title": "Claude suggests",
+        "note": "Nothing is created until you accept it. Each one is made as you would make it by hand.",
+        "kinds": {
+          "task": "Task",
+          "plan": "Plan",
+          "skill": "Skill"
+        },
+        "why": "Why",
+        "steps": "Steps",
+        "related": "Related",
+        "showText": "Show the skill's text",
+        "hideText": "Hide the text",
+        "accept": "Accept",
+        "dismiss": "Dismiss",
+        "accepted": "Created {ref}",
+        "acceptedSkill": "Added {ref} to Hub’s skills",
+        "dismissed": "Dismissed",
+        "open": "Open",
+        "openSkills": "Open Skills",
+        "ownerOnly": "Only the owner adds a skill to Hub.",
+        "answered": "{done} of {n} answered",
+        "done": {
+          "task": "Task created: {ref}",
+          "plan": "Plan created: {ref}",
+          "skill": "Skill added: {ref}. Devices take it on the next sync."
+        }
       }
     },
     "listSeparator": ", ",
@@ -1450,6 +1491,25 @@
       "strip:run": {
         "what": "A run from the agent queue. The icon says what it is doing now.",
         "then": "Opens its chat, at the approval if it is waiting on you."
+      },
+      "next:suggest": {
+        "what": "Runs /hub:suggest in a new chat, in Ask: Claude reads the project through Hub and proposes tasks, plans or skills.",
+        "then": "Each proposal waits in the chat with Accept and Dismiss. Nothing is created until you accept it.",
+        "needs": "A connected device with Claude Code signed in."
+      },
+      "next:step": {
+        "what": "Opens the plan this step belongs to."
+      },
+      "proposal:accept": {
+        "what": "Creates this in Hub now, as you would by hand.",
+        "then": "A task or plan opens like any card. A skill reaches every device on the next sync."
+      },
+      "proposal:dismiss": {
+        "what": "Leaves it out. Nothing is created, and the chat keeps it as dismissed."
+      },
+      "menu:newProject": {
+        "what": "Creates a project with you as its owner, and links its folder in the same steps.",
+        "then": "Linking writes that folder’s trust into Claude Code on that device, once, with a backup, so no trust dialog appears."
       }
     },
     "off": {
