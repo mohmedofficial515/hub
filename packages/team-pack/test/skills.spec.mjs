@@ -15,8 +15,23 @@ const toolTable = readFileSync(
 const TOOLS = new Set([...toolTable.matchAll(/^ {2}(\w+): \{$/gm)].map((match) => match[1]));
 const frontMatter = (text) => /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
 
+/** Hub's own protocols. Skills the owner adds on the Skills page live beside them and keep their own words (D64, D65). */
+const CORE = ['ask', 'doc', 'guide', 'plan', 'suggest', 'work'];
+
 describe('the skills', () => {
-  const names = readdirSync(SKILLS);
+  const names = readdirSync(SKILLS).filter((name) => CORE.includes(name));
+
+  it('the core ones are all there', () => {
+    expect(names.sort()).toEqual([...CORE].sort());
+  });
+
+  it("an owner's skill names itself and says when to use it", () => {
+    for (const name of readdirSync(SKILLS).filter((entry) => !CORE.includes(entry))) {
+      const head = frontMatter(skill(name));
+      expect([name, head]).toEqual([name, expect.stringContaining(`name: ${name}`)]);
+      expect([name, head]).toEqual([name, expect.stringMatching(/^description: \S/m)]);
+    }
+  });
 
   it('name themselves, and only name tools that exist', () => {
     expect(TOOLS.size).toBeGreaterThan(50);
@@ -95,5 +110,43 @@ describe('/hub:doc', () => {
     expect(text).toContain('unverified');
     expect(text).toContain('`draft` id');
     expect(text).toContain('refuses while a flag has no answer');
+  });
+});
+
+describe('/hub:suggest', () => {
+  const text = skill('suggest');
+
+  it('is typed by a person, and keeps to a focus when given one', () => {
+    expect(frontMatter(text)).toContain('user-invocable: true');
+    expect(text).toContain('$ARGUMENTS');
+  });
+
+  it('reads only, through Hub, and creates nothing', () => {
+    expect(text).toContain('**Read only.**');
+    for (const tool of [
+      'get_project_brief',
+      'list_tasks',
+      'list_plans',
+      'get_plan',
+      'list_queue',
+      'list_skills',
+    ]) {
+      expect(text).toContain(`hub.${tool}`);
+    }
+    // It names the create tools only to forbid them, before it ever proposes.
+    expect(text.indexOf('no `hub.create_task`')).toBeLessThan(text.indexOf('hub.propose_suggestions'));
+    expect(text).not.toMatch(/hub\.(update|claim|start|complete|delete)_/);
+  });
+
+  it('proposes structured tasks, plans and skills, and stops for the owner', () => {
+    expect(text).toContain('hub.propose_suggestions(summary, items)');
+    for (const kind of ['kind: task', 'kind: plan', 'kind: skill']) expect(text).toContain(kind);
+    expect(text).toContain('I accept or dismiss each one');
+  });
+
+  it('checks what exists first, and invents nothing', () => {
+    expect(text).toContain('Never propose what already exists');
+    expect(text).toContain('Nothing invented');
+    expect(text.indexOf('hub.list_skills')).toBeLessThan(text.indexOf('hub.propose_suggestions'));
   });
 });
