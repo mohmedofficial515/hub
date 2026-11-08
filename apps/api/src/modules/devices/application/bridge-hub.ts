@@ -71,8 +71,14 @@ export class BridgeHub {
   private readonly connections = new Map<string, Connection>();
   private readonly pending = new Map<string, Pending>();
   private readonly statusWrittenAt = new Map<string, number>();
+  private readonly readyListeners: ((deviceId: string, userId: string) => void)[] = [];
 
   constructor(private readonly txHost: TransactionHost<PrismaTransactionalAdapter>) {}
+
+  /** Called each time a device becomes ready, as after a restart of either side. The queue starts missed runs from here (docs/16 §9). */
+  onReady(listener: (deviceId: string, userId: string) => void): void {
+    this.readyListeners.push(listener);
+  }
 
   isOnline(deviceId: string): boolean {
     return this.connections.get(deviceId)?.ready === true;
@@ -146,6 +152,7 @@ export class BridgeHub {
             docRoots: await this.docRootsFor(connection.userId, deviceId),
           });
           connection.ready = true;
+          for (const listener of this.readyListeners) listener(deviceId, connection.userId);
         } catch (error: unknown) {
           // With no welcome the socket would stay open and never ready, and the bridge would wait on it forever. It comes back instead.
           this.logger.warn(

@@ -54,6 +54,7 @@ import { assertNoSecrets } from '@/shared/security/secret-filter';
 
 import { folderIsRegistered, titleFrom } from '../domain/folders';
 import { DocDraftsService } from './doc-drafts.service';
+import { ChatTurnEvents } from './turn-events';
 import { TurnRecorder } from './turn-recorder';
 import { TurnRegistry } from './turn-registry';
 
@@ -112,6 +113,7 @@ export class ChatsService implements OnApplicationBootstrap {
     private readonly turns: TurnRegistry,
     private readonly drafts: DocDraftsService,
     private readonly cards: CardQueryService,
+    private readonly events: ChatTurnEvents,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(APP_CONFIG) private readonly config: AppConfig,
   ) {}
@@ -419,6 +421,31 @@ export class ChatsService implements OnApplicationBootstrap {
     return this.startTurn(actor, id, last.content, contextOf(last.context), options);
   }
 
+  /**
+   * A queued run (docs/16 §9): a new chat in Execute, owned by the member who queued it, and its first turn, through the same path as the panel's Send. So it carries the same D41 approvals, the same recorder, and the same proof for `report_work` (D52).
+   */
+  async startForQueue(
+    actor: MemberActor,
+    input: { device: string; folder: string; title: string; prompt: string; card?: string },
+  ): Promise<ChatTurnStarted> {
+    assertNoSecrets({ text: input.prompt });
+    const chat = await this.create(actor, {
+      device: input.device,
+      folder: input.folder,
+      mode: 'execute',
+      title: input.title.slice(0, 200) || 'Queued run',
+    });
+    return this.startTurn(
+      actor,
+      chat.id,
+      input.prompt,
+      { page: 'queue', ...(input.card ? { card: input.card } : {}) },
+      {
+        mode: 'execute',
+      },
+    );
+  }
+
   private async startTurn(
     actor: MemberActor,
     id: string,
@@ -491,7 +518,13 @@ export class ChatsService implements OnApplicationBootstrap {
     args: Readonly<Record<string, unknown>>,
   ): void {
     const recorder = new TurnRecorder(
-      { txHost: this.txHost, realtime: this.realtime, audit: this.audit, clock: this.clock },
+      {
+        txHost: this.txHost,
+        realtime: this.realtime,
+        audit: this.audit,
+        clock: this.clock,
+        events: this.events,
+      },
       {
         workspaceId: actor.workspaceId,
         userId: actor.userId,

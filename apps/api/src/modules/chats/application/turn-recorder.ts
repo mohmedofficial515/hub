@@ -31,6 +31,7 @@ import type { AuditService } from '@/modules/audit';
 import type { BridgeEvent } from '@/modules/devices';
 
 import { capJson } from '../domain/folders';
+import type { ChatTurnEvents } from './turn-events';
 
 const TEXT_FLUSH_MS = 120;
 const AUDIT_SUMMARY_CHARS = 1_000;
@@ -47,6 +48,8 @@ export interface RecorderDeps {
   readonly realtime: RealtimePublisher;
   readonly audit: AuditService;
   readonly clock: Clock;
+  /** The queue listens here (docs/16 §9). */
+  readonly events?: ChatTurnEvents;
 }
 
 export interface TurnIdentity {
@@ -214,6 +217,39 @@ export class TurnRecorder {
       await this.nudge('approval');
     }
     if (raw.kind === 'turn.ended') await this.nudge('turn');
+    await this.tell(event);
+  }
+
+  /** After commit, so a listener reads what is written. */
+  private async tell(event: TurnEvent): Promise<void> {
+    const events = this.deps.events;
+    if (!events) return;
+    const { workspaceId, userId, chatId, messageId } = this.turn;
+    if (event.kind === 'approval.requested' || event.kind === 'question.asked') {
+      const question = event.kind === 'question.asked';
+      await events.waiting({
+        workspaceId,
+        userId,
+        chatId,
+        messageId,
+        approvalId: question ? event.questionId : event.approvalId,
+        kind: question ? 'question' : 'approval',
+        command: question ? (event.questions[0]?.text ?? '') : event.command,
+      });
+    }
+    if (event.kind === 'limit') await events.limit({ workspaceId, userId, chatId, limit: event.limit });
+    if (event.kind === 'turn.ended') {
+      await events.ended({
+        workspaceId,
+        userId,
+        chatId,
+        messageId,
+        status: event.status,
+        failure: event.failure ?? null,
+        resetsAt: event.resetsAt ?? null,
+        changedFiles: event.changedFiles ?? [],
+      });
+    }
   }
 
   private async write(event: TurnEvent): Promise<TurnEvent> {

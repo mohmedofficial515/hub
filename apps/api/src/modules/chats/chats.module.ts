@@ -11,6 +11,7 @@ import { WorkspacesModule } from '@/modules/workspaces';
 
 import { ChatsService } from './application/chats.service';
 import { DocDraftsService } from './application/doc-drafts.service';
+import { ChatTurnEvents } from './application/turn-events';
 import { TurnRegistry } from './application/turn-registry';
 import { WorkReportsService } from './application/work-reports.service';
 import {
@@ -22,7 +23,7 @@ import {
 @Module({
   imports: [AuditModule, CardsModule, DevicesModule, DocsModule, WorkspacesModule],
   controllers: [ChatsController, PromptTemplatesController, WorkReportsController],
-  providers: [ChatsService, TurnRegistry, WorkReportsService, DocDraftsService],
-  exports: [ChatsService, WorkReportsService, DocDraftsService],
+  providers: [ChatsService, TurnRegistry, WorkReportsService, DocDraftsService, ChatTurnEvents],
+  exports: [ChatsService, WorkReportsService, DocDraftsService, ChatTurnEvents],
 })
 export class ChatsModule {}
