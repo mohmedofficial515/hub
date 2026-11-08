@@ -17,6 +17,7 @@ export const VIEW_IDS = [
   'docs',
   'ask',
   'onboarding',
+  'skills',
   'members',
   'settings',
   'schema',

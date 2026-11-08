@@ -20,6 +20,7 @@ import {
   Rocket,
   Scale,
   Settings,
+  Sparkles,
   SquareCheck,
   Users,
 } from 'lucide-react';
@@ -67,6 +68,7 @@ export const views: ViewDef[] = [
   { id: 'docs', icon: FileText, group: 'knowledge' },
   { id: 'ask', icon: CircleHelp, group: 'knowledge' },
   { id: 'onboarding', icon: Compass, group: 'knowledge', counter: 'onboarding' },
+  { id: 'skills', icon: Sparkles, group: 'knowledge' },
   { id: 'members', icon: Users, group: 'workspace', counter: 'members' },
   { id: 'settings', icon: Settings, group: 'workspace', counter: 'settings' },
   { id: 'schema', icon: Database, group: 'admin', goKey: 'b' },
