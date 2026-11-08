@@ -218,6 +218,12 @@ export function EngineNotice({
           )}
         </div>
       )}
+      {/* No folder is the notice, but the plug on the strip is orange too: say it here, so the two do not disagree (review m6). */}
+      {wb.engine === 'no_folder' && wb.device && !wb.device.online && (
+        <p data-wb-engine-also-offline className="text-body-sm text-foreground">
+          {fmt(t.engine.alsoOffline, vars)}
+        </p>
+      )}
       {wb.checked?.same && !wb.checked.signIn && (
         <p role="status" data-wb-engine-still className="text-body-sm text-foreground">
           {fmt(t.engine.still, { time: clockOf(wb.checked.at, locale) })}

@@ -28,7 +28,15 @@ import {
   X,
 } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
-import { type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 
 import { CardSheet, focusSheetTitle } from '@/components/cards/card-sheet';
 import {
@@ -53,7 +61,6 @@ import {
   type TipFact,
   TipProvider,
   useHelpMode,
-  useKeyLabels,
   useLocale,
   useMedia,
   usePreference,
@@ -109,9 +116,11 @@ const MIN_PAGE = 340;
 /** D54: the page's fate follows the page. List-like pages work down to about 400 px, and anything else needs a Board's 520. Tasks shows its List in place of the Board under 520. */
 const PAGE_MIN_LIST = 400;
 const PAGE_MIN_OTHER = 520;
+// Timeline is one column of events and reads well at about 400 px (review m7, measured at 409). Planning and Docs are not measured yet, so they still step aside.
 const LIST_LIKE = new Set([
   'today',
   'inbox',
+  'timeline',
   'tasks',
   'decisions',
   'needs',
@@ -452,6 +461,8 @@ function SettingsDialog({
       onOpenChange={onOpenChange}
       title={s.title}
       description={s.note}
+      // The menu item that opened it is gone, so focus goes back to the menu's button, not the page (review m1).
+      returnFocus={() => document.querySelector<HTMLElement>('[data-wb-chat-menu]')}
       footer={
         <Button variant="primary" data-wb-settings-done onClick={() => onOpenChange(false)}>
           {s.done}
@@ -622,10 +633,12 @@ function ChatMenu({
 /** Chat, history, runs on a phone, where there is no strip. */
 function PhoneTabs({ view, onView }: { view: PanelView; onView: (v: PanelView) => void }) {
   const t = useT<ChatMessages>('chat').panel;
+  const items = useT<ChatMessages>('chat').tips.items;
+  // The strip's own words, so a phone reads the same thing (review m4). Only `what`: a second press here does not close the panel.
   const options: { id: PanelView; label: string; tip: string }[] = [
-    { id: 'chat', label: t.chat, tip: t.pro.phoneTips.chat },
-    { id: 'history', label: t.history, tip: t.pro.phoneTips.history },
-    { id: 'runs', label: t.runs, tip: t.pro.phoneTips.runs },
+    { id: 'chat', label: t.chat, tip: items['strip:chat'].what },
+    { id: 'history', label: t.history, tip: items['strip:history'].what },
+    { id: 'runs', label: t.runs, tip: items['strip:runs'].what },
   ];
   const { root, groupProps, itemProps } = useRoving(options.findIndex((o) => o.id === view));
   return (
@@ -808,7 +821,7 @@ function PanelHeader({
   );
   return (
     <header className="flex shrink-0 flex-col gap-1 border-b border-border p-2">
-      {touch ? (
+      {touch && stateLine ? (
         <>
           <div className="flex min-w-0 items-center gap-0.5">
             {heading}
@@ -821,6 +834,15 @@ function PanelHeader({
             {newButton}
           </div>
         </>
+      ) : touch ? (
+        // With no state to show, Explain and New join the title row, so the chat starts higher on a phone (review m5).
+        <div className="flex min-w-0 items-center gap-0.5">
+          {heading}
+          {helpButton}
+          {newButton}
+          {menu}
+          {closeButton}
+        </div>
       ) : (
         <div className="flex min-w-0 items-center gap-0.5">
           {heading}
@@ -918,7 +940,8 @@ export interface ShellControls {
 
 /** While `active`, the sidebar folds to icons so the work keeps a readable column, and goes back to the owner's choice afterwards. */
 function useFoldSidebar(active: boolean) {
-  useEffect(() => {
+  // Before paint, so a reload with both panes restored does not draw the full sidebar first and then fold it (review m12, load CLS 0.097).
+  useLayoutEffect(() => {
     setSidebarFolded(active);
     return () => setSidebarFolded(false);
   }, [active]);
@@ -958,7 +981,6 @@ export function WorkbenchLayout({
   const phone = !useMedia('(min-width: 768px)');
   const desktop = useMedia('(min-width: 1024px)');
   const vw = useWindowWidth();
-  const label = useKeyLabels();
   // A phone's or a portrait tablet's first visit lands on the page, not a panel that squeezes it (review N3, M5).
   const [open, setOpenRaw] = useRemembered(
     'open',
@@ -1338,7 +1360,6 @@ export function WorkbenchLayout({
 
           {!phone && <Strip open={open} view={view} onToggle={toggle} onView={pickView} />}
           {pageHidden && <span className="sr-only">{m.pageHidden}</span>}
-          <span className="sr-only">{label('Ctrl /')}</span>
         </div>
       </PageRoom.Provider>
     </TipProvider>

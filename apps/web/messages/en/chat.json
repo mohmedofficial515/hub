@@ -465,6 +465,7 @@
       "open": "Open"
     },
     "engine": {
+      "alsoOffline": "The device {device} is also offline right now.",
       "offline": {
         "title": "The bridge is offline on {device}",
         "body": "Hub cannot start Claude there right now. Your chats are saved.",
@@ -1012,9 +1013,6 @@
         "skills": "Skills menu"
       },
       "phoneTips": {
-        "chat": "Shows the chat.",
-        "history": "Shows all chats by project.",
-        "runs": "Shows what waits for you, what is running and what is in line.",
         "toCard": "Shows the open card. The chat stays as it is.",
         "toChat": "Goes back to the chat. The card stays open.",
         "closeCard": "Closes the card and keeps the chat."
@@ -1266,7 +1264,8 @@
         "then": "Puts the text in the box. Nothing runs until you send it."
       },
       "next:title": {
-        "what": "Ranked from card state, with no AI: overdue first, then what blocks others, then priority."
+        "what": "The cards worth picking up next in this project.",
+        "detail": "The order is the line beside this title. Nothing here asks Claude."
       },
       "next:explain": {
         "what": "Explains the decision and what each option means. It does not decide for you."

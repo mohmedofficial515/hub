@@ -894,7 +894,9 @@ export function CardSheet({
   const opener = useRef<HTMLElement | null>(null);
   useEffect(() => {
     if (!key) return;
-    opener.current = takeOpener() ?? null;
+    // Previous and Next swap the card with no opener, so closing returns to the row of the last card shown, not the page's title (review m8).
+    const row = document.querySelector<HTMLElement>(`#main [data-row="${CSS.escape(key)}"]`);
+    opener.current = takeOpener() ?? row ?? opener.current;
     if ((document.activeElement as HTMLElement | null)?.hasAttribute('data-wb-input')) return;
     if (wasFollowOpened()) return;
     // An action's form has focused itself by now: child effects run first.

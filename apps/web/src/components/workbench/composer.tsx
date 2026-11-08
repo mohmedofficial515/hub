@@ -301,9 +301,14 @@ export function WherePicker({ side }: { side?: 'top' | 'bottom' | undefined }) {
         >
           <button type="button" data-wb-where className={cn(triggerClass, 'max-w-30')}>
             <Icon aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
-            <Ltr mono className="min-w-0 truncate text-body-sm">
-              {short}
-            </Ltr>
+            {/* With no folder linked yet, the chip names the device rather than showing an icon alone (review m6). */}
+            {short ? (
+              <Ltr mono className="min-w-0 truncate text-body-sm">
+                {short}
+              </Ltr>
+            ) : (
+              <bdi className="min-w-0 truncate text-body-sm">{wb.deviceName}</bdi>
+            )}
             <ChevronDown aria-hidden className="size-3 shrink-0 max-md:hidden" strokeWidth={2} />
           </button>
         </Tip>
