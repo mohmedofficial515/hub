@@ -2,28 +2,38 @@
 
 /**
  * @file new-project-wizard.tsx
- * @description docs/15 §5: name, slug, key prefix, timezone, description, optional local docs path. Two steps, so the page is not one
- * long form: what the project is called, then how it starts. Slug and prefix follow the name until edited. The API has the last word on both.
+ * @description docs/15 §5: name, slug, key prefix, timezone, description, optional local docs path. Three steps, so the page is not one
+ * long form: what the project is called, how it starts, and (docs/16 §11) its folder on a device. Slug and prefix follow the name until edited. The API has the last word on both.
+ * It creates through `POST /workspaces`, the route `create_project` stands for, then presses Link on the new project with the folder given: that press is D44's explicit one,
+ * and the step says what it writes before it is made. A link that fails leaves the project made, and says so.
  */
-import { keyPrefixSchema, projectSlugSchema } from '@hub/contracts';
+import { keyPrefixSchema, type LinkResult, projectSlugSchema } from '@hub/contracts';
 import { useEffect, useId, useState } from 'react';
 
 import {
   Button,
   detectSecret,
   Field,
+  fill,
+  Ltr,
   Modal,
   SecretFilterError,
   Select,
+  showToast,
   Textarea,
   TextInput,
 } from '@/components/kit';
+import { useDevices } from '@/features/devices/queries';
 import { post } from '@/lib/api/client';
 import { isHubError } from '@/lib/api/errors';
 import { useLocale, useT } from '@/lib/i18n';
 import type { WorkspacesDict } from '@/lib/i18n/page-dicts';
 
 const TIMEZONES = ['Europe/Istanbul', 'Asia/Riyadh', 'Africa/Cairo', 'Asia/Dubai', 'Europe/London', 'UTC'];
+
+/** `{name}` holes filled with plain text, for a toast. */
+const fmtText = (template: string, values: Record<string, string>) =>
+  template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? '');
 
 export const slugFrom = (name: string) =>
   name
@@ -47,7 +57,13 @@ interface Draft {
   timezone: string;
   description: string;
   docsPath: string;
+  folder: string;
+  deviceId: string;
 }
+
+/** A full path on a device, with no `..`: the same check as Settings' Link button. */
+const ABSOLUTE = /^([A-Za-z]:[\\/]|\/)/;
+const folderOk = (path: string) => ABSOLUTE.test(path) && !/(^|[\\/])\.\.([\\/]|$)/.test(path);
 
 const EMPTY: Draft = {
   name: '',
@@ -56,6 +72,8 @@ const EMPTY: Draft = {
   timezone: 'Europe/Istanbul',
   description: '',
   docsPath: '',
+  folder: '',
+  deviceId: '',
 };
 
 export function NewProjectWizard({
@@ -72,7 +90,9 @@ export function NewProjectWizard({
   const id = useId();
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [touched, setTouched] = useState({ slug: false, prefix: false });
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const devices = useDevices();
+  const online = (devices.data ?? []).filter((device) => device.online);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<{ slug?: string; prefix?: string; form?: string }>({});
@@ -102,6 +122,9 @@ export function NewProjectWizard({
     serverError.prefix ??
     (keyPrefixSchema.safeParse(draft.keyPrefix).success ? undefined : t.wizard.prefixInvalid);
   const secret = detectSecret(draft.description);
+  const folder = draft.folder.trim();
+  const deviceId = draft.deviceId || online[0]?.id || '';
+  const folderError = tried && step === 3 && folder && !folderOk(folder) ? t.wizard.folderInvalid : undefined;
 
   const next = () => {
     setTried(true);
@@ -110,7 +133,33 @@ export function NewProjectWizard({
     setStep(2);
   };
 
+  /** The Link button's own call, on the new project. Answers the words to show, and whether they are good news. */
+  const link = async (slug: string): Promise<{ text: string; ok: boolean }> => {
+    const names = { project: slug, folder };
+    try {
+      const answer = await post<LinkResult>(`workspaces/${slug}/devices/${deviceId}/link`, { folder });
+      if (answer.outcome === 'linked') return { text: fmtText(t.wizard.linked, names), ok: true };
+      if (answer.outcome === 'already_linked')
+        return { text: fmtText(t.wizard.alreadyLinked, names), ok: true };
+      if (answer.outcome === 'shape_unexpected')
+        return { text: fmtText(t.wizard.linkShape, names), ok: false };
+      return { text: fmtText(t.wizard.linkMcp, names), ok: false };
+    } catch (error) {
+      return {
+        text: fmtText(t.wizard.linkFailed, {
+          ...names,
+          reason: isHubError(error) ? error.message : t.wizard.failed,
+        }),
+        ok: false,
+      };
+    }
+  };
+
   const create = async () => {
+    if (step === 3 && folder && (!folderOk(folder) || !deviceId)) {
+      setTried(true);
+      return;
+    }
     if (secret || busy) return;
     setBusy(true);
     setServerError({});
@@ -124,8 +173,10 @@ export function NewProjectWizard({
         ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
         ...(draft.docsPath.trim() ? { docsPath: draft.docsPath.trim() } : {}),
       });
+      const linked = step === 3 && folder && deviceId ? await link(created.slug) : null;
       onOpenChange(false);
       onCreated(created.slug);
+      if (linked) showToast({ message: linked.text, ...(linked.ok ? {} : { tone: 'error' as const }) });
     } catch (error) {
       setBusy(false);
       if (isHubError(error, 'hub.workspaces.slug_taken')) {
@@ -147,17 +198,34 @@ export function NewProjectWizard({
       open={open}
       onOpenChange={onOpenChange}
       title={t.wizard.title}
-      description={step === 1 ? t.wizard.stepOne : t.wizard.stepTwo}
+      description={step === 1 ? t.wizard.stepOne : step === 2 ? t.wizard.stepTwo : t.wizard.stepThree}
       footer={
         step === 1 ? (
           <Button variant="primary" onClick={next}>
             {t.wizard.next}
           </Button>
-        ) : (
+        ) : step === 2 ? (
           <>
             <Button onClick={() => setStep(1)}>{t.wizard.back}</Button>
+            <Button
+              data-wizard-next
+              onClick={() => {
+                if (secret) return;
+                setTried(false);
+                setStep(3);
+              }}
+            >
+              {t.wizard.next}
+            </Button>
             <Button variant="primary" busy={busy} onClick={() => void create()}>
               {t.wizard.create}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={() => setStep(2)}>{t.wizard.back}</Button>
+            <Button variant="primary" busy={busy} data-wizard-create onClick={() => void create()}>
+              {folder ? t.wizard.createAndLink : t.wizard.create}
             </Button>
           </>
         )
@@ -221,7 +289,7 @@ export function NewProjectWizard({
           </Field>
           <button type="submit" hidden aria-hidden tabIndex={-1} />
         </form>
-      ) : (
+      ) : step === 2 ? (
         <div className="flex flex-col gap-4">
           <Field id={`${id}-tz`} label={t.wizard.timezone}>
             <Select
@@ -257,6 +325,62 @@ export function NewProjectWizard({
               onChange={(e) => set({ docsPath: e.target.value })}
             />
           </Field>
+          {serverError.form && (
+            <p role="alert" className="text-body-sm text-destructive-soft-foreground">
+              {serverError.form}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div data-wizard-step="link" className="flex flex-col gap-4">
+          <p className="text-body-sm text-muted-foreground">{t.wizard.linkNote}</p>
+          {!devices.isPending && online.length === 0 ? (
+            <p data-wizard-no-device className="text-body-sm text-foreground">
+              {t.wizard.noDevice}
+            </p>
+          ) : (
+            <>
+              <Field
+                id={`${id}-folder`}
+                label={t.wizard.folder}
+                hint={t.wizard.folderHint}
+                error={folderError}
+              >
+                <TextInput
+                  id={`${id}-folder`}
+                  dir="ltr"
+                  data-autofocus
+                  data-wizard-folder
+                  className="key text-start"
+                  spellCheck={false}
+                  placeholder="F:/Projects/my-app"
+                  value={draft.folder}
+                  onChange={(e) => set({ folder: e.target.value })}
+                />
+              </Field>
+              <Field id={`${id}-device`} label={t.wizard.device}>
+                <Select
+                  id={`${id}-device`}
+                  value={deviceId}
+                  onChange={(e) => set({ deviceId: e.target.value })}
+                >
+                  {online.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              {folder && folderOk(folder) && (
+                <p data-wizard-link-preview className="text-body-sm text-foreground">
+                  {fill(t.wizard.linkPreview, {
+                    folder: <Ltr mono>{folder}</Ltr>,
+                    project: <Ltr mono>{draft.slug}</Ltr>,
+                  })}
+                </p>
+              )}
+            </>
+          )}
           {serverError.form && (
             <p role="alert" className="text-body-sm text-destructive-soft-foreground">
               {serverError.form}

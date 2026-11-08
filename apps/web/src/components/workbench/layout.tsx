@@ -11,6 +11,7 @@ import {
   Copy,
   Crosshair,
   FileDown,
+  FolderPlus,
   Gauge,
   Hand,
   History,
@@ -77,6 +78,7 @@ import { useQueue } from '@/features/queue/queries';
 import { setSidebarFolded } from '@/lib/preferences';
 
 import { Composer, Menu, useModeKeys } from './composer';
+import { PanelNewProject } from './new-project';
 import { PageRoom } from './page-room';
 import { DoNext, EmptyChat, EngineNotice, HistoryList, RunsList, VsCodeDialog } from './panels';
 import { Resizer } from './resizer';
@@ -576,10 +578,12 @@ function ChatMenu({
   chat,
   onVsCode,
   onSettings,
+  onNewProject,
 }: {
   chat: Chat | undefined;
   onVsCode: () => void;
   onSettings: () => void;
+  onNewProject: () => void;
 }) {
   const t = useT<ChatMessages>('chat').panel;
   const p = t.pro.menu;
@@ -667,6 +671,13 @@ function ChatMenu({
           onSelect={() => setHelpMode(true)}
         />
       )}
+      <Row
+        data="new-project"
+        icon={FolderPlus}
+        label={p.newProject}
+        note={p.newProjectNote}
+        onSelect={onNewProject}
+      />
       <Row data="settings" icon={Settings2} label={p.settings} note={p.settingsNote} onSelect={onSettings} />
       {chat && <DropdownMenu.Separator className="my-1 h-px bg-border" />}
       {chat && (
@@ -733,6 +744,7 @@ function PanelHeader({
   onClose,
   onVsCode,
   onSettings,
+  onNewProject,
   onView,
   onToCard,
 }: {
@@ -745,6 +757,7 @@ function PanelHeader({
   onClose: () => void;
   onVsCode: () => void;
   onSettings: () => void;
+  onNewProject: () => void;
   onView: (v: PanelView) => void;
   onToCard: () => void;
 }) {
@@ -869,7 +882,12 @@ function PanelHeader({
     </Tip>
   );
   const menu = (
-    <ChatMenu chat={view === 'chat' ? chat : undefined} onVsCode={onVsCode} onSettings={onSettings} />
+    <ChatMenu
+      chat={view === 'chat' ? chat : undefined}
+      onVsCode={onVsCode}
+      onSettings={onSettings}
+      onNewProject={onNewProject}
+    />
   );
   return (
     <header className="flex shrink-0 flex-col gap-1 border-b border-border p-2">
@@ -1043,6 +1061,7 @@ export function WorkbenchLayout({
   const [dragging, setDragging] = useState(false);
   const [vscode, setVscode] = useState(false);
   const [settings, setSettings] = useState(false);
+  const [newProject, setNewProject] = useState(false);
   const [factsOpen, setFactsOpen] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [focusComposer, setFocusComposer] = useState(false);
@@ -1365,6 +1384,7 @@ export function WorkbenchLayout({
                 onClose={() => setOpen(false)}
                 onVsCode={() => setVscode(true)}
                 onSettings={() => setSettings(true)}
+                onNewProject={() => setNewProject(true)}
                 onView={setView}
                 onToCard={() => {
                   setPhoneFront('card');
@@ -1401,6 +1421,7 @@ export function WorkbenchLayout({
                 </div>
               )}
               <VsCodeDialog open={vscode} onOpenChange={setVscode} />
+              <PanelNewProject open={newProject} onOpenChange={setNewProject} />
               <SettingsDialog
                 open={settings}
                 onOpenChange={setSettings}

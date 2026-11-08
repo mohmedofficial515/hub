@@ -20,8 +20,8 @@
   },
   "wizard": {
     "title": "New project",
-    "stepOne": "Step 1 of 2: name and keys",
-    "stepTwo": "Step 2 of 2: how the project starts",
+    "stepOne": "Step 1 of 3: name and keys",
+    "stepTwo": "Step 2 of 3: how the project starts",
     "next": "Next",
     "back": "Back",
     "create": "Create project",
@@ -39,6 +39,20 @@
     "timezone": "Time zone",
     "description": "Description (optional)",
     "docsPath": "Local docs folder (optional)",
-    "docsPathHint": "A full path on this machine. It is read, and nothing is written there."
+    "docsPathHint": "A full path on this machine. It is read, and nothing is written there.",
+    "stepThree": "Step 3 of 3: its folder on a device (optional)",
+    "createAndLink": "Create and link",
+    "folder": "Project folder",
+    "folderHint": "A full path on the chosen device. A Claude chat in this folder lands on this project.",
+    "folderInvalid": "Use a full path, such as F:/Projects/my-app.",
+    "device": "Device",
+    "noDevice": "No device is connected now, so create the project and link its folder later in Settings › General.",
+    "linkNote": "Linking writes this folder's trust into Claude Code on that device, once and with a backup, so no trust dialog appears. It happens only on this press, and only for this folder.",
+    "linkPreview": "Pressing Create and link registers {folder} on {project} and links it on that device.",
+    "linked": "Created {project} and linked {folder}.",
+    "alreadyLinked": "Created {project}. {folder} was already linked.",
+    "linkShape": "Created {project}. Claude Code's settings on that device were not as expected, so nothing was written there: accept the trust dialog once when you open {folder}.",
+    "linkMcp": "Created {project}. Claude Code on that device could not add the project's server for {folder}: Settings › Devices shows why.",
+    "linkFailed": "Created {project}, but {folder} was not linked: {reason} Link it in Settings › General."
   }
 }
