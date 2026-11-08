@@ -3775,6 +3775,26 @@ export type TodayDto = {
     } | null;
 };
 
+export type DoNextListDto = {
+    items: Array<{
+        key: string;
+        type: 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
+        title: string;
+        reasons: Array<'overdue' | 'blocks' | 'plan_next' | 'small' | 'ready' | 'decision'>;
+        blocks: number;
+        runnable: boolean;
+        score: number;
+        plan?: {
+            key: string;
+            title: string;
+            index: number;
+        };
+        step?: {
+            index: number;
+        };
+    }>;
+};
+
 export type CountersDto = {
     inboxUnread: number;
     awaitingMe: number;
@@ -5619,6 +5639,42 @@ export type ChatFullDto = {
             checks?: Array<string>;
             risks?: Array<string>;
         } | null;
+        suggestions: {
+            summary: string | null;
+            items: Array<{
+                id: string;
+                state: 'open' | 'accepted' | 'dismissed';
+                ref: string | null;
+                answeredAt: string | null;
+                proposal: {
+                    kind: 'task';
+                    title: string;
+                    why: string;
+                    body?: string;
+                    priority?: 'P0' | 'P1' | 'P2' | 'P3';
+                    ownerRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+                    specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+                    effort?: 'S' | 'M' | 'L' | 'XL';
+                    related?: Array<string>;
+                } | {
+                    kind: 'plan';
+                    title: string;
+                    why: string;
+                    body?: string;
+                    steps: Array<{
+                        title: string;
+                        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+                    }>;
+                    related?: Array<string>;
+                } | {
+                    kind: 'skill';
+                    name: string;
+                    description: string;
+                    why: string;
+                    body: string;
+                };
+            }>;
+        } | null;
         engineFacts: {
             skills: Array<string>;
             mcpServers: Array<string>;
@@ -5857,6 +5913,44 @@ export type AnswerApprovalDto = {
     };
 };
 
+export type AnswerSuggestionDto = {
+    decision: 'accept' | 'dismiss';
+};
+
+export type ChatSuggestionDto = {
+    id: string;
+    state: 'open' | 'accepted' | 'dismissed';
+    ref: string | null;
+    answeredAt: string | null;
+    proposal: {
+        kind: 'task';
+        title: string;
+        why: string;
+        body?: string;
+        priority?: 'P0' | 'P1' | 'P2' | 'P3';
+        ownerRole?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        specialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+        effort?: 'S' | 'M' | 'L' | 'XL';
+        related?: Array<string>;
+    } | {
+        kind: 'plan';
+        title: string;
+        why: string;
+        body?: string;
+        steps: Array<{
+            title: string;
+            role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        }>;
+        related?: Array<string>;
+    } | {
+        kind: 'skill';
+        name: string;
+        description: string;
+        why: string;
+        body: string;
+    };
+};
+
 export type ChatExportDto = {
     fileName: string;
     markdown: string;
@@ -5929,6 +6023,165 @@ export type WorkReportDto = {
         to: string | null;
     };
     reportedAt: string;
+};
+
+export type SkillsDto = {
+    hub: Array<{
+        name: string;
+        declaredName: string | null;
+        description: string;
+        source: 'hub' | 'personal';
+        core: boolean;
+        userInvocable: boolean;
+        files: number;
+        hash: string;
+        updatedAt: string | null;
+        devices: Array<{
+            id: string;
+            name: string;
+            online: boolean;
+            synced: boolean;
+        }>;
+        nameInHub: boolean;
+    }>;
+    personal: Array<{
+        name: string;
+        declaredName: string | null;
+        description: string;
+        source: 'hub' | 'personal';
+        core: boolean;
+        userInvocable: boolean;
+        files: number;
+        hash: string;
+        updatedAt: string | null;
+        devices: Array<{
+            id: string;
+            name: string;
+            online: boolean;
+            synced: boolean;
+        }>;
+        nameInHub: boolean;
+    }>;
+    personalFolder: string | null;
+    sync: {
+        version: string;
+        mode: 'auto' | 'manual';
+        devices: Array<{
+            id: string;
+            name: string;
+            online: boolean;
+            version: string | null;
+            syncedAt: string | null;
+            error: string | null;
+            current: boolean;
+        }>;
+    };
+};
+
+export type SkillDetailDto = {
+    name: string;
+    declaredName: string | null;
+    description: string;
+    source: 'hub' | 'personal';
+    core: boolean;
+    userInvocable: boolean;
+    files: number;
+    hash: string;
+    updatedAt: string | null;
+    devices: Array<{
+        id: string;
+        name: string;
+        online: boolean;
+        synced: boolean;
+    }>;
+    nameInHub: boolean;
+    body: string;
+    otherFiles: Array<string>;
+};
+
+export type CreateSkillDto = {
+    name: string;
+    description: string;
+    body: string;
+    userInvocable?: boolean;
+};
+
+export type SkillWrittenDto = {
+    skill: {
+        name: string;
+        declaredName: string | null;
+        description: string;
+        source: 'hub' | 'personal';
+        core: boolean;
+        userInvocable: boolean;
+        files: number;
+        hash: string;
+        updatedAt: string | null;
+        devices: Array<{
+            id: string;
+            name: string;
+            online: boolean;
+            synced: boolean;
+        }>;
+        nameInHub: boolean;
+        body: string;
+        otherFiles: Array<string>;
+    };
+    revisionId: string | null;
+    syncing: number;
+};
+
+export type UpdateSkillDto = {
+    description: string;
+    body: string;
+    userInvocable: boolean;
+    baseHash: string;
+};
+
+export type MoveSkillDto = {
+    name: string;
+    as?: string;
+};
+
+export type SkillRevisionsDto = Array<{
+    id: string;
+    name: string;
+    hash: string;
+    reason: 'edit' | 'restore';
+    savedBy: {
+        id: string;
+        displayName: string;
+    } | null;
+    createdAt: string;
+}>;
+
+export type SkillRevisionDetailDto = {
+    id: string;
+    name: string;
+    hash: string;
+    reason: 'edit' | 'restore';
+    savedBy: {
+        id: string;
+        displayName: string;
+    } | null;
+    createdAt: string;
+    text: string;
+};
+
+export type RestoreSkillRevisionDto = {
+    baseHash: string;
+};
+
+export type PluginSyncResultDto = {
+    devices: Array<{
+        id: string;
+        name: string;
+        online: boolean;
+        version: string | null;
+        syncedAt: string | null;
+        error: string | null;
+        current: boolean;
+    }>;
 };
 
 export type QueueDto = {
@@ -7717,6 +7970,22 @@ export type TodayControllerGetResponses = {
 
 export type TodayControllerGetResponse = TodayControllerGetResponses[keyof TodayControllerGetResponses];
 
+export type TodayControllerNextData = {
+    body?: never;
+    path?: never;
+    query?: {
+        role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        limit?: number;
+    };
+    url: '/api/v1/workspaces/{ws}/today/next';
+};
+
+export type TodayControllerNextResponses = {
+    200: DoNextListDto;
+};
+
+export type TodayControllerNextResponse = TodayControllerNextResponses[keyof TodayControllerNextResponses];
+
 export type TodayControllerSeenData = {
     body?: never;
     path?: never;
@@ -9464,6 +9733,22 @@ export type ChatsControllerAnswerResponses = {
 
 export type ChatsControllerAnswerResponse = ChatsControllerAnswerResponses[keyof ChatsControllerAnswerResponses];
 
+export type ChatsControllerAnswerSuggestionData = {
+    body: AnswerSuggestionDto;
+    path: {
+        id: string;
+        suggestion: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/chats/{id}/suggestions/{suggestion}';
+};
+
+export type ChatsControllerAnswerSuggestionResponses = {
+    200: ChatSuggestionDto;
+};
+
+export type ChatsControllerAnswerSuggestionResponse = ChatsControllerAnswerSuggestionResponses[keyof ChatsControllerAnswerSuggestionResponses];
+
 export type ChatsControllerExportData = {
     body?: never;
     path: {
@@ -9566,6 +9851,150 @@ export type WorkReportsControllerListResponses = {
 };
 
 export type WorkReportsControllerListResponse = WorkReportsControllerListResponses[keyof WorkReportsControllerListResponses];
+
+export type SkillsControllerListData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills';
+};
+
+export type SkillsControllerListResponses = {
+    200: SkillsDto;
+};
+
+export type SkillsControllerListResponse = SkillsControllerListResponses[keyof SkillsControllerListResponses];
+
+export type SkillsControllerCreateData = {
+    body: CreateSkillDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills';
+};
+
+export type SkillsControllerCreateResponses = {
+    201: SkillWrittenDto;
+};
+
+export type SkillsControllerCreateResponse = SkillsControllerCreateResponses[keyof SkillsControllerCreateResponses];
+
+export type SkillsControllerHubData = {
+    body?: never;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/hub/{name}';
+};
+
+export type SkillsControllerHubResponses = {
+    200: SkillDetailDto;
+};
+
+export type SkillsControllerHubResponse = SkillsControllerHubResponses[keyof SkillsControllerHubResponses];
+
+export type SkillsControllerUpdateData = {
+    body: UpdateSkillDto;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/hub/{name}';
+};
+
+export type SkillsControllerUpdateResponses = {
+    200: SkillWrittenDto;
+};
+
+export type SkillsControllerUpdateResponse = SkillsControllerUpdateResponses[keyof SkillsControllerUpdateResponses];
+
+export type SkillsControllerPersonalData = {
+    body?: never;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/personal/{name}';
+};
+
+export type SkillsControllerPersonalResponses = {
+    200: SkillDetailDto;
+};
+
+export type SkillsControllerPersonalResponse = SkillsControllerPersonalResponses[keyof SkillsControllerPersonalResponses];
+
+export type SkillsControllerMoveData = {
+    body: MoveSkillDto;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/move';
+};
+
+export type SkillsControllerMoveResponses = {
+    201: SkillWrittenDto;
+};
+
+export type SkillsControllerMoveResponse = SkillsControllerMoveResponses[keyof SkillsControllerMoveResponses];
+
+export type SkillsControllerRevisionsData = {
+    body?: never;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/hub/{name}/revisions';
+};
+
+export type SkillsControllerRevisionsResponses = {
+    200: SkillRevisionsDto;
+};
+
+export type SkillsControllerRevisionsResponse = SkillsControllerRevisionsResponses[keyof SkillsControllerRevisionsResponses];
+
+export type SkillsControllerRevisionData = {
+    body?: never;
+    path: {
+        name: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/hub/{name}/revisions/{id}';
+};
+
+export type SkillsControllerRevisionResponses = {
+    200: SkillRevisionDetailDto;
+};
+
+export type SkillsControllerRevisionResponse = SkillsControllerRevisionResponses[keyof SkillsControllerRevisionResponses];
+
+export type SkillsControllerRestoreData = {
+    body: RestoreSkillRevisionDto;
+    path: {
+        name: string;
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/hub/{name}/revisions/{id}/restore';
+};
+
+export type SkillsControllerRestoreResponses = {
+    200: SkillWrittenDto;
+};
+
+export type SkillsControllerRestoreResponse = SkillsControllerRestoreResponses[keyof SkillsControllerRestoreResponses];
+
+export type SkillsControllerSyncNowData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/skills/sync';
+};
+
+export type SkillsControllerSyncNowResponses = {
+    200: PluginSyncResultDto;
+};
+
+export type SkillsControllerSyncNowResponse = SkillsControllerSyncNowResponses[keyof SkillsControllerSyncNowResponses];
 
 export type AgentQueueControllerListData = {
     body?: never;

@@ -3119,6 +3119,56 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/today/next": {
+      "get": {
+        "operationId": "TodayController_next",
+        "parameters": [
+          {
+            "name": "role",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "owner",
+                "pm",
+                "accountant",
+                "backend",
+                "frontend",
+                "designer",
+                "qa"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 20,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoNextListDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Do next: what to start, ranked from real state with no AI (overdue, blocking others, ready and small, plan steps next in line), each with its reasons",
+        "tags": [
+          "today"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/today/seen": {
       "post": {
         "operationId": "TodayController_seen",
@@ -7552,6 +7602,55 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/chats/{id}/suggestions/{suggestion}": {
+      "post": {
+        "operationId": "ChatsController_answerSuggestion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "suggestion",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerSuggestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSuggestionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Accept or dismiss a proposal of /hub:suggest. Accept creates it through the normal path (a task, a plan, or a Hub skill for the owner) and answers what it made; a proposal is settled once",
+        "tags": [
+          "chats"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/chats/{id}/export": {
       "get": {
         "operationId": "ChatsController_export",
@@ -7773,6 +7872,332 @@
         "summary": "A card’s work reports, newest first: each check with its real runs, what is verified and what is claimed",
         "tags": [
           "chats"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills": {
+      "get": {
+        "operationId": "SkillsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Hub's skills with the devices that have each one's current text, the owner's personal skills (owner only), and the plugin each device took",
+        "tags": [
+          "skills"
+        ]
+      },
+      "post": {
+        "operationId": "SkillsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillWrittenDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A new Hub skill. Every device takes it on the next sync",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/hub/{name}": {
+      "get": {
+        "operationId": "SkillsController_hub",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One of Hub's skills, with its Markdown",
+        "tags": [
+          "skills"
+        ]
+      },
+      "put": {
+        "operationId": "SkillsController_update",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillWrittenDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Save a Hub skill's description and text. The earlier text is kept; a save over a newer text is refused",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/personal/{name}": {
+      "get": {
+        "operationId": "SkillsController_personal",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One personal skill, read only, with any secret-looking value masked",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/move": {
+      "post": {
+        "operationId": "SkillsController_move",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveSkillDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillWrittenDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Copy a personal skill into Hub, under its own name or `as`. The personal original is never changed",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/hub/{name}/revisions": {
+      "get": {
+        "operationId": "SkillsController_revisions",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillRevisionsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A Hub skill's earlier texts, newest first",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/hub/{name}/revisions/{id}": {
+      "get": {
+        "operationId": "SkillsController_revision",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillRevisionDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One earlier text of a Hub skill",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/hub/{name}/revisions/{id}/restore": {
+      "post": {
+        "operationId": "SkillsController_restore",
+        "parameters": [
+          {
+            "name": "name",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreSkillRevisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillWrittenDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Bring an earlier text back. What is there now is kept as a revision of its own",
+        "tags": [
+          "skills"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/skills/sync": {
+      "post": {
+        "operationId": "SkillsController_syncNow",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PluginSyncResultDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sync now: every online device takes the current plugin. Answers each device after it",
+        "tags": [
+          "skills"
         ]
       }
     },
@@ -26641,6 +27066,111 @@
           "weekly"
         ]
       },
+      "DoNextListDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "decision",
+                    "need",
+                    "change",
+                    "handoff",
+                    "redesign",
+                    "doc",
+                    "release",
+                    "idea",
+                    "plan"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "overdue",
+                      "blocks",
+                      "plan_next",
+                      "small",
+                      "ready",
+                      "decision"
+                    ]
+                  }
+                },
+                "blocks": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "runnable": {
+                  "type": "boolean"
+                },
+                "score": {
+                  "type": "number"
+                },
+                "plan": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "title",
+                    "index"
+                  ]
+                },
+                "step": {
+                  "type": "object",
+                  "properties": {
+                    "index": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "index"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "type",
+                "title",
+                "reasons",
+                "blocks",
+                "runnable",
+                "score"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "CountersDto": {
         "type": "object",
         "properties": {
@@ -35045,6 +35575,245 @@
                   ],
                   "nullable": true
                 },
+                "suggestions": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string",
+                            "enum": [
+                              "open",
+                              "accepted",
+                              "dismissed"
+                            ]
+                          },
+                          "ref": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "answeredAt": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "proposal": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "task"
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "why": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1000
+                                  },
+                                  "body": {
+                                    "type": "string",
+                                    "maxLength": 20000
+                                  },
+                                  "priority": {
+                                    "type": "string",
+                                    "enum": [
+                                      "P0",
+                                      "P1",
+                                      "P2",
+                                      "P3"
+                                    ]
+                                  },
+                                  "ownerRole": {
+                                    "type": "string",
+                                    "enum": [
+                                      "owner",
+                                      "pm",
+                                      "accountant",
+                                      "backend",
+                                      "frontend",
+                                      "designer",
+                                      "qa"
+                                    ]
+                                  },
+                                  "specialty": {
+                                    "type": "string",
+                                    "enum": [
+                                      "backend",
+                                      "frontend",
+                                      "design",
+                                      "qa",
+                                      "ops",
+                                      "docs"
+                                    ]
+                                  },
+                                  "effort": {
+                                    "type": "string",
+                                    "enum": [
+                                      "S",
+                                      "M",
+                                      "L",
+                                      "XL"
+                                    ]
+                                  },
+                                  "related": {
+                                    "maxItems": 10,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "title",
+                                  "why"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "plan"
+                                    ]
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "why": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1000
+                                  },
+                                  "body": {
+                                    "type": "string",
+                                    "maxLength": 20000
+                                  },
+                                  "steps": {
+                                    "minItems": 1,
+                                    "maxItems": 30,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 200
+                                        },
+                                        "role": {
+                                          "type": "string",
+                                          "enum": [
+                                            "owner",
+                                            "pm",
+                                            "accountant",
+                                            "backend",
+                                            "frontend",
+                                            "designer",
+                                            "qa"
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "title"
+                                      ]
+                                    }
+                                  },
+                                  "related": {
+                                    "maxItems": 10,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "title",
+                                  "why",
+                                  "steps"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "skill"
+                                    ]
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 64,
+                                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                                  },
+                                  "description": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1024
+                                  },
+                                  "why": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 1000
+                                  },
+                                  "body": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 100000
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "name",
+                                  "description",
+                                  "why",
+                                  "body"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "state",
+                          "ref",
+                          "answeredAt",
+                          "proposal"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "summary",
+                    "items"
+                  ],
+                  "nullable": true
+                },
                 "engineFacts": {
                   "type": "object",
                   "properties": {
@@ -36004,6 +36773,7 @@
                 "stages",
                 "plan",
                 "structuredPlan",
+                "suggestions",
                 "engineFacts",
                 "changedFiles",
                 "steps",
@@ -36316,6 +37086,243 @@
         },
         "required": [
           "decision"
+        ]
+      },
+      "AnswerSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "accept",
+              "dismiss"
+            ]
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "ChatSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "accepted",
+              "dismissed"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "answeredAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "proposal": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "task"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "why": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "body": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "P0",
+                      "P1",
+                      "P2",
+                      "P3"
+                    ]
+                  },
+                  "ownerRole": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "pm",
+                      "accountant",
+                      "backend",
+                      "frontend",
+                      "designer",
+                      "qa"
+                    ]
+                  },
+                  "specialty": {
+                    "type": "string",
+                    "enum": [
+                      "backend",
+                      "frontend",
+                      "design",
+                      "qa",
+                      "ops",
+                      "docs"
+                    ]
+                  },
+                  "effort": {
+                    "type": "string",
+                    "enum": [
+                      "S",
+                      "M",
+                      "L",
+                      "XL"
+                    ]
+                  },
+                  "related": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "title",
+                  "why"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "plan"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "why": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "body": {
+                    "type": "string",
+                    "maxLength": 20000
+                  },
+                  "steps": {
+                    "minItems": 1,
+                    "maxItems": 30,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "owner",
+                            "pm",
+                            "accountant",
+                            "backend",
+                            "frontend",
+                            "designer",
+                            "qa"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    }
+                  },
+                  "related": {
+                    "maxItems": 10,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Z]{2,6}-\\d{1,7}$"
+                    }
+                  }
+                },
+                "required": [
+                  "kind",
+                  "title",
+                  "why",
+                  "steps"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "skill"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  "why": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1000
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "description",
+                  "why",
+                  "body"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "ref",
+          "answeredAt",
+          "proposal"
         ]
       },
       "ChatExportDto": {
@@ -36673,6 +37680,698 @@
           "counts",
           "move",
           "reportedAt"
+        ]
+      },
+      "SkillsDto": {
+        "type": "object",
+        "properties": {
+          "hub": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "declaredName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "hub",
+                    "personal"
+                  ]
+                },
+                "core": {
+                  "type": "boolean"
+                },
+                "userInvocable": {
+                  "type": "boolean"
+                },
+                "files": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hash": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "devices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "online": {
+                        "type": "boolean"
+                      },
+                      "synced": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "online",
+                      "synced"
+                    ]
+                  }
+                },
+                "nameInHub": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "declaredName",
+                "description",
+                "source",
+                "core",
+                "userInvocable",
+                "files",
+                "hash",
+                "updatedAt",
+                "devices",
+                "nameInHub"
+              ]
+            }
+          },
+          "personal": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "declaredName": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "description": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "hub",
+                    "personal"
+                  ]
+                },
+                "core": {
+                  "type": "boolean"
+                },
+                "userInvocable": {
+                  "type": "boolean"
+                },
+                "files": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "hash": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "devices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "online": {
+                        "type": "boolean"
+                      },
+                      "synced": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "online",
+                      "synced"
+                    ]
+                  }
+                },
+                "nameInHub": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "declaredName",
+                "description",
+                "source",
+                "core",
+                "userInvocable",
+                "files",
+                "hash",
+                "updatedAt",
+                "devices",
+                "nameInHub"
+              ]
+            }
+          },
+          "personalFolder": {
+            "type": "string",
+            "nullable": true
+          },
+          "sync": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "manual"
+                ]
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "online": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "syncedAt": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "current": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "online",
+                    "version",
+                    "syncedAt",
+                    "error",
+                    "current"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "version",
+              "mode",
+              "devices"
+            ]
+          }
+        },
+        "required": [
+          "hub",
+          "personal",
+          "personalFolder",
+          "sync"
+        ]
+      },
+      "SkillDetailDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "declaredName": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "hub",
+              "personal"
+            ]
+          },
+          "core": {
+            "type": "boolean"
+          },
+          "userInvocable": {
+            "type": "boolean"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "hash": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "online": {
+                  "type": "boolean"
+                },
+                "synced": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "online",
+                "synced"
+              ]
+            }
+          },
+          "nameInHub": {
+            "type": "boolean"
+          },
+          "body": {
+            "type": "string"
+          },
+          "otherFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "declaredName",
+          "description",
+          "source",
+          "core",
+          "userInvocable",
+          "files",
+          "hash",
+          "updatedAt",
+          "devices",
+          "nameInHub",
+          "body",
+          "otherFiles"
+        ]
+      },
+      "CreateSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "userInvocable": {
+            "default": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "body"
+        ]
+      },
+      "SkillWrittenDto": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "declaredName": {
+                "type": "string",
+                "nullable": true
+              },
+              "description": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "hub",
+                  "personal"
+                ]
+              },
+              "core": {
+                "type": "boolean"
+              },
+              "userInvocable": {
+                "type": "boolean"
+              },
+              "files": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "hash": {
+                "type": "string"
+              },
+              "updatedAt": {
+                "type": "string",
+                "nullable": true
+              },
+              "devices": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "online": {
+                      "type": "boolean"
+                    },
+                    "synced": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "online",
+                    "synced"
+                  ]
+                }
+              },
+              "nameInHub": {
+                "type": "boolean"
+              },
+              "body": {
+                "type": "string"
+              },
+              "otherFiles": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "name",
+              "declaredName",
+              "description",
+              "source",
+              "core",
+              "userInvocable",
+              "files",
+              "hash",
+              "updatedAt",
+              "devices",
+              "nameInHub",
+              "body",
+              "otherFiles"
+            ]
+          },
+          "revisionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "syncing": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "skill",
+          "revisionId",
+          "syncing"
+        ]
+      },
+      "UpdateSkillDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "userInvocable": {
+            "type": "boolean"
+          },
+          "baseHash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "description",
+          "body",
+          "userInvocable",
+          "baseHash"
+        ]
+      },
+      "MoveSkillDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "as": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SkillRevisionsDto": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "hash": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string",
+              "enum": [
+                "edit",
+                "restore"
+              ]
+            },
+            "savedBy": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName"
+              ],
+              "nullable": true
+            },
+            "createdAt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "hash",
+            "reason",
+            "savedBy",
+            "createdAt"
+          ]
+        }
+      },
+      "SkillRevisionDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "edit",
+              "restore"
+            ]
+          },
+          "savedBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "displayName"
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "hash",
+          "reason",
+          "savedBy",
+          "createdAt",
+          "text"
+        ]
+      },
+      "RestoreSkillRevisionDto": {
+        "type": "object",
+        "properties": {
+          "baseHash": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "baseHash"
+        ]
+      },
+      "PluginSyncResultDto": {
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "online": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "syncedAt": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "error": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "current": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "online",
+                "version",
+                "syncedAt",
+                "error",
+                "current"
+              ]
+            }
+          }
+        },
+        "required": [
+          "devices"
         ]
       },
       "QueueDto": {
