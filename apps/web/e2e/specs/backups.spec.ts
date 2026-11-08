@@ -1,11 +1,14 @@
 /**
  * @file Settings › Backups in a real browser (docs/16 D61 to D63): Back up now makes a real `pg_dump` of the throwaway database into a scratch folder, the
  * history shows it done with its size, Keep pins it, Delete asks and keeps the line, and the settings save from the bar. Then Settings › Devices says how
- * other devices reach Hub. Runs in `ar` and `en`, with screenshots of both.
+ * other devices reach Hub. Runs in `ar` and `en`, with screenshots of both. The Slice 6 review's fixes are checked here too: no "no access" flash on a direct load
+ * (M1), the selected tab in view (M2), a failure in words with the raw text under Details (M3), the reach steps with Check again (M6, M7).
  * @description The stack sets `HUB_BACKUP_DIR` to a temp folder and `HUB_BACKUP_SCHEDULE=off` (`support/stack.ts`), so nothing reaches F:/HubBackups or
  * the owner's database, and no nightly run races the test.
  */
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import type { BackupDto } from '@hub/contracts';
 
@@ -70,6 +73,91 @@ test.describe('Settings › Backups', () => {
     await page.screenshot({ path: info.outputPath(`backups-history-${locale}.png`), fullPage: true });
   });
 
+  test('a direct load never says "no access" to the owner, and the tab is in view (review M1, M2)', async ({
+    page,
+    locale,
+    ws,
+  }) => {
+    const settings = words(locale, 'settings');
+    const forbidden = word(words(locale, 'kit'), 'error.forbidden');
+    // The session answers late, as on a slow machine, so a premature decision would show.
+    await page.route('**/api/v1/auth/me', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 900 });
+      await page.goto(view(locale, ws, 'settings', 'tab=backups'));
+      const seen = page.evaluate(
+        (text) =>
+          new Promise<boolean>((resolve) => {
+            const started = Date.now();
+            const tick = () => {
+              if (document.body.innerText.includes(text)) return resolve(true);
+              if (Date.now() - started > 2500) return resolve(false);
+              requestAnimationFrame(tick);
+            };
+            tick();
+          }),
+        forbidden,
+      );
+      expect(await seen).toBe(false);
+      const tab = page.getByRole('tab', { name: word(settings, 'tabs.backups') });
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
+      // The selected tab sits inside the strip's visible part.
+      await expect
+        .poll(() =>
+          tab.evaluate((el) => {
+            const strip = el.parentElement!.getBoundingClientRect();
+            const box = el.getBoundingClientRect();
+            return box.left >= strip.left - 1 && box.right <= strip.right + 1;
+          }),
+        )
+        .toBe(true);
+    }
+    await page.unroute('**/api/v1/auth/me');
+  });
+
+  test('a failed backup says what to do, with the raw text under Details (review M3)', async ({
+    page,
+    locale,
+    ws,
+    owner,
+  }) => {
+    const settings = words(locale, 'settings');
+    const t = (path: string) => word(settings, `backups.${path}`);
+    // A file where the folder should be: the backup fails at its first step, and nothing is written anywhere else.
+    const scratch = mkdtempSync(join(tmpdir(), 'hub-e2e-backup-fail-'));
+    const file = join(scratch, 'not-a-folder.txt');
+    writeFileSync(file, 'x');
+    const patch = (data: unknown) =>
+      owner.context.patch(`/api/v1/workspaces/${ws}/backups/settings`, {
+        data,
+        headers: { 'X-Requested-With': 'hub' },
+      });
+    try {
+      expect((await patch({ folder: file })).ok()).toBe(true);
+      await page.goto(view(locale, ws, 'settings', 'tab=backups'));
+      const started = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' && /\/backups$/.test(new URL(response.url()).pathname),
+      );
+      await page.getByRole('button', { name: t('now') }).click();
+      const backup = ((await (await started).json()) as { data: BackupDto }).data;
+      const row = page.locator(`[data-backup="${backup.id}"]`);
+      await expect(row.getByText(t('status.failed'), { exact: true })).toBeVisible({ timeout: 60_000 });
+      await expect(row.getByText(t('failure.folder'))).toBeVisible();
+      const details = row.locator('details');
+      await expect(details).not.toHaveAttribute('open', '');
+      await details.locator('summary').click();
+      await expect(details.locator('bdi')).toContainText('not-a-folder.txt');
+      await expect(details.getByRole('button', { name: t('copyFailure') })).toBeVisible();
+    } finally {
+      await patch({ folder: null });
+      rmSync(scratch, { recursive: true, force: true });
+    }
+  });
+
   test('anyone but the owner sees no Backups tab, and the route refuses them', async ({
     member,
     locale,
@@ -94,6 +182,20 @@ test.describe('Settings › Backups', () => {
     await expect(section.getByText('pnpm hub:tailscale serve')).toBeVisible();
     // The throwaway stack runs on plain http, so the cookies are honestly not Secure yet.
     await expect(section.getByText(word(settings, 'devices.publishing.secureOff'))).toBeVisible();
+    // A summary says the next step, the steps are split by machine, and the download link is the official one (review M6, M7).
+    await expect(section.locator('[data-publishing-summary]')).toBeVisible();
+    await expect(section.getByText(word(settings, 'devices.publishing.mainTitle'))).toBeVisible();
+    await expect(section.getByText(word(settings, 'devices.publishing.otherTitle'))).toBeVisible();
+    await expect(
+      section.getByRole('link', { name: new RegExp(word(settings, 'devices.publishing.download')) }).first(),
+    ).toHaveAttribute('href', 'https://tailscale.com/download');
+    // Check again asks past the API's cache.
+    const fresh = page.waitForRequest(
+      (request) =>
+        request.url().endsWith('/me/devices/publishing') && request.headers()['cache-control'] === 'no-cache',
+    );
+    await section.getByRole('button', { name: word(settings, 'devices.publishing.checkAgainLabel') }).click();
+    await fresh;
     await section.scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath(`devices-publishing-${locale}.png`), fullPage: true });
   });
