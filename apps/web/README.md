@@ -278,6 +278,11 @@ Layers: strip and panel are in the layout, a phone's panel is 45, its sheet 50. 
 
 Parts in `components/queue/`: `RunRow` and `RunIcon` (one neutral card, state in a coloured icon and words), `useRunLine` (what a run waits on, why it is held, when it runs, how it ended), `useRunNow`, `ScheduleDialog` (quick choices in the queue's timezone, "Choose a time", weekly), `RunButtons` (Run now and Schedule on a task), `StepRunMenu` (a plan step) and `CardRuns` (a card's runs on its sheet). A run starts only from the owner's press (D51). Settings › Queue is `settings/parts/queue.tsx`. `revealChat(id)` in the workbench store opens any chat in the panel.
 
+- **Mode, folders and roles (D58 to D60).** `ScheduleDialog` sets How it runs (`approval` or `automatic`), the main folder, extra folders from the project's other linked folders, and roles (`ROLES`, labels from `ROLE_LABELS`). `useRunNow(target, options)` and `runAgainTarget(run)` carry them. `useSetRunMode` and `useRunPending` are the two new hooks; a run not started switches mode from its menu.
+- **Where a run goes** is `useRunPlace()`, which reads `wb.place`: the device and folder the panel resolves with its own fallbacks, never the raw choices in storage (queue review B1).
+- **`RunDecisions`** shows what an automatic run decided and its pending items; Run it now opens a chat on that folder where D41 still asks. In a chat, `skipped` and `auto_answered` read as closed cards, and `hasNoTimeLimit(expiresAt)` (contracts) says "no time limit" for a queued run's approval.
+- **Cancel** of a running run or a weekly one asks first through `RunCancelHost`, mounted once in the shell beside the toasts. `showToast({ action })` adds one follow-up button, such as Open chat after Run now.
+
 ## i18n
 
 Every visible string is in both languages. `useT(kitMessages)` is card vocabulary (`types status actions done roles sheet`): never repeat it. `useT<Messages>('<view>')` is your page. Both return the namespace as an object. Use `fmt` and `fill` for `{name}`
