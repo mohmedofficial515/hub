@@ -1,0 +1,55 @@
+/// One run in the agent queue (docs/16 §9): a panel chat turn in Execute that Hub starts at its time, within the owner's limits. The database is the truth, so a schedule survives a restart. `position` orders what has not started; it begins as the due time, so missed runs go oldest first.
+model AgentRun {
+  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId  String    @map("workspace_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  deviceId     String    @map("device_id") @db.Uuid
+  folder       String
+  /// task | plan_step | prompt
+  source       String
+  cardKey      String?   @map("card_key")
+  planStep     Int?      @map("plan_step")
+  prompt       String
+  title        String
+  /// queued | running | done | failed | stopped | interrupted | cancelled
+  state        String    @default("queued")
+  position     Float
+  runAt        DateTime? @map("run_at") @db.Timestamptz(3)
+  /// 1 = Monday … 7 = Sunday, with `repeatTime`, for a weekly run. Each start leaves the next week's copy.
+  repeatDay    Int?      @map("repeat_day")
+  repeatTime   String?   @map("repeat_time")
+  pausedAt     DateTime? @map("paused_at") @db.Timestamptz(3)
+  chatId       String?   @map("chat_id") @db.Uuid
+  messageId    String?   @map("message_id") @db.Uuid
+  failure      String?
+  summary      String?
+  changedFiles Json      @default("[]") @map("changed_files")
+  moved        Boolean?
+  startedAt    DateTime? @map("started_at") @db.Timestamptz(3)
+  endedAt      DateTime? @map("ended_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId, state])
+  @@index([workspaceId, state])
+  @@index([workspaceId, cardKey])
+  @@map("agent_runs")
+}
+
+/// The owner's queue limits, one row per member who has changed one (docs/16 §9). Runs spend one subscription, so the limits cross projects. No row means the defaults.
+model AgentQueueSettings {
+  userId        String    @id @map("user_id") @db.Uuid
+  maxConcurrent Int       @default(1) @map("max_concurrent")
+  perDay        Int       @default(5) @map("per_day")
+  quietFrom     String?   @map("quiet_from")
+  quietTo       String?   @map("quiet_to")
+  /// An IANA name. Null is the machine's.
+  timezone      String?
+  pausedAt      DateTime? @map("paused_at") @db.Timestamptz(3)
+  /// owner | usage_limit
+  pausedReason  String?   @map("paused_reason")
+  resumesAt     DateTime? @map("resumes_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("agent_queue_settings")
+}

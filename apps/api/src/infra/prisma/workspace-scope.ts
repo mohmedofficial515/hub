@@ -26,6 +26,7 @@ export const WORKSPACE_SCOPED_MODELS: Readonly<Record<string, readonly string[]>
   ChatStep: ['workspaceId'],
   ChatApproval: ['workspaceId'],
   ChatPromptTemplate: ['workspaceId'],
+  AgentRun: ['workspaceId', 'userId'],
   DocDraft: ['workspaceId'],
   SessionLog: ['workspaceId'],
   Notification: ['workspaceId', 'userId'],
