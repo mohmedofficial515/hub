@@ -3,6 +3,7 @@
  */
 import { Module } from '@nestjs/common';
 
+import { BackupsModule } from '@/modules/backups';
 import { DocsModule } from '@/modules/docs';
 import { NotificationsModule } from '@/modules/notifications';
 import { RealtimeModule } from '@/modules/realtime';
@@ -15,7 +16,7 @@ import { SystemService } from './application/system.service';
 import { MetricsController, SystemController } from './presentation/http/system.controller';
 
 @Module({
-  imports: [DocsModule, NotificationsModule, RealtimeModule, RedesignModule, WorkspacesModule],
+  imports: [BackupsModule, DocsModule, NotificationsModule, RealtimeModule, RedesignModule, WorkspacesModule],
   controllers: [SystemController, MetricsController],
   providers: [SourceRunnerService, SourceRunProcessor, SystemService],
   exports: [SourceRunnerService, SystemService],

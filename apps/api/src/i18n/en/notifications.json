@@ -25,5 +25,6 @@
   "source_failing": "The source {name} failed 3 runs in a row",
   "brief_ready": "Your brief for {date} is ready",
   "weekly_ready": "The summary of week {date} is ready",
-  "run_waiting": "A queued run waits for your approval: {title}"
+  "run_waiting": "A queued run waits for your approval: {title}",
+  "backup_failed": "The nightly backup failed: {reason}"
 }

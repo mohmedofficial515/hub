@@ -22,6 +22,16 @@ export const envSchema = z.object({
   HUB_ALLOWED_HOSTS: z.string().default('localhost,127.0.0.1'),
   /** Express `trust proxy`, when a proxy stands in front: `uniquelocal` in compose. Unset: trust nothing. */
   TRUST_PROXY: optionalText,
+  /** The address the API listens on. Unset: 127.0.0.1 when HUB_PUBLIC_URL is https (published through `tailscale serve`, D43), else every interface. */
+  HUB_BIND_HOST: optionalText,
+
+  // Backups (docs/16 D61 to D63). The folder and the time are the owner's settings; these are the machine's defaults and test switches.
+  /** The default backup folder. Unset: `HubBackups` at the root of the drive Hub runs from. */
+  HUB_BACKUP_DIR: optionalText,
+  /** `off` stops the nightly timer, for a throwaway Hub in a test. "Back up now" still works. */
+  HUB_BACKUP_SCHEDULE: z.enum(['on', 'off']).default('on'),
+  /** The Postgres container `pg_dump` runs in. Unset: the container that publishes DATABASE_URL's port. Never a `goteav-*` one. */
+  HUB_BACKUP_PG_CONTAINER: optionalText,
 
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),

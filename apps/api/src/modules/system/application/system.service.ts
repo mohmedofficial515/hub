@@ -1,6 +1,6 @@
 /**
  * @file The system page and `/metrics` (docs/04 §3.23, H2-07), as far as local sources go. A value with no source
- * behind it is null, never invented: there is no backup job in this release.
+ * behind it is null, never invented. The backup figures are the last finished backup (docs/16 D61 to D63).
  */
 import type { SystemData } from '@hub/contracts';
 import { Inject, Injectable } from '@nestjs/common';
@@ -12,6 +12,7 @@ import { runUnscoped } from '@/infra/prisma/workspace-scope';
 import { QUEUES } from '@/infra/queue/queue.service';
 import { QueueService } from '@/infra/queue/queue.service';
 import { RedisClients } from '@/infra/redis/redis.module';
+import { BackupsService } from '@/modules/backups';
 import { RealtimeHub } from '@/modules/realtime';
 import { LAB_BASE } from '@/modules/redesign';
 import { SourcesService } from '@/modules/workspaces';
@@ -34,6 +35,7 @@ export class SystemService {
     private readonly queues: QueueService,
     private readonly redis: RedisClients,
     private readonly hub: RealtimeHub,
+    private readonly backups: BackupsService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
@@ -95,7 +97,7 @@ export class SystemService {
       queues: await this.queueCounts(),
       outbox: await this.outbox(),
       sse: { connections: this.hub.connectionCount() },
-      backup: { lastAt: null, sizeBytes: null },
+      backup: await this.backups.latest(),
       db: {
         sizeBytes: Number(size?.size ?? 0),
         cards: await this.txHost.tx.card.count({ where: { workspaceId } }),
