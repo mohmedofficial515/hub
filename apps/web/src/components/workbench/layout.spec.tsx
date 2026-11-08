@@ -2,7 +2,7 @@
  * @file layout.spec.tsx
  * @description The workbench on stubbed answers from the real shapes: it draws on a page, says when no device or folder exists, shows a chat from its real messages, and the sheet is a plain region.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -276,6 +276,20 @@ describe('WorkbenchLayout', () => {
     expect(document.querySelector('[data-wb-history-empty]')?.textContent).toContain(
       'No chats in this project yet',
     );
+  });
+
+  it('the bridge tip gives the last-seen time as Last seen, never as Connected since', async () => {
+    answers({ devices: [{ ...device, online: false }] });
+    draw();
+    await waitFor(() => expect(document.querySelector('[data-wb-status="bridge"]')).toBeTruthy());
+    const status = document.querySelector<HTMLElement>('[data-wb-status="bridge"]');
+    fireEvent.keyDown(window, { key: 'Tab' });
+    status?.focus();
+    await waitFor(() => expect(document.querySelector('[data-wb-tipbox]')).toBeTruthy());
+    const tip = document.querySelector('[data-wb-tipbox]')?.textContent ?? '';
+    expect(tip).toContain('Last seen');
+    expect(tip).toContain('Offline');
+    expect(tip).not.toContain('Connected since');
   });
 
   it('has no dialog for the sheet', async () => {
