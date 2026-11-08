@@ -13,6 +13,7 @@ import { runChecks, runFix } from './health.mjs';
 import { folderServerIsRight, installFolderServer } from './install.mjs';
 import { recordLink } from './links.mjs';
 import { claudeConfigFile } from './paths.mjs';
+import { syncPlugin } from './plugin-sync.mjs';
 import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
 import { schemaHandlers } from './schema-files.mjs';
 import { turnHandlers } from './turns.mjs';
@@ -59,6 +60,7 @@ const handlers = {
   ...docHandlers,
   ...schemaHandlers,
   'vscode.open': openInVsCode,
+  'plugin.sync': syncPlugin,
 };
 
 /**

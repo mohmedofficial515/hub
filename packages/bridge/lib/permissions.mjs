@@ -136,6 +136,8 @@ export const HUB_READ_TOOLS = [
   'report_stage',
   'propose_plan',
   'propose_doc',
+  'propose_suggestions',
+  'list_skills',
 ];
 
 /**

@@ -27,6 +27,11 @@ export function fakeSystem(overrides = {}) {
   const detached = [];
   const plugins = [];
   const readConfig = () => JSON.parse(readFileSync(configFile, 'utf8'));
+  /** The version Claude Code would read from the bridge's marketplace folder. */
+  const marketVersion = () => {
+    const file = join(home, '.hub', 'app', 'team-pack', '.claude-plugin', 'marketplace.json');
+    return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).plugins?.[0]?.version : '0.1.0';
+  };
   const writeConfig = (value) => writeFileSync(configFile, JSON.stringify(value, null, 2));
 
   function claude(args, options) {
@@ -70,8 +75,15 @@ export function fakeSystem(overrides = {}) {
     }
     if (line === 'plugin list --json') return { status: 0, stdout: JSON.stringify(plugins), stderr: '' };
     if (line.startsWith('plugin install')) {
-      plugins.push({ id: 'hub@hub', enabled: true });
+      plugins.push({ id: 'hub@hub', enabled: true, version: marketVersion() });
       return { status: 0, stdout: '', stderr: '' };
+    }
+    if (line.startsWith('plugin update hub@hub')) {
+      if (system.pluginUpdateFails) return { status: 1, stdout: '', stderr: 'update broke' };
+      const entry = plugins.find((plugin) => plugin.id === 'hub@hub');
+      // As 2.1.319 does: a new version in the marketplace is taken, the same one is not.
+      if (entry) entry.version = marketVersion();
+      return { status: 0, stdout: JSON.stringify({ updateOutcome: 'updated' }), stderr: '' };
     }
     if (line.startsWith('plugin uninstall')) {
       plugins.length = 0;
@@ -89,6 +101,8 @@ export function fakeSystem(overrides = {}) {
     claudeVersion: '2.1.318',
     signedIn: true,
     mcpFails: false,
+    pluginUpdateFails: false,
+    plugins,
     registryHandler: '"C:\\nowhere\\Code.exe" --open-url -- "%1"',
     taskRegistered: false,
     taskRefused: false,

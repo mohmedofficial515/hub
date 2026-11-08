@@ -21,6 +21,7 @@ export const BRIDGE_ACTIONS = [
   'doc.write',
   'schema.read',
   'vscode.open',
+  'plugin.sync',
 ];
 export const BRIDGE_REFUSALS = [
   'unknown_action',
