@@ -458,15 +458,20 @@ test.describe('chat panel, the layout', () => {
       await page.setViewportSize({ width, height: 900 });
       await open(page, locale, ws, 'tasks', `card=${task.key}`);
       await expect(sheet(page)).toBeVisible();
-      const a = await sheet(page).evaluate((el) => {
-        const box = el.getBoundingClientRect();
-        return [box.left, box.right] as const;
-      });
-      const b = await panel(page).evaluate((el) => {
-        const box = el.getBoundingClientRect();
-        return [box.left, box.right] as const;
-      });
-      expect(a[1] <= b[0] + 1 || b[1] <= a[0] + 1).toBe(true);
+      // The sheet slides in, so read the boxes once it has settled. A lasting overlap still fails here.
+      await expect
+        .poll(async () => {
+          const a = await sheet(page).evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            return [box.left, box.right] as const;
+          });
+          const b = await panel(page).evaluate((el) => {
+            const box = el.getBoundingClientRect();
+            return [box.left, box.right] as const;
+          });
+          return a[1] <= b[0] + 1 || b[1] <= a[0] + 1;
+        })
+        .toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     }
   });
