@@ -21,6 +21,11 @@ describe('backupFailureKind', () => {
     expect(backupFailureKind("EACCES: permission denied, mkdir 'D:\\HubBackups\\hub-1.partial'")).toBe(
       'folder',
     );
+    // A file where the folder should be.
+    expect(backupFailureKind("ENOTDIR: not a directory, mkdir 'C:\\Temp\\x.txt\\hub-1.partial'")).toBe(
+      'folder',
+    );
+    expect(backupFailureKind("EEXIST: file already exists, mkdir 'C:\\Temp\\x.txt'")).toBe('folder');
   });
 
   it('puts a full drive first, even inside a pg_dump failure', () => {

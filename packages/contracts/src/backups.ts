@@ -111,7 +111,7 @@ const FAILURE_RULES: readonly [BackupFailureKind, RegExp][] = [
   ['docker', /No running Postgres container|docker was not found|Is Docker running/i],
   ['foreign_container', /^Refused container/i],
   ['disk_full', /ENOSPC|no space left/i],
-  ['folder', /hub\.backups\.folder_|EACCES|EPERM|EROFS|ENOENT|ENOTDIR/i],
+  ['folder', /hub\.backups\.folder_|EACCES|EPERM|EROFS|ENOENT|ENOTDIR|EEXIST/i],
   ['dump', /^pg_dump failed/i],
 ];
 
