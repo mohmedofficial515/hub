@@ -2,8 +2,9 @@
 
 /**
  * @file password-fields.tsx
- * @description New password twice, used by invite and reset (docs/09 §1.3, §1.4). Ten characters is the only client rule; the API decides
- * the rest. The hint is always visible rather than a meter that pretends to measure.
+ * @description New password twice, used by invite and reset (docs/09 §1.3, §1.4). The length is the API's own rule, 12 characters
+ * (docs/04 §1.9): the page once said 10, and a friend who followed it was refused as "weak". The API also refuses a common password.
+ * The hint is always visible rather than a meter that pretends to measure.
  */
 import { useId } from 'react';
 
@@ -11,7 +12,7 @@ import { Field, TextInput } from '@/components/kit';
 import { useT } from '@/lib/i18n';
 import type { AuthDict } from '@/lib/i18n/page-dicts';
 
-export const MIN_PASSWORD = 10;
+export const MIN_PASSWORD = 12;
 
 export const passwordProblem = (t: AuthDict, password: string, confirm: string) => ({
   password: password.length < MIN_PASSWORD ? t.errors.passwordShort : undefined,
