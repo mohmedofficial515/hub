@@ -6,6 +6,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 
+import { trustProxyOf } from './config/bind-host';
 import { APP_CONFIG, type AppConfig } from './config/config.module';
 
 export const API_PREFIX = 'api/v1';
@@ -18,8 +19,8 @@ export function configureApp(app: INestApplication): void {
       { path: 'metrics', method: RequestMethod.GET },
     ],
   });
-  // Behind the web proxy the socket's address is the proxy's, so sign-in limits and audit rows need the forwarded one.
-  const trustProxy = app.get<AppConfig>(APP_CONFIG).TRUST_PROXY;
+  // Behind the web proxy the socket's address is the proxy's, so sign-in limits and audit rows need the forwarded one (`trustProxyOf`).
+  const trustProxy = trustProxyOf(app.get<AppConfig>(APP_CONFIG));
   if (trustProxy) (app as NestExpressApplication).set('trust proxy', trustProxy);
   // A plan's body alone may be 100 000 characters of Arabic (docs/15 §4).
   (app as NestExpressApplication).useBodyParser('json', { limit: '1mb' });
