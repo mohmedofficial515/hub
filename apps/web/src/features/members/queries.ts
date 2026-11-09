@@ -5,7 +5,7 @@
  * @description The team and its invites (docs/04 §3.5, §3.23). Rows come from the same endpoint as `useMembers`, with what only this
  * page reads. Under `qk.admin`, which `project.updated` on the stream rereads, so a change from MCP appears without a reload.
  */
-import type { MemberRow, Role } from '@hub/contracts';
+import type { InviteStatus, MailMode, MemberRow, Role } from '@hub/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
@@ -95,16 +95,25 @@ export interface InviteRow {
   createdBy: string;
   expiresAt: string;
   acceptedAt: string | null;
+  revokedAt: string | null;
+  /** The API's one rule (docs/16 D68): the page never works it out again. */
+  status: InviteStatus;
 }
 
-/** People with a link who have not joined. Only owner and pm may read them, so nobody else asks. */
+/** A link the API answers once, with where its email went. */
+export interface InviteLinkResult {
+  url: string;
+  expiresAt: string;
+  mail: MailMode;
+}
+
+/** Every invite with its status. Only owner and pm may read them, so nobody else asks. */
 export function useInvites(enabled: boolean) {
   const { ws } = useRoute();
   return useQuery({
     queryKey: qk.admin(ws, 'invites'),
     enabled: !!ws && enabled,
-    queryFn: async () =>
-      (await get<InviteRow[]>(`workspaces/${ws}/invites`)).filter((invite) => !invite.acceptedAt),
+    queryFn: () => get<InviteRow[]>(`workspaces/${ws}/invites`),
   });
 }
 
@@ -114,11 +123,12 @@ export function useInviteWrites() {
   const path = `workspaces/${ws}/invites`;
   return {
     create: useMutation({
-      mutationFn: (input: { email: string; roles: Role[] }) => post<{ url: string }>(path, input),
+      mutationFn: (input: { email: string; roles: Role[] }) =>
+        post<InviteLinkResult & { id: string }>(path, input),
       onSettled,
     }),
     resend: useMutation({
-      mutationFn: (id: string) => post<{ url: string }>(`${path}/${id}/resend`),
+      mutationFn: (id: string) => post<InviteLinkResult>(`${path}/${id}/resend`),
       onSettled,
     }),
     revoke: useMutation({ mutationFn: (id: string) => del(`${path}/${id}`), onSettled }),

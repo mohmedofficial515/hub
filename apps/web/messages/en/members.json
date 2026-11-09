@@ -34,21 +34,32 @@
     "sent": "Invited by {name}",
     "expires": "Expires {when}",
     "expiresSoon": "Expires {when}",
-    "resend": "Resend",
+    "resend": "New link",
     "revoke": "Revoke",
     "revokeTitle": "Revoke the invite to {email}?",
     "revokeBody": "The link stops working right away. You can invite the same person again later.",
     "revoked": "Revoked the invite to {email}",
     "resendTitle": "New invite link",
-    "resendBody": "The previous link to {email} no longer works.",
+    "resendBody": "The previous link to {email} no longer works. This one works once, for 7 days.",
     "emptyTitle": "No pending invites",
     "emptyBody": "Everyone you invited has joined. Invite someone when you need to.",
-    "emptyBodySole": "Invite the first member to join you in this project."
+    "emptyBodySole": "Invite the first member to join you in this project.",
+    "resendLabel": "New link for {email}",
+    "expired": "Expired {when}",
+    "joined": "Joined {when}",
+    "revokedOn": "Revoked {when}",
+    "status": {
+      "pending": "Waiting",
+      "expired": "Expired",
+      "accepted": "Joined",
+      "revoked": "Revoked"
+    },
+    "earlierTitle": "Earlier invites"
   },
   "inviteDialog": {
     "title": "Invite a member",
     "email": "Email",
-    "emailHint": "The link is sent to this address when email is set up on Hub.",
+    "emailHint": "Hub emails the link to this address when real email is set up, and you can always copy or share it.",
     "emailInvalid": "Write a valid email address.",
     "emailTaken": "An active invite exists for this address.",
     "emailMember": "This address belongs to a member.",
@@ -57,13 +68,31 @@
     "ownerOnly": "Only an owner can grant the owner role.",
     "send": "Create invite",
     "createdTitle": "Invite created",
-    "createdBody": "Send this link to {email}. It opens the join page with the roles you chose, and expires in 7 days."
+    "createdBody": "Send this link to {email}. It opens the join page with the roles you chose, works once, and expires in 7 days."
   },
   "once": {
-    "warning": "You won’t see this link again. Copy it now.",
+    "warning": "You won’t see this link again. Copy or share it now.",
     "linkLabel": "Link",
     "copy": "Copy the link",
     "done": "I copied it, close"
+  },
+  "inviteLink": {
+    "share": "Share…",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "sendLabel": "Send the link",
+    "shareTitle": "Invitation to {project} on Hub",
+    "text": "{inviter} invited you to {project} on Hub. Open this link and create your account. It works once, for 7 days:\n{url}",
+    "textTailnet": "How to reach Hub: it runs on {inviter}’s machine inside a private Tailscale network. Install Tailscale from https://tailscale.com/download, sign in with your own account, accept the share of the machine “{machine}” that {inviter} sends you, then open the link.",
+    "mail": {
+      "real": "An email with this link went to {email}.",
+      "local": "No email reached {email}: Hub only has the local test inbox (Mailpit). Send the link yourself.",
+      "off": "Hub has no mail server, so no email went to {email}. Send the link yourself."
+    },
+    "mailSetUp": "Set up real email",
+    "tailnetTitle": "Share this machine with them in Tailscale",
+    "tailnetBody": "Hub opens only inside your tailnet. In the Tailscale admin console, open Machines, choose {machine}, press Share and send them the share link. They install Tailscale, sign in with their own account and accept it.",
+    "tailnetOpen": "Open Tailscale machines"
   },
   "menu": {
     "label": "Options for {name}",

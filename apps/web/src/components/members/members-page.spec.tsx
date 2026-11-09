@@ -46,6 +46,8 @@ const invite = {
   createdBy: 'u1',
   expiresAt: '2030-01-01T00:00:00Z',
   acceptedAt: null,
+  revokedAt: null,
+  status: 'pending',
 };
 
 const answer =
@@ -87,6 +89,38 @@ describe('MembersPage', () => {
     expect(await screen.findByText('new@hub.test')).toBeTruthy();
     expect(screen.getAllByText('u2@hub.test').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Invite member/ })).toBeTruthy();
+  });
+
+  it('shows every invite’s status: waiting and expired get New link, joined and revoked sit below the team', async () => {
+    const invites = [
+      invite,
+      { ...invite, id: 'i2', email: 'late@hub.test', expiresAt: '2026-01-01T00:00:00Z', status: 'expired' },
+      {
+        ...invite,
+        id: 'i3',
+        email: 'joined@hub.test',
+        acceptedAt: '2026-11-02T00:00:00Z',
+        status: 'accepted',
+      },
+      { ...invite, id: 'i4', email: 'gone@hub.test', revokedAt: '2026-11-03T00:00:00Z', status: 'revoked' },
+    ];
+    stubFetch(answer(['owner'], members, invites));
+    renderWithApp(
+      <Tooltip.Provider>
+        <MembersPage />
+      </Tooltip.Provider>,
+    );
+    expect(await screen.findByText('new@hub.test')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New link for new@hub.test' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'New link for late@hub.test' })).toBeTruthy();
+    expect(screen.getByText(/^Expired /)).toBeTruthy();
+    const earlier = screen.getByRole('region', { name: /Earlier invites/ });
+    expect(earlier).toHaveTextContent('joined@hub.test');
+    expect(earlier).toHaveTextContent(/Joined /);
+    expect(earlier).toHaveTextContent('gone@hub.test');
+    expect(earlier).toHaveTextContent(/Revoked /);
+    expect(screen.queryByRole('button', { name: 'New link for joined@hub.test' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New link for gone@hub.test' })).toBeNull();
   });
 
   it('hides emails and invites from everyone else, and does not ask for invites', async () => {

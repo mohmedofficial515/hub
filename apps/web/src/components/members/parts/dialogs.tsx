@@ -4,6 +4,7 @@
  * @file dialogs.tsx
  * @description Ported from the approved design, pages/members. Contract: apps/web/README.md.
  */
+import type { MailMode } from '@hub/contracts';
 import { useState } from 'react';
 
 import {
@@ -37,6 +38,8 @@ import { useSettings } from '@/features/settings/queries';
 import { totpSetupPath } from '@/lib/api/client';
 import { isHubError } from '@/lib/api/errors';
 import { setLocaleEverywhere } from '@/lib/theme';
+
+import { InviteLink } from './invite-link';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOGIN = /^[A-Za-z\d](?:[A-Za-z\d-]{0,38})$/;
@@ -76,6 +79,38 @@ export function ShownOnceDialog({
   );
 }
 
+/** A new link for an invite (resend): the same sending choices as a new invite. */
+export function InviteLinkDialog({
+  open,
+  onClose,
+  email,
+  url,
+  mail,
+}: {
+  open: boolean;
+  onClose: () => void;
+  email: string;
+  url: string;
+  mail: MailMode;
+}) {
+  const t = useT<MembersMessages>('members');
+  return (
+    <Modal
+      open={open}
+      onOpenChange={(next) => !next && onClose()}
+      title={t.invites.resendTitle}
+      description={fmt(t.invites.resendBody, { email })}
+      footer={
+        <Button variant="primary" onClick={onClose}>
+          {t.once.done}
+        </Button>
+      }
+    >
+      <InviteLink email={email} url={url} mail={mail} />
+    </Modal>
+  );
+}
+
 export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const t = useT<MembersMessages>('members');
   const kit = useT(kitMessages);
@@ -87,13 +122,13 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
   const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<Role[]>([]);
   const [tried, setTried] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
+  const [link, setLink] = useState<{ url: string; mail: MailMode } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const clean = email.trim().toLowerCase();
   const emailError = !EMAIL.test(clean)
     ? s.emailInvalid
-    : invites.some((i) => i.email === clean)
+    : invites.some((i) => i.status === 'pending' && i.email === clean)
       ? s.emailTaken
       : directory.some((d) => d.status === 'active' && d.email.toLowerCase() === clean)
         ? s.emailMember
@@ -115,7 +150,7 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
     writes.create.mutate(
       { email: clean, roles },
       {
-        onSuccess: ({ url }) => setLink(url),
+        onSuccess: ({ url, mail }) => setLink({ url, mail }),
         onError: (cause) => setServerError(isHubError(cause) ? cause.message : t.errorThing),
       },
     );
@@ -143,9 +178,7 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
       }
     >
       {link ? (
-        <ShownOnce warning={t.once.warning}>
-          <CommandBlock label={t.once.linkLabel} value={link} copyLabel={t.once.copy} />
-        </ShownOnce>
+        <InviteLink email={clean} url={link.url} mail={link.mail} />
       ) : (
         <form
           className="flex flex-col gap-4"

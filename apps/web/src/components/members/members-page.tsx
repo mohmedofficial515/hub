@@ -4,7 +4,7 @@
  * @file members-page.tsx
  * @description Ported from the approved design, pages/members. Contract: apps/web/README.md.
  */
-import { ROLES } from '@hub/contracts';
+import { type MailMode, ROLES } from '@hub/contracts';
 import {
   CircleSlash,
   KeyRound,
@@ -58,14 +58,22 @@ import { type DirectoryRow, useDirectory, useInvites, useMemberWrites } from '@/
 import { useSettings } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
 
-import { GithubDialog, InviteDialog, ProfileDialog, RolesDialog, ShownOnceDialog } from './parts/dialogs';
-import { Invites } from './parts/invites';
+import {
+  GithubDialog,
+  InviteDialog,
+  InviteLinkDialog,
+  ProfileDialog,
+  RolesDialog,
+  ShownOnceDialog,
+} from './parts/dialogs';
+import { EarlierInvites, Invites } from './parts/invites';
 
 type Dialog =
   | { kind: 'invite' }
   | { kind: 'profile' }
   | { kind: 'roles' | 'github' | 'disable'; id: string }
   | { kind: 'link'; title: string; body: string; link: string }
+  | { kind: 'invite-link'; email: string; url: string; mail: MailMode }
   | null;
 
 function Identity({ row, mine, showEmail }: { row: DirectoryRow; mine: boolean; showEmail: boolean }) {
@@ -132,6 +140,9 @@ export function MembersPage() {
   const invitesQuery = useInvites(isManager);
   const directory = directoryQuery.data ?? [];
   const invites = invitesQuery.data ?? [];
+  // One rule from the API (docs/16 D68): waiting and expired can still get a link; joined and revoked are history.
+  const waiting = invites.filter((i) => i.status === 'pending' || i.status === 'expired');
+  const earlier = invites.filter((i) => i.status === 'accepted' || i.status === 'revoked');
   const totpRoles = useSettings().data?.['security.totp_required_roles'] as Role[] | undefined;
   const writes = useMemberWrites();
   const loading = directoryQuery.isPending;
@@ -245,7 +256,7 @@ export function MembersPage() {
     );
   };
 
-  const soleMember = !loading && active.length <= 1 && invites.length === 0;
+  const soleMember = !loading && active.length <= 1 && waiting.length === 0;
   const header = (
     <PageHeader
       title={t.title}
@@ -294,10 +305,12 @@ export function MembersPage() {
     <PageContainer>
       {header}
 
-      {isManager && invites.length > 0 && (
+      {isManager && waiting.length > 0 && (
         <Invites
-          invites={invites}
-          onLink={(title, body, link) => setDialog({ kind: 'link', title, body, link })}
+          invites={waiting}
+          onLink={(invite, link) =>
+            setDialog({ kind: 'invite-link', email: invite.email, url: link.url, mail: link.mail })
+          }
         />
       )}
 
@@ -445,7 +458,7 @@ export function MembersPage() {
       </section>
 
       {/* With nobody waiting there is nothing to act on, so this no longer leads the page. */}
-      {isManager && invites.length === 0 && (
+      {isManager && waiting.length === 0 && (
         <EmptyState
           icon={UserPlus}
           title={t.invites.emptyTitle}
@@ -461,6 +474,8 @@ export function MembersPage() {
           {soleMember ? t.invites.emptyBodySole : t.invites.emptyBody}
         </EmptyState>
       )}
+
+      {isManager && earlier.length > 0 && <EarlierInvites invites={earlier} />}
 
       {isManager && disabled.length > 0 && (
         <section aria-labelledby="disabled-title" className="flex flex-col gap-2 border-t border-border pt-6">
@@ -506,6 +521,13 @@ export function MembersPage() {
           row={target}
         />
       )}
+      <InviteLinkDialog
+        open={dialog?.kind === 'invite-link'}
+        onClose={() => setDialog(null)}
+        email={dialog?.kind === 'invite-link' ? dialog.email : ''}
+        url={dialog?.kind === 'invite-link' ? dialog.url : ''}
+        mail={dialog?.kind === 'invite-link' ? dialog.mail : 'off'}
+      />
       <ShownOnceDialog
         open={dialog?.kind === 'link'}
         onClose={() => setDialog(null)}
