@@ -1,5 +1,6 @@
 /**
  * @file HubServer's runner (docs/16 "Slice 6 as built", D63): Hub in production mode from what is already built, started by the logon task.
+ * With `HUB_MODE=dev` in the root `.env` it runs Hub from source instead (`devParts`: watchers and `next dev`), and needs only the contracts built.
  * @description It never builds: a missing build is logged with the command that makes it (`pnpm hub:service build`), and it stops. It brings up
  * the containers (waiting for Docker Desktop, which starts late at logon), applies migrations, then runs the API, the web and the lab, and starts
  * again any of them that stops, with a growing wait. Task Scheduler's own restart only covers a task that could not launch, so this loop is
@@ -14,11 +15,14 @@ import { join } from 'node:path';
 import {
   apiDir,
   bindHostOf,
+  devParts,
+  hubModeOf,
   hubServerFile,
   isPortBusy,
   labDir,
   logDir,
   missingBuild,
+  missingDevBuild,
   readEnvFile,
   root,
   stopTree,
@@ -123,13 +127,15 @@ async function main() {
     );
     process.exit(0);
   }
-  const missing = missingBuild();
+  const dev = hubModeOf(env) === 'dev';
+  const missing = dev ? missingDevBuild() : missingBuild();
   if (missing.length > 0) {
     log(
       `Nothing to run: the ${missing.join(', ')} build is missing. Run \`pnpm hub:service build\`, then \`pnpm hub:service start\`.`,
     );
     process.exit(1);
   }
+  if (dev) log('Dev mode (HUB_MODE=dev): running from source, and saved changes show at once.');
   if (!(await composeUp())) process.exit(1);
   const prisma = join(apiDir, 'node_modules/prisma/build/index.js');
   const migrated = run(process.execPath, [prisma, 'migrate', 'deploy'], { cwd: apiDir });
@@ -149,19 +155,24 @@ async function main() {
   };
   const add = (name, args, cwd, partEnv) =>
     parts.set(name, { name, args, cwd, env: partEnv, backoff: BACKOFF_MIN_MS, child: null, startedAt: 0 });
-  add('api', ['dist/main'], apiDir, { ...process.env });
-  add(
-    'web',
-    [
-      join(webDir, 'node_modules/next/dist/bin/next'),
-      'start',
-      '-p',
-      String(webPort),
-      ...(host ? ['-H', host] : []),
-    ],
-    webDir,
-    webEnv,
-  );
+  if (dev) {
+    for (const part of devParts({ env, webPort, apiPort, labPort, host }))
+      add(part.name, part.args, part.cwd, part.env);
+  } else {
+    add('api', ['dist/main'], apiDir, { ...process.env });
+    add(
+      'web',
+      [
+        join(webDir, 'node_modules/next/dist/bin/next'),
+        'start',
+        '-p',
+        String(webPort),
+        ...(host ? ['-H', host] : []),
+      ],
+      webDir,
+      webEnv,
+    );
+  }
   const vite = join(labDir, 'node_modules/vite/bin/vite.js');
   if (existsSync(vite)) {
     add('lab', [vite], labDir, {

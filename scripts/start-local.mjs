@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url';
 
 import { connectMainMachine } from './connect-main-machine.mjs';
 import { checkVersions, describe } from './lab-check.mjs';
-import { bindHostOf, runningHubServer } from './lib/hub-local.mjs';
+import { bindHostOf, devParts, hubModeOf, runningHubServer } from './lib/hub-local.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const apiDir = join(root, 'apps/api');
@@ -179,11 +179,13 @@ async function main() {
     `    ${run('owner and projects', process.execPath, ['-r', './scripts/swc-register.cjs', 'scripts/seed-owner.ts'], { cwd: apiDir, shell: false }).trim()}`,
   );
 
-  say('Build:');
+  const mode = hubModeOf(env);
+  say(mode === 'dev' ? 'Build: (dev mode: from source, live reload)' : 'Build:');
   const contractsSrc = join(root, 'packages/contracts/src');
   const contractsChanged =
     newestChange([contractsSrc]) > builtAt(join(root, 'packages/contracts/dist/index.js'));
   if (contractsChanged) run('contracts', 'pnpm', ['--filter', '@hub/contracts', 'build']);
+  if (mode === 'dev') return runDev({ env, apiPort, labPort, labBusy });
   const apiChanged =
     contractsChanged || newestChange([join(apiDir, 'src')]) > builtAt(join(apiDir, 'dist/main.js'));
   if (apiChanged) run('API', 'pnpm', ['--filter', '@hub/api', 'build']);
@@ -221,9 +223,38 @@ async function main() {
     webDir,
     webEnv,
   );
-  const running = [api, web];
   const lab = labBusy ? null : startLab(labPort, env);
-  if (lab) running.push(lab);
+  await supervise({ api, web, extra: [], lab, env, apiPort, labPort, readySeconds: 120, dev: false });
+}
+
+/**
+ * Dev mode (`HUB_MODE=dev`): the API, the web and the contracts from source, each watching its files, so a saved change shows without a build
+ * or a restart. The first page takes longer, because `next dev` compiles it on the first visit.
+ */
+async function runDev({ env, apiPort, labPort, labBusy }) {
+  say('Running (dev mode):');
+  const parts = devParts({ env, webPort: WEB_PORT, apiPort, labPort, host: bindHostOf(env) });
+  const byName = Object.fromEntries(
+    parts.map((part) => [part.name, start(part.name, part.args, part.cwd, part.env)]),
+  );
+  const lab = labBusy ? null : startLab(labPort, env);
+  await supervise({
+    api: byName.api,
+    web: byName.web,
+    extra: [byName.contracts],
+    lab,
+    env,
+    apiPort,
+    labPort,
+    readySeconds: 300,
+    dev: true,
+  });
+}
+
+/** Runs until Ctrl+C. The API and the web are Hub, and either stopping stops it; the lab and the contracts watcher are helpers, and are only reported. */
+async function supervise({ api, web, extra, lab, env, apiPort, labPort, readySeconds, dev }) {
+  const helpers = [...extra, ...(lab ? [lab] : [])];
+  const running = [api, web, ...helpers];
   writeFileSync(pidFile, JSON.stringify(running.map((item) => item.child.pid)));
 
   let stopping = false;
@@ -246,14 +277,18 @@ async function main() {
         );
         return;
       }
+      if (helpers.includes(item)) {
+        say(`\n${item.name} stopped watching (exit ${code}). Hub keeps running. Its log: ${item.logFile}`);
+        return;
+      }
       process.stderr.write(`\n${item.name} stopped (exit ${code}). Its log: ${item.logFile}\n`);
       stopAll(1);
     });
   }
 
   try {
-    await waitFor(`http://localhost:${apiPort}/api/v1/health/ready`, 'The API', api);
-    await waitFor(`http://localhost:${WEB_PORT}/ar/sign-in`, 'The web', web);
+    await waitFor(`http://localhost:${apiPort}/api/v1/health/ready`, 'The API', api, readySeconds);
+    await waitFor(`http://localhost:${WEB_PORT}/ar/sign-in`, 'The web', web, readySeconds);
   } catch (error) {
     process.stderr.write(`\n${error instanceof Error ? error.message : String(error)}\n`);
     stopAll(1);
@@ -273,7 +308,9 @@ async function main() {
       ),
     );
   say('');
-  say(`Hub is running.   Open http://localhost:${WEB_PORT}`);
+  say(
+    `Hub is running${dev ? ' in dev mode: saved changes show at once' : ''}.   Open http://localhost:${WEB_PORT}`,
+  );
   say(`Sign in with HUB_OWNER_EMAIL and HUB_OWNER_PASSWORD from .env.`);
   say(`Logs: ${logDir}. Ctrl+C stops it.`);
   if (lab) void reportLab(labPort);

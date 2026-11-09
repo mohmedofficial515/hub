@@ -13,7 +13,7 @@ export const apiDir = join(root, 'apps/api');
 export const webDir = join(root, 'apps/web');
 export const labDir = join(root, 'apps/lab');
 export const isWindows = process.platform === 'win32';
-/** The web's own build folder for a local run, apart from `next dev`'s. */
+/** The web's own build folder for a local run in production mode, apart from `next dev`'s. */
 export const WEB_DIST = process.env.NEXT_DIST_DIR ?? '.next-local';
 export const logDir = process.env.HUB_LOG_DIR ?? join(root, '.tmp/logs');
 /** Written by `scripts/hub-server.mjs` while it runs: its pid and its children's. */
@@ -76,6 +76,63 @@ export function runningHubServer() {
   } catch {
     return null;
   }
+}
+
+/**
+ * How Hub runs on this machine: `HUB_MODE=dev` in the root `.env` (or the environment) runs it from source, where a saved file shows at once;
+ * anything else runs what is built. The environment wins, so `HUB_MODE=production pnpm start:local` runs the build once.
+ */
+export function hubModeOf(env) {
+  return (process.env.HUB_MODE ?? env.HUB_MODE ?? 'production') === 'dev' ? 'dev' : 'production';
+}
+
+/** Dev mode's own web folder: apart from the build's (`WEB_DIST`) and from a plain `next dev`'s `.next`, so neither is disturbed. */
+export const WEB_DEV_DIST = '.next-hub-dev';
+
+/**
+ * Dev mode's processes, each a plain `node <cli>`, so stopping the tree stops it: contracts rebuilt on save (`tsup --watch`, without clearing
+ * `dist` first, so the API and the web never read an empty folder), the API restarted on save (`nest start --watch`, swc), and `next dev` with
+ * hot reload. The lab is Vite, the same in both modes.
+ */
+export function devParts({ env, webPort, apiPort, labPort, host }) {
+  return [
+    {
+      name: 'contracts',
+      args: [join(root, 'packages/contracts/node_modules/tsup/dist/cli-default.js'), '--watch', '--no-clean'],
+      cwd: join(root, 'packages/contracts'),
+      env: { ...process.env },
+    },
+    {
+      name: 'api',
+      args: [join(apiDir, 'node_modules/@nestjs/cli/bin/nest.js'), 'start', '--watch'],
+      cwd: apiDir,
+      env: { ...process.env },
+    },
+    {
+      name: 'web',
+      args: [
+        join(webDir, 'node_modules/next/dist/bin/next'),
+        'dev',
+        '-p',
+        String(webPort),
+        ...(host ? ['-H', host] : []),
+      ],
+      cwd: webDir,
+      env: {
+        ...process.env,
+        ...env,
+        NODE_ENV: 'development',
+        NEXT_DIST_DIR: WEB_DEV_DIST,
+        HUB_API_ORIGIN: `http://localhost:${apiPort}`,
+        HUB_LAB_ORIGIN: `http://127.0.0.1:${labPort}`,
+      },
+    },
+  ];
+}
+
+/** What has to exist for Hub to run without building. In dev mode only the contracts do: the API and the web compile as they start. */
+export function missingDevBuild() {
+  return existsSync(join(root, 'packages/contracts/dist/index.js')) ? [] : ['contracts'];
 }
 
 /** What has to exist for Hub to run without building. */
