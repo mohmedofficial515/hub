@@ -164,6 +164,8 @@ const MATRIX = {
   'audit.read': OWNER_PM,
   // Backups of the main machine (docs/16 D61 to D63): the owner's alone, and only from the web, so no agent can delete or reshape them.
   'backup.manage': OWNER_ONLY,
+  // Hub's mail server, Mailpit or real SMTP (docs/16 D68): its state and a test message to the owner's own address. The owner's alone, web only.
+  'mail.manage': OWNER_ONLY,
   'notification.read': EVERYONE,
   'onboarding.use': EVERYONE,
 
@@ -210,6 +212,7 @@ const WEB_ONLY: ReadonlySet<PermissionAction> = new Set<PermissionAction>([
   'queue.manage',
   'backup.manage',
   'skill.manage',
+  'mail.manage',
 ]);
 
 export function surfaceOf(action: PermissionAction): Surface {

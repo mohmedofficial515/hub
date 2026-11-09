@@ -18,6 +18,7 @@ import { AuthService } from './application/auth.service';
 import { CredentialTokens } from './application/credential-tokens.service';
 import { InviteService } from './application/invite.service';
 import { LoginGuard } from './application/login-guard.service';
+import { MailService } from './application/mail.service';
 import { MeService } from './application/me.service';
 import { OwnerSeed } from './application/owner-seed.service';
 import { PasswordHasher } from './application/password-hasher';
@@ -33,11 +34,18 @@ import { ActorGuard } from './presentation/actor.guard';
 import { CredentialsResolver } from './presentation/credentials.resolver';
 import { AuthController } from './presentation/http/auth.controller';
 import { PublicInvitesController, WorkspaceInvitesController } from './presentation/http/invites.controller';
+import { MailController } from './presentation/http/mail.controller';
 import { MeController } from './presentation/http/me.controller';
 
 @Module({
   imports: [AuditModule, OutboxModule],
-  controllers: [AuthController, MeController, PublicInvitesController, WorkspaceInvitesController],
+  controllers: [
+    AuthController,
+    MeController,
+    PublicInvitesController,
+    WorkspaceInvitesController,
+    MailController,
+  ],
   providers: [
     AccountAdmin,
     ActorService,
@@ -46,6 +54,7 @@ import { MeController } from './presentation/http/me.controller';
     CredentialTokens,
     InviteService,
     LoginGuard,
+    MailService,
     MeService,
     OwnerSeed,
     PasswordHasher,

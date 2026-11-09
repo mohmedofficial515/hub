@@ -14,6 +14,7 @@ export * from './errors';
 export * from './events';
 export * from './identity';
 export * from './knowledge';
+export * from './mail';
 export * from './mcp/prompts';
 export * from './mcp/tools';
 export * from './notifications';
