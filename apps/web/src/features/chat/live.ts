@@ -208,7 +208,7 @@ function reduceMessage(message: ChatMessageDto, live: ChatLiveEvent): ChatMessag
                 input: event.input,
                 effect: event.effect,
                 draftId: null,
-                status: 'skipped',
+                status: event.decision === 'approved' ? 'auto_allowed' : 'skipped',
                 expiresAt: at,
                 answeredAt: at,
                 createdAt: at,

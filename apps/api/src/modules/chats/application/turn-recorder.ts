@@ -396,6 +396,7 @@ export class TurnRecorder {
         const input = capJson(redactDeep(event.input), CHAT_LIMITS.toolInputChars);
         const command = capText(redactSecrets(event.command), CHAT_LIMITS.commandChars).text;
         const question = event.decision === 'answered';
+        const approved = event.decision === 'approved';
         await this.tx.chatApproval.create({
           data: {
             id: event.decisionId,
@@ -411,7 +412,7 @@ export class TurnRecorder {
             kind: question ? 'question' : 'approval',
             ...(event.questions ? { questions: redactDeep(event.questions) as object } : {}),
             ...(event.answers ? { answers: redactDeep(event.answers) as object } : {}),
-            status: question ? 'auto_answered' : 'skipped',
+            status: question ? 'auto_answered' : approved ? 'auto_allowed' : 'skipped',
             answeredAt: now,
             expiresAt: now,
           },
@@ -419,11 +420,11 @@ export class TurnRecorder {
         await this.deps.audit.record(
           { kind: 'system', userId: null, via: 'adapter', workspaceId, roles: [] },
           {
-            action: question ? 'queue.auto_answered' : 'queue.skipped',
+            action: question ? 'queue.auto_answered' : approved ? 'chat.auto_allowed' : 'queue.skipped',
             targetType: 'chat_approval',
             targetId: event.decisionId,
             summary:
-              `${question ? 'Answered for the owner' : 'Skipped for the owner'} on ${this.turn.deviceName}: ${command}`.slice(
+              `${question ? 'Answered for the owner' : approved ? 'Allowed in Auto mode' : 'Skipped for the owner'} on ${this.turn.deviceName}: ${command}`.slice(
                 0,
                 AUDIT_SUMMARY_CHARS,
               ),

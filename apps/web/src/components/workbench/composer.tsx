@@ -137,7 +137,7 @@ export function Menu({
 
 // ── Modes ───────────────────────────────────────────────────────────────────────────────────────
 
-/** Ask, Plan, Execute: always in view, and the one thing here that is never folded. `Alt+1` to `Alt+3` from anywhere. One Tab stop, as every segmented control. */
+/** Ask, Plan, Execute, Auto: always in view, and the one thing here that is never folded. `Alt+1` to `Alt+4` from anywhere. One Tab stop, as every segmented control. Auto wears a warning tone, because it allows everything. */
 export function ModeSwitch() {
   const t = useT<ChatMessages>('chat').panel;
   const wb = useWb();
@@ -165,7 +165,9 @@ export function ModeSwitch() {
               className={cn(
                 'inline-flex h-11 shrink-0 items-center justify-center rounded-sm px-2 text-body-sm font-medium whitespace-nowrap max-md:min-w-11 transition-colors duration-120 md:h-7',
                 active
-                  ? 'bg-foreground text-background'
+                  ? mode === 'auto'
+                    ? 'bg-warning text-warning-foreground'
+                    : 'bg-foreground text-background'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 focusRingInset,
               )}
@@ -183,7 +185,7 @@ export function useModeKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return;
-      const i = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
+      const i = ['Digit1', 'Digit2', 'Digit3', 'Digit4'].indexOf(e.code);
       if (i < 0) return;
       e.preventDefault();
       setMode(MODES[i] as Mode);

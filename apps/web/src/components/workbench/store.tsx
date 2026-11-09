@@ -66,7 +66,7 @@ export type Mode = ChatMode;
 /** `default` is Claude Code's own choice: no model is passed. */
 export type ModelId = 'default' | 'sonnet' | 'opus' | 'haiku';
 export type Effort = 'low' | 'medium' | 'high';
-export const MODES: readonly Mode[] = ['ask', 'plan', 'execute'];
+export const MODES: readonly Mode[] = ['ask', 'plan', 'execute', 'auto'];
 export const MODELS: readonly { id: ModelId; effort: boolean }[] = [
   { id: 'default', effort: true },
   { id: 'sonnet', effort: true },

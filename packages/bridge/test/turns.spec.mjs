@@ -924,6 +924,35 @@ describe('queued runs: run mode and extra folders (docs/16 D58, D59)', () => {
     await answer;
   });
 
+  it('Auto mode allows a push at once with Execute settings, nobody is asked, and records it as approved', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'auto' });
+    const { args } = world.spawned.at(-1);
+    expect(args[args.indexOf('--permission-mode') + 1]).toBe('acceptEdits');
+    child.say(toolStart('t1'));
+    const input = { command: 'git push origin main', description: 'Push' };
+    const decided = await askAsShim(world, 'Bash', input, 't1');
+    expect(decided).toEqual({ behavior: 'allow', updatedInput: input });
+    expect(world.of('approval.requested')).toEqual([]);
+    expect(world.of('auto.decision')).toEqual([
+      expect.objectContaining({ decision: 'approved', command: 'git push origin main', category: 'push' }),
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('Auto mode answers a question with its recommended option, and nobody is asked', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'auto' });
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 1);
+    const asked = await askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    expect(asked.updatedInput.answers).toEqual({ 'Which store?': 'Postgres (Recommended)' });
+    expect(world.of('question.asked')).toEqual([]);
+    child.say(RESULT);
+    await answer;
+  });
+
   it('untimed waits past the panel window, and sets the engine limit above it', async () => {
     const world = aWorld({ HUB_BRIDGE_APPROVAL_TIMEOUT_MS: '30' });
     const { answer, child } = await started(world, { runMode: 'approval', untimed: true });

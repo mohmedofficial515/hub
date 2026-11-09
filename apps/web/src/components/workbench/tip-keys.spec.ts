@@ -25,7 +25,7 @@ const sources = [
 ].map((path) => ({ path, text: readFileSync(path, 'utf8') }));
 
 /** What a `${…}` in a key may stand for. A new placeholder must be added here, so it is checked rather than skipped. */
-const PLACEHOLDERS: Record<string, readonly string[]> = { mode: ['ask', 'plan', 'execute'] };
+const PLACEHOLDERS: Record<string, readonly string[]> = { mode: ['ask', 'plan', 'execute', 'auto'] };
 
 const prefixes = [...new Set(Object.keys(catalogs.en.items).map((key) => key.split(':')[0]))];
 /** A tip key always has a colon. `doc.draft` and the like are event kinds, and a dotted `k=` is caught above. */

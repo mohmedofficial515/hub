@@ -283,10 +283,15 @@ export function isReadOnlyMcpTool(name) {
   return server === HUB_SERVER && HUB_READ_TOOLS.includes(tool);
 }
 
+/**
+ * `auto`: the owner's own choice to let a turn run to its end. The same settings as Execute, so every rule still routes a sensitive call to the permission tool, and the bridge then allows it at
+ * once and records it as an `auto.decision` (`approved`), so the chat shows each call that was allowed for the owner. A question takes its recommended option, as an automatic queue run does.
+ */
 export const MODE_FLAGS = {
-  ask: { permissionMode: 'default', readOnly: true },
-  plan: { permissionMode: 'plan', readOnly: true },
-  execute: { permissionMode: 'acceptEdits', readOnly: false },
+  ask: { permissionMode: 'default', readOnly: true, autoApprove: false },
+  plan: { permissionMode: 'plan', readOnly: true, autoApprove: false },
+  execute: { permissionMode: 'acceptEdits', readOnly: false, autoApprove: false },
+  auto: { permissionMode: 'acceptEdits', readOnly: false, autoApprove: true },
 };
 
 const COMMAND_CATEGORIES = [

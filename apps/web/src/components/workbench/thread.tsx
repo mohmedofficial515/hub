@@ -811,6 +811,26 @@ export function ApprovalPrompt({
     setLong(el.scrollHeight > el.clientHeight + 2);
   }, [request.command, all]);
   const armed = () => Date.now() - shownAt.current >= ARM_MS;
+  // Auto mode allowed it with nobody asked: one quiet line with the command, not a card for every call.
+  if (request.status === 'auto_allowed') {
+    return (
+      <p
+        data-wb-approval={request.status}
+        className="flex min-w-0 items-start gap-1.5 rounded-md border border-dashed border-border px-2.5 py-1.5 text-body-sm text-muted-foreground"
+      >
+        <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-success-soft-foreground" />
+        <span className="shrink-0 font-medium text-foreground">{a.autoAllowed}</span>
+        <code
+          dir="ltr"
+          translate="no"
+          className="min-w-0 truncate font-mono text-caption"
+          title={request.command}
+        >
+          {request.command}
+        </code>
+      </p>
+    );
+  }
   return (
     <section
       aria-label={a.title}
@@ -1291,7 +1311,10 @@ export function Thread({
             case 'report':
               return <ReportCard key={item.id} report={item.report} />;
             case 'question':
-              return <QuestionCard key={item.id} chatId={chat.id} item={item} />;
+              // A waiting question docks above the message box (`QuestionDock`); here it shows once closed.
+              return item.question.status === 'pending' ? null : (
+                <QuestionCard key={item.id} chatId={chat.id} item={item} />
+              );
             case 'refused':
               return <RefusedNote key={item.id} item={item} />;
             case 'draft':

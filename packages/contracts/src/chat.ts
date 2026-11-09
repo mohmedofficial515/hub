@@ -10,7 +10,8 @@ import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
 import { chatSuggestionSchema, chatSuggestionsSchema } from './suggestions';
 
-export const CHAT_MODES = ['ask', 'plan', 'execute'] as const;
+/** `auto`: Execute that allows each call needing approval at once, and takes a question's recommended option, so the turn runs to its end. Each such decision is recorded. */
+export const CHAT_MODES = ['ask', 'plan', 'execute', 'auto'] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];
 
 export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
@@ -371,7 +372,16 @@ export type TurnFailure = (typeof TURN_FAILURES)[number];
 export const APPROVAL_DECISIONS = ['allow', 'deny'] as const;
 export type ApprovalDecision = (typeof APPROVAL_DECISIONS)[number];
 /** `skipped`: an automatic queue run (D58) refused it at once, never ran it, and kept it for the owner to run later. */
-export const APPROVAL_STATUSES = ['pending', 'allowed', 'denied', 'timed_out', 'stopped', 'skipped'] as const;
+/** `auto_allowed`: allowed at once by a chat in Auto mode, with nobody asked. */
+export const APPROVAL_STATUSES = [
+  'pending',
+  'allowed',
+  'denied',
+  'timed_out',
+  'stopped',
+  'skipped',
+  'auto_allowed',
+] as const;
 export type ApprovalStatus = (typeof APPROVAL_STATUSES)[number];
 /** The D41 class a paused call falls in, for the prompt's wording. `other` is any unnamed command, which also pauses. */
 export const APPROVAL_CATEGORIES = [
@@ -533,12 +543,13 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
   }),
   /**
    * An automatic queue run (D58) decided on the owner's behalf, with nobody asked and nothing waiting: a call that needs approval was `skipped` (refused at once, never run), or a question was `answered` with its recommended option.
+   * A chat in Auto mode also answers questions, and a call that needs approval is `approved` (run at once).
    */
   z.object({
     kind: z.literal('auto.decision'),
     decisionId: z.string().max(100),
     toolUseId: z.string().max(100),
-    decision: z.enum(['skipped', 'answered']),
+    decision: z.enum(['skipped', 'answered', 'approved']),
     toolName: z.string().max(200),
     /** The exact command for `skipped`; the first question for `answered`. */
     command: z.string(),

@@ -81,6 +81,7 @@ import { Composer, Menu, useModeKeys } from './composer';
 import { PanelNewProject } from './new-project';
 import { PageRoom } from './page-room';
 import { DoNext, EmptyChat, EngineNotice, HistoryList, RunsList, VsCodeDialog } from './panels';
+import { QuestionDock } from './protocol';
 import { Resizer } from './resizer';
 import {
   attach,
@@ -1396,6 +1397,7 @@ export function WorkbenchLayout({
                 <>
                   {chat ? <Thread chat={chat} /> : <EmptyChat />}
                   <div className="flex shrink-0 flex-col gap-2 border-t border-border p-2.5">
+                    {chat && <QuestionDock chat={chat} />}
                     <EngineNotice onVsCode={() => setVscode(true)} />
                     <Composer autoFocus={focusComposer} />
                   </div>

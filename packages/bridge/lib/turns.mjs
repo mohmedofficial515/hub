@@ -38,7 +38,7 @@ import {
 import { Refusal } from './protocol.mjs';
 import { childEnv } from './system.mjs';
 
-export const CHAT_MODES = ['ask', 'plan', 'execute'];
+export const CHAT_MODES = ['ask', 'plan', 'execute', 'auto'];
 export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 const MODEL = /^[a-z0-9][a-z0-9.\-[\]]{0,63}$/i;
 const APPROVAL_SHIM = fileURLToPath(new URL('../bin/hub-approval-shim.mjs', import.meta.url));
@@ -208,8 +208,10 @@ function createManager(context) {
       return refuse('This does not match a tool call in the stream, so it is refused.');
     }
     if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
+    const autoApprove = MODE_FLAGS[proc.options.mode].autoApprove;
     if (isQuestionTool(toolName)) {
-      if (proc.options.runMode === 'automatic') return answerForOwner(turn, message, reply, refuse);
+      if (proc.options.runMode === 'automatic' || autoApprove)
+        return answerForOwner(turn, message, reply, refuse);
       return askOwner(proc, turn, message, reply, socket, refuse);
     }
     if (MODE_FLAGS[proc.options.mode].readOnly) {
@@ -226,6 +228,7 @@ function createManager(context) {
       return refuse(`This chat is in ${proc.options.mode} mode, which is read only.`);
     }
     if (proc.options.runMode === 'automatic') return skipForOwner(turn, message, reply);
+    if (autoApprove) return approveForOwner(turn, message, reply);
     const approvalId = randomUUID();
     const window = windowOf(proc);
     const pending = {
@@ -292,6 +295,25 @@ function createManager(context) {
       behavior: 'deny',
       message: `This is an automatic Hub run, so this was not run and will not be: ${command}. Hub kept it for the owner to run later. Carry on without this step, and say in your report that it waits for the owner.`,
     });
+    return undefined;
+  }
+
+  /** Auto mode: the owner chose to let the turn run to its end, so the call runs at once. It is recorded, so the chat still shows every call that was allowed for the owner. */
+  function approveForOwner(turn, message, reply) {
+    const { toolName, input, toolUseId } = message;
+    const category = categoryOf(toolName, input);
+    turn.emit('auto.decision', {
+      kind: 'auto.decision',
+      decisionId: randomUUID(),
+      toolUseId,
+      decision: 'approved',
+      toolName,
+      command: describeCall(toolName, input),
+      category,
+      input: input ?? {},
+      effect: APPROVAL_EFFECTS[category],
+    });
+    reply({ behavior: 'allow', updatedInput: input ?? {} });
     return undefined;
   }
 

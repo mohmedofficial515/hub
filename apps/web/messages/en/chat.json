@@ -2,12 +2,14 @@
   "modes": {
     "ask": "Ask",
     "plan": "Plan",
-    "execute": "Execute"
+    "execute": "Execute",
+    "auto": "Auto"
   },
   "modeHints": {
     "ask": "Reads files and Hub only. No terminal and no tools from other servers, so it cannot run tests or change anything.",
     "plan": "Reads files and Hub only, and ends in a proposed plan for you to review. No terminal and no tools from other servers.",
-    "execute": "Claude reads and edits inside this folder freely. Delete, commit, push, deploy, branch, worktree and docker wait for your approval, as does any command you have not allowed."
+    "execute": "Claude reads and edits inside this folder freely. Delete, commit, push, deploy, branch, worktree and docker wait for your approval, as does any command you have not allowed.",
+    "auto": "Executes to the end with no stops: every call that would wait for you is allowed at once, and each question takes its recommended option. Each one is recorded in the chat."
   },
   "states": {
     "running": "Working",
@@ -385,6 +387,7 @@
         "other": "A command you have not allowed"
       },
       "skipped": "Skipped by an automatic run. It did not run, and waits for you in the queue.",
+      "autoAllowed": "Allowed in Auto:",
       "noLimit": "It waits for you with no time limit."
     },
     "card": {
@@ -618,7 +621,8 @@
       "modes": {
         "ask": "Ask",
         "plan": "Plan",
-        "execute": "Execute"
+        "execute": "Execute",
+        "auto": "Auto"
       },
       "modelLabel": "Model",
       "effortLabel": "Effort",
@@ -732,11 +736,16 @@
       },
       "plan": {
         "title": "Proposed plan",
+        "stepsCount": "{n} steps",
         "checks": "Checks that will prove it worked",
         "risks": "Risks",
         "asText": "This plan arrived as text in the reply, so it has no separate steps.",
         "run": "Run this plan",
         "aside": "Leave it",
+        "save": "Save to Planning",
+        "saved": "Saved as {key}",
+        "savedToast": "Saved to Planning as {key}, a draft plan.",
+        "openSaved": "Open",
         "asided": "You left it here.",
         "promptText": "Carry out this plan, step by step, and run its checks."
       },
@@ -830,7 +839,22 @@
           "engine": "Stopped: the turn ended in an error, and this was not answered."
         },
         "autoAnswered": "Taken for you by an automatic run: {what}",
-        "noLimit": "It waits for you with no time limit."
+        "noLimit": "It waits for you with no time limit.",
+        "oneTitle": "Claude asks",
+        "tabs": "Questions",
+        "tabDone": "answered",
+        "nth": "Question {n}",
+        "progress": "{n} of {total} answered",
+        "pickOne": "Pick one.",
+        "pickMany": "Pick one or more.",
+        "recommended": "Recommended",
+        "own": "Other: write your own answer",
+        "ownPlaceholder": "Your answer… Enter to confirm, Shift+Enter for a new line",
+        "sendOne": "Send",
+        "sendCount": "Send answers ({n}/{total})",
+        "back": "Back",
+        "next": "Next",
+        "noAnswer": "No answer"
       },
       "draft": {
         "label": "Draft",
@@ -908,7 +932,8 @@
         "why": {
           "ask": "Ask reads files and Hub only: no terminal, and no tools from other servers.",
           "plan": "Plan reads files and Hub only: no terminal, and no tools from other servers.",
-          "execute": ""
+          "execute": "",
+          "auto": ""
         }
       },
       "ctx": {
@@ -1022,7 +1047,7 @@
       "keys": {
         "regions": "Move between page, card, panel and strip",
         "toggle": "Open or close the panel",
-        "modes": "Ask, Plan, Execute",
+        "modes": "Ask, Plan, Execute, Auto",
         "stop": "Stop the turn",
         "send": "Send",
         "newline": "New line",
@@ -1296,6 +1321,11 @@
         "then": "It pauses for you on delete, commit, push, deploy, a new branch and docker. Changing mode restarts Claude, about 10 seconds.",
         "detail": "Your Claude Code rules stay loaded, so a command you always allow does not pause."
       },
+      "mode:auto": {
+        "what": "Auto: executes to the end with no stops.",
+        "then": "Delete, commit, push, deploy, branch and docker run with no approval, and a question takes its recommended option. Each is recorded in the chat. Changing the mode restarts Claude, about 10 seconds.",
+        "detail": "Use it only on work you trust. Switch back to Execute to be asked again."
+      },
       "model": {
         "what": "The model and effort for your next message.",
         "then": "A change restarts Claude on the same session, about 10 seconds before the next reply.",
@@ -1363,6 +1393,10 @@
       "plan:run": {
         "what": "Puts this plan in the box, in Execute. Nothing runs until you send it.",
         "then": "After you send, Claude restarts, about 10 seconds, then the checklist starts."
+      },
+      "plan:save": {
+        "what": "Saves this plan on the Planning page as a draft plan card, with its steps.",
+        "then": "Each step’s reason, the checks and the risks go in the plan’s text. Nothing runs."
       },
       "plan:aside": {
         "what": "Leaves the plan in the chat without running it. You can come back to it."

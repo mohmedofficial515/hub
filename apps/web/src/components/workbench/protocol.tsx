@@ -5,7 +5,7 @@
  * @description What a turn ends in: the live checklist, a plan, a report with verified apart from claimed, a question, and a doc draft with its flags and duplicates (docs/16 §7.1, §7.2). Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/protocol.tsx`.
  */
 import type { CheckRun, DocDuplicate, ReportedCheck, WorkReport } from '@hub/contracts';
-import { hasNoTimeLimit, openFlags, planToPrompt } from '@hub/contracts';
+import { CARD_LIMITS, hasNoTimeLimit, openFlags, planToMarkdown, planToPrompt } from '@hub/contracts';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -14,6 +14,8 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Circle,
   CircleSlash,
   ClipboardList,
@@ -23,6 +25,7 @@ import {
   Loader2,
   MessageSquareWarning,
   MoveRight,
+  PenLine,
   Play,
   RotateCcw,
   Save,
@@ -35,6 +38,7 @@ import {
   Bidi,
   Button,
   cn,
+  createCard,
   fmt,
   focusRing,
   kitMessages,
@@ -85,6 +89,7 @@ import { clockOf, DiffView, duration } from './thread';
 import type { ChatMessages, PanelWords } from './words';
 
 type Report = WorkReport;
+const CARD_TITLE_MAX = CARD_LIMITS.title;
 const counted = (n: number, locale: 'ar' | 'en', forms: Parameters<typeof plural>[2]) =>
   fmt(plural(n, locale, forms), { n });
 const stageName = (t: PanelWords, id: string) => (t.pro.stages as Record<string, string>)[id] ?? id;
@@ -242,7 +247,10 @@ export function MarkInline({ text }: { text: string }) {
   );
 }
 
-/** What a Plan turn ends in (`propose_plan`, §7.2). Its one strong action is running it. When the plan came only as reply text, it shows as text and can still be run. */
+/**
+ * What a Plan turn ends in (`propose_plan`, §7.2). Its one strong action is running it. When the plan came only as reply text, it shows as text and can still be run.
+ * The steps read as a numbered line, each with its reason and role; the checks and the risks sit in their own quiet blocks under it, and the actions in a footer.
+ */
 export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   const t = useT<ChatMessages>('chat').panel;
   const locale = useLocale();
@@ -257,132 +265,234 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   const q = useQueueWords();
   // `planToPrompt`: what Run this plan sends, visible in the composer until the owner sends it (D51).
   const prompt = structured ? planToPrompt(structured) : `${p.promptText}\n\n${item.text}`;
+  const steps = structured?.steps.length ?? 0;
+  /** The plan card this proposal became, once saved to Planning. */
+  const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  /**
+   * Save to Planning: a draft plan card through the same create path as New plan. The steps keep their titles and a role Hub knows; the whole proposal, with each
+   * step's reason, the checks and the risks, is the plan's text. A plan that came only as words is saved as its text, titled by its first line.
+   */
+  const saveToPlanning = async () => {
+    if (saving || savedKey) return;
+    setSaving(true);
+    const cap = (text: string) => text.trim().slice(0, CARD_TITLE_MAX);
+    const firstLine =
+      item.text
+        .split('\n')
+        .find((line) => line.trim())
+        ?.replace(/^#+\s*/, '') ?? '';
+    try {
+      const card = await createCard(
+        structured
+          ? {
+              type: 'plan',
+              title: cap(structured.title),
+              body: planToMarkdown(structured),
+              detail: {
+                steps: structured.steps.map((s) => ({
+                  title: cap(s.title),
+                  ...(s.role && s.role in kit.roles ? { role: s.role as Role } : {}),
+                })),
+              },
+            }
+          : { type: 'plan', title: cap(firstLine) || p.title, body: item.text, detail: { steps: [] } },
+      );
+      setSavedKey(card.key);
+      showToast({
+        tone: 'success',
+        message: fmt(p.savedToast, { key: card.key }),
+        action: { label: p.openSaved, onSelect: () => openCard(card.key) },
+      });
+    } catch (error) {
+      showToast({ tone: 'error', message: isHubError(error) ? error.message : kit.actionFailed });
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <section
       aria-label={p.title}
       data-wb-plan={structured ? 'structured' : 'text'}
-      className="flex min-w-0 flex-col gap-2.5 rounded-lg border border-border bg-card p-3"
+      className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm"
     >
-      <header className="flex items-start gap-2">
-        <ClipboardList aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" strokeWidth={1.75} />
-        <div className="min-w-0">
-          <p className="text-body-sm text-muted-foreground">{p.title}</p>
+      <header className="flex min-w-0 items-start gap-2.5 border-b border-border bg-muted/40 px-3 py-2.5">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <ClipboardList aria-hidden className="size-4" strokeWidth={1.75} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-caption font-medium text-muted-foreground">{p.title}</p>
           {structured && (
-            <h3 className="text-body-lg font-semibold text-foreground">
+            <h3 className="text-body-sm font-semibold text-foreground">
               <Bidi>{structured.title}</Bidi>
             </h3>
           )}
         </div>
+        {structured && (
+          <span className="shrink-0 rounded-full border border-border bg-card px-2 py-0.5 text-caption text-muted-foreground tabular-nums">
+            {fmt(p.stepsCount, { n: steps })}
+          </span>
+        )}
       </header>
-      {structured && (
-        <ol data-wb-plan-steps className="flex flex-col gap-1.5">
-          {structured.steps.map((s, i) => (
-            <li key={s.title} className="flex min-w-0 items-start gap-2 text-body text-foreground">
-              <span
-                aria-hidden
-                className="mt-0.5 w-4 shrink-0 text-center text-body-sm text-muted-foreground tabular-nums"
-              >
-                {i + 1}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block">{s.title}</span>
-                {s.why && <span className="block text-body-sm text-muted-foreground">{s.why}</span>}
-              </span>
-              {s.role && s.role in kit.roles && (
-                <RoleBadge role={s.role as Role} iconOnly className="mt-0.5 shrink-0" />
-              )}
-            </li>
-          ))}
-        </ol>
-      )}
-      {!structured && (
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="wb-prose min-w-0 text-body text-foreground">
-            <MarkdownView source={item.text} dir="auto" headingOffset={2} />
-          </div>
-          <p className="text-body-sm text-muted-foreground">{p.asText}</p>
-        </div>
-      )}
-      {structured?.checks && structured.checks.length > 0 && (
-        <div className="flex flex-col gap-0.5 text-body-sm">
-          <p className="font-medium text-muted-foreground">{p.checks}</p>
-          <ul className="flex flex-wrap gap-1">
-            {structured.checks.map((c) => (
-              <li key={c}>
-                <code
-                  dir="ltr"
-                  translate="no"
-                  className="key inline-block rounded-sm bg-muted px-1.5 py-0.5 text-foreground"
-                >
-                  {c}
-                </code>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {structured?.risks && structured.risks.length > 0 && (
-        <div data-wb-plan-risks className="flex flex-col gap-0.5 text-body-sm">
-          <p className="font-medium text-muted-foreground">{p.risks}</p>
-          <ul className="flex flex-col gap-0.5 text-foreground">
-            {structured.risks.map((r) => (
-              <li key={r} className="flex items-start gap-1.5">
-                <AlertTriangle
+
+      <div className="flex min-w-0 flex-col gap-3 px-3 py-2.5">
+        {structured && (
+          <ol data-wb-plan-steps className="flex min-w-0 flex-col">
+            {structured.steps.map((s, i) => (
+              <li key={s.title} className="relative flex min-w-0 items-start gap-2.5 pb-2.5 last:pb-0">
+                {i < steps - 1 && (
+                  <span aria-hidden className="absolute start-3 top-6 bottom-0 w-px bg-border" />
+                )}
+                <span
                   aria-hidden
-                  className="mt-0.5 size-3.5 shrink-0 text-warning-strong"
-                  strokeWidth={1.75}
-                />
-                <span>
-                  <Bidi>{r}</Bidi>
+                  className="relative z-[1] flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card text-caption font-semibold text-muted-foreground tabular-nums"
+                >
+                  {i + 1}
                 </span>
+                <span className="min-w-0 flex-1 pt-0.5">
+                  <span className="block text-body-sm font-medium text-foreground">
+                    <Bidi>{s.title}</Bidi>
+                  </span>
+                  {s.why && <span className="block text-caption text-muted-foreground">{s.why}</span>}
+                </span>
+                {s.role && s.role in kit.roles && (
+                  <RoleBadge role={s.role as Role} iconOnly className="mt-0.5 shrink-0" />
+                )}
               </li>
             ))}
-          </ul>
-        </div>
-      )}
-      {!aside ? (
-        <div className="flex flex-wrap gap-1.5">
-          <Tip
-            k="plan:run"
-            off={off}
-            vars={{ device, time: clockOf(wb.resetsAt ? new Date(wb.resetsAt).toISOString() : null, locale) }}
-            label={p.run}
+          </ol>
+        )}
+        {!structured && (
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="wb-prose min-w-0 text-body-sm text-foreground">
+              <MarkdownView source={item.text} dir="auto" headingOffset={2} />
+            </div>
+            <p className="text-caption text-muted-foreground">{p.asText}</p>
+          </div>
+        )}
+        {structured?.checks && structured.checks.length > 0 && (
+          <div className="flex min-w-0 flex-col gap-1.5 rounded-md border border-border bg-muted/30 px-2.5 py-2">
+            <p className="inline-flex items-center gap-1.5 text-caption font-semibold text-muted-foreground">
+              <ListChecks aria-hidden className="size-3.5" strokeWidth={1.75} />
+              {p.checks}
+            </p>
+            <ul className="flex min-w-0 flex-wrap gap-1">
+              {structured.checks.map((c) => (
+                <li key={c} className="min-w-0">
+                  <code
+                    dir="ltr"
+                    translate="no"
+                    className="key inline-block max-w-full truncate rounded-sm border border-border bg-card px-1.5 py-0.5 font-mono text-caption text-foreground"
+                  >
+                    {c}
+                  </code>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {structured?.risks && structured.risks.length > 0 && (
+          <div
+            data-wb-plan-risks
+            className="flex min-w-0 flex-col gap-1 rounded-md border border-warning/30 bg-warning-soft/40 px-2.5 py-2"
           >
-            <Button
-              variant="primary"
-              data-wb-plan-run
-              disabled={!!off}
-              onClick={() => fillComposer(prompt, 'execute')}
+            <p className="inline-flex items-center gap-1.5 text-caption font-semibold text-warning-soft-foreground">
+              <AlertTriangle aria-hidden className="size-3.5" strokeWidth={1.75} />
+              {p.risks}
+            </p>
+            <ul className="flex min-w-0 list-disc flex-col gap-0.5 ps-5 text-caption text-foreground marker:text-warning-strong">
+              {structured.risks.map((r) => (
+                <li key={r}>
+                  <Bidi>{r}</Bidi>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <footer className="flex min-w-0 flex-wrap items-center gap-1.5 border-t border-border px-3 py-2">
+        {!aside ? (
+          <>
+            <Tip
+              k="plan:run"
+              off={off}
+              vars={{
+                device,
+                time: clockOf(wb.resetsAt ? new Date(wb.resetsAt).toISOString() : null, locale),
+              }}
+              label={p.run}
             >
-              <Play aria-hidden className="size-4" strokeWidth={2} />
-              {p.run}
-            </Button>
-          </Tip>
-          <Tip k="queue:schedule">
-            <Button variant="ghost" data-wb-plan-schedule onClick={() => setScheduling(true)}>
-              <CalendarClock aria-hidden className="size-4" strokeWidth={1.75} />
-              {q.schedule}
-            </Button>
-          </Tip>
-          <Tip k="plan:aside">
-            <Button variant="ghost" data-wb-plan-aside onClick={() => setPlanAside(item.id)}>
-              {p.aside}
-            </Button>
-          </Tip>
-          <ScheduleDialog
-            target={scheduling ? { source: 'prompt', prompt, title: structured?.title ?? p.title } : null}
-            onClose={() => setScheduling(false)}
-          />
-        </div>
-      ) : (
-        <p
-          role="status"
-          className="inline-flex items-center gap-1.5 text-body-sm font-medium text-foreground"
-        >
-          <Check aria-hidden className="size-4 text-muted-foreground" />
-          {p.asided}
-        </p>
-      )}
+              <Button
+                variant="primary"
+                size="sm"
+                data-wb-plan-run
+                disabled={!!off}
+                onClick={() => fillComposer(prompt, 'execute')}
+              >
+                <Play aria-hidden className="size-3.5" strokeWidth={2} />
+                {p.run}
+              </Button>
+            </Tip>
+            {savedKey ? (
+              <button
+                type="button"
+                data-wb-plan-saved={savedKey}
+                onClick={() => openCard(savedKey)}
+                className={cn(
+                  'inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-caption font-medium text-success-soft-foreground hover:bg-accent max-md:min-h-11',
+                  focusRing,
+                )}
+              >
+                <CheckCircle2 aria-hidden className="size-3.5" strokeWidth={1.75} />
+                {fmt(p.saved, { key: savedKey })}
+                <ArrowUpRight aria-hidden className="size-3 rtl:-scale-x-100" strokeWidth={1.75} />
+              </button>
+            ) : (
+              <Tip k="plan:save">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  data-wb-plan-save
+                  disabled={saving}
+                  onClick={() => void saveToPlanning()}
+                >
+                  {saving ? (
+                    <Loader2 aria-hidden className="size-3.5 motion-safe:animate-spin" strokeWidth={1.75} />
+                  ) : (
+                    <Save aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  )}
+                  {p.save}
+                </Button>
+              </Tip>
+            )}
+            <Tip k="queue:schedule">
+              <Button variant="ghost" size="sm" data-wb-plan-schedule onClick={() => setScheduling(true)}>
+                <CalendarClock aria-hidden className="size-3.5" strokeWidth={1.75} />
+                {q.schedule}
+              </Button>
+            </Tip>
+            <span className="flex-1" />
+            <Tip k="plan:aside">
+              <Button variant="ghost" size="sm" data-wb-plan-aside onClick={() => setPlanAside(item.id)}>
+                {p.aside}
+              </Button>
+            </Tip>
+            <ScheduleDialog
+              target={scheduling ? { source: 'prompt', prompt, title: structured?.title ?? p.title } : null}
+              onClose={() => setScheduling(false)}
+            />
+          </>
+        ) : (
+          <p
+            role="status"
+            className="inline-flex items-center gap-1.5 text-caption font-medium text-foreground"
+          >
+            <Check aria-hidden className="size-3.5 text-muted-foreground" />
+            {p.asided}
+          </p>
+        )}
+      </footer>
     </section>
   );
 }
@@ -830,9 +940,34 @@ function DuplicateList({ duplicates }: { duplicates: DocDuplicate[] }) {
   );
 }
 
+/** What an option label says beyond its words: the "(Recommended)" mark shows as a badge, so the label reads without it. The answer still carries the full label. */
+const bareLabel = (label: string) => label.replace(RECOMMENDED, '').trim();
+
+/** A radio dot or a checkbox, as the question allows. */
+function PickMark({ multi, on }: { multi: boolean; on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'mt-0.5 flex size-4 shrink-0 items-center justify-center border transition-colors duration-120',
+        multi ? 'rounded-sm' : 'rounded-full',
+        on ? 'border-primary bg-primary text-primary-foreground' : 'border-input bg-background',
+      )}
+    >
+      {on &&
+        (multi ? (
+          <Check className="size-3" strokeWidth={3} />
+        ) : (
+          <span className="size-1.5 rounded-full bg-current" />
+        ))}
+    </span>
+  );
+}
+
 /**
- * `question.asked`: every question in the call, each option's label and description both visible, a checkbox for a multi-select, and the expiry line approvals have. It pauses a running turn, so Stop stays. Answered through
- * the approval route, keyed by the question's text, with a multi-select's labels joined by commas. A single single-select question answers on the press. Closed, it folds to its answer or to what ended it.
+ * `question.asked`. While it waits it docks above the message box (`QuestionDock`), one question at a time: several questions are tabs, each tab marked once answered, with Back and Next, and the
+ * send button counts what is answered. Each question takes its options, several where Claude allows more than one, and an answer of the owner's own words under "Other". A lone single-choice
+ * question answers on the press. Answered through the approval route, keyed by the question's text, with several picks joined by commas. Closed, it folds to its answers, inline in the thread.
  */
 export function QuestionCard({
   chatId,
@@ -846,21 +981,26 @@ export function QuestionCard({
   const wb = useWb();
   const q = t.pro.question;
   const { question, stoppedBy } = item;
-  const Icon = MessageSquareWarning;
-  const tone = 'text-warning-strong';
   const off = offOf(wb.engine);
   const device = wb.deviceName;
   const [picked, setPicked] = useState<Record<string, string[]>>({});
-  const first = question.questions[0];
+  /** The owner's own answer per question. A key that is present means the box is open. */
+  const [own, setOwn] = useState<Record<string, string>>({});
+  const [tab, setTab] = useState(0);
+  const all = question.questions;
+  const first = all[0];
   if (!first) return null;
   const title = first.header ?? first.text;
+  const joiner = locale === 'ar' ? '، ' : ', ';
+
   if (question.status !== 'pending') {
-    const said = Object.values(question.answers ?? {});
+    const said = question.answers ?? {};
+    const answered = question.status === 'answered' || question.status === 'auto_answered';
     const closedText =
       question.status === 'answered'
-        ? fmt(t.pro.choice.chosen, { what: said.join('، ') })
+        ? fmt(t.pro.choice.chosen, { what: Object.values(said).join(joiner) })
         : question.status === 'auto_answered'
-          ? fmt(q.autoAnswered, { what: said.join('، ') })
+          ? fmt(q.autoAnswered, { what: Object.values(said).join(joiner) })
           : question.status === 'declined'
             ? q.declined
             : question.status === 'timed_out'
@@ -871,155 +1011,293 @@ export function QuestionCard({
         aria-label={title}
         data-wb-question-answered
         data-wb-question-status={question.status}
-        className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2"
+        className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-card px-3 py-2"
       >
-        <p className="flex items-start gap-2 text-body-sm text-muted-foreground">
-          <Icon
+        <p className="flex items-start gap-2 text-caption text-muted-foreground">
+          <MessageSquareWarning
             aria-hidden
             className={cn(
-              'mt-0.5 size-4 shrink-0',
-              question.status === 'answered' || question.status === 'auto_answered'
-                ? tone
-                : 'text-muted-foreground',
+              'mt-px size-3.5 shrink-0',
+              answered ? 'text-warning-strong' : 'text-muted-foreground',
             )}
             strokeWidth={1.75}
           />
-          <span className="min-w-0">{title}</span>
+          <span className="min-w-0">{all.length > 1 ? fmt(q.several, { n: all.length }) : title}</span>
         </p>
-        <p role="status" className="inline-flex items-start gap-1.5 text-body-sm font-medium text-foreground">
-          {question.status === 'answered' || question.status === 'auto_answered' ? (
-            <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <Ban aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className="min-w-0">{closedText}</span>
-        </p>
+        {answered && all.length > 1 ? (
+          <dl role="status" className="flex min-w-0 flex-col gap-1 text-body-sm">
+            {all.map((x, i) => (
+              <div key={x.text} className="flex min-w-0 items-start gap-1.5">
+                <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-success-soft-foreground" />
+                <dt className="shrink-0 text-muted-foreground">{x.header ?? fmt(q.nth, { n: i + 1 })}:</dt>
+                <dd className="min-w-0 font-medium text-foreground">
+                  <Bidi>{said[x.text] || q.noAnswer}</Bidi>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <p
+            role="status"
+            className="inline-flex items-start gap-1.5 text-body-sm font-medium text-foreground"
+          >
+            {answered ? (
+              <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-success-soft-foreground" />
+            ) : (
+              <Ban aria-hidden className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <span className="min-w-0">{closedText}</span>
+          </p>
+        )}
       </section>
     );
   }
-  const single = question.questions.length === 1 && !first.multiSelect;
-  const key = (x: (typeof question.questions)[number]) => x.text;
-  const complete = question.questions.every((x) => (picked[key(x)]?.length ?? 0) > 0);
-  const answersOf = () =>
-    Object.fromEntries(
-      question.questions.map((x) => [key(x), (picked[key(x)] ?? []).join(locale === 'ar' ? '، ' : ', ')]),
+
+  const total = all.length;
+  const at = Math.min(tab, total - 1);
+  const current = all[at] ?? first;
+  const key = (x: (typeof all)[number]) => x.text;
+  const answerOf = (x: (typeof all)[number]) => {
+    const typed = (own[key(x)] ?? '').trim();
+    return [...(picked[key(x)] ?? []), ...(typed ? [typed] : [])];
+  };
+  const isDone = (x: (typeof all)[number]) => answerOf(x).length > 0;
+  const doneCount = all.filter(isDone).length;
+  const complete = doneCount === total;
+  /** A lone single-choice question: a press on an option is the answer. */
+  const quick = total === 1 && !first.multiSelect;
+  const submit = () => {
+    if (!complete || off) return;
+    answerQuestion(
+      chatId,
+      question.id,
+      Object.fromEntries(all.map((x) => [key(x), answerOf(x).join(joiner)])),
     );
+  };
+  const next = () => setTab((n) => Math.min(n + 1, total - 1));
+  const pick = (label: string) => {
+    if (quick) return answerQuestion(chatId, question.id, { [key(current)]: label });
+    const k = key(current);
+    if (current.multiSelect) {
+      setPicked((now) => {
+        const had = now[k] ?? [];
+        return { ...now, [k]: had.includes(label) ? had.filter((l) => l !== label) : [...had, label] };
+      });
+      return;
+    }
+    // One choice: an option replaces the owner's own words, and the next question opens.
+    setPicked((now) => ({ ...now, [k]: [label] }));
+    setOwn(({ [k]: _dropped, ...rest }) => rest);
+    if (at < total - 1) window.setTimeout(next, 160);
+  };
+  const ownOpen = key(current) in own;
+  const ownText = own[key(current)] ?? '';
+  const toggleOwn = () => {
+    const k = key(current);
+    if (ownOpen) return setOwn(({ [k]: _dropped, ...rest }) => rest);
+    setOwn((now) => ({ ...now, [k]: '' }));
+    if (!current.multiSelect) setPicked(({ [k]: _dropped, ...rest }) => rest);
+  };
+  const sendOwn = () => {
+    const typed = ownText.trim();
+    if (!typed || off) return;
+    if (quick) return answerQuestion(chatId, question.id, { [key(current)]: typed });
+    if (at < total - 1) next();
+    else submit();
+  };
+
   return (
     <section
-      aria-label={title}
+      aria-label={total > 1 ? fmt(q.several, { n: total }) : title}
       tabIndex={-1}
       data-wb-question
       data-wb-waiting
-      className="flex min-w-0 flex-col gap-2.5 rounded-lg border border-border bg-card p-3 outline-none"
+      className="flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-card p-2.5 shadow-sm outline-none"
     >
-      <header className="flex items-start gap-2">
-        <Icon aria-hidden className={cn('mt-0.5 size-5 shrink-0', tone)} strokeWidth={1.75} />
-        <h3 className="min-w-0 text-body-lg font-semibold text-foreground">
-          {question.questions.length > 1 ? fmt(q.several, { n: question.questions.length }) : title}
+      <header className="flex min-w-0 items-center gap-2">
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-warning-soft text-warning-soft-foreground">
+          <MessageSquareWarning aria-hidden className="size-3.5" strokeWidth={1.75} />
+        </span>
+        <h3 className="min-w-0 flex-1 truncate text-body-sm font-semibold text-foreground">
+          {total > 1 ? fmt(q.several, { n: total }) : (first.header ?? q.oneTitle)}
         </h3>
-      </header>
-      <div data-wb-answers className="flex min-w-0 flex-col gap-3">
-        {question.questions.map((x) => (
-          <fieldset
-            key={x.text}
-            data-wb-question-item={x.multiSelect ? 'multi' : 'single'}
-            className="flex min-w-0 flex-col gap-1.5"
-          >
-            <legend className="mb-1 text-body-sm text-foreground">
-              {question.questions.length > 1 && x.header && (
-                <span className="font-semibold">{x.header}: </span>
-              )}
-              <MarkInline text={x.text} />
-              {x.multiSelect && <span className="text-muted-foreground"> {q.pickAny}</span>}
-            </legend>
-            <div className="flex max-h-72 min-w-0 flex-col gap-1 overflow-y-auto">
-              {x.options.map((o) => {
-                const label = o.label;
-                const on = (picked[key(x)] ?? []).includes(label);
-                const recommended = RECOMMENDED.test(label);
-                const press = () => {
-                  if (single) return answerQuestion(chatId, question.id, { [key(x)]: label });
-                  setPicked((now) => {
-                    const had = now[key(x)] ?? [];
-                    return {
-                      ...now,
-                      [key(x)]: x.multiSelect
-                        ? had.includes(label)
-                          ? had.filter((l) => l !== label)
-                          : [...had, label]
-                        : [label],
-                    };
-                  });
-                };
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    role={single ? undefined : x.multiSelect ? 'checkbox' : 'radio'}
-                    aria-checked={single ? undefined : on}
-                    data-wb-option={label}
-                    data-wb-recommended={recommended || undefined}
-                    disabled={!!off}
-                    onClick={press}
-                    className={cn(
-                      'flex min-h-11 w-full min-w-0 items-start gap-2 rounded-md border border-border px-2.5 py-1.5 text-start text-body-sm transition-colors duration-120 disabled:cursor-not-allowed disabled:opacity-60 md:min-h-9',
-                      recommended && single
-                        ? 'bg-primary text-primary-foreground hover:bg-primary-hover'
-                        : 'bg-card text-foreground hover:bg-accent',
-                      on && 'bg-accent',
-                      focusRing,
-                    )}
-                  >
-                    {!single && (
-                      <span
-                        aria-hidden
-                        className={cn(
-                          'mt-0.5 flex size-4 shrink-0 items-center justify-center border border-input',
-                          x.multiSelect ? 'rounded-sm' : 'rounded-full',
-                        )}
-                      >
-                        {on && <Check className="size-3" strokeWidth={3} />}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium">
-                        <Bidi>{label}</Bidi>
-                      </span>
-                      {o.description && (
-                        <span
-                          className={cn(
-                            'block',
-                            recommended && single ? 'text-primary-foreground' : 'text-muted-foreground',
-                          )}
-                        >
-                          {o.description}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {!single && (
-          <Tip
-            content={{ what: q.sendTip }}
-            off={off ?? (complete ? null : { why: q.incomplete, fix: q.incompleteFix })}
-            vars={{ device }}
-            label={q.send}
-          >
-            <Button
-              data-wb-question-send
-              disabled={!complete || !!off}
-              onClick={() => answerQuestion(chatId, question.id, answersOf())}
-            >
-              {q.send}
-            </Button>
-          </Tip>
+        {total > 1 && (
+          <span className="shrink-0 text-caption text-muted-foreground tabular-nums">
+            {fmt(q.progress, { n: doneCount, total })}
+          </span>
         )}
+      </header>
+
+      {total > 1 && (
+        <div
+          role="tablist"
+          aria-label={q.tabs}
+          className="-mx-0.5 flex min-w-0 gap-1 overflow-x-auto px-0.5 pb-0.5 scrollbar-thin"
+        >
+          {all.map((x, i) => {
+            const selected = i === at;
+            const done = isDone(x);
+            return (
+              <button
+                key={x.text}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                data-wb-question-tab={i}
+                onClick={() => setTab(i)}
+                className={cn(
+                  'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 text-caption font-medium transition-colors duration-120 max-md:h-9',
+                  selected
+                    ? 'border-primary bg-primary/10 text-foreground'
+                    : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
+                  focusRing,
+                )}
+              >
+                <span
+                  aria-hidden
+                  className={cn(
+                    'flex size-4 shrink-0 items-center justify-center rounded-full text-caption tabular-nums',
+                    done ? 'bg-success-soft text-success-soft-foreground' : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  {done ? <Check className="size-2.5" strokeWidth={3} /> : i + 1}
+                </span>
+                <span className="max-w-36 truncate">{x.header ?? fmt(q.nth, { n: i + 1 })}</span>
+                {done && <span className="sr-only">{q.tabDone}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div role={total > 1 ? 'tabpanel' : undefined} className="flex min-w-0 flex-col gap-1.5">
+        <div className="min-w-0">
+          <p className="text-body-sm text-foreground">
+            <MarkInline text={current.text} />
+          </p>
+          <p className="text-caption text-muted-foreground">{current.multiSelect ? q.pickMany : q.pickOne}</p>
+        </div>
+        <div
+          data-wb-answers
+          data-wb-question-item={current.multiSelect ? 'multi' : 'single'}
+          role={quick ? undefined : current.multiSelect ? 'group' : 'radiogroup'}
+          aria-label={current.text}
+          className="flex max-h-[min(38dvh,17rem)] min-w-0 flex-col gap-1 overflow-y-auto"
+        >
+          {current.options.map((o) => {
+            const label = o.label;
+            const on = (picked[key(current)] ?? []).includes(label);
+            const recommended = RECOMMENDED.test(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                role={quick ? undefined : current.multiSelect ? 'checkbox' : 'radio'}
+                aria-checked={quick ? undefined : on}
+                data-wb-option={label}
+                data-wb-recommended={recommended || undefined}
+                disabled={!!off}
+                onClick={() => pick(label)}
+                className={cn(
+                  'flex min-h-11 w-full min-w-0 items-start gap-2 rounded-md border px-2.5 py-1.5 text-start transition-colors duration-120 disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0',
+                  on ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-accent',
+                  focusRing,
+                )}
+              >
+                <PickMark multi={current.multiSelect} on={on} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-body-sm font-medium text-foreground">
+                    <Bidi>{bareLabel(label)}</Bidi>
+                    {recommended && (
+                      <span className="rounded-sm bg-primary/10 px-1 text-caption font-medium text-primary">
+                        {q.recommended}
+                      </span>
+                    )}
+                  </span>
+                  {o.description && (
+                    <span className="block text-caption text-muted-foreground">{o.description}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+          <div
+            className={cn(
+              'flex min-w-0 flex-col rounded-md border transition-colors duration-120',
+              ownOpen ? 'border-primary bg-primary/5' : 'border-dashed border-border',
+            )}
+          >
+            <button
+              type="button"
+              data-wb-option-own
+              aria-expanded={ownOpen}
+              disabled={!!off}
+              onClick={toggleOwn}
+              className={cn(
+                'flex min-h-11 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-start text-body-sm text-muted-foreground hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60 md:min-h-0',
+                focusRing,
+              )}
+            >
+              <PenLine aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
+              {q.own}
+            </button>
+            {ownOpen && (
+              <div className="flex min-w-0 items-end gap-1.5 px-2 pb-2">
+                <textarea
+                  // biome-ignore lint/a11y/noAutofocus: opened by the owner's own press, to type at once
+                  autoFocus
+                  rows={2}
+                  dir="auto"
+                  value={ownText}
+                  aria-label={q.own}
+                  placeholder={q.ownPlaceholder}
+                  data-wb-own-input
+                  onChange={(e) => setOwn((now) => ({ ...now, [key(current)]: e.target.value }))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      sendOwn();
+                    }
+                  }}
+                  className="min-h-9 w-full min-w-0 resize-none rounded-md border border-input bg-background px-2 py-1.5 text-body-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                />
+                {quick && (
+                  <Button size="sm" disabled={!ownText.trim() || !!off} onClick={sendOwn}>
+                    {q.sendOne}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <footer className="flex min-w-0 flex-wrap items-center gap-1.5 border-t border-border pt-2">
+        {total > 1 && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-wb-question-back
+              disabled={at === 0}
+              onClick={() => setTab(at - 1)}
+            >
+              <ChevronRight aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
+              {q.back}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-wb-question-next
+              disabled={at === total - 1}
+              onClick={next}
+            >
+              {q.next}
+              <ChevronLeft aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
+            </Button>
+          </>
+        )}
+        <span className="flex-1" />
         <Tip content={{ what: q.declineTip }} off={off} vars={{ device }} label={q.decline}>
           <Button
             variant="ghost"
@@ -1031,13 +1309,39 @@ export function QuestionCard({
             {q.decline}
           </Button>
         </Tip>
-      </div>
-      <p className="text-body-sm text-muted-foreground">
+        {!quick && (
+          <Tip
+            content={{ what: q.sendTip }}
+            off={off ?? (complete ? null : { why: q.incomplete, fix: q.incompleteFix })}
+            vars={{ device }}
+            label={q.send}
+          >
+            <Button size="sm" data-wb-question-send disabled={!complete || !!off} onClick={submit}>
+              {total > 1 ? fmt(q.sendCount, { n: doneCount, total }) : q.send}
+            </Button>
+          </Tip>
+        )}
+      </footer>
+      <p className="text-caption text-muted-foreground">
         {hasNoTimeLimit(question.expiresAt)
           ? q.noLimit
           : fmt(q.expires, { time: clockOf(question.expiresAt, locale) })}
       </p>
     </section>
+  );
+}
+
+/** The question that waits on the owner, docked above the message box so it never scrolls away. Once answered it shows inline in the thread. */
+export function QuestionDock({ chat }: { chat: { id: string; items: readonly Item[] } }) {
+  const waiting = chat.items.find(
+    (it): it is Extract<Item, { kind: 'question' }> =>
+      it.kind === 'question' && it.question.status === 'pending',
+  );
+  if (!waiting) return null;
+  return (
+    <div data-wb-question-dock className="max-h-[min(70dvh,34rem)] min-w-0 overflow-y-auto">
+      <QuestionCard key={waiting.id} chatId={chat.id} item={waiting} />
+    </div>
   );
 }
 
