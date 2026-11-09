@@ -88,7 +88,7 @@ export class CountersService {
       onboardingLeft,
       invitesPending: manager
         ? await this.txHost.tx.invite.count({
-            where: { workspaceId, acceptedAt: null, expiresAt: { gt: this.clock.now() } },
+            where: { workspaceId, acceptedAt: null, revokedAt: null, expiresAt: { gt: this.clock.now() } },
           })
         : 0,
       sourceProblems: manager

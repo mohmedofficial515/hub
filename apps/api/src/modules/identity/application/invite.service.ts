@@ -1,11 +1,21 @@
 /**
  * @file Invites (docs/04 §3.2, §3.5): an owner or pm invites by email with the roles set in advance.
  * @description The link holds a 32 byte token, stored hashed and shown once. Accepting creates the user when
- * needed, joins the project and tells its owners and pms. Only an owner may hand out the owner role.
+ * needed, joins the project and tells its owners and pms. Only an owner may hand out the owner role. A revoked
+ * invite keeps its row, so every list shows the same status (docs/16 D68). The email says how to reach Hub
+ * when it is published on a tailnet (D69).
  */
 import { randomInt } from 'node:crypto';
 
-import { AVATAR_COLORS, type Me, type MemberActor, type Principal, type Role, ROLES } from '@hub/contracts';
+import {
+  AVATAR_COLORS,
+  type MailMode,
+  type Me,
+  type MemberActor,
+  type Principal,
+  type Role,
+  ROLES,
+} from '@hub/contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { TransactionHost } from '@nestjs-cls/transactional';
 
@@ -20,6 +30,9 @@ import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
 
 import { newOpaqueToken, sha256 } from '../domain/credentials';
+import { inviteMail, tailnetOf } from '../domain/invite-mail';
+import { inviteStatusOf } from '../domain/invite-status';
+import { mailModeOf } from '../domain/mail-config';
 import { isWeakPassword } from '../domain/password-policy';
 import { MeService } from './me.service';
 import { PasswordHasher } from './password-hasher';
@@ -74,6 +87,7 @@ export class InviteService {
       select: { id: true, displayName: true },
     });
     const names = new Map(creators.map((creator) => [creator.id, creator.displayName]));
+    const now = this.clock.now();
     return rows.map((row) => ({
       id: row.id,
       email: row.email,
@@ -81,6 +95,8 @@ export class InviteService {
       createdBy: names.get(row.createdById) ?? '',
       expiresAt: row.expiresAt.toISOString(),
       acceptedAt: row.acceptedAt?.toISOString() ?? null,
+      revokedAt: row.revokedAt?.toISOString() ?? null,
+      status: inviteStatusOf(row, now),
     }));
   }
 
@@ -98,6 +114,7 @@ export class InviteService {
           workspaceId: actor.workspaceId,
           email,
           acceptedAt: null,
+          revokedAt: null,
           expiresAt: { gt: now },
         },
         select: { id: true },
@@ -127,32 +144,36 @@ export class InviteService {
       return created;
     });
     const url = this.inviteUrl(workspace.defaultLocale, token);
-    this.mailInvite(email, workspace.name, workspace.defaultLocale, url);
+    const mail = await this.mailInvite(actor, email, workspace, url, invite.expiresAt);
     return {
       id: invite.id,
       email,
       roles: invite.roles,
       expiresAt: invite.expiresAt.toISOString(),
       url,
+      mail,
     };
   }
 
-  /** A new token replaces the old one, which stops working. */
+  /**
+   * A new link: a new token replaces the old one, which stops working, and the seven days start again. An expired invite may be renewed;
+   * an accepted or revoked one may not.
+   */
   @PublishesProjectChange('invites')
-  async resend(actor: MemberActor, id: string): Promise<{ url: string }> {
+  async resend(actor: MemberActor, id: string): Promise<{ url: string; expiresAt: string; mail: MailMode }> {
     const workspace = await this.openWorkspace(actor.workspaceId);
     const invite = await this.txHost.tx.invite.findFirst({ where: { id, workspaceId: actor.workspaceId } });
     if (!invite) throw new AppException('hub.common.not_found');
     if (invite.acceptedAt) throw new AppException('hub.identity.invite_accepted');
+    if (invite.revokedAt) throw new AppException('hub.identity.invite_revoked');
     const token = newOpaqueToken();
+    const expiresAt = new Date(this.clock.now().getTime() + INVITE_TTL_MS);
     await this.txHost.withTransaction(async () => {
-      await this.txHost.tx.invite.update({
-        where: { id, workspaceId: actor.workspaceId },
-        data: {
-          tokenHash: sha256(token),
-          expiresAt: new Date(this.clock.now().getTime() + INVITE_TTL_MS),
-        },
+      const renewed = await this.txHost.tx.invite.updateMany({
+        where: { id, workspaceId: actor.workspaceId, acceptedAt: null, revokedAt: null },
+        data: { tokenHash: sha256(token), expiresAt },
       });
+      if (renewed.count !== 1) throw new AppException('hub.identity.invite_accepted');
       await this.audit.record(actor, {
         action: 'identity.invite.resend',
         targetType: 'invite',
@@ -161,18 +182,20 @@ export class InviteService {
       });
     });
     const url = this.inviteUrl(workspace.defaultLocale, token);
-    this.mailInvite(invite.email, workspace.name, workspace.defaultLocale, url);
-    return { url };
+    const mail = await this.mailInvite(actor, invite.email, workspace, url, expiresAt);
+    return { url, expiresAt: expiresAt.toISOString(), mail };
   }
 
+  /** The link stops working at once. The row stays, marked revoked, since Hub never deletes (docs/16 D68). */
   @PublishesProjectChange('invites')
   async revoke(actor: MemberActor, id: string): Promise<void> {
     await this.openWorkspace(actor.workspaceId);
     await this.txHost.withTransaction(async () => {
-      const removed = await this.txHost.tx.invite.deleteMany({
-        where: { id, workspaceId: actor.workspaceId, acceptedAt: null },
+      const revoked = await this.txHost.tx.invite.updateMany({
+        where: { id, workspaceId: actor.workspaceId, acceptedAt: null, revokedAt: null },
+        data: { revokedAt: this.clock.now(), revokedById: actor.userId },
       });
-      if (removed.count === 0) throw new AppException('hub.common.not_found');
+      if (revoked.count === 0) throw new AppException('hub.common.not_found');
       await this.audit.record(actor, {
         action: 'identity.invite.revoke',
         targetType: 'invite',
@@ -212,7 +235,10 @@ export class InviteService {
     const invite = await this.findUsable(token);
     const workspace = await this.openWorkspace(invite.workspaceId);
     const existing = await this.txHost.tx.user.findUnique({ where: { email: invite.email } });
-    if (principal && existing?.id !== principal.userId) throw new AppException('hub.common.forbidden');
+    // Another account's session in this browser, such as the owner trying the link: say so plainly, and create nothing.
+    if (principal && existing?.id !== principal.userId) {
+      throw new AppException('hub.identity.invite_other_account');
+    }
     if (!principal && existing) throw new AppException('hub.identity.email_taken');
     const newAccount = principal ? null : await this.newAccountData(invite.email, input);
 
@@ -221,7 +247,7 @@ export class InviteService {
         ? { id: principal.userId, displayName: existing?.displayName ?? '' }
         : await this.txHost.tx.user.create({ data: newAccount as NonNullable<typeof newAccount> });
       const claimed = await this.txHost.tx.invite.updateMany({
-        where: { id: invite.id, workspaceId: invite.workspaceId, acceptedAt: null },
+        where: { id: invite.id, workspaceId: invite.workspaceId, acceptedAt: null, revokedAt: null },
         data: { acceptedAt: this.clock.now(), acceptedUserId: user.id },
       });
       if (claimed.count !== 1) throw new AppException('hub.identity.invite_accepted');
@@ -293,8 +319,10 @@ export class InviteService {
       async () => await this.txHost.tx.invite.findUnique({ where: { tokenHash: sha256(token) } }),
     );
     if (!invite) throw new AppException('hub.identity.invite_invalid');
-    if (invite.acceptedAt) throw new AppException('hub.identity.invite_accepted');
-    if (invite.expiresAt <= this.clock.now()) throw new AppException('hub.identity.invite_expired');
+    const status = inviteStatusOf(invite, this.clock.now());
+    if (status === 'accepted') throw new AppException('hub.identity.invite_accepted');
+    if (status === 'revoked') throw new AppException('hub.identity.invite_revoked');
+    if (status === 'expired') throw new AppException('hub.identity.invite_expired');
     return invite;
   }
 
@@ -331,20 +359,30 @@ export class InviteService {
 
   /**
    * Best effort, and not waited for: the owner already has the link, so a slow or absent mail server must not hold the answer. A mail server that refuses
-   * or times out is only a warning.
+   * or times out is only a warning. Answers where the mail went, so the owner knows whether to share the link themselves.
    */
-  private mailInvite(to: string, project: string, locale: string, url: string): void {
-    const arabic = locale === 'ar';
-    void this.mailer
-      .send({
-        to,
-        subject: arabic ? `دعوة للانضمام إلى ${project} في Hub` : `Join ${project} on Hub`,
-        text: arabic
-          ? `تمت دعوتك إلى ${project}. افتح هذا الرابط خلال 7 أيام:\n${url}`
-          : `You are invited to ${project}. Open this link within 7 days:\n${url}`,
-      })
-      .catch((error: unknown) => {
-        this.logger.warn(`Invite mail failed: ${error instanceof Error ? error.name : 'unknown'}`);
-      });
+  private async mailInvite(
+    actor: MemberActor,
+    to: string,
+    workspace: { name: string; defaultLocale: string },
+    url: string,
+    expiresAt: Date,
+  ): Promise<MailMode> {
+    const inviter = await this.txHost.tx.user.findUnique({
+      where: { id: actor.userId },
+      select: { displayName: true },
+    });
+    const message = inviteMail({
+      locale: workspace.defaultLocale,
+      project: workspace.name,
+      inviter: inviter?.displayName ?? '',
+      url,
+      expiresAt,
+      tailnet: tailnetOf(this.config.HUB_PUBLIC_URL),
+    });
+    void this.mailer.send({ to, ...message }).catch((error: unknown) => {
+      this.logger.warn(`Invite mail failed: ${error instanceof Error ? error.name : 'unknown'}`);
+    });
+    return mailModeOf(this.config);
   }
 }

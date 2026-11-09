@@ -163,7 +163,8 @@ describe('invites and seed', () => {
     const someoneElse = await anAccount(db());
     const wrong = browser();
     await wrong.signIn(someoneElse.email);
-    await wrong.post(`/auth/invites/${token}/accept`, {}).expect(403);
+    const other = await wrong.post(`/auth/invites/${token}/accept`, {}).expect(409);
+    expect(other.body.error.code).toBe('hub.identity.invite_other_account');
 
     const right = browser();
     await right.signIn(existing.email);
@@ -190,7 +191,7 @@ describe('invites and seed', () => {
     expect(row.roles).toEqual(['backend']);
   });
 
-  it('resend replaces the link; revoke removes it', async () => {
+  it('resend replaces the link; revoke stops it and keeps the row', async () => {
     const { workspace, user } = await aProject();
     const path = `/workspaces/${workspace.slug}/invites`;
     const created = await user.post(path, { email: 'new@example.test', roles: ['qa'] }).expect(201);
@@ -204,9 +205,11 @@ describe('invites and seed', () => {
     expect(mailer.sent).toHaveLength(2);
 
     await user.delete(`${path}/${id}`).expect(204);
-    await browser().get(`/auth/invites/${fresh}`).expect(404);
+    const revoked = await browser().get(`/auth/invites/${fresh}`).expect(410);
+    expect(revoked.body.error.code).toBe('hub.identity.invite_revoked');
     await user.delete(`${path}/${id}`).expect(404);
-    await user.post(`${path}/${id}/resend`).expect(404);
+    await user.post(`${path}/${id}/resend`).expect(410);
+    expect(await db().invite.count({ where: { id } })).toBe(1);
   });
 
   describe('owner seed', () => {

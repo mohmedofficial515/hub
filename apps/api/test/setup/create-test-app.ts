@@ -52,6 +52,8 @@ const open: INestApplication[] = [];
 export interface TestAppOptions {
   /** Real cookies, tokens and TOTP enforcement, for tests of sign-in itself. */
   readonly realAuth?: boolean;
+  /** The real SMTP mailer, for tests of mail itself. The test points SMTP_* at `test/helpers/smtp-server.ts`, never a real server. */
+  readonly realMail?: boolean;
 }
 
 /** Keeps the messages a test sent, so it can follow a link out of them. */
@@ -68,9 +70,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const mailer = new RecordingMailer();
   let builder = Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(CLOCK)
-    .useValue(clock)
-    .overrideProvider(Mailer)
-    .useValue(mailer);
+    .useValue(clock);
+  if (!options.realMail) builder = builder.overrideProvider(Mailer).useValue(mailer);
   if (!options.realAuth) {
     builder = builder
       .overrideProvider(PRINCIPAL_RESOLVER)

@@ -5,6 +5,7 @@
  */
 import { z } from 'zod';
 
+import { mailModeSchema } from './mail';
 import { roleSchema } from './roles';
 
 export const LOCALES = ['ar', 'en'] as const;
@@ -140,6 +141,9 @@ export const inviteAcceptedSchema = z.object({
   user: meSchema,
   workspace: z.object({ slug: z.string() }),
 });
+/** One rule for every list (docs/16 D68): accepted and revoked are kept, and pending turns into expired with the clock. */
+export const INVITE_STATUSES = ['pending', 'accepted', 'expired', 'revoked'] as const;
+export type InviteStatus = (typeof INVITE_STATUSES)[number];
 export const inviteRowSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -147,6 +151,8 @@ export const inviteRowSchema = z.object({
   createdBy: z.string(),
   expiresAt: z.string(),
   acceptedAt: z.string().nullable(),
+  revokedAt: z.string().nullable(),
+  status: z.enum(INVITE_STATUSES),
 });
 export const createInviteSchema = z.object({
   email: z.email(),
@@ -159,6 +165,11 @@ export const inviteCreatedSchema = z.object({
   expiresAt: z.string(),
   /** The invite link, shown this one time. */
   url: z.string(),
+  /** Where the invite email went. It is sent in the background, so this is the server, not the outcome. */
+  mail: mailModeSchema,
 });
+/** A new link for an invite (resend): the old token stops working. */
+export const inviteLinkSchema = z.object({ url: z.string(), expiresAt: z.string(), mail: mailModeSchema });
+
 /** A link shown one time: a resent invite, or a reset link an owner hands to a member. */
 export const oneTimeUrlSchema = z.object({ url: z.string() });

@@ -1004,25 +1004,26 @@ const TOOL_TABLE = {
     readOnly: true,
   },
   invite_member: {
-    description: 'Invite someone by email with roles. The link goes by mail and is not shown here.',
+    description:
+      'Invite someone by email with roles. The link goes by mail when Hub has a real mail server, and is never shown here; the answer says where the mail went.',
     input: z.object({ email: z.email(), roles: z.array(roleSchema).min(1).max(7) }),
     actions: ['member.invite'],
     routes: [`POST ${W}/invites`],
   },
   list_invites: {
-    description: 'The invites of this project.',
+    description: 'The invites of this project, each pending, accepted, expired or revoked.',
     input: noInput,
     actions: ['member.invite'],
     readOnly: true,
   },
   resend_invite: {
-    description: 'Send a new invite link by mail. The old one stops working.',
+    description: 'Issue a new invite link for seven more days and mail it. The old one stops working.',
     input: z.object({ inviteId: z.uuid() }),
     actions: ['member.invite'],
     routes: [`POST ${W}/invites/:id/resend`],
   },
   revoke_invite: {
-    description: 'Revoke an invite.',
+    description: 'Revoke an invite: its link stops working, and the list keeps it as revoked.',
     input: z.object({ inviteId: z.uuid() }),
     actions: ['member.invite'],
     routes: [`DELETE ${W}/invites/:id`],

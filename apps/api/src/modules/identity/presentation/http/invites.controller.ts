@@ -25,9 +25,9 @@ import {
   CreateInviteDto,
   InviteAcceptedDto,
   InviteCreatedDto,
+  InviteLinkDto,
   InvitePreviewDto,
   InviteRowDto,
-  OneTimeUrlDto,
 } from './identity.dto';
 
 @ApiTags('auth')
@@ -93,16 +93,16 @@ export class WorkspaceInvitesController {
   @Post(':id/resend')
   @HttpCode(200)
   @Permissions('member.invite')
-  @ApiOperation({ summary: 'Issue a new link; the old one stops working' })
-  @ApiOkResponse({ type: OneTimeUrlDto })
-  resend(@Actor() actor: MemberActor, @Param('id') id: string): Promise<OneTimeUrlDto> {
+  @ApiOperation({ summary: 'Issue a new link for seven more days; the old one stops working' })
+  @ApiOkResponse({ type: InviteLinkDto })
+  resend(@Actor() actor: MemberActor, @Param('id') id: string): Promise<InviteLinkDto> {
     return this.invites.resend(actor, id);
   }
 
   @Delete(':id')
   @HttpCode(204)
   @Permissions('member.invite')
-  @ApiOperation({ summary: 'Revoke an invite' })
+  @ApiOperation({ summary: 'Revoke an invite. The link stops working; the list keeps it, marked revoked' })
   @ApiNoContentResponse()
   async revoke(@Actor() actor: MemberActor, @Param('id') id: string): Promise<void> {
     await this.invites.revoke(actor, id);

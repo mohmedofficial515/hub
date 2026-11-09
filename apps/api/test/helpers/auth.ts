@@ -66,7 +66,11 @@ interface Jar {
 export class Browser {
   private readonly cookies = new Map<string, Jar>();
 
-  constructor(private readonly app: INestApplication) {}
+  /** `headers` go on every request, such as what `tailscale serve` and the web's proxy add (`x-forwarded-*`). */
+  constructor(
+    private readonly app: INestApplication,
+    private readonly headers: Readonly<Record<string, string>> = {},
+  ) {}
 
   get(path: string): Test {
     return this.send(request(this.server()).get(`/api/v1${path}`), path);
@@ -122,6 +126,7 @@ export class Browser {
       .map(([name, jar]) => `${name}=${jar.value}`)
       .join('; ');
     if (header) void test.set('Cookie', header);
+    for (const [name, value] of Object.entries(this.headers)) void test.set(name, value);
     void test.set('X-Requested-With', 'hub');
     return test.on('response', (response: Response) => this.absorb(response));
   }

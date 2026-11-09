@@ -9,6 +9,7 @@ import {
   createInviteSchema,
   inviteAcceptedSchema,
   inviteCreatedSchema,
+  inviteLinkSchema,
   invitePreviewSchema,
   inviteRowSchema,
   meSchema,
@@ -55,4 +56,5 @@ export class InvitePreviewDto extends createZodDto(invitePreviewSchema) {}
 export class InviteAcceptedDto extends createZodDto(inviteAcceptedSchema) {}
 export class InviteRowDto extends createZodDto(inviteRowSchema) {}
 export class InviteCreatedDto extends createZodDto(inviteCreatedSchema) {}
+export class InviteLinkDto extends createZodDto(inviteLinkSchema) {}
 export class OneTimeUrlDto extends createZodDto(oneTimeUrlSchema) {}

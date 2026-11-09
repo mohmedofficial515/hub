@@ -31,6 +31,8 @@ export const ERROR_CATALOGUE = {
   'hub.identity.invite_invalid': 404,
   'hub.identity.invite_expired': 410,
   'hub.identity.invite_accepted': 409,
+  'hub.identity.invite_revoked': 410,
+  'hub.identity.invite_other_account': 409,
   'hub.identity.email_taken': 409,
   'hub.identity.password_weak': 400,
   'hub.identity.reset_invalid': 404,

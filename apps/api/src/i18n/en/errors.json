@@ -47,6 +47,8 @@
       "invite_invalid": "This invite is not valid.",
       "invite_expired": "This invite has expired.",
       "invite_accepted": "This invite was already accepted.",
+      "invite_revoked": "This invite was revoked. Ask the project owner for a new one.",
+      "invite_other_account": "You are signed in as someone else. Sign out, then open the invite link again to create the invited account.",
       "email_taken": "This email is already in use.",
       "password_weak": "Choose a stronger password of at least 12 characters.",
       "reset_invalid": "This reset link is not valid."

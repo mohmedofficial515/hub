@@ -32,6 +32,8 @@ model Invite {
   expiresAt     DateTime  @map("expires_at") @db.Timestamptz(3)   // 7 days
   acceptedAt    DateTime? @map("accepted_at") @db.Timestamptz(3)
   acceptedUserId String?  @map("accepted_user_id") @db.Uuid
+  revokedAt     DateTime? @map("revoked_at") @db.Timestamptz(3)     // the row stays, so the list can say revoked (docs/16 D68)
+  revokedById   String?   @map("revoked_by_id") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   @@index([workspaceId, email])
   @@map("invites")

@@ -1,15 +1,23 @@
 /**
  * @file Handlers of the tools for orientation, sessions, projects, members, settings, sources, audit, inbox, onboarding.
  * @description They call the same services as the REST routes. Invite links stay out of the answers: the link goes by
- * mail, and a one-time credential has no business in a chat transcript (docs/15 §2).
+ * mail or from Members in Hub, and a one-time credential has no business in a chat transcript (docs/15 §2). Each answer
+ * says where the mail went (docs/16 D68), so nobody believes a friend was emailed when only the test inbox was.
  */
-import { settingsCatalogue } from '@hub/contracts';
+import { type MailMode, settingsCatalogue } from '@hub/contracts';
 
 import { QUEUES } from '@/infra/queue/queue.service';
 import { isoWeekOf, localDate } from '@/modules/digests';
 import { AppException } from '@/shared/errors';
 
 import { cardRef, cardTable, moreLine, plain } from '../render';
+
+const MAIL_SAID: Record<MailMode, string> = {
+  real: 'The link went by email.',
+  local:
+    'The email went to the local test inbox (Mailpit) only, so it reaches nobody: the owner shares the link from Members › Waiting to join › New link.',
+  off: 'Hub has no mail server, so no email went: the owner shares the link from Members › Waiting to join › New link.',
+};
 import type { ToolContext, ToolHandlers } from '../tool-context';
 
 const DAY_MS = 86_400_000;
@@ -281,18 +289,18 @@ export const workspaceToolHandlers = {
       input.email,
       input.roles,
     );
-    return `Invited ${invite.email} as ${invite.roles.join(', ')}. The link went by mail. Invite id ${invite.id}.`;
+    return `Invited ${invite.email} as ${invite.roles.join(', ')}. ${MAIL_SAID[invite.mail]} Invite id ${invite.id}.`;
   },
   async list_invites(context) {
     const invites = await context.deps.invites.list(await context.allowed('member.invite'));
     if (invites.length === 0) return 'No invites.';
     return invites
-      .map((invite) => `- ${invite.email} · ${invite.roles.join(', ')} · id ${invite.id}`)
+      .map((invite) => `- ${invite.email} · ${invite.roles.join(', ')} · ${invite.status} · id ${invite.id}`)
       .join('\n');
   },
   async resend_invite(context, input) {
-    await context.deps.invites.resend(await context.allowed('member.invite'), input.inviteId);
-    return `A new link went by mail for invite ${input.inviteId}. The old one stopped working.`;
+    const link = await context.deps.invites.resend(await context.allowed('member.invite'), input.inviteId);
+    return `A new link for invite ${input.inviteId}, valid for seven days. The old one stopped working. ${MAIL_SAID[link.mail]}`;
   },
   async revoke_invite(context, input) {
     await context.deps.invites.revoke(await context.allowed('member.invite'), input.inviteId);
