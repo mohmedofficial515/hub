@@ -5,7 +5,14 @@
  * @description Project settings and details, sources, personal tokens and the audit log. Everything but tokens sits under `qk.admin`
  * or `qk.workspace`, which `project.updated` on the stream rereads, so a change from MCP or another tab appears without a reload.
  */
-import type { Project, SourceDto, SourceKind, SystemData } from '@hub/contracts';
+import type {
+  MailStatusDto,
+  MailTestResultDto,
+  Project,
+  SourceDto,
+  SourceKind,
+  SystemData,
+} from '@hub/contracts';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
@@ -291,6 +298,22 @@ export function useSystem() {
 export interface HealthReady {
   status: 'ok';
   checks: Record<string, 'ok' | 'failed' | 'skipped'>;
+}
+
+/** Settings › System › Mail (docs/16 D68): the owner's alone, so nobody else asks. */
+export function useMailStatus(enabled: boolean) {
+  const { ws } = useRoute();
+  return useQuery({
+    queryKey: qk.admin(ws, 'mail'),
+    enabled: !!ws && enabled,
+    queryFn: () => get<MailStatusDto>(`workspaces/${ws}/mail`),
+  });
+}
+
+/** A test email to the owner's own address. A failure is an answer with a reason, not an error. */
+export function useSendTestMail() {
+  const { ws } = useRoute();
+  return useMutation({ mutationFn: () => post<MailTestResultDto>(`workspaces/${ws}/mail/test`) });
 }
 
 export function useHealth() {

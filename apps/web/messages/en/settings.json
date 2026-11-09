@@ -477,6 +477,33 @@
     "labAddress": "Address {url}.",
     "labDown": "Not running"
   },
+  "mail": {
+    "title": "Mail",
+    "intro": "Where Hub sends invite and reset links. Hub reads it from {envFile} when it starts, and never stores or shows the password.",
+    "mode": {
+      "real": "Real email",
+      "local": "Test inbox only",
+      "off": "Not set up"
+    },
+    "real": "Mail goes out through {host}, port {port}, from {from}.",
+    "local": "Mail goes to the local test inbox (Mailpit) at {host}, port {port}. Nobody else receives it, so share invite links yourself.",
+    "off": "Hub sends no email. Copy or share invite links yourself.",
+    "login": "It signs in with the app password in {envFile}.",
+    "howTo": "To send real email through Gmail, create an app password, put five lines in {envFile} and restart Hub. The steps are in docs/13 §16.",
+    "test": "Send test email",
+    "testHint": "A short message to your own address, {email}.",
+    "result": {
+      "sent": "Sent to {to}. Check that inbox, and its spam folder.",
+      "sentLocal": "Sent to the local test inbox (Mailpit), not to {to}. Open Mailpit on this machine to see it.",
+      "not_configured": "Mail is not set up, so nothing was sent.",
+      "auth": "{host} refused the login{code}. Check {SMTP_USER} and the app password, 16 letters from your Google account, and that 2-Step Verification is on.",
+      "connection": "Hub could not reach {host} on port {port}. Check {SMTP_HOST}, {SMTP_PORT} and this machine’s internet connection.",
+      "tls": "The secure connection to {host} failed. Port 465 needs {secureOn}; port 587 needs {secureOff}.",
+      "rejected": "{host} refused the message{code}. Check that {MAIL_FROM} is the same Gmail address as {SMTP_USER}.",
+      "unknown": "Sending failed{code}. Hub’s log has the reason."
+    },
+    "code": " (code {code})"
+  },
   "audit": {
     "title": "Audit log",
     "appendOnly": "Append-only: rows are added, never edited or deleted, and they hold no secrets.",
@@ -543,8 +570,9 @@
         "capture:import:goteav": "Imported Goteav history",
         "identity:invite:accept": "Accepted an invite",
         "identity:invite:create": "Created an invite",
-        "identity:invite:resend": "Resent an invite",
+        "identity:invite:resend": "Issued a new invite link",
         "identity:invite:revoke": "Revoked an invite",
+        "identity:mail:test": "Sent a test email",
         "identity:password:change": "Changed a password",
         "identity:password:reset": "Reset a password",
         "identity:sign_in": "Signed in",

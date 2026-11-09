@@ -4,6 +4,7 @@
  * @file system.tsx
  * @description Ported from the approved design, pages/settings/parts/system.tsx, on `GET /workspaces/{ws}/system` and the public health checks.
  * What the API does not report is left out: there is no disk figure. The last backup is Settings › Backups' (docs/16 D61 to D63).
+ * The owner also sees where Hub's mail goes, with a test email (`MailSection`, docs/16 D68).
  */
 import type { SystemData } from '@hub/contracts';
 import { CircleCheck, Clock, Database, Layers, RefreshCw, Server, TriangleAlert } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
   SkeletonRows,
   time,
   useLocale,
+  useSession,
   useT,
   when,
 } from '@/components/kit';
@@ -31,6 +33,8 @@ import type { SettingsMessages } from '@/features/settings/messages';
 import { useHealth, useSettings, useSources, useSystem } from '@/features/settings/queries';
 import { intervalSecOf, sourceState } from '@/features/settings/source-state';
 import { isHubError } from '@/lib/api/errors';
+
+import { MailSection } from './mail';
 
 const SIZES = ['B', 'KB', 'MB', 'GB', 'TB'];
 
@@ -251,6 +255,7 @@ export function SystemTab() {
   const s = t.system;
   const system = useSystem();
   const health = useHealth();
+  const { isOwner } = useSession();
   const checks = health.data?.checks ?? null;
   const stateOf = (key: string): 'ok' | 'failed' | 'unknown' => {
     const value = checks?.[key];
@@ -353,6 +358,7 @@ export function SystemTab() {
           )}
         </ul>
       </section>
+      {isOwner && <MailSection />}
       <Panels sys={sys} />
     </>
   );
