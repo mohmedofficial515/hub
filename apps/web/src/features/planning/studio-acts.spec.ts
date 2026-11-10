@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { effortOf, planIdeaKey, planPrompt, planWords, rolesOf } from './plan-studio';
+import { effortOf, fitStepTitle, planIdeaKey, planPrompt, planWords, rolesOf } from './plan-studio';
 import { actOf, discoveryOf, isPlumbing, projectPath } from './studio-acts';
 
 describe('actOf', () => {
@@ -106,5 +106,22 @@ describe('a plan’s shape', () => {
   });
   it('weighs the sized steps only', () => {
     expect(effortOf(plan)).toEqual({ points: 12, sized: 3 });
+  });
+});
+
+describe('fitStepTitle', () => {
+  it('keeps a title that fits as it is', () => {
+    expect(fitStepTitle('  short  title ')).toBe('short title');
+  });
+  it('ends a long one at its last clause that fits, with an ellipsis', () => {
+    const long = `${'a'.repeat(120)}، ${'b'.repeat(60)}، ${'c'.repeat(60)}`;
+    const fit = fitStepTitle(long);
+    expect(fit).toBe(`${'a'.repeat(120)}، ${'b'.repeat(60)}…`);
+    expect(fit.length).toBeLessThanOrEqual(200);
+  });
+  it('never cuts inside a word', () => {
+    const fit = fitStepTitle('word '.repeat(60));
+    expect(fit.endsWith('word…')).toBe(true);
+    expect(fit.length).toBeLessThanOrEqual(200);
   });
 });

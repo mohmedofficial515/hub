@@ -64,6 +64,7 @@ import {
   type StageState,
 } from '@/features/chat/thread-items';
 import { useRestoreDocRevision } from '@/features/docs/queries';
+import { usePlanWords } from '@/features/planning/plan-studio';
 import { saveProposal, useSavedProposal } from '@/features/planning/proposal';
 import { isHubError } from '@/lib/api/errors';
 
@@ -267,12 +268,13 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   const steps = structured?.steps.length ?? 0;
   /** The plan card this proposal became, once saved to Planning, here or on Planning's live draft page. */
   const savedKey = useSavedProposal(item.id);
+  const planText = usePlanWords();
   const [saving, setSaving] = useState(false);
   const saveToPlanning = async () => {
     if (saving || savedKey) return;
     setSaving(true);
     try {
-      const key = await saveProposal(item, p.title);
+      const key = await saveProposal(item, p.title, planText);
       showToast({
         tone: 'success',
         message: fmt(p.savedToast, { key }),

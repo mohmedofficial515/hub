@@ -207,7 +207,7 @@
       "developTip": "Puts a request in the chat to improve this plan in place. Add what you want, then send it, and watch it change here.",
       "developPrompt": "Develop the plan {key} in Hub and save it with update_plan: keep what works, fill what is missing in the approach and the steps, and give each step a role. Do not change any code. What I want: ",
       "draft": "Plan it with Claude",
-      "draftTip": "Puts a request in the chat to turn this idea into a plan with its steps. The new plan opens here as it is written.",
+      "draftTip": "Opens the Plan Studio on this idea: Claude reads it with what is in Hub and the code, and returns a plan with its steps. Saving it turns the idea into that plan.",
       "draftPrompt": "Turn the idea {key} into a plan in Hub with idea_to_plan, then write its approach and its steps with update_plan. Do not change any code.",
       "explain": "Explain it",
       "runNext": "Run the next step",
@@ -456,6 +456,7 @@
         "other": "# steps"
       },
       "earlier": "Show the earlier steps ({n})",
+      "sending": "Sending…",
       "queued": "Next, when Claude finishes:",
       "cancelQueued": "Don't send it",
       "queue": "Send when Claude finishes",
@@ -601,5 +602,17 @@
     "answersPrompt": "My answers to your open questions. Work them into the plan, take the answered ones out of the questions, and propose the whole updated plan with propose_plan:",
     "noteReady": "The plan is ready",
     "noteUpdated": "The plan was updated"
+  },
+  "planText": {
+    "goal": "Goal",
+    "approach": "Approach",
+    "steps": "Steps",
+    "checks": "Checks",
+    "risks": "Risks",
+    "outOfScope": "Out of scope",
+    "questions": "Open questions",
+    "flow": "Flow",
+    "sources": "Sources",
+    "after": "after"
   }
 }

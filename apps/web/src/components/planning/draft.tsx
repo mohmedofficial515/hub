@@ -44,6 +44,7 @@ import {
 } from '@/components/kit';
 import { openCardPage } from '@/components/shell/router';
 import { engineBlocks, fillComposer, useMaybeWb } from '@/components/workbench/store';
+import { usePlanWords } from '@/features/planning/plan-studio';
 import { proposalTitle, saveProposal, useSavedProposal } from '@/features/planning/proposal';
 import { isHubError } from '@/lib/api/errors';
 
@@ -81,6 +82,7 @@ export function PlanningDraft() {
   const draft = useLiveDraft();
   const reduce = useReducedMotion();
   const savedKey = useSavedProposal(draft?.proposal?.id);
+  const planText = usePlanWords();
   const [saving, setSaving] = useState(false);
   const off = wb && engineBlocks(wb.engine) ? (wb.engine as 'offline') : null;
   const device = wb?.deviceName ?? '';
@@ -119,7 +121,7 @@ export function PlanningDraft() {
     if (!proposal || saving || savedKey) return;
     setSaving(true);
     try {
-      const key = await saveProposal(proposal, w.fallbackTitle);
+      const key = await saveProposal(proposal, w.fallbackTitle, planText);
       showToast({ tone: 'success', message: fmt(w.savedToast, { key }) });
       openCardPage(key);
     } catch (error) {

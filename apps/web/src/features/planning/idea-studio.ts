@@ -12,12 +12,17 @@ import {
   type ChatStepDto,
   ideaCardKeys,
   ideaToMarkdown,
+  type IdeaWords,
   type ProposedIdea,
 } from '@hub/contracts';
-import { useSyncExternalStore } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
+
+import type { PlanningMessages } from '@/components/planning/messages';
+import { kitMessages, useT } from '@/lib/i18n';
 
 import { createCard } from '../cards/store';
 import { saveIdea } from './queries';
+import { projectPath } from './studio-acts';
 
 /** What the studio sends: Hub's own skill, so the same research runs from the page, the panel or a terminal. */
 export const IDEA_COMMAND = '/hub:idea';
@@ -190,11 +195,42 @@ export function useAcceptedIdea(chatId: string, messageId: string | null | undef
 
 const ROLES = new Set(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
 
-function cardFields(idea: ProposedIdea) {
+/** The words an accepted idea's text is written in: the page's language, from the studio's own labels. */
+export function useIdeaWords(): IdeaWords {
+  const w = useT<PlanningMessages>('planning').studio;
+  const roles = useT(kitMessages).roles;
+  return useMemo(
+    () => ({
+      verdict: w.verdict,
+      overlap: w.overlapLine,
+      value: w.sections.value,
+      exists: w.sections.matches,
+      research: w.sections.findings,
+      suggestions: w.sections.suggestions,
+      flow: w.sections.diagram,
+      draftPlan: w.sections.steps,
+      risks: w.sections.risks,
+      questions: w.sections.questions,
+      sources: w.sections.sources,
+      kinds: w.suggestionKinds,
+      roles,
+    }),
+    [w, roles],
+  );
+}
+
+function cardFields(idea: ProposedIdea, words?: IdeaWords) {
   const role = idea.steps.find((s) => s.role && ROLES.has(s.role))?.role;
   return {
     title: idea.title.slice(0, 200),
-    body: ideaToMarkdown(idea),
+    // A file is named inside its project, as the page shows it, never by this machine's drive.
+    body: ideaToMarkdown(
+      {
+        ...idea,
+        matches: idea.matches.map((m) => (m.kind === 'code' ? { ...m, ref: projectPath(m.ref) } : m)),
+      },
+      words,
+    ),
     detail: {
       ...(idea.problem ? { problem: idea.problem } : {}),
       ...(idea.value ? { notes: idea.value } : {}),
@@ -212,10 +248,11 @@ export async function acceptIdea(
   idea: ProposedIdea,
   messageId: string,
   chatId: string,
+  words?: IdeaWords,
 ): Promise<{ key: string; updated: boolean }> {
   const known = recall(messageId);
   if (known) return { key: known, updated: false };
-  const { title, body, detail } = cardFields(idea);
+  const { title, body, detail } = cardFields(idea, words);
   const existing = recall(`chat:${chatId}`);
   if (existing) {
     await saveIdea(existing, {

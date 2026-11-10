@@ -6,11 +6,41 @@ import type { ClaimAnswer, DocClaim, ProposedPlan } from './chat';
 import { UNVERIFIED_MARK } from './chat';
 
 /** The plan as Markdown: the text fallback, and what Run this plan sends. */
-export function planToMarkdown(plan: ProposedPlan): string {
+/** The words a plan's text is written in: English by default, and the page passes its own language's. */
+export interface PlanWords {
+  goal: string;
+  approach: string;
+  steps: string;
+  checks: string;
+  risks: string;
+  outOfScope: string;
+  questions: string;
+  flow: string;
+  sources: string;
+  /** Before the numbers of the steps that come first: "after 1, 2". */
+  after: string;
+  /** Hub's role names, as the reader says them. A role not here is written as it came. */
+  roles?: Readonly<Record<string, string>>;
+}
+
+export const PLAN_WORDS_EN: PlanWords = {
+  goal: 'Goal',
+  approach: 'Approach',
+  steps: 'Steps',
+  checks: 'Checks',
+  risks: 'Risks',
+  outOfScope: 'Out of scope',
+  questions: 'Open questions',
+  flow: 'Flow',
+  sources: 'Sources',
+  after: 'after',
+};
+
+export function planToMarkdown(plan: ProposedPlan, words: PlanWords = PLAN_WORDS_EN): string {
   const steps = plan.steps.map((step, index) => {
-    const role = step.role ? ` (${step.role})` : '';
+    const role = step.role ? ` (${words.roles?.[step.role] ?? step.role})` : '';
     const size = step.size ? ` [${step.size}]` : '';
-    const after = step.after?.length ? ` (after ${step.after.join(', ')})` : '';
+    const after = step.after?.length ? ` (${words.after} ${step.after.join(', ')})` : '';
     const why = step.why ? `: ${step.why}` : '';
     return `${index + 1}. ${step.title}${role}${size}${after}${why}`;
   });
@@ -18,7 +48,7 @@ export function planToMarkdown(plan: ProposedPlan): string {
   const list = (title: string, items?: readonly string[]) =>
     items?.length ? ['', `## ${title}`, '', ...items.map((item) => `- ${item}`)] : [];
   const sources = plan.sources?.length
-    ? ['', '## Sources', '', ...plan.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`)]
+    ? ['', `## ${words.sources}`, '', ...plan.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`)]
     : [];
   const flow =
     plan.diagram && plan.diagram.edges.length
@@ -26,7 +56,7 @@ export function planToMarkdown(plan: ProposedPlan): string {
           const label = new Map(plan.diagram.nodes.map((n) => [n.id, n.label]));
           return [
             '',
-            `## ${plan.diagram.title || 'Flow'}`,
+            `## ${plan.diagram.title || words.flow}`,
             '',
             ...plan.diagram.edges.map(
               (e) =>
@@ -38,14 +68,14 @@ export function planToMarkdown(plan: ProposedPlan): string {
   return [
     `# ${plan.title}`,
     '',
-    ...para('Goal', plan.goal),
-    ...para('Approach', plan.approach),
-    ...(plan.goal || plan.approach ? ['## Steps', ''] : []),
+    ...para(words.goal, plan.goal),
+    ...para(words.approach, plan.approach),
+    ...(plan.goal || plan.approach ? [`## ${words.steps}`, ''] : []),
     ...steps,
-    ...list('Checks', plan.checks),
-    ...list('Risks', plan.risks),
-    ...list('Out of scope', plan.outOfScope),
-    ...list('Open questions', plan.questions),
+    ...list(words.checks, plan.checks),
+    ...list(words.risks, plan.risks),
+    ...list(words.outOfScope, plan.outOfScope),
+    ...list(words.questions, plan.questions),
     ...flow,
     ...sources,
   ].join('\n');

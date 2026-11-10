@@ -247,7 +247,7 @@ function ClaudeActions({ card }: { card: Shaped }) {
             disabled={!!off || closed || card.status === 'accepted'}
             data-idea-draft
             onClick={() =>
-              fillComposer(fmt(d.claude.draftPrompt, { key: card.key }), 'execute', { show: true })
+              setQuery({ studio: 'plan', chat: null, plan: null, idea: card.key }, { replace: false })
             }
           >
             <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />

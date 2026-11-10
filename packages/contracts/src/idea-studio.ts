@@ -148,62 +148,90 @@ export function cleanIdea(idea: ProposedIdea): ProposedIdea {
   };
 }
 
-const VERDICT_WORDS: Record<IdeaVerdict, string> = {
-  new: 'New',
-  partial: 'Partly exists',
-  exists: 'Already exists',
+/** The words an idea's text is written in: English by default, and the page passes its own language's. */
+export interface IdeaWords {
+  verdict: Record<IdeaVerdict, string>;
+  /** "{n}% already exists". */
+  overlap: string;
+  value: string;
+  exists: string;
+  research: string;
+  suggestions: string;
+  flow: string;
+  draftPlan: string;
+  risks: string;
+  questions: string;
+  sources: string;
+  /** Suggestion kinds and Hub's role names, as the reader says them. One not here is written as it came. */
+  kinds?: Readonly<Record<string, string>>;
+  roles?: Readonly<Record<string, string>>;
+}
+
+export const IDEA_WORDS_EN: IdeaWords = {
+  verdict: { new: 'New', partial: 'Partly exists', exists: 'Already exists' },
+  overlap: '{n}% already exists',
+  value: 'Value',
+  exists: 'What already exists',
+  research: 'Research',
+  suggestions: 'Suggestions',
+  flow: 'Flow',
+  draftPlan: 'Draft plan',
+  risks: 'Risks',
+  questions: 'Open questions',
+  sources: 'Sources',
 };
 
 /** The report as Markdown: the idea card's text when the owner accepts it, and what Claude shows outside the panel. */
-export function ideaToMarkdown(idea: ProposedIdea): string {
+export function ideaToMarkdown(idea: ProposedIdea, words: IdeaWords = IDEA_WORDS_EN): string {
   const out: string[] = [idea.summary, ''];
   out.push(
-    `**${VERDICT_WORDS[idea.verdict]}** · ${idea.overlap}% already exists${idea.basis ? `: ${idea.basis}` : ''}`,
+    `**${words.verdict[idea.verdict]}** · ${words.overlap.replace('{n}', String(idea.overlap))}${idea.basis ? `: ${idea.basis}` : ''}`,
   );
   const section = (title: string, lines: string[]) => {
     if (lines.length) out.push('', `## ${title}`, '', ...lines);
   };
-  if (idea.value) section('Value', [idea.value]);
+  if (idea.value) section(words.value, [idea.value]);
   section(
-    'What already exists',
+    words.exists,
     idea.matches.map(
       (m) =>
         `- ${m.kind === 'external' ? `[${m.title}](${m.ref})` : `\`${m.ref}\` ${m.title}`} · ${m.overlap}%${m.note ? `: ${m.note}` : ''}`,
     ),
   );
   section(
-    'Research',
+    words.research,
     idea.findings.map((f) => `- **${f.title}**: ${f.detail}${f.source ? ` [${f.source}]` : ''}`),
   );
   section(
-    'Suggestions',
-    idea.suggestions.map((s) => `- **${s.title}** (${s.kind}): ${s.detail}`),
+    words.suggestions,
+    idea.suggestions.map((s) => `- **${s.title}** (${words.kinds?.[s.kind] ?? s.kind}): ${s.detail}`),
   );
   if (idea.diagram && idea.diagram.edges.length) {
     const label = new Map(idea.diagram.nodes.map((n) => [n.id, n.label]));
     section(
-      idea.diagram.title || 'Flow',
+      idea.diagram.title || words.flow,
       idea.diagram.edges.map(
         (e) => `- ${label.get(e.from)} → ${label.get(e.to)}${e.label ? ` (${e.label})` : ''}`,
       ),
     );
   }
   section(
-    'Draft plan',
+    words.draftPlan,
     idea.steps.map(
-      (s, i) => `${i + 1}. ${s.title}${s.role ? ` (${s.role})` : ''}${s.why ? `: ${s.why}` : ''}`,
+      (s, i) =>
+        `${i + 1}. ${s.title}${s.role ? ` (${words.roles?.[s.role] ?? s.role})` : ''}${s.why ? `: ${s.why}` : ''}`,
     ),
   );
   section(
-    'Risks',
+    words.risks,
     idea.risks.map((r) => `- ${r}`),
   );
   section(
-    'Open questions',
+    words.questions,
     idea.questions.map((q) => `- ${q}`),
   );
   section(
-    'Sources',
+    words.sources,
     idea.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`),
   );
   return out.join('\n').trim();

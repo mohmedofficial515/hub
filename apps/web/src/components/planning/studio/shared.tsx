@@ -181,6 +181,8 @@ const lines = new Map<string, string>();
 
 export function useStudioSend(chat: PanelChat, busy: boolean) {
   const [queued, setQueuedState] = useState<string | null>(() => lines.get(chat.id) ?? null);
+  /** The request on its way: starting a turn takes some seconds, and the page says so at once. */
+  const [sending, setSending] = useState<string | null>(null);
   const sendingQueued = useRef(false);
   const chatId = chat.id;
 
@@ -195,10 +197,15 @@ export function useStudioSend(chat: PanelChat, busy: boolean) {
 
   const sendNow = useCallback(
     async (text: string) => {
-      const sent = await send({ text, mode: 'plan' });
-      const id = activeChatId();
-      if (sent && id && id !== chatId) setQuery({ chat: id }, { replace: true });
-      return sent;
+      setSending(text);
+      try {
+        const sent = await send({ text, mode: 'plan' });
+        const id = activeChatId();
+        if (sent && id && id !== chatId) setQuery({ chat: id }, { replace: true });
+        return sent;
+      } finally {
+        setSending(null);
+      }
     },
     [chatId],
   );
@@ -227,5 +234,5 @@ export function useStudioSend(chat: PanelChat, busy: boolean) {
   // Another chat has its own line.
   useEffect(() => setQueuedState(lines.get(chatId) ?? null), [chatId]);
 
-  return { queued, onSend, cancelQueued: () => setQueued(null) };
+  return { queued, sending, onSend, cancelQueued: () => setQueued(null) };
 }

@@ -81,6 +81,7 @@ import {
   type ResearchStage,
   type StageState,
   useAcceptedIdea,
+  useIdeaWords,
 } from '@/features/planning/idea-studio';
 import { discoveryOf } from '@/features/planning/studio-acts';
 import { isHubError } from '@/lib/api/errors';
@@ -424,7 +425,7 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const ended = !busy && !found;
   const [width, setWidth] = useConversationWidth();
   const [tab, setTab] = useState<StudioTab>('report');
-  const { queued, onSend, cancelQueued } = useStudioSend(chat, busy);
+  const { queued, sending, onSend, cancelQueued } = useStudioSend(chat, busy);
   // The research board shows until there is a report to read; a refinement after that runs above the report as one quiet line.
   const researching = busy && !found;
   const refining = busy && !!found && !reportedNow;
@@ -535,6 +536,7 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             onWidth={setWidth}
             onShowReport={showReport}
             queued={queued}
+            sending={sending}
             onSend={onSend}
             onCancelQueued={cancelQueued}
             className={className}
@@ -834,12 +836,13 @@ function ReportHead({
   const [saving, setSaving] = useState(false);
   const saved = accepted.key && accepted.current ? accepted.key : null;
   const stale = accepted.key && !accepted.current ? accepted.key : null;
+  const ideaWords = useIdeaWords();
 
   const accept = async () => {
     if (saving || saved) return;
     setSaving(true);
     try {
-      const { key, updated } = await acceptIdea(idea, messageId, chatId);
+      const { key, updated } = await acceptIdea(idea, messageId, chatId, ideaWords);
       showToast({ tone: 'success', message: fmt(updated ? w.updatedToast : w.acceptedToast, { key }) });
     } catch (error) {
       showToast({ tone: 'error', message: isHubError(error) ? error.message : kit.actionFailed });
@@ -847,8 +850,9 @@ function ReportHead({
       setSaving(false);
     }
   };
-  const open = (key: string, toPlan = false) =>
-    setQuery({ plan: key, studio: null, chat: null, action: toPlan ? 'to_plan' : null }, { replace: false });
+  const open = (key: string) => setQuery({ plan: key, studio: null, chat: null }, { replace: false });
+  /** The accepted idea becomes a plan in the Plan Studio: Claude plans it from the idea itself, and Save there turns the idea into that plan. */
+  const toPlan = (key: string) => setQuery({ studio: 'plan', chat: null, idea: key }, { replace: false });
 
   return (
     <header
@@ -887,7 +891,7 @@ function ReportHead({
               <CheckCircle2 aria-hidden className="size-4" strokeWidth={1.75} />
               {fmt(w.accepted, { key: saved })}
             </span>
-            <Button variant="primary" onClick={() => open(saved, true)}>
+            <Button variant="primary" onClick={() => toPlan(saved)}>
               <ListOrdered aria-hidden className="size-4" strokeWidth={1.75} />
               {w.toPlan}
             </Button>

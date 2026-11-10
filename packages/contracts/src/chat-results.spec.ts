@@ -161,3 +161,35 @@ describe('a Plan Studio plan', () => {
     expect(text).toContain('1. [Stripe](https://docs.stripe.com/refunds)');
   });
 });
+
+describe('a plan in the reader’s words', () => {
+  it('writes its headings, the roles and "after" in the words it is given', () => {
+    const text = planToMarkdown(
+      {
+        title: 'خطة',
+        goal: 'هدف',
+        steps: [
+          { title: 'أ', role: 'backend' },
+          { title: 'ب', role: 'robot', after: [1] },
+        ],
+        risks: ['خطر'],
+      },
+      {
+        goal: 'الهدف',
+        approach: 'النهج',
+        steps: 'الخطوات',
+        checks: 'التحقق',
+        risks: 'المخاطر',
+        outOfScope: 'خارج النطاق',
+        questions: 'أسئلة مفتوحة',
+        flow: 'المسار',
+        sources: 'المصادر',
+        after: 'بعد',
+        roles: { backend: 'الباك إند' },
+      },
+    );
+    expect(text).toBe(
+      '# خطة\n\n## الهدف\n\nهدف\n\n## الخطوات\n\n1. أ (الباك إند)\n2. ب (robot) (بعد 1)\n\n## المخاطر\n\n- خطر',
+    );
+  });
+});

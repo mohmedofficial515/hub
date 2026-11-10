@@ -89,6 +89,7 @@ import {
   planWords,
   rolesOf,
   savePlanFromStudio,
+  usePlanWords,
   useSavedPlan,
 } from '@/features/planning/plan-studio';
 import { useIdeasQuery } from '@/features/planning/queries';
@@ -444,7 +445,7 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const composer = useRef<HTMLTextAreaElement>(null);
   const [width, setWidth] = useConversationWidth();
   const [tab, setTab] = useState<StudioTab>('report');
-  const { queued, onSend, cancelQueued } = useStudioSend(chat, busy);
+  const { queued, sending, onSend, cancelQueued } = useStudioSend(chat, busy);
   const researching = busy && !found;
   const refining = busy && !!found && !reportedNow;
   // A turn that ended with words but no structured plan: shown as a stop, with the way to carry on.
@@ -564,6 +565,7 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             onWidth={setWidth}
             onShowReport={showReport}
             queued={queued}
+            sending={sending}
             onSend={onSend}
             onCancelQueued={cancelQueued}
             className={className}
@@ -611,6 +613,7 @@ function PlanHead({
   const kit = useT(kitMessages);
   const locale = useLocale();
   const savedState = useSavedPlan(chatId, messageId);
+  const planText = usePlanWords();
   const [saving, setSaving] = useState(false);
   const saved = savedState.key && savedState.current ? savedState.key : null;
   const stale = savedState.key && !savedState.current ? savedState.key : null;
@@ -622,7 +625,7 @@ function PlanHead({
     if (saving || saved) return;
     setSaving(true);
     try {
-      const { key, updated } = await savePlanFromStudio(plan, messageId, chatId, ideaKey);
+      const { key, updated } = await savePlanFromStudio(plan, messageId, chatId, ideaKey, planText);
       showToast({ tone: 'success', message: fmt(updated ? p.updatedToast : p.savedToast, { key }) });
     } catch (error) {
       showToast({ tone: 'error', message: isHubError(error) ? error.message : kit.actionFailed });

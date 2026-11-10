@@ -139,6 +139,7 @@ export function StudioConversation({
   onWidth,
   onShowReport,
   queued,
+  sending: inFlight,
   onSend,
   onCancelQueued,
   className,
@@ -152,6 +153,8 @@ export function StudioConversation({
   onShowReport: () => void;
   /** A request waiting for the running turn to end. */
   queued: string | null;
+  /** A request on its way, until its turn has started. */
+  sending?: string | null | undefined;
   /** Sends now, or waits in line while Claude works. */
   onSend: (text: string) => Promise<boolean>;
   onCancelQueued: () => void;
@@ -180,6 +183,7 @@ export function StudioConversation({
         inputRef={inputRef}
         words={w}
         queued={queued}
+        sending={inFlight}
         onSend={onSend}
         onCancelQueued={onCancelQueued}
       />
@@ -968,6 +972,7 @@ function Composer({
   inputRef,
   words: w,
   queued,
+  sending: inFlight,
   onSend,
   onCancelQueued,
 }: {
@@ -978,6 +983,7 @@ function Composer({
   inputRef: React.RefObject<HTMLTextAreaElement | null>;
   words: Words;
   queued: string | null;
+  sending?: string | null | undefined;
   onSend: (text: string) => Promise<boolean>;
   onCancelQueued: () => void;
 }) {
@@ -986,7 +992,8 @@ function Composer({
   const [sending, setSending] = useState(false);
   const off = engineBlocks(wb.engine);
   const secret = detectSecret(text);
-  const quickLabel = queued ? kind.refine.find((r) => r.prompt === queued)?.label : undefined;
+  const labelOf = (line: string) => kind.refine.find((r) => r.prompt === line)?.label ?? line;
+  const quickLabel = queued ? labelOf(queued) : undefined;
 
   const grow = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
@@ -1007,6 +1014,30 @@ function Composer({
   return (
     <div className="flex flex-col gap-2 border-t border-border bg-card/80 p-3 backdrop-blur">
       <AnimatePresence initial={false}>
+        {inFlight && !queued && (
+          <motion.div
+            key="sending"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div
+              role="status"
+              className="flex min-w-0 items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-2.5 py-1.5 text-caption"
+            >
+              <Loader2
+                aria-hidden
+                className="size-3.5 shrink-0 text-primary motion-safe:animate-spin"
+                strokeWidth={2}
+              />
+              <span className="shrink-0 font-medium text-primary">{c.sending}</span>
+              <span dir="auto" className="min-w-0 flex-1 truncate text-foreground" title={inFlight}>
+                {labelOf(inFlight)}
+              </span>
+            </div>
+          </motion.div>
+        )}
         {queued && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
