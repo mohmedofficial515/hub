@@ -16,6 +16,23 @@ export const CLOSED_PLANS = ['done', 'abandoned'] as const;
 
 const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
 
+/** The road a card travels, for the stage track on its page. A status off the road (abandoned, parked, rejected) has no place on it. */
+export const PLAN_ROAD = ['draft', 'in_review', 'approved', 'in_progress', 'done'] as const;
+export const IDEA_ROAD = ['open', 'exploring', 'accepted'] as const;
+
+export function roadOf(card: IdeaCard | PlanCard): { road: readonly string[]; at: number; off: boolean } {
+  const road: readonly string[] = card.type === 'plan' ? PLAN_ROAD : IDEA_ROAD;
+  const at = road.indexOf(card.status);
+  return { road, at, off: at < 0 };
+}
+
+/** The step to work on next: the first one not done. Its task, when it has one, is what "Run the next step" works on. */
+export function nextStepOf(plan: PlanCard) {
+  const { steps } = plan.plan;
+  const step = steps.find((s) => !s.done);
+  return step ? { index: steps.indexOf(step), step } : null;
+}
+
 export interface StepProgress {
   done: number;
   total: number;

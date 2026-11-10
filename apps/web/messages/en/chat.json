@@ -1101,6 +1101,7 @@
       "skills": {
         "/hub:work": "Do a task in fixed stages, with a report on the card",
         "/hub:doc": "Improve or write a doc, with a diff and flagged claims",
+        "/hub:idea": "Research an idea against Hub and the code; the Idea Studio shows the report",
         "/hub:plan": "Plan something new, ending in a plan to run",
         "/hub:ask": "A question about the project docs, with sources",
         "/hub:suggest": "Propose tasks, plans or skills; nothing is made until you accept"

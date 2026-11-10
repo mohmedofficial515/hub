@@ -2,7 +2,7 @@
 
 /**
  * @file new-cards.tsx
- * @description New idea and New plan. Both create and open, as the rest of the app does. The sheet holds everything else.
+ * @description New plan. It creates and opens, as the rest of the app does; the sheet holds everything else. A new idea starts in the Idea Studio (`studio/idea-studio.tsx`).
  */
 import { type ReactNode, useEffect, useId, useState } from 'react';
 
@@ -16,9 +16,7 @@ import {
   Modal,
   type NewCardInput,
   openCard,
-  type Role,
   SecretFilterError,
-  Select,
   Textarea,
   TextInput,
   useT,
@@ -26,8 +24,6 @@ import {
 import { isHubError } from '@/lib/api/errors';
 
 import type { PlanningMessages } from './messages';
-
-const ROLES: Role[] = ['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa'];
 
 function useCreate(onDone: () => void) {
   const kit = useT(kitMessages);
@@ -84,106 +80,6 @@ function FormBody({
       )}
       <button type="submit" hidden aria-hidden tabIndex={-1} />
     </form>
-  );
-}
-
-export function NewIdeaDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const t = useT<PlanningMessages>('planning');
-  const kit = useT(kitMessages);
-  const n = t.newIdeaForm;
-  const id = useId();
-  const { busy, failure, create } = useCreate(() => onOpenChange(false));
-  const [title, setTitle] = useState('');
-  const [problem, setProblem] = useState('');
-  const [notes, setNotes] = useState('');
-  const [role, setRole] = useState('');
-  const [tried, setTried] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setTitle('');
-    setProblem('');
-    setNotes('');
-    setRole('');
-    setTried(false);
-  }, [open]);
-
-  const missing = !title.trim();
-  const secret = [title, problem, notes].map(detectSecret).find(Boolean) ?? null;
-  const submit = () => {
-    setTried(true);
-    if (missing || secret || busy) return;
-    void create({
-      type: 'idea',
-      title: title.trim(),
-      detail: {
-        ...(problem.trim() ? { problem: problem.trim() } : {}),
-        ...(notes.trim() ? { notes: notes.trim() } : {}),
-        ...(role ? { role } : {}),
-      },
-    });
-  };
-
-  return (
-    <Modal
-      open={open}
-      onOpenChange={onOpenChange}
-      title={n.title}
-      footer={
-        <>
-          <Button onClick={() => onOpenChange(false)}>{kit.cancel}</Button>
-          <Button variant="primary" busy={busy} onClick={submit}>
-            {n.create}
-          </Button>
-        </>
-      }
-    >
-      <FormBody onSubmit={submit} secret={secret} failure={failure}>
-        <Field
-          id={`${id}-t`}
-          label={n.titleLabel}
-          required
-          error={tried && missing ? t.edit.titleRequired : undefined}
-        >
-          <TextInput
-            id={`${id}-t`}
-            dir="auto"
-            autoFocus
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            aria-invalid={tried && missing}
-          />
-        </Field>
-        <Field id={`${id}-p`} label={n.problem} hint={n.problemHint}>
-          <Textarea
-            id={`${id}-p`}
-            dir="auto"
-            rows={4}
-            value={problem}
-            onChange={(e) => setProblem(e.target.value)}
-          />
-        </Field>
-        <Field id={`${id}-n`} label={n.notes}>
-          <Textarea
-            id={`${id}-n`}
-            dir="auto"
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </Field>
-        <Field id={`${id}-r`} label={n.role}>
-          <Select id={`${id}-r`} value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="">{n.noRole}</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {kit.roles[r]}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </FormBody>
-    </Modal>
   );
 }
 

@@ -17,6 +17,7 @@ import {
   EyeOff,
   Link2,
   ListChecks,
+  Maximize2,
   MoreHorizontal,
   X,
 } from 'lucide-react';
@@ -47,6 +48,7 @@ import { CardRuns } from '@/components/queue/run-entry';
 import {
   closeCard,
   openCard,
+  openCardPage,
   setQuery,
   type SheetTab,
   takeOpener,
@@ -94,7 +96,7 @@ const isCardAction = (v: string | null): v is CardAction => !!v;
 
 const hasOwnText = (card: HubCard) => (card.type === 'task' ? !!card.task.acceptance : card.type !== 'need');
 
-function ActionBar({ card, action }: { card: HubCard; action: CardAction | null }) {
+export function ActionBar({ card, action }: { card: HubCard; action: CardAction | null }) {
   const t = useT(kitMessages);
   // Its filled button steps down while the panel beside it owes the owner an answer, so one thing on screen is asking at a time (review M11).
   const owes = panelOwes(useMaybeWb());
@@ -168,7 +170,7 @@ function ActionBar({ card, action }: { card: HubCard; action: CardAction | null 
   );
 }
 
-function CommentsTab({ card }: { card: HubCard }) {
+export function CommentsTab({ card }: { card: HubCard }) {
   const t = useT(kitMessages);
   const id = useId();
   const [text, setText] = useState('');
@@ -277,7 +279,7 @@ function EventData({ data }: { data: Record<string, unknown> }) {
   );
 }
 
-function HistoryTab({ card }: { card: HubCard }) {
+export function HistoryTab({ card }: { card: HubCard }) {
   const t = useT(kitMessages);
   const events = [...card.events].reverse();
   const viaName = (via: string) => t.sheet.history.viaNames[via];
@@ -303,7 +305,7 @@ function HistoryTab({ card }: { card: HubCard }) {
   );
 }
 
-function LinksTab({ card }: { card: HubCard }) {
+export function LinksTab({ card }: { card: HubCard }) {
   const t = useT(kitMessages);
   const id = useId();
   const [other, setOther] = useState('');
@@ -428,7 +430,7 @@ function SheetNav({ cardKey }: { cardKey: string }) {
 /**
  * Reports from `report_work`, folded to one line each that says what stands: verified or claimed, and how many files. The summary stays in the panel's report when the same card is open beside it, so the two do not repeat each other. The move, or the reason for none, is the card's own state above, and the line says why.
  */
-function Evidence({ cardKey }: { cardKey: string }) {
+export function Evidence({ cardKey }: { cardKey: string }) {
   const w = useT<ChatMessages>('chat').panel;
   const locale = useLocale();
   const reports = useWorkReports(cardKey).data ?? [];
@@ -488,18 +490,26 @@ function SheetBody({
   tab,
   onAsk,
   stepAside,
+  keepInSheet,
 }: {
   cardKey: string;
   action: CardAction | null;
   tab: SheetTab;
   onAsk?: (() => void) | undefined;
   stepAside?: string | undefined;
+  /** Follow the chat opened it on another page, which it never leaves (D54): a plan stays here, with a way to its page. */
+  keepInSheet?: boolean | undefined;
 }) {
   const t = useT(kitMessages);
   const w = useT<ChatMessages>('chat').panel;
   const wb = useMaybeWb();
   const locale = useLocale();
   const query = useCardQuery(cardKey);
+  // A plan or an idea is read on its own page. A key the caches did not know opened here, and moves now that its type is known.
+  const ownPage = query.data?.type === 'plan' || query.data?.type === 'idea';
+  useEffect(() => {
+    if (ownPage && !keepInSheet) openCardPage(cardKey, { action, replace: true });
+  }, [ownPage, keepInSheet, cardKey, action]);
   const events = useCardEvents(cardKey);
   const comments = useCardComments(cardKey);
   // History and Comments are their own queries, so a new comment does not reload the card, and the tabs read them like its fields.
@@ -682,6 +692,11 @@ function SheetBody({
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+          {ownPage && (
+            <IconButton label={t.sheet.openPage} data-sheet-open-page onClick={() => openCardPage(card.key)}>
+              <Maximize2 aria-hidden className="size-4" strokeWidth={1.75} />
+            </IconButton>
+          )}
           {stepAside && <SheetNav cardKey={card.key} />}
           {stepAside ? (
             <Button size="sm" variant="ghost" data-sheet-close data-wb-step-back onClick={() => closeCard()}>
@@ -895,6 +910,8 @@ export function CardSheet({
   const t = useT(kitMessages);
   const offset = locale === 'ar' ? -32 : 32;
   const opener = useRef<HTMLElement | null>(null);
+  // Read once per card: Follow's mark lasts a moment, and a plan may take longer than that to load.
+  const followed = useMemo(() => wasFollowOpened() && route.view !== 'planning', [key]);
   useEffect(() => {
     if (!key) return;
     // Previous and Next swap the card with no opener, so closing returns to the row of the last card shown, not the page's title (review m8).
@@ -935,7 +952,15 @@ export function CardSheet({
     >
       {topBar}
       <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
-        <SheetBody key={key} cardKey={key} action={action} tab={tab} onAsk={onAsk} stepAside={stepAside} />
+        <SheetBody
+          key={key}
+          cardKey={key}
+          action={action}
+          tab={tab}
+          onAsk={onAsk}
+          stepAside={stepAside}
+          keepInSheet={followed}
+        />
       </ErrorBoundary>
     </motion.section>
   );

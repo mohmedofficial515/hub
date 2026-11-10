@@ -65,6 +65,7 @@ import {
   type TurnMeta,
 } from '@/features/chat/thread-items';
 
+import { IdeaNote } from './idea-note';
 import { ProposalsCard } from './proposals';
 import {
   Blocked,
@@ -1306,6 +1307,8 @@ export function Thread({
               return <ProtocolCard key={item.id} item={item} />;
             case 'plan':
               return <PlanCard key={item.id} item={item} />;
+            case 'idea':
+              return <IdeaNote key={item.id} chatId={chat.id} idea={item.idea} />;
             case 'suggestions':
               return <ProposalsCard key={item.id} chatId={chat.id} suggestions={item.suggestions} />;
             case 'report':

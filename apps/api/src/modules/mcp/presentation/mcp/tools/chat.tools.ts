@@ -178,6 +178,16 @@ export const chatToolHandlers = {
       ? 'The plan is in the panel, with Run this plan. Stop here and wait for the owner.'
       : `Show the user this plan in your reply:\n\n${text}`;
   },
+  async propose_idea(context, input) {
+    const actor = await context.allowed('chat.read');
+    const { project: _project, ...idea } = input;
+    const { inPanel, text } = await context.deps.workReports.proposeIdea(actor, context.toolUseId, idea);
+    return inPanel
+      ? 'The report is on the Idea Studio page, with Accept. Nothing was created. Stop here and wait for the owner.'
+      : `Nothing was created. Show the user this report in your reply, and create the idea only if they ask:
+
+${text}`;
+  },
   async propose_suggestions(context, input) {
     const actor = await context.allowed('chat.read');
     const { project: _project, ...proposals } = input;

@@ -6,6 +6,7 @@
 @import 'tw-animate-css';
 @import '../components/workbench/workbench.css';
 @import '../components/schema/schema.css';
+@import '../components/planning/studio/studio.css';
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant rtl (&:is([dir=rtl] *));

@@ -14,7 +14,7 @@ export const skillNameSchema = z.string().trim().min(1).max(64).regex(SKILL_NAME
  * Hub's own protocols. Hub's code and tests depend on their words (`/hub:work`'s report, `/hub:doc`'s draft, `/hub:suggest`'s proposals), so the panel shows them and does not edit them
  * (D65): they change with Hub's code. Their names cannot be taken by another skill.
  */
-export const HUB_CORE_SKILLS = ['ask', 'doc', 'guide', 'plan', 'suggest', 'work'] as const;
+export const HUB_CORE_SKILLS = ['ask', 'doc', 'guide', 'idea', 'plan', 'suggest', 'work'] as const;
 export type HubCoreSkill = (typeof HUB_CORE_SKILLS)[number];
 export const isCoreSkill = (name: string): boolean => (HUB_CORE_SKILLS as readonly string[]).includes(name);
 

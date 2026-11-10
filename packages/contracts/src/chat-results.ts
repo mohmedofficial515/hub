@@ -9,14 +9,64 @@ import { UNVERIFIED_MARK } from './chat';
 export function planToMarkdown(plan: ProposedPlan): string {
   const steps = plan.steps.map((step, index) => {
     const role = step.role ? ` (${step.role})` : '';
+    const size = step.size ? ` [${step.size}]` : '';
+    const after = step.after?.length ? ` (after ${step.after.join(', ')})` : '';
     const why = step.why ? `: ${step.why}` : '';
-    return `${index + 1}. ${step.title}${role}${why}`;
+    return `${index + 1}. ${step.title}${role}${size}${after}${why}`;
   });
+  const para = (title: string, value?: string) => (value ? [`## ${title}`, '', value, ''] : []);
   const list = (title: string, items?: readonly string[]) =>
     items?.length ? ['', `## ${title}`, '', ...items.map((item) => `- ${item}`)] : [];
-  return [`# ${plan.title}`, '', ...steps, ...list('Checks', plan.checks), ...list('Risks', plan.risks)].join(
-    '\n',
-  );
+  const sources = plan.sources?.length
+    ? ['', '## Sources', '', ...plan.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`)]
+    : [];
+  const flow =
+    plan.diagram && plan.diagram.edges.length
+      ? (() => {
+          const label = new Map(plan.diagram.nodes.map((n) => [n.id, n.label]));
+          return [
+            '',
+            `## ${plan.diagram.title || 'Flow'}`,
+            '',
+            ...plan.diagram.edges.map(
+              (e) =>
+                `- ${label.get(e.from) ?? e.from} → ${label.get(e.to) ?? e.to}${e.label ? ` (${e.label})` : ''}`,
+            ),
+          ];
+        })()
+      : [];
+  return [
+    `# ${plan.title}`,
+    '',
+    ...para('Goal', plan.goal),
+    ...para('Approach', plan.approach),
+    ...(plan.goal || plan.approach ? ['## Steps', ''] : []),
+    ...steps,
+    ...list('Checks', plan.checks),
+    ...list('Risks', plan.risks),
+    ...list('Out of scope', plan.outOfScope),
+    ...list('Open questions', plan.questions),
+    ...flow,
+    ...sources,
+  ].join('\n');
+}
+
+/** A plan as the page can draw it: a flow's edges between nodes that exist, and each step's `after` pointing at earlier steps only. */
+export function cleanPlan(plan: ProposedPlan): ProposedPlan {
+  const steps = plan.steps.map((step, index) => {
+    if (!step.after) return step;
+    const after = [...new Set(step.after)].filter((n) => n >= 1 && n <= index);
+    const { after: _drop, ...rest } = step;
+    return after.length ? { ...rest, after } : rest;
+  });
+  const diagram = plan.diagram
+    ? (() => {
+        const ids = new Set(plan.diagram.nodes.map((n) => n.id));
+        return { ...plan.diagram, edges: plan.diagram.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) };
+      })()
+    : undefined;
+  const { diagram: _old, ...rest } = plan;
+  return { ...rest, steps, ...(diagram ? { diagram } : {}) };
 }
 
 /** What pressing Run this plan sends. It stays visible in the composer until the owner sends it (D51). */

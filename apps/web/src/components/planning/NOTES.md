@@ -18,6 +18,15 @@ From the top: the header, the filter row, one focal card across the whole width,
 - **Step progress** is words first ("2 of 5"), with a thin neutral meter beside them. The meter uses `foreground` on `muted`, so it is never colour alone, and it is hidden from screen readers because the words already say it.
 - **Nothing is invented.** There is no trend, no health score, no estimate: the API has none of these. An idea with no problem says so.
 
+## Own page instead of the sheet (2026-11-09)
+
+- **A plan or an idea opens as a page on Planning, `?plan=KEY`, never in the side sheet.** `openCard` and `AppLink` ask the card store (`setCardPage`) whether a cached key is a plan or an idea; a key not cached yet opens in the sheet and the sheet moves it to the page once its type is known. The one exception is Follow the chat on another page, which never makes the page step aside (D54): the plan stays in the sheet with an "Open its full page" button.
+- **The page:** a header card (type tile, badges, title, who and when, the stage track, one sentence on what comes next, the action bar and the Claude buttons), then tabs (the plan, comments, history, links) beside a sticky side column (progress, the plan's own outline, details). Steps are a numbered timeline; the next step is marked in words, not colour alone.
+- **Live:** the page reads the card through the cards' live stream. A step saved while the page is open slides in, a changed title or approach glows for a moment, and "Claude is working on this now" shows only while the open chat's running turn is on this card (`useClaudeOn`).
+- **With Claude:** _Develop_ fills the composer in Execute with a request to improve the plan in place with `update_plan`, and waits for the owner's words (D51). _Run the next step_ runs `/hub:work` on the next step's task, and says why when it cannot. _Explain_ asks at once.
+- **Live draft, `?draft=1`:** Plan mode cannot write to Hub, so a plan written there is shown as a page while it is written (the running reply), then as the proposal it ends in, with Save to Planning (lands on the new plan's page), Develop in the chat and Run this plan. A Plan-mode turn that starts while the lists are shown opens it once. The chat's plan card and this page save through `features/planning/proposal.ts`, so a save in one shows in the other.
+- **Type sizes** step down one level from the rest of the app (rows `body-sm`, meta `caption`, titles `title-sm`/`title`), as the owner asked.
+
 ## Sheet
 
 - **Editing is `?action=edit`.** The sheet already treats an open form as the one filled button, so the action bar goes quiet while editing, and a reload stays in the form.
@@ -37,3 +46,30 @@ From the top: the header, the filter row, one focal card across the whole width,
 
 - The page reads `GET /ideas` and `GET /plans`, up to 1000 of each. A plan row shows no text, because a list row carries no body. The focal plan reads its own card for it.
 - The sidebar's Planning badge waits for `GET /counters` (README, Known limits). The page's own numbers come from its rows.
+
+## Idea Studio (2026-11-09)
+
+- **New idea opens the studio, `?studio=idea`, not a form.** The owner writes the idea in one prompt; Claude runs `/hub:idea` (team-pack) in a new chat in Plan, which reads only. The page is that chat's own view (`&chat=ID`), so the side panel folds while it is open and comes back after.
+- **What Claude does:** checks Hub (ideas, plans, cards, docs), then the code (Grep, Glob, Read), then the web when it may, and returns one report with `propose_idea`: a verdict and `overlap` (how much already exists, 0 to 100), each match with where it lives and its own overlap, problem and value, a flow (nodes and edges), findings with numbered sources, suggestions, a draft plan, risks and open questions. Every refinement sends the whole report again, and the page shows the latest.
+- **The research is shown as it happens,** from the chat's real steps (`researchActs` in `features/planning/idea-studio.ts`): five stages, with the count of steps in each, and the last eight things it searched, read or opened. A stage it never used says so once the turn ends; nothing is shown as done that did not happen.
+- **The flow is drawn here, not by a library** (`studio/diagram.tsx`): longest-path columns that follow the reading direction, and top to bottom once the flow is longer than four steps, so the words are never shrunk. Colours are theme tokens.
+- **Accept** saves the report as an idea card through the normal create path: its text is the whole report, its problem and value are the idea's, and each Hub card it matched is linked as `relates` (saved again without links if one is refused). Then Turn it into a plan opens the idea's page on its plan form. Which report became which idea is kept in this browser.
+- **The verdict follows the number:** `cleanIdea` corrects a report that says `new` at 80%.
+- **The conversation is the studio's own** (`studio/conversation.tsx`), not the panel's thread: the idea as a card, quick prompts shown by their name, Claude's steps in plain words grouped by Hub, the code and the web (open while they run, folded after with counts and time), each report with what changed since the last, and a head that says what Claude is doing now, for how long and in how many steps. Approvals and questions are the panel's own components. Esc stops a running turn; the box stays writable meanwhile.
+- **Flexible layout:** beside the report on wide screens, at a normal or wide width (remembered in this browser); below that, two tabs, Report and Conversation, with a live dot on Conversation while Claude works. Develop opens the conversation; Show the report goes back to its head.
+- **Next:** the same engine for plans (a Plan Studio), so a plan starts from one prompt too.
+
+## Studio review and the Plan Studio (2026-11-10)
+
+Reviewed against a real idea (a customer refund tracker) and a real plan (hotels in four weeks), watched turn by turn.
+
+- **Research board, not a tool log.** While the first report is written, the page shows what Claude has really found: the cards it read (as chips), the files it opened (inside the project, without the drive), what it searched and the pages it opened. Steps are named once, in `features/planning/studio-acts.ts`, for the board and the conversation alike; plumbing (`ToolSearch`, `report_stage`) is never counted.
+- **One label per state.** "Updating" only when an earlier turn reported; the board goes once a report exists, and a refinement runs as one line above the report. When Claude asks something, the page says it waits for you and takes you to the question.
+- **Counts in Arabic plural forms** (`stepCount`): «خطوة واحدة», «خطوتان», «3 خطوات».
+- **Steps fold after the turn**; while it runs a group shows its last six. A failed turn shows its reason.
+- **A request written while Claude works waits in line** (one per chat, kept outside the component) and goes when the turn ends. Apply on a suggestion and answers to the open questions go through the same line, and read back in the thread as what they mean, not as the instruction sent.
+- **Accept once per session.** A refined report after Accept offers "Update GTV-x" (`saveIdea`), never a second idea. Same for a saved plan (`savePlan` rewrites its text and steps).
+- **Sticky contents** with the section being read marked; the conversation sits below the app header (`top-18`).
+- **Diagram**: nodes narrow to the room before the drawing scrolls; loops back run in their own lane on one side, sized to their label.
+- **Plan Studio** at `?studio=plan`: a topic or an open idea, `/hub:plan` in Plan, and a structured plan: goal, approach, who does what, steps with size and `after`, flow, checks, risks, out of scope, questions, sources. `proposedPlanSchema` grew these as optional fields, so older plans still read. Save makes a draft plan, or turns the idea it started from into it. "Write it yourself" keeps the old form for a plan whose steps are known.
+- **Skills**: `/hub:idea` and `/hub:plan` reply in at most three lines (the page holds the report), weigh the risks before writing, ask one question only when the work cannot go on, and keep untouched parts as they were on a refinement.

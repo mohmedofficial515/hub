@@ -92,6 +92,7 @@ export interface KitDict {
     watching: string;
     copyKey: string;
     copyLink: string;
+    openPage: string;
     archive: string;
     restore: string;
     archived: string;

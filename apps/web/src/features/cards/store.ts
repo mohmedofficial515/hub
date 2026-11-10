@@ -7,7 +7,7 @@
  */
 import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 
-import { currentRoute, useRoute } from '@/components/shell/router';
+import { currentRoute, setCardPage, useRoute } from '@/components/shell/router';
 import { del, get, getPage, type Paginated, patch, post } from '@/lib/api/client';
 import { nowMs } from '@/lib/format';
 import { getQueryClient } from '@/lib/query-client';
@@ -147,6 +147,13 @@ export function getCard(key: string, slug: string = ws()): CardListItem | HubCar
   }
   return undefined;
 }
+
+/** A plan or an idea is read on its own page on Planning, not in the sheet. Only a card the caches know can be told apart here. */
+setCardPage((key) => {
+  if (typeof window === 'undefined') return null;
+  const type = getCard(key)?.type;
+  return type === 'plan' || type === 'idea' ? 'planning' : null;
+});
 
 export function allCards(slug: string = ws()): CardListItem[] {
   const seen = new Map<string, CardListItem>();

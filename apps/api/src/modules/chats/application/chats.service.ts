@@ -30,6 +30,7 @@ import {
   type PromptRole,
   type PromptTemplateDto,
   type PromptTemplateInput,
+  proposedIdeaSchema,
   redactSecrets,
   type SendChatMessageInput,
   turnPrompt,
@@ -202,6 +203,7 @@ export class ChatsService implements OnApplicationBootstrap {
         plan: message.plan,
         structuredPlan: (message.structuredPlan as ChatMessageDto['structuredPlan']) ?? null,
         suggestions: suggestionsOf(message.suggestions),
+        idea: ideaOf(message.idea),
         engineFacts: (message.engineFacts as ChatMessageDto['engineFacts']) ?? null,
         reports: message.reports as unknown as WorkReport[],
         notices: message.notices as unknown as ChatNotice[],
@@ -873,6 +875,11 @@ export class ChatsService implements OnApplicationBootstrap {
 }
 
 /** A message's proposals as stored, or null when it has none or they no longer read (D66). */
+function ideaOf(value: unknown): ChatMessageDto['idea'] {
+  const parsed = proposedIdeaSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
+
 function suggestionsOf(value: unknown): ChatMessageDto['suggestions'] {
   const parsed = chatSuggestionsSchema.safeParse(value);
   return parsed.success ? parsed.data : null;

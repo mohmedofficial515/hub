@@ -15,6 +15,7 @@ import type {
   ChatStepDto,
   ChatSuggestionsDto,
   EngineStatus,
+  ProposedIdea,
   ProposedPlan,
   StartReason,
   TurnFailure,
@@ -80,6 +81,7 @@ export type Item =
   | { kind: 'protocol'; id: string; protocol: ChatProtocol; target: string; stages: Stage[] }
   | { kind: 'plan'; id: string; text: string; structured: ProposedPlan | null }
   | { kind: 'suggestions'; id: string; messageId: string; suggestions: ChatSuggestionsDto }
+  | { kind: 'idea'; id: string; messageId: string; idea: ProposedIdea }
   | { kind: 'report'; id: string; report: WorkReport }
   | { kind: 'refused'; id: string; cardKey: string; checks: { name: string; stepId: string }[] }
   | { kind: 'draft'; id: string; draft: ChatDocDraftDto; save: ChatApprovalDto | null }
@@ -256,6 +258,9 @@ function assistantItems(message: ChatMessageDto, before: ChatMessageDto | undefi
       structured: message.structuredPlan,
     });
   }
+  if (message.idea) {
+    items.push({ kind: 'idea', id: `${message.id}:idea`, messageId: message.id, idea: message.idea });
+  }
   if (message.suggestions && message.suggestions.items.length > 0) {
     items.push({
       kind: 'suggestions',
@@ -387,11 +392,13 @@ const BLOCKING = new Set<EngineState>([
 ]);
 export const engineBlocks = (engine: EngineState) => BLOCKING.has(engine);
 
-/** The card the running turn is on, for Follow the chat: the last Hub step that named one. */
+/** The card the running turn is on, for Follow the chat: the last Hub step that named one, or the card a `create_*` step just made, so a plan being drafted opens while it is written. */
 export function followTargetOf(message: ChatMessageDto | null): string | null {
   if (!message) return null;
   for (const step of [...message.steps].reverse()) {
     if (!step.name.startsWith('mcp__hub__')) continue;
+    const made = createdCard(step);
+    if (made) return made;
     const input = step.input as Record<string, unknown> | null;
     const named = input?.['card'] ?? input?.['key'];
     if (typeof named === 'string' && CARD_KEY.test(named)) return named;

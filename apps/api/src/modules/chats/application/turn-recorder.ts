@@ -376,6 +376,12 @@ export class TurnRecorder {
         });
         return { ...event, plan: text };
       }
+      case 'idea.proposed': {
+        // The Idea Studio's report (docs/15 §4): each call replaces the last, so the page shows the whole current report.
+        const idea = redactDeep(event.idea) as typeof event.idea;
+        await this.tx.chatMessage.update({ where: { id: messageId, workspaceId }, data: { idea } });
+        return { ...event, idea };
+      }
       case 'suggestions.proposed': {
         // Proposals create nothing: they wait on the message for the owner's Accept or Dismiss (D66).
         const items = redactDeep(event.items) as typeof event.items;

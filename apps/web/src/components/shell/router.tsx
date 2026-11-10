@@ -139,8 +139,55 @@ export interface OpenCardOptions {
   opener?: HTMLElement | null | undefined;
 }
 
-/** Open any card over the current view. The URL carries the key, so a refresh or link keeps it open. */
+// ── Cards that have a page of their own ─────────────────────────────────────────────────────────
+
+/**
+ * Some cards are read as a page, not in the sheet: a plan or an idea opens on Planning as `?plan=KEY`. The card store registers how to
+ * tell (it knows each cached card's type), so this module never imports it. A card it cannot tell yet opens in the sheet, and the sheet
+ * moves it to its page once it has loaded.
+ */
+let pageOf: (key: string) => ViewId | null = () => null;
+export const setCardPage = (fn: (key: string) => ViewId | null) => {
+  pageOf = fn;
+};
+export const cardPageOf = (key: string) => pageOf(key);
+
+/** The address of a card's own page: Planning's `?plan=` for a plan or an idea. */
+export function cardPageHref(
+  route: Route,
+  key: string,
+  opts: { action?: CardAction | null | undefined } = {},
+) {
+  return buildHref(route, 'planning', {
+    card: null,
+    query: { plan: key, action: opts.action ?? null, tab: null },
+  });
+}
+
+/** Go to a card's own page. From Planning itself it is a query change, so the lists keep their state in history. */
+export function openCardPage(
+  key: string,
+  opts: { action?: CardAction | null | undefined; replace?: boolean } = {},
+) {
+  rememberRecentCard(key);
+  const route = currentRoute();
+  const href = cardPageHref(route, key, opts);
+  if (route.view === 'planning') {
+    goQuery(href, opts.replace);
+    return;
+  }
+  if (router) {
+    if (opts.replace) router.replace(href);
+    else router.push(href);
+  } else window.location.assign(href);
+}
+
+/** Open any card over the current view. The URL carries the key, so a refresh or link keeps it open. A plan or an idea opens on its own page. */
 export function openCard(key: string, opts: OpenCardOptions = {}) {
+  if (pageOf(key)) {
+    openCardPage(key, { action: opts.action });
+    return;
+  }
   const route = currentRoute();
   // A link inside the sheet swaps the card; focus still returns to what opened the first one.
   if (!route.cardKey) {
@@ -187,7 +234,9 @@ type AppLinkProps = Omit<ComponentProps<'a'>, 'href'> &
 export function AppLink({ view, card, action, query, onClick, ...rest }: AppLinkProps) {
   const current = useRoute();
   const href = card
-    ? buildHref(current, current.view, { card, query: { action: action ?? null, tab: null } })
+    ? pageOf(card)
+      ? cardPageHref(current, card, { action })
+      : buildHref(current, current.view, { card, query: { action: action ?? null, tab: null } })
     : buildHref(current, view!, { card: null, query });
   const handle = (e: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(e);

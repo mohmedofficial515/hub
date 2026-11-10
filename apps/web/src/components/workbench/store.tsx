@@ -447,8 +447,14 @@ function openChatKeepingMode(id: string) {
 }
 
 /** Puts words in the composer and sets their mode. Nothing is sent (D51). */
-export function fillComposer(text: string, mode?: Mode) {
-  set((s) => ({ ...s, mode: mode ?? s.mode, fill: { text, tick: nextTick() } }));
+export function fillComposer(text: string, mode?: Mode, { show = false }: { show?: boolean } = {}) {
+  set((s) => ({
+    ...s,
+    mode: mode ?? s.mode,
+    fill: { text, tick: nextTick() },
+    // From a page, the panel comes forward so the words are seen where they wait.
+    ...(show ? { reveal: { chatId: s.activeId ?? '', kind: 'chat' as const, tick: nextTick() } } : {}),
+  }));
 }
 
 export function togglePin(chat: Pick<ChatDto, 'id' | 'pinned'>) {
@@ -590,7 +596,9 @@ const ENDED_RECHECK_MS = 60_000;
 const DEVICES_REFRESH_MS = 15_000;
 
 export function WorkbenchProvider({ children }: { children: ReactNode }) {
-  const { ws, cardKey } = useRoute();
+  const { ws, cardKey, view, query } = useRoute();
+  // A plan open as Planning's page is already shown, so Follow has nothing to open for it.
+  const planPage = view === 'planning' ? query.get('plan') : null;
   const client = useQueryClient();
   const t = useT<ChatMessages>('chat');
   const failed = useT('kit').actionFailed;
@@ -721,8 +729,8 @@ export function WorkbenchProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!followTarget || lastFollowed.current === followTarget) return;
     lastFollowed.current = followTarget;
-    follow(followTarget, cardKey ?? null);
-  }, [followTarget, cardKey]);
+    follow(followTarget, cardKey ?? planPage ?? null);
+  }, [followTarget, cardKey, planPage]);
 
   scope = { ws, client, words: t, failed, deviceId: device?.id ?? null, folder: folderNow };
 
@@ -765,7 +773,9 @@ export function useWorkContext() {
   const route = useRoute();
   const nav = useT('shell').nav;
   const session = useSession();
-  const card = useCardQuery(route.cardKey ?? '').data ?? null;
+  // A plan or an idea open as Planning's page is the open card too, so the chat attaches it as it attaches a card in the sheet.
+  const pageCard = route.view === 'planning' ? route.query.get('plan') : null;
+  const card = useCardQuery(route.cardKey ?? pageCard ?? '').data ?? null;
   const docParam = route.view === 'docs' ? route.query.get('doc') : null;
   const docCard = useCardQuery(docParam ?? '').data;
   const doc = docCard?.type === 'doc' ? { key: docCard.key, path: docCard.doc.path } : null;

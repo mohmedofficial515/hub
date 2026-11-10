@@ -16,7 +16,7 @@ const TOOLS = new Set([...toolTable.matchAll(/^ {2}(\w+): \{$/gm)].map((match) =
 const frontMatter = (text) => /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
 
 /** Hub's own protocols. Skills the owner adds on the Skills page live beside them and keep their own words (D64, D65). */
-const CORE = ['ask', 'doc', 'guide', 'plan', 'suggest', 'work'];
+const CORE = ['ask', 'doc', 'guide', 'idea', 'plan', 'suggest', 'work'];
 
 describe('the skills', () => {
   const names = readdirSync(SKILLS).filter((name) => CORE.includes(name));

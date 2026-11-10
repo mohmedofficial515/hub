@@ -6,6 +6,7 @@
 import { z } from 'zod';
 
 import { cardKeySchema } from './cards';
+import { flowDiagramSchema, proposedIdeaSchema } from './idea-studio';
 import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
 import { chatSuggestionSchema, chatSuggestionsSchema } from './suggestions';
@@ -188,20 +189,43 @@ export const workReportSchema = z.object({
 });
 export type WorkReport = z.infer<typeof workReportSchema>;
 
+/** How big a step is, so a plan can be read for effort at a glance: S is hours, M is a day or two, L is most of a week. */
+export const PLAN_STEP_SIZES = ['S', 'M', 'L'] as const;
+export type PlanStepSize = (typeof PLAN_STEP_SIZES)[number];
+
+const planText = z.string().trim().max(CHAT_LIMITS.reportText);
+
+/**
+ * `propose_plan`'s input. The title, the steps, the checks and the risks are what every plan has; the rest is what the Plan Studio shows when Claude sends
+ * it: the goal, the approach, what is left out, the questions only the owner can answer, a flow, and the sources it relied on. Every added field is optional,
+ * so a plan written before them still reads.
+ */
 export const proposedPlanSchema = z.object({
   title: z.string().trim().min(1).max(200),
+  goal: planText.optional(),
+  approach: planText.optional(),
   steps: z
     .array(
       z.object({
         title: z.string().trim().min(1).max(500),
         role: z.string().max(40).optional(),
         why: z.string().max(CHAT_LIMITS.reportText).optional(),
+        size: z.enum(PLAN_STEP_SIZES).optional(),
+        /** The steps, by number from 1, that must be done first. */
+        after: z.array(z.number().int().min(1).max(50)).max(10).optional(),
       }),
     )
     .min(1)
     .max(50),
   checks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
   risks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
+  outOfScope: z.array(planText).max(CHAT_LIMITS.reportChecks).optional(),
+  questions: z.array(planText).max(CHAT_LIMITS.reportChecks).optional(),
+  diagram: flowDiagramSchema.optional(),
+  sources: z
+    .array(z.object({ title: z.string().trim().min(1).max(300), url: z.url().max(2_000) }))
+    .max(20)
+    .optional(),
 });
 export type ProposedPlan = z.infer<typeof proposedPlanSchema>;
 
@@ -521,6 +545,8 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
     plan: z.string(),
     structured: proposedPlanSchema.optional(),
   }),
+  /** `propose_idea`: the Idea Studio's report. It creates nothing; the owner's Accept saves it as an idea card. */
+  z.object({ kind: z.literal('idea.proposed'), idea: proposedIdeaSchema }),
   /** A process is starting for this turn, which takes about ten seconds. */
   z.object({ kind: z.literal('turn.starting'), reason: z.enum(START_REASONS) }),
   /** D53: this Claude Code is newer than the one Hub tested. It runs, and the rules stay active. */
@@ -659,7 +685,14 @@ export type EngineStatus = z.infer<typeof engineStatusSchema>;
 /**
  * Hub's own commands a person can type, for the slash menu. A spec holds this to the core skills of `packages/team-pack/plugin/skills` (`HUB_CORE_SKILLS`): `guide` is background reading and not listed, and a command with no skill behind it must not appear. Skills the owner adds through the Skills page reach the menu from the engine's own list.
  */
-export const HUB_SKILLS = ['/hub:ask', '/hub:doc', '/hub:plan', '/hub:suggest', '/hub:work'] as const;
+export const HUB_SKILLS = [
+  '/hub:ask',
+  '/hub:doc',
+  '/hub:idea',
+  '/hub:plan',
+  '/hub:suggest',
+  '/hub:work',
+] as const;
 export type HubSkill = (typeof HUB_SKILLS)[number];
 
 // ── Requests ───────────────────────────────────────────────────────────────────────────────────────
@@ -896,6 +929,8 @@ export const chatMessageSchema = z.object({
   structuredPlan: proposedPlanSchema.nullable(),
   /** `propose_suggestions`' proposals and what the owner did with each (D66). Null when none were made. */
   suggestions: chatSuggestionsSchema.nullable(),
+  /** `propose_idea`'s report, the latest of the turn. Null when there is none. */
+  idea: proposedIdeaSchema.nullable(),
   engineFacts: engineFactsSchema.nullable(),
   changedFiles: z.array(changedFileSchema),
   steps: z.array(chatStepSchema),

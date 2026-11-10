@@ -1053,10 +1053,18 @@ export function WorkbenchLayout({
   const desktop = useMedia('(min-width: 1024px)');
   const vw = useWindowWidth();
   // A phone's or a portrait tablet's first visit lands on the page, not a panel that squeezes it (review N3, M5).
-  const [open, setOpenRaw] = useRemembered(
+  const [openSaved, setOpenSaved] = useRemembered(
     'open',
     opensByDefault(document.getElementById('hub-root')?.clientWidth || window.innerWidth),
   );
+  // The Idea Studio is its chat's own view, so the panel steps away while it is open and comes back after. Opening it there lasts only while the studio is shown.
+  const studio = route.view === 'planning' && !!route.query.get('studio') && !route.query.get('plan');
+  const [studioPeek, setStudioPeek] = useState(false);
+  useEffect(() => {
+    if (!studio) setStudioPeek(false);
+  }, [studio]);
+  const open = studio ? studioPeek : openSaved;
+  const setOpenRaw = studio ? setStudioPeek : setOpenSaved;
   const [width, setWidth] = useRemembered('width', DEFAULT_PANEL);
   const [view, setView] = useState<PanelView>('chat');
   const [dragging, setDragging] = useState(false);

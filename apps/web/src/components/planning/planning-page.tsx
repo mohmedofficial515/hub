@@ -2,31 +2,35 @@
 
 /**
  * @file planning-page.tsx
- * @description Planning (docs/15 §4): "what are we thinking about, and what is planned next?". It has no v5 design. The layout's reasons are in NOTES.md beside this file.
+ * @description Planning (docs/15 §4): "what are we thinking about, and what is planned next?". The lists, a plan's or an idea's own page, and the live draft a
+ * chat is writing all live on this one route. The layout's reasons are in NOTES.md beside this file.
  */
-import { Lightbulb, Plus, Route, SearchX } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { CheckCheck, Hourglass, Lightbulb, Loader, Route, SearchX, Sparkles } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 import {
   Button,
-  cn,
+  type CardAction,
   CopyButton,
   EmptyState,
   ErrorState,
   FilterBar,
   type IdeaCard,
   LoadingRegion,
+  num,
   PageContainer,
   PageHeader,
   type PlanCard,
   plural,
   rememberMine,
   setQuery,
+  type SheetTab,
   Skeleton,
   SkeletonRows,
   useFilter,
   useKeyboardList,
   useLocale,
+  useRoute,
   useSession,
   useT,
 } from '@/components/kit';
@@ -38,13 +42,18 @@ import {
   CLOSED_PLANS,
   isMineHere,
   pickFocal,
+  progressOf,
 } from '@/features/planning/model';
 import { useIdeasQuery, usePlansQuery } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 
+import { PlanningDetail } from './detail';
+import { PlanningDraft } from './draft';
+import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
-import { NewIdeaDialog, NewPlanDialog } from './new-cards';
-import { FocalCard, ideaIconClass, IdeaRow, Lane, type LaneGroup, planIconClass, PlanRow } from './parts';
+import { DraftBanner, FocalCard, IdeaRow, Lane, type LaneGroup, PlanRow, StatsStrip } from './parts';
+import { IdeaStudio } from './studio/idea-studio';
+import { PlanStudio } from './studio/plan-studio';
 
 type Scope = 'active' | 'closed';
 
@@ -58,14 +67,52 @@ function groupBy<C extends IdeaCard | PlanCard>(rows: C[], statuses: readonly st
     .filter((group) => group.rows.length > 0);
 }
 
+/** The draft a Plan-mode turn opened on its own, once per reply, so going back to the lists is not undone by the next render. */
+let autoOpened: string | null = null;
+
+/** A Plan-mode turn that starts while the lists are shown opens its live draft, so the plan is written on the page as it comes. */
+function useOpenDraftWhenWriting(onLists: boolean) {
+  const draft = useLiveDraft();
+  const writing = draft?.writing && !draft.studio ? draft.messageId : null;
+  useEffect(() => {
+    if (!writing || autoOpened === writing) return;
+    autoOpened = writing;
+    if (onLists) setQuery({ draft: '1' }, { replace: false });
+  }, [writing, onLists]);
+}
+
+/**
+ * Planning: the lists, a plan's or an idea's own page (`?plan=KEY`), or the live draft a chat is writing (`?draft=1`). They share one route, so the lists keep
+ * their filters in history while a page is open.
+ */
 export function PlanningPage() {
+  const { query } = useRoute();
+  const plan = query.get('plan');
+  const draft = query.get('draft');
+  const studio = query.get('studio');
+  useOpenDraftWhenWriting(!plan && !draft && !studio);
+  if (plan) {
+    return (
+      <PlanningDetail
+        key={plan}
+        cardKey={plan}
+        action={(query.get('action') || null) as CardAction | null}
+        tab={(query.get('tab') as SheetTab | null) ?? 'details'}
+      />
+    );
+  }
+  if (studio === 'idea') return <IdeaStudio />;
+  if (studio === 'plan') return <PlanStudio />;
+  if (draft) return <PlanningDraft />;
+  return <PlanningLists />;
+}
+
+function PlanningLists() {
   const t = useT<PlanningMessages>('planning');
   const locale = useLocale();
   const { me, roles } = useSession();
   const ideasQuery = useIdeasQuery();
   const plansQuery = usePlansQuery();
-  const [newIdea, setNewIdea] = useState(false);
-  const [newPlan, setNewPlan] = useState(false);
   const heading = useRef<HTMLDivElement>(null);
 
   const scope = (useFilter('scope') as Scope | null) ?? 'active';
@@ -101,26 +148,30 @@ export function PlanningPage() {
   ];
   const list = useKeyboardList({ ids, emptyFocusRef: heading });
 
+  const activePlans = plans.filter((c) => (ACTIVE_PLANS as readonly string[]).includes(c.status));
   const openIdeas = ideas.filter((c) => (ACTIVE_IDEAS as readonly string[]).includes(c.status)).length;
-  const movingPlans = plans.filter((c) => (ACTIVE_PLANS as readonly string[]).includes(c.status)).length;
+  const movingPlans = activePlans.length;
   const closedCount = ideas.length + plans.length - openIdeas - movingPlans;
   const summary = `${plural(openIdeas, locale, t.summary.ideas)}${plural(movingPlans, locale, t.summary.plans)}`;
-
-  const dialogs = (
-    <>
-      <NewIdeaDialog open={newIdea} onOpenChange={setNewIdea} />
-      <NewPlanDialog open={newPlan} onOpenChange={setNewPlan} />
-    </>
+  const steps = activePlans.reduce(
+    (sum, plan) => {
+      const { done, total } = progressOf(plan);
+      return { done: sum.done + done, total: sum.total + total };
+    },
+    { done: 0, total: 0 },
   );
 
   const newButtons = (fillFirst = false) => (
     <>
-      <Button variant={fillFirst ? 'primary' : 'outline'} onClick={() => setNewIdea(true)}>
-        <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+      <Button
+        variant={fillFirst ? 'primary' : 'outline'}
+        onClick={() => setQuery({ studio: 'idea', chat: null }, { replace: false })}
+      >
+        <Sparkles aria-hidden className="size-4" strokeWidth={1.75} />
         {t.newIdea}
       </Button>
-      <Button onClick={() => setNewPlan(true)}>
-        <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+      <Button onClick={() => setQuery({ studio: 'plan', chat: null }, { replace: false })}>
+        <Route aria-hidden className="size-4" strokeWidth={1.75} />
         {t.newPlan}
       </Button>
     </>
@@ -146,11 +197,16 @@ export function PlanningPage() {
 
   if (ideasQuery.isPending || plansQuery.isPending) {
     return (
-      <PageContainer>
+      <PageContainer className="gap-5 md:gap-6">
         <PageHeader title={t.title} meta={<Skeleton className="mt-1.5 h-4 w-56 max-w-full" />} />
         <LoadingRegion label={t.loading}>
+          <div className="grid grid-cols-2 gap-2 @page-md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
+          </div>
           <Skeleton className="h-9 w-48 max-w-full" />
-          <Skeleton className="h-56 w-full rounded-lg" />
+          <Skeleton className="h-52 w-full rounded-2xl" />
           <div className="grid gap-6 xl:@page-xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <div className="flex flex-col gap-2">
               <Skeleton className="h-6 w-40" />
@@ -170,6 +226,7 @@ export function PlanningPage() {
     return (
       <PageContainer>
         <PageHeader title={t.title} />
+        <DraftBanner />
         <EmptyState
           size="page"
           icon={Lightbulb}
@@ -184,17 +241,32 @@ export function PlanningPage() {
         <div className="flex justify-center">
           <DeletedLink type="idea" />
         </div>
-        {dialogs}
       </PageContainer>
     );
   }
 
   const nothing = shownIdeas.length === 0 && shownPlans.length === 0;
   const filtered = mine || !!q;
+  const waiting = plans.filter((c) => c.status === 'in_review').length;
+  const inProgress = plans.filter((c) => c.status === 'in_progress').length;
 
   return (
-    <PageContainer>
+    <PageContainer className="gap-5 md:gap-6">
       <PageHeader title={t.title} meta={summary} actions={newButtons()} />
+      <StatsStrip
+        label={t.stats.label}
+        items={[
+          { label: t.stats.waiting, value: num(waiting, locale), icon: Hourglass },
+          { label: t.stats.moving, value: num(inProgress, locale), icon: Loader },
+          { label: t.stats.ideas, value: num(openIdeas, locale), icon: Lightbulb },
+          {
+            label: t.stats.steps,
+            value: `${num(steps.done, locale)} / ${num(steps.total, locale)}`,
+            icon: CheckCheck,
+          },
+        ]}
+      />
+      <DraftBanner />
       <div ref={heading} tabIndex={-1} className="outline-none">
         <FilterBar<Scope>
           status={{
@@ -232,15 +304,11 @@ export function PlanningPage() {
       ) : (
         <>
           {focal && <FocalCard focal={focal} rowProps={list.rowProps} />}
-          <div
-            className={cn(
-              'grid items-start gap-x-8 gap-y-8 xl:@page-xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]',
-            )}
-          >
+          <div className="grid items-start gap-x-6 gap-y-8 xl:@page-xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
             <Lane<IdeaCard>
               id="lane-ideas"
               icon={Lightbulb}
-              iconClass={ideaIconClass}
+              type="idea"
               title={scope === 'active' ? t.lanes.ideas : t.lanes.closedIdeas}
               groups={ideaGroups}
               empty={
@@ -253,7 +321,7 @@ export function PlanningPage() {
             <Lane<PlanCard>
               id="lane-plans"
               icon={Route}
-              iconClass={planIconClass}
+              type="plan"
               title={scope === 'active' ? t.lanes.plans : t.lanes.closedPlans}
               groups={planGroups}
               empty={
@@ -266,7 +334,6 @@ export function PlanningPage() {
           </div>
         </>
       )}
-      {dialogs}
     </PageContainer>
   );
 }

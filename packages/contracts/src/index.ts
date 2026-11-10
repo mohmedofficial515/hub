@@ -12,6 +12,7 @@ export * from './devices';
 export * from './do-next';
 export * from './errors';
 export * from './events';
+export * from './idea-studio';
 export * from './identity';
 export * from './knowledge';
 export * from './mail';

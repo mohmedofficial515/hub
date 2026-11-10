@@ -288,7 +288,7 @@ function PlanEditForm({ card }: { card: PlanCard }) {
   );
 }
 
-function Revisions({ card, canRestore }: { card: PlanCard; canRestore: boolean }) {
+export function Revisions({ card, canRestore }: { card: PlanCard; canRestore: boolean }) {
   const p = useT<PlanWords>('planning').plan;
   const kit = useT(kitMessages);
   const locale = useLocale();

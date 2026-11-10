@@ -249,6 +249,33 @@ describe('PlanningPage', () => {
     expect(screen.getByText('What is planned next')).toBeTruthy();
   });
 
+  it('opens a plan as its own page, with its stage, its steps and its approach', async () => {
+    search = 'plan=P-1';
+    const steps = [
+      { id: 's1', title: 'Write it', done: true, taskKey: 'T-1' },
+      { id: 's2', title: 'Ship it', done: false },
+    ];
+    const plan = row(
+      'P-1',
+      'plan',
+      'in_review',
+      { steps },
+      { body: '## Why\n\nThe approach', allowedActions: ['plan.approve', 'plan.update'] },
+    );
+    stubFetch((url) => {
+      const path = url.pathname;
+      if (path.endsWith('/cards/P-1')) return { body: { data: plan } };
+      if (path.endsWith('/events') || path.endsWith('/comments')) return page([]);
+      return answer({ '/ideas': [], '/plans': [plan] })(url);
+    });
+    show(<PlanningPage />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Title P-1' })).toBeTruthy();
+    expect(screen.getByText('Write it')).toBeTruthy();
+    expect(screen.getByText('The approach')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Planning' })).toBeTruthy();
+    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('In review');
+  });
+
   it('draws no coloured edge on any card', async () => {
     stubFetch(
       answer({

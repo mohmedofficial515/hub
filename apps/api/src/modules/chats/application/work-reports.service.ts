@@ -8,8 +8,12 @@ import {
   capText,
   type ChangedFile,
   CHAT_LIMITS,
+  cleanIdea,
+  cleanPlan,
+  ideaToMarkdown,
   type MemberActor,
   planToMarkdown,
+  type ProposedIdea,
   type ProposedPlan,
   redactDeep,
   type ReportWorkInput,
@@ -122,12 +126,30 @@ export class WorkReportsService {
     toolUseId: string | undefined,
     plan: ProposedPlan,
   ): Promise<{ inPanel: boolean; text: string }> {
-    const clean = redactDeep(plan) as ProposedPlan;
+    const clean = cleanPlan(redactDeep(plan) as ProposedPlan);
     const text = capText(planToMarkdown(clean), CHAT_LIMITS.messageChars).text;
     const turn = await this.turns.panelTurn(actor, toolUseId);
     if (turn) {
       await this.turns.post(turn.chatId, { kind: 'plan.proposed', plan: text, structured: clean });
     }
+    return { inPanel: turn !== null, text };
+  }
+
+  /** `propose_idea` (the Idea Studio): on a panel turn, an event with the report; outside, the words to show. Nothing else changes. */
+  async proposeIdea(
+    actor: MemberActor,
+    toolUseId: string | undefined,
+    idea: ProposedIdea,
+  ): Promise<{ inPanel: boolean; text: string }> {
+    const clean = cleanIdea(redactDeep(idea) as ProposedIdea);
+    const text = capText(
+      `# ${clean.title}
+
+${ideaToMarkdown(clean)}`,
+      CHAT_LIMITS.messageChars,
+    ).text;
+    const turn = await this.turns.panelTurn(actor, toolUseId);
+    if (turn) await this.turns.post(turn.chatId, { kind: 'idea.proposed', idea: clean });
     return { inPanel: turn !== null, text };
   }
 

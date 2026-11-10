@@ -2,9 +2,11 @@
 
 /**
  * @file parts.tsx
- * @description The Planning page's pieces: the focal card, a lane, an idea row, a plan row and the step meter. Why they look this way: NOTES.md beside this file.
+ * @description The Planning page's pieces: the numbers at a glance, the live draft's banner, the focal card, a lane, an idea row, a plan row and the step meter.
+ * Every card opens its own page, not the sheet. Why they look this way: NOTES.md beside this file.
  */
-import { ArrowUpRight, Check, Circle, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Check, Circle, type LucideIcon, Sparkles } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import {
   actionName,
@@ -12,7 +14,6 @@ import {
   Bidi,
   Button,
   CardChip,
-  CardRow,
   cn,
   fmt,
   focusRing,
@@ -28,6 +29,7 @@ import {
   RoleBadge,
   RowAction,
   StatusBadge,
+  stretchedFocus,
   TypeBadge,
   typeClass,
   useCardQuery,
@@ -39,7 +41,10 @@ import {
   useT,
 } from '@/components/kit';
 import { excerptOf, type Focal, isMineHere, nextActionOf, progressOf } from '@/features/planning/model';
+import { useSavedProposal } from '@/features/planning/proposal';
 
+import { LivePill, ProgressMeter } from './detail-parts';
+import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
 
 type RowProps = ReturnType<typeof useKeyboardList>['rowProps'];
@@ -50,17 +55,84 @@ const STEPS_ON_FOCAL = 5;
 export function StepMeter({ done, total, className }: { done: number; total: number; className?: string }) {
   const t = useT<PlanningMessages>('planning');
   const locale = useLocale();
-  const percent = total ? Math.round((done / total) * 100) : 0;
   return (
     <span className={cn('inline-flex items-center gap-2', className)}>
       <span className="sr-only">{t.row.steps}</span>
+      <ProgressMeter done={done} total={total} className="w-16" />
       <span className="tabular-nums">
         {fmt(t.row.progress, { done: num(done, locale), total: num(total, locale) })}
       </span>
-      <span aria-hidden className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-        <span className="block h-full rounded-full bg-foreground" style={{ width: `${percent}%` }} />
-      </span>
     </span>
+  );
+}
+
+/** Four numbers the page already has, so the owner reads its state before its rows. Nothing here is estimated. */
+export function StatsStrip({
+  items,
+  label,
+}: {
+  items: { label: string; value: ReactNode; icon: LucideIcon }[];
+  label: string;
+}) {
+  return (
+    <dl aria-label={label} className="grid grid-cols-2 gap-2 @page-md:grid-cols-4">
+      {items.map(({ label: name, value, icon: Icon }) => (
+        <div
+          key={name}
+          className="flex min-w-0 flex-col gap-1 rounded-xl border border-border bg-card px-3 py-2.5 shadow-xs"
+        >
+          <dt className="flex min-w-0 items-center gap-1.5 text-caption text-muted-foreground">
+            <Icon aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
+            <span className="truncate">{name}</span>
+          </dt>
+          <dd className="text-title-sm font-semibold text-foreground tabular-nums">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** The plan a chat is drafting, or just proposed, with the way to watch it as a page. Gone once that proposal is saved. */
+export function DraftBanner() {
+  const w = useT<PlanningMessages>('planning');
+  const draft = useLiveDraft();
+  const saved = useSavedProposal(draft?.proposal?.id);
+  if (!draft || saved) return null;
+  const title = draft.proposal?.structured?.title;
+  return (
+    <div
+      data-planning-draft
+      className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3 shadow-xs"
+    >
+      <span
+        aria-hidden
+        className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+      >
+        <Sparkles className="size-4" strokeWidth={1.75} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-body-sm font-semibold text-foreground">
+          {draft.writing ? w.liveBanner.drafting : w.liveBanner.proposed}
+        </p>
+        {title && (
+          <p className="truncate text-caption text-muted-foreground">
+            <Bidi>{title}</Bidi>
+          </p>
+        )}
+      </div>
+      {draft.writing && <LivePill label={w.draft.writing} />}
+      <AppLink
+        view="planning"
+        query={draft.studio ? { studio: 'plan', chat: draft.chatId } : { draft: '1' }}
+        className={cn(
+          'inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-body-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent max-md:h-11',
+          focusRing,
+        )}
+      >
+        {w.liveBanner.open}
+        <ArrowUpRight aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
+      </AppLink>
+    </div>
   );
 }
 
@@ -94,20 +166,27 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
     <article
       {...rowProps(card.key)}
       aria-labelledby={titleId}
-      className="grid gap-x-8 gap-y-4 rounded-lg border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 lg:@page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      className="grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
     >
-      <div className="flex min-w-0 flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-body-sm text-muted-foreground">
-          <span className="font-semibold text-foreground">{action ? t.focal.label : t.focal.moving}</span>
+      <div className="flex min-w-0 flex-col gap-2.5">
+        <div className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
+          <span
+            className={cn(
+              'inline-flex h-5.5 items-center rounded-full px-2 font-semibold',
+              action ? 'bg-primary/10 text-primary' : 'bg-muted text-foreground',
+            )}
+          >
+            {action ? t.focal.label : t.focal.moving}
+          </span>
           <TypeBadge type={card.type} />
           <Ltr mono className="text-caption">
             {card.key}
           </Ltr>
           <StatusBadge status={card.status} />
           {(card.priority === 'P0' || card.priority === 'P1') && <PriorityBadge priority={card.priority} />}
-          {isMineHere(card, me.id, roles) && <MineMark />}
+          {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
         </div>
-        <h2 id={titleId} className="text-title font-semibold text-pretty text-foreground">
+        <h2 id={titleId} className="text-title-sm font-semibold text-pretty text-foreground">
           <AppLink
             card={card.key}
             className={cn('hit-44 rounded-sm underline-offset-4 hover:underline', focusRing)}
@@ -115,7 +194,7 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
             <Bidi>{card.title}</Bidi>
           </AppLink>
         </h2>
-        <p className="line-clamp-3 max-w-prose text-body text-muted-foreground">
+        <p className="line-clamp-3 max-w-prose text-body-sm text-muted-foreground">
           <Bidi>{text || noText}</Bidi>
         </p>
         <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-1">
@@ -138,34 +217,31 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
       </div>
 
       {isPlan && (
-        <div className="flex min-w-0 flex-col gap-2 border-t border-border pt-3 lg:border-none lg:pt-0">
+        <div className="flex min-w-0 flex-col gap-2.5 rounded-xl bg-muted/50 p-3">
           {progress && progress.total > 0 ? (
             <>
-              <p className="flex flex-wrap items-center gap-2 text-body-sm font-medium text-foreground">
-                {fmt(t.focal.progress, {
-                  done: num(progress.done, locale),
-                  total: num(progress.total, locale),
-                })}
-                <span aria-hidden className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                  <span
-                    className="block h-full rounded-full bg-foreground"
-                    style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
-                  />
-                </span>
-              </p>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-caption font-medium text-foreground">
+                  {fmt(t.focal.progress, {
+                    done: num(progress.done, locale),
+                    total: num(progress.total, locale),
+                  })}
+                </p>
+                <ProgressMeter done={progress.done} total={progress.total} />
+              </div>
               <ul className="flex flex-col gap-1.5">
                 {steps.map((step) => (
-                  <li key={step.id} className="flex items-start gap-2 text-body-sm text-foreground">
+                  <li key={step.id} className="flex items-start gap-2 text-caption text-foreground">
                     {step.done ? (
                       <Check
                         aria-hidden
-                        className="mt-0.5 size-4 shrink-0 text-success-soft-foreground"
-                        strokeWidth={1.75}
+                        className="mt-0.5 size-3.5 shrink-0 text-success-soft-foreground"
+                        strokeWidth={2}
                       />
                     ) : (
                       <Circle
                         aria-hidden
-                        className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                        className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
                         strokeWidth={1.75}
                       />
                     )}
@@ -177,13 +253,13 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
                 ))}
               </ul>
               {more > 0 && (
-                <p className="text-body-sm text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   {plural(more, locale, t.focal.moreSteps)}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-body-sm text-muted-foreground">{t.focal.noSteps}</p>
+            <p className="text-caption text-muted-foreground">{t.focal.noSteps}</p>
           )}
         </div>
       )}
@@ -191,15 +267,15 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
   );
 }
 
-/** A status inside a lane. The rule under it is neutral, like every rule on the page. */
+/** A status inside a lane. The rule beside it is neutral, like every rule on the page. */
 function GroupHeading({ id, title, count }: { id: string; title: string; count: number }) {
   const locale = useLocale();
   return (
     <div className="flex items-center gap-2">
-      <h3 id={id} className="text-body-sm font-semibold text-muted-foreground">
+      <h3 id={id} className="text-caption font-semibold text-muted-foreground">
         {title}
       </h3>
-      <span className="rounded-full bg-muted px-2 text-caption font-medium text-muted-foreground tabular-nums">
+      <span className="rounded-full bg-muted px-1.5 text-caption font-medium text-muted-foreground tabular-nums">
         {num(count, locale)}
       </span>
       <span aria-hidden className="h-px flex-1 bg-border" />
@@ -207,35 +283,79 @@ function GroupHeading({ id, title, count }: { id: string; title: string; count: 
   );
 }
 
+/** One row on Planning: a compact card that opens the card's own page through a stretched link. Its button sits above the link. */
+function PlanningRow({
+  card,
+  rowProps,
+  meta,
+  below,
+  button,
+}: {
+  card: IdeaCard | PlanCard;
+  rowProps: RowProps;
+  meta?: ReactNode;
+  below?: ReactNode;
+  button?: ReactNode;
+}) {
+  const kit = useT(kitMessages);
+  const { me, roles } = useSession();
+  const wide = usePageWide(768);
+  const id = `row-${card.key}`;
+  return (
+    <article
+      {...rowProps(card.key)}
+      aria-labelledby={id}
+      className="relative flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-xs outline-none transition-[background-color,box-shadow] duration-150 hover:bg-accent/50 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+    >
+      <div className="flex min-w-0 items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p id={id} className="text-body-sm font-semibold text-pretty text-foreground">
+            <AppLink
+              card={card.key}
+              className={cn(
+                'underline-offset-4 outline-none after:absolute after:inset-0 after:rounded-xl hover:underline',
+                stretchedFocus,
+              )}
+            >
+              <Bidi>{card.title}</Bidi>
+            </AppLink>
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted-foreground">
+            <span className="sr-only">{kit.types[card.type]}</span>
+            <Ltr mono className="text-caption">
+              {card.key}
+            </Ltr>
+            {(card.priority === 'P0' || card.priority === 'P1') && <PriorityBadge priority={card.priority} />}
+            {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
+            {meta}
+          </div>
+        </div>
+        {wide && button && <div className="relative z-10 shrink-0">{button}</div>}
+      </div>
+      {below}
+      {!wide && button && <div className="relative z-10 flex *:flex-1">{button}</div>}
+    </article>
+  );
+}
+
 export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps }) {
   const t = useT<PlanningMessages>('planning');
   const { me, roles } = useSession();
-  const wide = usePageWide(768);
   const next = nextActionOf(card, roles, me.id);
   const text = excerptOf(card.idea.problem, 140);
-  const button = next && (
-    <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />
-  );
   return (
-    <CardRow
-      {...rowProps(card.key)}
-      cardKey={card.key}
-      type="idea"
-      title={card.title}
-      titleId={`row-${card.key}`}
-      hideType
-      priority={card.priority === 'P0' || card.priority === 'P1' ? card.priority : undefined}
-      meta={
-        <>
-          {isMineHere(card, me.id, roles) && <MineMark />}
-          {card.idea.role && <RoleBadge role={card.idea.role} outline={false} className="text-body-sm" />}
-          <p className="line-clamp-1 basis-full text-body-sm text-muted-foreground">
-            <Bidi>{text || t.row.noText}</Bidi>
-          </p>
-          {!wide && button && <div className="relative z-10 mt-1 flex basis-full *:flex-1">{button}</div>}
-        </>
+    <PlanningRow
+      card={card}
+      rowProps={rowProps}
+      meta={card.idea.role && <RoleBadge role={card.idea.role} outline={false} className="text-caption" />}
+      below={
+        <p className="line-clamp-2 text-caption text-muted-foreground">
+          <Bidi>{text || t.row.noText}</Bidi>
+        </p>
       }
-      action={wide ? button : undefined}
+      button={
+        next && <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />
+      }
     />
   );
 }
@@ -243,29 +363,20 @@ export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps
 export function PlanRow({ card, rowProps }: { card: PlanCard; rowProps: RowProps }) {
   const t = useT<PlanningMessages>('planning');
   const { me, roles } = useSession();
-  const wide = usePageWide(768);
   const next = nextActionOf(card, roles, me.id);
   const { done, total } = progressOf(card);
-  const button = next && (
-    <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />
-  );
   return (
-    <CardRow
-      {...rowProps(card.key)}
-      cardKey={card.key}
-      type="plan"
-      title={card.title}
-      titleId={`row-${card.key}`}
-      hideType
-      priority={card.priority === 'P0' || card.priority === 'P1' ? card.priority : undefined}
-      meta={
-        <>
-          {isMineHere(card, me.id, roles) && <MineMark />}
+    <PlanningRow
+      card={card}
+      rowProps={rowProps}
+      below={
+        <div className="text-caption text-muted-foreground">
           {total > 0 ? <StepMeter done={done} total={total} /> : <span>{t.row.noSteps}</span>}
-          {!wide && button && <div className="relative z-10 mt-1 flex basis-full *:flex-1">{button}</div>}
-        </>
+        </div>
       }
-      action={wide ? button : undefined}
+      button={
+        next && <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />
+      }
     />
   );
 }
@@ -279,7 +390,7 @@ export interface LaneGroup<C> {
 export function Lane<C extends IdeaCard | PlanCard>({
   id,
   icon: Icon,
-  iconClass,
+  type,
   title,
   groups,
   empty,
@@ -287,20 +398,38 @@ export function Lane<C extends IdeaCard | PlanCard>({
 }: {
   id: string;
   icon: LucideIcon;
-  iconClass: string;
+  type: 'idea' | 'plan';
   title: string;
   groups: LaneGroup<C>[];
   empty: React.ReactNode;
   renderRow: (card: C) => React.ReactNode;
 }) {
   const t = useT<PlanningMessages>('planning');
+  const locale = useLocale();
   const words = t.groups as Record<string, string>;
+  const count = groups.reduce((sum, g) => sum + g.rows.length, 0);
   return (
     <section aria-labelledby={id} className="flex min-w-0 flex-col gap-3">
-      <h2 id={id} className="flex items-center gap-2 text-title-sm font-semibold text-foreground">
-        <Icon aria-hidden className={cn('size-5', iconClass)} strokeWidth={1.75} />
-        {title}
-      </h2>
+      <div className="flex items-center gap-2.5">
+        <span
+          aria-hidden
+          className={cn(
+            'flex size-8 shrink-0 items-center justify-center rounded-lg',
+            typeClass[type].soft,
+            typeClass[type].fg,
+          )}
+        >
+          <Icon className="size-4" strokeWidth={1.75} />
+        </span>
+        <h2 id={id} className="text-title-sm font-semibold text-foreground">
+          {title}
+        </h2>
+        {count > 0 && (
+          <span className="rounded-full bg-muted px-2 text-caption font-medium text-muted-foreground tabular-nums">
+            {num(count, locale)}
+          </span>
+        )}
+      </div>
       {groups.length === 0
         ? empty
         : groups.map((group) => (
@@ -320,6 +449,3 @@ export function Lane<C extends IdeaCard | PlanCard>({
     </section>
   );
 }
-
-export const ideaIconClass = typeClass.idea.fg;
-export const planIconClass = typeClass.plan.fg;

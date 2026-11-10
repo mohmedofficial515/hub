@@ -41,6 +41,7 @@ const message = (over: Partial<ChatMessageDto>): ChatMessageDto => ({
   stages: [],
   plan: null,
   structuredPlan: null,
+  idea: null,
   suggestions: null,
   changedFiles: [],
   steps: [],
@@ -352,6 +353,24 @@ describe('followTargetOf', () => {
         }),
       ),
     ).toBe('GTV-2');
+  });
+
+  it('takes the card a create step just made, so a plan opens while it is written', () => {
+    expect(
+      followTargetOf(
+        message({
+          steps: [
+            step({ name: 'mcp__hub__get_card', input: { key: 'GTV-1' } }),
+            step({
+              name: 'mcp__hub__create_plan',
+              input: { title: 'X' },
+              status: 'done',
+              output: 'Saved GTV-9',
+            }),
+          ],
+        }),
+      ),
+    ).toBe('GTV-9');
   });
 
   it('has nothing with no card named', () => {

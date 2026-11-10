@@ -5,7 +5,7 @@
  * @description What a turn ends in: the live checklist, a plan, a report with verified apart from claimed, a question, and a doc draft with its flags and duplicates (docs/16 §7.1, §7.2). Ported from the approved design, `apps/lab/hub/workbench/v6-edge-strip-port/core/protocol.tsx`.
  */
 import type { CheckRun, DocDuplicate, ReportedCheck, WorkReport } from '@hub/contracts';
-import { CARD_LIMITS, hasNoTimeLimit, openFlags, planToMarkdown, planToPrompt } from '@hub/contracts';
+import { hasNoTimeLimit, openFlags, planToPrompt } from '@hub/contracts';
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -38,7 +38,6 @@ import {
   Bidi,
   Button,
   cn,
-  createCard,
   fmt,
   focusRing,
   kitMessages,
@@ -65,6 +64,7 @@ import {
   type StageState,
 } from '@/features/chat/thread-items';
 import { useRestoreDocRevision } from '@/features/docs/queries';
+import { saveProposal, useSavedProposal } from '@/features/planning/proposal';
 import { isHubError } from '@/lib/api/errors';
 
 import {
@@ -89,7 +89,6 @@ import { clockOf, DiffView, duration } from './thread';
 import type { ChatMessages, PanelWords } from './words';
 
 type Report = WorkReport;
-const CARD_TITLE_MAX = CARD_LIMITS.title;
 const counted = (n: number, locale: 'ar' | 'en', forms: Parameters<typeof plural>[2]) =>
   fmt(plural(n, locale, forms), { n });
 const stageName = (t: PanelWords, id: string) => (t.pro.stages as Record<string, string>)[id] ?? id;
@@ -266,43 +265,18 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
   // `planToPrompt`: what Run this plan sends, visible in the composer until the owner sends it (D51).
   const prompt = structured ? planToPrompt(structured) : `${p.promptText}\n\n${item.text}`;
   const steps = structured?.steps.length ?? 0;
-  /** The plan card this proposal became, once saved to Planning. */
-  const [savedKey, setSavedKey] = useState<string | null>(null);
+  /** The plan card this proposal became, once saved to Planning, here or on Planning's live draft page. */
+  const savedKey = useSavedProposal(item.id);
   const [saving, setSaving] = useState(false);
-  /**
-   * Save to Planning: a draft plan card through the same create path as New plan. The steps keep their titles and a role Hub knows; the whole proposal, with each
-   * step's reason, the checks and the risks, is the plan's text. A plan that came only as words is saved as its text, titled by its first line.
-   */
   const saveToPlanning = async () => {
     if (saving || savedKey) return;
     setSaving(true);
-    const cap = (text: string) => text.trim().slice(0, CARD_TITLE_MAX);
-    const firstLine =
-      item.text
-        .split('\n')
-        .find((line) => line.trim())
-        ?.replace(/^#+\s*/, '') ?? '';
     try {
-      const card = await createCard(
-        structured
-          ? {
-              type: 'plan',
-              title: cap(structured.title),
-              body: planToMarkdown(structured),
-              detail: {
-                steps: structured.steps.map((s) => ({
-                  title: cap(s.title),
-                  ...(s.role && s.role in kit.roles ? { role: s.role as Role } : {}),
-                })),
-              },
-            }
-          : { type: 'plan', title: cap(firstLine) || p.title, body: item.text, detail: { steps: [] } },
-      );
-      setSavedKey(card.key);
+      const key = await saveProposal(item, p.title);
       showToast({
         tone: 'success',
-        message: fmt(p.savedToast, { key: card.key }),
-        action: { label: p.openSaved, onSelect: () => openCard(card.key) },
+        message: fmt(p.savedToast, { key }),
+        action: { label: p.openSaved, onSelect: () => openCard(key) },
       });
     } catch (error) {
       showToast({ tone: 'error', message: isHubError(error) ? error.message : kit.actionFailed });

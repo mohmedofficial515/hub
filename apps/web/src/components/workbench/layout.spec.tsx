@@ -102,6 +102,7 @@ const chat = {
       stages: [],
       plan: null,
       structuredPlan: null,
+      idea: null,
       suggestions: null,
       changedFiles: [],
       steps: [],
@@ -132,6 +133,7 @@ const chat = {
       stages: [],
       plan: null,
       structuredPlan: null,
+      idea: null,
       suggestions: null,
       changedFiles: [],
       steps: [

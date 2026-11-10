@@ -3,7 +3,14 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { applyClaimAnswers, lineDiff, openFlags, planToMarkdown, planToPrompt } from './chat-results';
+import {
+  applyClaimAnswers,
+  cleanPlan,
+  lineDiff,
+  openFlags,
+  planToMarkdown,
+  planToPrompt,
+} from './chat-results';
 
 const claim = (text: string, answer: 'confirm' | 'remove' | 'keep_flagged' | null, status = 'unverified') =>
   ({ id: text, text, status, source: null, answer }) as Parameters<typeof applyClaimAnswers>[1][number];
@@ -111,5 +118,46 @@ describe('the line diff', () => {
     const after = Array.from({ length: 3_000 }, (_, index) => `new ${index}`).join('\n');
     const lines = lineDiff(before, after);
     expect(lines).toHaveLength(6_000);
+  });
+});
+
+describe('a Plan Studio plan', () => {
+  const plan = {
+    title: 'Refund tracker',
+    goal: 'Customers see where their money is.',
+    approach: 'Four stages over the existing states.',
+    steps: [
+      { title: 'Map states', role: 'pm', size: 'S' as const },
+      { title: 'Store transitions', role: 'backend', size: 'M' as const, after: [1, 1, 3, 9] },
+    ],
+    outOfScope: ['Guests'],
+    questions: ['Which channels?'],
+    diagram: {
+      nodes: [
+        { id: 'a', label: 'Customer' },
+        { id: 'b', label: 'Refund' },
+      ],
+      edges: [
+        { from: 'a', to: 'b' },
+        { from: 'a', to: 'ghost' },
+      ],
+    },
+    sources: [{ title: 'Stripe', url: 'https://docs.stripe.com/refunds' }],
+  };
+
+  it('keeps each step after earlier steps only, and edges between nodes that exist', () => {
+    const clean = cleanPlan(plan);
+    expect(clean.steps[1]?.after).toEqual([1]);
+    expect(clean.diagram?.edges).toEqual([{ from: 'a', to: 'b' }]);
+  });
+
+  it('writes the goal, the approach and the new lists into the text', () => {
+    const text = planToMarkdown(cleanPlan(plan));
+    expect(text).toContain('## Goal');
+    expect(text).toContain('2. Store transitions (backend) [M] (after 1)');
+    expect(text).toContain('## Out of scope');
+    expect(text).toContain('## Open questions');
+    expect(text).toContain('- Customer → Refund');
+    expect(text).toContain('1. [Stripe](https://docs.stripe.com/refunds)');
   });
 });
