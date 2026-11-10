@@ -24,7 +24,6 @@ import {
   Plus,
   Repeat,
   Search,
-  Send,
   Sparkles,
   Target,
   TrendingUp,
@@ -34,7 +33,6 @@ import { type ReactNode, useEffect, useState } from 'react';
 
 import {
   Bidi,
-  Button,
   CardChip,
   cn,
   fmt,
@@ -50,6 +48,9 @@ import { hostOf, projectPath } from '@/features/planning/studio-acts';
 
 import type { PlanningMessages } from '../messages';
 import { FlowDiagram } from './diagram';
+import { Questions } from './questions';
+
+export { Questions };
 
 type Words = PlanningMessages['studio'];
 
@@ -579,73 +580,6 @@ export function IdeaReport({
           </ol>
         </Section>
       )}
-    </div>
-  );
-}
-
-/** The questions only the owner can answer. Answered here, they go to Claude in one message, and the next report takes them in. */
-export function Questions({
-  questions,
-  onAsk,
-  busy,
-  prompt,
-}: {
-  questions: readonly string[];
-  onAsk?: ((text: string) => void) | undefined;
-  busy: boolean;
-  /** What goes before the answers: each studio asks for its own report back. */
-  prompt?: string;
-}) {
-  const w = useT<PlanningMessages>('planning').studio;
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const filled = Object.entries(answers).filter(([, a]) => a.trim());
-  const sendAnswers = () => {
-    if (!onAsk || filled.length === 0) return;
-    const lines = filled.map(([i, a]) => `- ${questions[Number(i)]}\n  → ${a.trim()}`).join('\n');
-    onAsk(`${prompt ?? w.answersPrompt}\n${lines}`);
-    setAnswers({});
-  };
-  if (!onAsk) {
-    return (
-      <ul className="flex min-w-0 list-disc flex-col gap-1.5 ps-4 text-body-sm text-foreground marker:text-info">
-        {questions.map((q) => (
-          <li key={q}>
-            <Bidi>{q}</Bidi>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <ol className="grid min-w-0 gap-x-6 gap-y-4 @page-lg:grid-cols-2">
-        {questions.map((q, i) => (
-          <li key={q} className="flex min-w-0 flex-col gap-1.5">
-            <label htmlFor={`idea-answer-${i}`} className="text-body-sm text-pretty text-foreground">
-              <Bidi>{q}</Bidi>
-            </label>
-            <textarea
-              id={`idea-answer-${i}`}
-              dir="auto"
-              rows={1}
-              value={answers[i] ?? ''}
-              onChange={(e) => setAnswers((a) => ({ ...a, [i]: e.target.value }))}
-              placeholder={w.answerPlaceholder}
-              className="max-h-40 min-h-9 w-full resize-none rounded-lg border border-input bg-background px-2.5 py-1.5 text-body-sm text-foreground outline-none [field-sizing:content] placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
-            />
-          </li>
-        ))}
-      </ol>
-      <Button
-        variant={filled.length ? 'primary' : 'outline'}
-        size="sm"
-        disabled={filled.length === 0}
-        onClick={sendAnswers}
-        className="self-start"
-      >
-        <Send aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
-        {busy ? w.answersLater : w.sendAnswers}
-      </Button>
     </div>
   );
 }

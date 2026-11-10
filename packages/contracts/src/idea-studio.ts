@@ -29,6 +29,67 @@ export type IdeaSuggestionKind = (typeof IDEA_SUGGESTION_KINDS)[number];
 
 const text = z.string().trim().max(IDEA_LIMITS.text);
 
+/**
+ * An open question in a report, for the owner. Plain words, as reports wrote them before, or a question with the answers Claude sees: its `options`
+ * (each a label, or `{label, detail}`), the one or ones it `recommended` (by index from 0, or by label) and `why`, and `multi` when more than one can be
+ * true together. The page lets the owner pick, add a note to a pick, or answer in their own words.
+ */
+const questionOption = z.union([
+  z.string().trim().min(1).max(200),
+  z.object({ label: z.string().trim().min(1).max(200), detail: z.string().trim().max(500).optional() }),
+]);
+const optionRef = z.union([z.number().int().min(0).max(5), z.string().trim().min(1).max(200)]);
+export const reportQuestionSchema = z.union([
+  text,
+  z.object({
+    text: z.string().trim().min(1).max(IDEA_LIMITS.text),
+    options: z.array(questionOption).max(6).default([]),
+    recommended: z.union([optionRef, z.array(optionRef).max(6)]).optional(),
+    why: z.string().trim().max(500).optional(),
+    multi: z.boolean().optional(),
+  }),
+]);
+export type ReportQuestionInput = z.input<typeof reportQuestionSchema>;
+export interface ReportQuestion {
+  text: string;
+  options: { label: string; detail?: string | undefined }[];
+  /** The recommended options, by index: one at most unless `multi`. */
+  recommended: number[];
+  why?: string | undefined;
+  multi?: boolean | undefined;
+}
+
+/**
+ * A question in one shape: plain words become a question with no options, each option an object, and the recommendation the indexes of options that
+ * exist (a label is matched to its option). A single-answer question keeps its first recommendation.
+ */
+export function questionOf(q: ReportQuestionInput): ReportQuestion {
+  if (typeof q === 'string') return { text: q, options: [], recommended: [] };
+  const options = (q.options ?? []).map((o) => (typeof o === 'string' ? { label: o } : o));
+  const refs =
+    q.recommended === undefined ? [] : Array.isArray(q.recommended) ? q.recommended : [q.recommended];
+  const indexes = refs
+    .map((r) => (typeof r === 'number' ? r : options.findIndex((o) => o.label === r.trim())))
+    .filter((i, at, all) => i >= 0 && i < options.length && all.indexOf(i) === at);
+  return {
+    text: q.text,
+    options,
+    recommended: q.multi ? indexes : indexes.slice(0, 1),
+    ...(q.why ? { why: q.why } : {}),
+    ...(q.multi !== undefined ? { multi: q.multi } : {}),
+  };
+}
+
+/** A question as one line of text: its words, its options, and the recommended one marked. */
+export function questionLine(q: ReportQuestionInput, recommendedWord = 'recommended'): string {
+  const { text: words, options, recommended } = questionOf(q);
+  if (!options.length) return words;
+  const picks = options.map((o, i) =>
+    recommended.includes(i) ? `${o.label} (${recommendedWord})` : o.label,
+  );
+  return `${words} (${picks.join(' / ')})`;
+}
+
 /** A small flow the page draws itself: people and systems, steps, data and forks, and the arrows between them. Both studios share it. */
 export const flowDiagramSchema = z.object({
   title: z.string().trim().max(200).optional(),
@@ -113,7 +174,7 @@ export const proposedIdeaSchema = z.object({
     .max(IDEA_LIMITS.steps)
     .default([]),
   risks: z.array(text).max(IDEA_LIMITS.items).default([]),
-  questions: z.array(text).max(IDEA_LIMITS.items).default([]),
+  questions: z.array(reportQuestionSchema).max(IDEA_LIMITS.items).default([]),
   sources: z
     .array(z.object({ title: z.string().trim().min(1).max(300), url: z.url().max(2_000) }))
     .max(IDEA_LIMITS.sources)
@@ -162,6 +223,8 @@ export interface IdeaWords {
   risks: string;
   questions: string;
   sources: string;
+  /** After the option Claude recommends, in an open question. */
+  recommended?: string;
   /** Suggestion kinds and Hub's role names, as the reader says them. One not here is written as it came. */
   kinds?: Readonly<Record<string, string>>;
   roles?: Readonly<Record<string, string>>;
@@ -228,7 +291,7 @@ export function ideaToMarkdown(idea: ProposedIdea, words: IdeaWords = IDEA_WORDS
   );
   section(
     words.questions,
-    idea.questions.map((q) => `- ${q}`),
+    idea.questions.map((q) => `- ${questionLine(q, words.recommended)}`),
   );
   section(
     words.sources,

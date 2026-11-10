@@ -212,6 +212,7 @@ export function useIdeaWords(): IdeaWords {
       risks: w.sections.risks,
       questions: w.sections.questions,
       sources: w.sections.sources,
+      recommended: w.deck.recommended,
       kinds: w.suggestionKinds,
       roles,
     }),

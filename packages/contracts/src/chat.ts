@@ -6,7 +6,7 @@
 import { z } from 'zod';
 
 import { cardKeySchema } from './cards';
-import { flowDiagramSchema, proposedIdeaSchema } from './idea-studio';
+import { flowDiagramSchema, proposedIdeaSchema, reportQuestionSchema } from './idea-studio';
 import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
 import { chatSuggestionSchema, chatSuggestionsSchema } from './suggestions';
@@ -220,7 +220,7 @@ export const proposedPlanSchema = z.object({
   checks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
   risks: z.array(z.string().max(CHAT_LIMITS.reportText)).max(CHAT_LIMITS.reportChecks).optional(),
   outOfScope: z.array(planText).max(CHAT_LIMITS.reportChecks).optional(),
-  questions: z.array(planText).max(CHAT_LIMITS.reportChecks).optional(),
+  questions: z.array(reportQuestionSchema).max(CHAT_LIMITS.reportChecks).optional(),
   diagram: flowDiagramSchema.optional(),
   sources: z
     .array(z.object({ title: z.string().trim().min(1).max(300), url: z.url().max(2_000) }))

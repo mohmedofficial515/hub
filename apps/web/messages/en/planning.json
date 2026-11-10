@@ -480,7 +480,31 @@
     "answerPlaceholder": "Your answer, in a line…",
     "sendAnswers": "Send my answers to Claude",
     "answersLater": "Send them when Claude finishes",
-    "answersPrompt": "My answers to your open questions. Work them into the report, take the answered ones out of the questions, and send the whole updated report with propose_idea:"
+    "answersPrompt": "My answers to your open questions. Work them into the report, take the answered ones out of the questions, and send the whole updated report with propose_idea:",
+    "deck": {
+      "of": "Question {n} of {total}",
+      "answered": "{n} of {total} answered",
+      "pickOne": "Pick one",
+      "pickMany": "Pick any that apply",
+      "writeOwn": "Write your answer",
+      "recommended": "Recommended",
+      "why": "Why: {why}",
+      "other": "Other",
+      "otherHint": "An answer in your own words",
+      "otherPlaceholder": "Write your answer here…",
+      "note": "A note on this option (optional)…",
+      "addNote": "Add a note",
+      "prev": "Previous question",
+      "next": "Next",
+      "skip": "Skip",
+      "goTo": "Question {n}",
+      "takeRecommended": "Take the recommendations",
+      "takeRecommendedTip": "Picks the recommended option on every question you have not answered, and leaves your answers as they are.",
+      "allAnswered": "Every question is answered. Review them or send them.",
+      "clear": "Clear this answer",
+      "send": "Send answers ({n})",
+      "sendLater": "Send when Claude is done ({n})"
+    }
   },
   "planStudio": {
     "back": "Planning",
@@ -613,6 +637,7 @@
     "questions": "Open questions",
     "flow": "Flow",
     "sources": "Sources",
-    "after": "after"
+    "after": "after",
+    "recommended": "recommended"
   }
 }

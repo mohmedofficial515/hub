@@ -4,6 +4,7 @@
  */
 import type { ClaimAnswer, DocClaim, ProposedPlan } from './chat';
 import { UNVERIFIED_MARK } from './chat';
+import { questionLine } from './idea-studio';
 
 /** The plan as Markdown: the text fallback, and what Run this plan sends. */
 /** The words a plan's text is written in: English by default, and the page passes its own language's. */
@@ -17,6 +18,8 @@ export interface PlanWords {
   questions: string;
   flow: string;
   sources: string;
+  /** After the option Claude recommends, in an open question. */
+  recommended?: string;
   /** Before the numbers of the steps that come first: "after 1, 2". */
   after: string;
   /** Hub's role names, as the reader says them. A role not here is written as it came. */
@@ -75,7 +78,10 @@ export function planToMarkdown(plan: ProposedPlan, words: PlanWords = PLAN_WORDS
     ...list(words.checks, plan.checks),
     ...list(words.risks, plan.risks),
     ...list(words.outOfScope, plan.outOfScope),
-    ...list(words.questions, plan.questions),
+    ...list(
+      words.questions,
+      plan.questions?.map((q) => questionLine(q, words.recommended)),
+    ),
     ...flow,
     ...sources,
   ].join('\n');

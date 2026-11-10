@@ -73,3 +73,11 @@ Reviewed against a real idea (a customer refund tracker) and a real plan (hotels
 - **Diagram**: nodes narrow to the room before the drawing scrolls; loops back run in their own lane on one side, sized to their label.
 - **Plan Studio** at `?studio=plan`: a topic or an open idea, `/hub:plan` in Plan, and a structured plan: goal, approach, who does what, steps with size and `after`, flow, checks, risks, out of scope, questions, sources. `proposedPlanSchema` grew these as optional fields, so older plans still read. Save makes a draft plan, or turns the idea it started from into it. "Write it yourself" keeps the old form for a plan whose steps are known.
 - **Skills**: `/hub:idea` and `/hub:plan` reply in at most three lines (the page holds the report), weigh the risks before writing, ask one question only when the work cannot go on, and keep untouched parts as they were on a refinement.
+
+## Real cards, and questions as a deck (2026-11-10)
+
+- **Saved text in the page's language**: `planToMarkdown` and `ideaToMarkdown` take the reader's words (`usePlanWords`, `useIdeaWords`). A step title over 200 characters ends at its last clause with an ellipsis (`fitStepTitle`).
+- **One save record** for the panel's Save to Planning and the Plan Studio, by message: one plan is never saved twice.
+- **Turn it into a plan** (Idea Studio) and **Plan it with Claude** (idea page) open the Plan Studio on that idea.
+- **Open questions** (`reportQuestionSchema`): plain words, or `{text, options, recommended, why, multi}`. The page shows one question at a time with dots, the options as cards (one pick, or several when `multi`), the recommended option and why, a note on any pick, and Other for the owner's own words. Take the recommendations fills what is left; one Send carries every answer (`answersMessage`), read back in the conversation as the owner's answers.
+- **Dev mode**: the API reads `@hub/contracts` from source but restarts only on its own files. After a contract change, restart Hub (`pnpm hub:service stop` then `start`) so the MCP tools serve the new shape.
