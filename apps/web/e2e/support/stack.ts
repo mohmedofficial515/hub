@@ -200,10 +200,15 @@ export async function startStack(): Promise<RunningStack> {
     HUB_TEAM_PACK_DIR: skills.teamPack,
     HUB_PERSONAL_SKILLS_DIR: skills.personal,
     HUB_PLUGIN_SYNC: 'manual',
-    // The real path: an invite must not wait for this, and a mail server that is absent is only a warning.
+    // The real path: an invite must not wait for this, and a mail server that is absent is only a warning. Nothing listens on this port:
+    // never the owner's Mailpit (7342). Every mail variable is set, so a Gmail login in the owner's `.env` never reaches a test.
     MAIL_PROVIDER: 'smtp',
-    SMTP_HOST: 'localhost',
-    SMTP_PORT: '7342',
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: process.env['E2E_SMTP_PORT'] ?? '7349',
+    SMTP_SECURE: 'false',
+    SMTP_USER: '',
+    SMTP_PASS: '',
+    MAIL_FROM: 'Hub <hub@e2e.test>',
   };
 
   const prisma = join(API_DIR, 'node_modules/prisma/build/index.js');

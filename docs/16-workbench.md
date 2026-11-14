@@ -51,6 +51,9 @@ Hub becomes the place the owner works from, not only where they record work:
 | D67 | **The plugin sync (agent's choice).** A device takes Hub's plugin from Hub, never from Git: the bridge action `plugin.sync` carries the plugin's files and a version made of the package's own and the start of the files' hash, and the bridge has Claude Code update to it. Claude Code updates an installed plugin only when its version changes (checked on 2.1.319), which is why the hash is in the version. It runs when a device connects with an older plugin and after every skill change; a test stack syncs only on Sync now. Only the plugin syncs, not the bridge's own code, and a chat already open keeps its skills until it starts again. |
 | D42 | **Connect:** automatic on the main machine, and one command with browser approval on any other. Linking a folder is a button in Hub. No token copying and no new terminal. |
 | D43 | **Devices reach Hub through Tailscale.** Hub is never open to the public internet. This amends D33 for those devices. |
+| D68 | **Invites reach a friend two ways (owner, 2026-11-09):** the owner sends the link himself, and Hub also emails it through real SMTP. After Create invite or New link the link, shown once, has Copy, the browser's share sheet, WhatsApp and a mail draft, in ar and en, and says where the email went. Real email is Gmail SMTP from `.env` (`smtp.gmail.com`, 465, TLS, an app password); Hub never stores, logs or returns the password. Settings › System, the owner's alone, says "real email", "local test inbox only (Mailpit)" or "not set up", and sends a test email to the owner's own address. A revoked invite keeps its row, so every list shows pending, accepted, expired or revoked (agent's reading of "consistently" with Hub's no-delete rule). |
+| D69 | **A friend reaches Hub by Tailscale machine sharing (owner, 2026-11-09).** The friend installs Tailscale with their own account; the owner shares only this machine from the Tailscale admin console. Never `tailscale funnel`. A friend who cannot reach Hub cannot see its invite page, so the guidance is in the invite email, the share text and docs/13 §17, and the owner sees "Share this machine with them in Tailscale" with the machine's name when inviting. |
+| D70 | **Each device keeps its own sign-in limit behind the proxies (agent's choice, for the owner to confirm).** When the API listens on loopback only (published, D43), Express trusts loopback proxies by default, so the sign-in limit, the lockout and audit rows see each tailnet device's address from `x-forwarded-for` instead of 127.0.0.1 for everyone. `TRUST_PROXY` still wins. A published Hub also never builds a device address from the request, whose host is the bind address there. |
 
 ## 3. Facts from the Claude Code docs (read 2026-11-06)
 
@@ -512,6 +515,64 @@ The API is in `apps/api/README.md` § Do next, § Skills and the plugin sync and
 5. **Commit the Hub skills you add** (`git status packages/team-pack/plugin/skills`) when you want them in Git.
 6. **New project from the panel** on your machine, with a real folder: the folder should open in VS Code with no trust dialog, and a chat there should land on the new project.
 7. **The independent review of the whole release** (§12 step 7).
+
+## 11a. Invites that reach a friend (owner's report, 2026-11-09)
+
+The owner reported that an invite email never reached the friend, and that the link opened but registration failed. Decisions D68 to D70 above. The API is in
+`apps/api/README.md` § Mail and invites, the pages in `apps/web/README.md` § Invites and mail, the owner's and the friend's steps in `docs/13-operations.md` §16 and §17.
+
+**What was found, reproduced through an HTTPS stand-in for `tailscale serve`** (a `*.ts.net` name, `Host` the bind address, `x-forwarded-host` and `x-forwarded-proto` set),
+with HUB_PUBLIC_URL at that address, before any change:
+
+1. **The email never left the machine.** `.env` sends mail to Mailpit on `localhost:7342`, a test inbox nobody else reads. The invite and the MCP answer still said "the link
+   went by mail".
+2. **The page's password rule was not the API's.** The join page said "at least 10 characters"; the API refuses under 12 (docs/04 §1.9). A friend who followed the hint with
+   10 or 11 characters got "That password is weak" and could not register (`password_weak`, 400, seen in the run).
+3. **The owner trying the link in his own browser** got a bare "You don't have permission" (403 `hub.common.forbidden`), because accepting with a session belongs to that
+   session's account. Worse, once his 15-minute access cookie had expired, the same press created the friend's account and put the friend's session in the owner's browser.
+4. **Every device shared one address.** Behind `tailscale serve` and the web's proxy, every request reached the API from 127.0.0.1, so the owner and a friend shared one
+   10-a-minute sign-in limit and one lockout (10 failures in 15 minutes locked everyone out).
+
+**What was checked and is not a cause:** the link is built from HUB_PUBLIC_URL (the tailnet address), the token is URL-safe and survives the trip, the cookies are `Secure`,
+`HttpOnly` and `SameSite=Lax` and are kept over https, the redirects keep the browser's address (commit `1754563`), CORS and the CSRF header pass, and a fresh device with a
+12-character password joined and landed in the project. No route builds a link from the request's host, except the device API address before Hub is published (now never once
+it is, D70).
+
+**What is built.**
+
+- **Invite page** (`invite-form.tsx`): the API's 12-character rule in both languages. When the browser has a session cookie the page asks who is signed in: another account
+  sees whose invite it is and **Sign out and continue**; the invited account joins with one press; a revoked link says it was withdrawn. The API answers
+  `hub.identity.invite_other_account` (409) instead of the bare 403 and creates nothing.
+- **The link, shown once** (`invite-link.tsx`): Copy, Share (Web Share API where the browser has it), WhatsApp (`wa.me`), a mail draft (`mailto:`), the text in the owner's
+  language with the link on its own line and, on a tailnet, how to reach Hub; where the email went (`mail`: `real`, `local` or `off`, from the API); and on a tailnet the step
+  "Share this machine with them in Tailscale" with the machine's name (from `GET me/devices/publishing`) and a link to `https://login.tailscale.com/admin/machines`.
+- **Statuses** (migration `0011`, additive: `invites.revoked_at`, `revoked_by_id`): one rule, `inviteStatusOf`, for the list, the pending counter and `list_invites`.
+  Revoke keeps the row; a revoked link answers `hub.identity.invite_revoked` (410). **New link** (resend) gives seven more days, renews an expired invite, and refuses an
+  accepted or revoked one. Members shows waiting and expired invites with New link and Revoke, and joined and revoked ones below the team as earlier invites.
+- **Mail** (`mail-config.ts`, `MailService`, `GET` and `POST test` under `/workspaces/:ws/mail`, `mail.manage`: owner only, web only, session only): the state from `.env`
+  (real, local, off; host, port, TLS, whether a login is set, the sender) and a test email to the owner's own address that answers sent or why not (`auth`, `connection`, `tls`,
+  `rejected`, `not_configured`, `unknown`), which Settings › System words in ar and en with the `.env` line to check. The mailer already took `SMTP_USER` and `SMTP_PASS`; it
+  now defaults the port to 465 with `SMTP_SECURE=true`, the sender to the login, short timeouts, and nodemailer's logger stays off.
+- **The invite email** (`invite-mail.ts`): plain text in the project's language, the inviter's name, the link on its own line, the date it ends, and on a `*.ts.net` address
+  the three Tailscale steps.
+- **MCP**: `invite_member` and `resend_invite` say where the mail went; `list_invites` shows each status.
+
+**Tests.** API e2e: `invite-journey.e2e-spec.ts` (the journey as the web's proxy passes it behind `tailscale serve`: https link, accept with Secure cookies, the project, refresh,
+sign out and in again, with TOTP required too; the 12-character rule; the owner's own browser; a new link, expired, revoked and used with every status and the counter; one
+sign-in limit per device), `mail.e2e-spec.ts` (authenticated SMTP to a local test server with AUTH PLAIN and LOGIN, a refused app password, a server that is not there, no mail
+server, owner only and no token, the invite email with the Tailscale steps), and `invites-and-seed.e2e-spec.ts` updated. Unit: `mail-config.spec.ts`, `invite-mail.spec.ts`,
+`invite-status.spec.ts`, `bind-host.spec.ts`, `public-url.spec.ts`; web `invite-form.spec.tsx`, `invite-link.spec.tsx`, `invite-share.spec.ts`, `mail.spec.tsx`,
+`members-page.spec.tsx`. Browser: `e2e/specs/invite-journey.spec.ts`, in `ar` and `en`, through `support/tailnet-proxy.ts` (HTTPS with a certificate made for the run) and
+`support/smtp-server.ts` (the API restarted with the tailnet address and an SMTP login inside that file only). The browser stack no longer sends to the owner's Mailpit (7342).
+
+**For the owner (an agent cannot do these):**
+
+1. **Gmail:** create an app password (2-Step Verification must be on), put the lines of docs/13 §16 in `.env`, restart Hub, then press **Send test email** in
+   Settings › System. Never paste the password into Hub, a card or a chat.
+2. **A friend:** invite from Members, then share this machine with them in the Tailscale admin console (docs/13 §17). They install Tailscale with their own account, accept
+   the share, and open the link.
+3. **Migration `0011`** is applied by `start:local` and HubServer on start (`pnpm db:deploy` by hand otherwise).
+4. **Confirm D70**, or set `TRUST_PROXY` to what you prefer.
 
 ## 12. Order and gates
 

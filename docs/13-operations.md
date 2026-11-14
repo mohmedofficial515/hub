@@ -332,7 +332,7 @@ PR when the lab needs newer primitives. Build: `docker build -f infra/docker/lab
 | `HUB_SECRET_KEY` | api, worker | yes | `openssl rand -base64 32` | AES-256-GCM key for `secret_enc`/`totp_secret_enc` (rotation: `pnpm ops:rotate-key`) |
 | `HUB_JWT_SECRET` | api | yes | `pnpm setup:env`, or 32+ random chars | HS256 key of the access token (15 min) and the TOTP challenge (5 min) |
 | `SESSION_COOKIE_DOMAIN` | api | no | `hub.goteav.lan` | defaults to the public URL host |
-| `TRUST_PROXY` | api | behind a proxy | `uniquelocal` | Express `trust proxy`. `infra/compose.yaml` sets it, because the API sits behind the web container; otherwise every request looks like the proxy's, sharing one sign-in limit and writing the wrong address to audit. Never set it where the API is reachable directly from outside. |
+| `TRUST_PROXY` | api | behind a proxy | `uniquelocal` | Express `trust proxy`. `infra/compose.yaml` sets it, because the API sits behind the web container; otherwise every request looks like the proxy's, sharing one sign-in limit and writing the wrong address to audit. Never set it where the API is reachable directly from outside. Unset, it is `loopback` when the API listens on 127.0.0.1 only (published over Tailscale, docs/16 D70), else nothing. |
 | `PROCESS_ROLE` | api/worker | yes | `api` \| `worker` | which processors register |
 | `PORT` | api, web | yes | `7310` / `7300` | |
 | `TZ` | all | no | `Europe/Istanbul` | container clock; workspaces have their own timezone setting |
@@ -342,8 +342,8 @@ PR when the lab needs newer primitives. Build: `docker build -f infra/docker/lab
 | `TELEGRAM_BOT_TOKEN` | worker | for telegram | from @BotFather | long polling; unset = channel disabled |
 | `MAIL_PROVIDER` | worker | no | `resend` \| `smtp` \| `none` | |
 | `RESEND_API_KEY` | worker | if resend | | |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_SECURE` | worker | if smtp | mailpit in dev: `mailpit:1025` | |
-| `MAIL_FROM` | worker | if mail | `Hub <hub@goteav.com>` | |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_SECURE` | api | if smtp | Mailpit: `localhost` / `7342`; Gmail: `smtp.gmail.com` / `465` / your address / an app password / `true` | A host on this machine is the local test inbox; any other is real email (§16, docs/16 D68). `SMTP_PASS` lives in `.env` only: Hub never stores, logs or shows it. |
+| `MAIL_FROM` | api | if mail | `Hub <you@gmail.com>` | Gmail sends from the signed-in address whatever this says, so use that address. Unset: `SMTP_USER`. |
 | `HUB_OWNER_EMAIL` / `HUB_OWNER_PASSWORD` / `HUB_OWNER_NAME` | migrate (seed) | first run only | | creates the first workspace owner if no user exists; remove afterwards |
 | `HUB_WORKSPACE_SLUG` / `HUB_WORKSPACE_NAME` / `HUB_WORKSPACE_PREFIX` | migrate (seed) | first run only | `goteav` / `Goteav` / `GTV` | first workspace |
 | `REPOS_ROOT` | worker | no | `/repos` | where clones live |
@@ -552,3 +552,77 @@ pnpm hub:service stop       # until the next logon; uninstall removes the task
 ```
 
 While HubServer runs, `pnpm start:local` says so and starts no second copy, and `pnpm stop:local` stops it.
+
+## 16. Real email through Gmail (the owner's steps, docs/16 D68)
+
+Out of the box Hub sends its mail to Mailpit, a test inbox on this machine that nobody else reads: an invite email never reaches a friend, which is why the invite panel says
+where the email went and offers Copy, Share, WhatsApp and Email. To send real email, Hub signs in to Gmail with an **app password**, a 16-letter password Google makes for one
+app. It goes in `.env` on the main machine only. Hub never stores it in its database, never logs it and never shows it, and you never type it into Hub, a card or a chat.
+
+1. Sign in to the Google account that will send Hub's mail.
+2. Turn on **2-Step Verification**: <https://myaccount.google.com/signinoptions/two-step-verification>. Google offers app passwords only with it on.
+3. Create an app password: <https://myaccount.google.com/apppasswords>. Name it `Hub` and press Create. Google shows 16 letters in four groups, once. Copy them.
+4. In `.env`, replace the mail lines with these (your address twice, the 16 letters with no spaces):
+
+   ```dotenv
+   MAIL_PROVIDER=smtp
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_SECURE=true
+   SMTP_USER=you@gmail.com
+   SMTP_PASS=abcdefghijklmnop
+   MAIL_FROM=Hub <you@gmail.com>
+   ```
+
+5. Restart Hub: `pnpm hub:service stop` then `pnpm hub:service start` (or `pnpm stop:local` then `pnpm start:local`). Hub reads `.env` when it starts.
+6. Open **Settings › System › Mail**. It should say **Real email** through `smtp.gmail.com`. Press **Send test email**: a short message goes to your own address.
+
+If the test fails, the page says why: a refused login (2-Step Verification off, a mistyped app password, or `SMTP_USER` not the same address), no connection (the internet,
+or a firewall on port 465), or TLS (port 465 needs `SMTP_SECURE=true`; port 587 needs `false`). A Google Workspace account may need its administrator to allow app passwords.
+Gmail sends a few hundred messages a day at most, far more than Hub needs. To stop it, delete the app password at the same Google page: Hub falls back to "not set up" after
+you remove the lines and restart.
+
+**بالعربية، باختصار:** افتراضيًا يذهب بريد Hub إلى Mailpit، وهو صندوق تجربة على هذا الجهاز لا يقرؤه أحد، لذلك لا تصل رسالة الدعوة إلى صديقك. لإرسال بريد حقيقي:
+1. فعّل التحقق بخطوتين في حساب Google.
+2. أنشئ «كلمة مرور تطبيق» من <https://myaccount.google.com/apppasswords> باسم `Hub`، وانسخ الأحرف الستة عشر.
+3. ضع الأسطر أعلاه في ملف `.env` ببريدك وكلمة مرور التطبيق بلا مسافات.
+4. أعد تشغيل Hub، ثم افتح الإعدادات › النظام › البريد واضغط «أرسل رسالة تجربة».
+
+لا يخزّن Hub كلمة المرور ولا يسجّلها ولا يعرضها، ولا تكتبها أبدًا في Hub أو في بطاقة أو محادثة.
+
+## 17. A friend on your Hub, through Tailscale sharing (docs/16 D69)
+
+Hub stays inside your tailnet and is never open to the internet (D43): never `tailscale funnel`. A friend reaches it when you **share this one machine** with them in
+Tailscale. They use their own Tailscale account, and see only this machine, not the rest of your tailnet. Until they accept the share, the invite link does not open for them,
+so the invite email and the text the invite panel shares carry these steps too.
+
+**You, the owner:**
+
+1. In Hub, **Members › Invite member**: their email and roles, then Create invite. Send the link with Copy, Share, WhatsApp or Email. With Gmail set up (§16), Hub emails it
+   too. The link works once, for 7 days; **New link** makes a fresh one and stops the old.
+2. The panel shows **Share this machine with them in Tailscale** with this machine's name. Open <https://login.tailscale.com/admin/machines>, find that machine, open its
+   menu, choose **Share**, and send them the share link (or their email address). Tailscale's own words for these buttons may change; the share is always on the machine.
+3. To end it later: disable their account in Members, and remove the share from the same place in Tailscale.
+
+**Your friend:**
+
+1. Install Tailscale from <https://tailscale.com/download> and sign in with their own account.
+2. Open the share link you sent, and accept it. Your machine appears in their Tailscale.
+3. With Tailscale connected, open the invite link (`https://<your machine>.<tailnet>.ts.net/…`), and create the account: their name, a password of at least 12 characters,
+   and a language. If the page says another account is signed in, they press **Sign out and continue**, or open the link in a private window.
+4. Later they open `https://<your machine>.<tailnet>.ts.net` and sign in. If their role requires two-step sign-in, Hub asks them to set it up on the first visit.
+
+If your machine is off or Tailscale is disconnected on either side, the friend cannot reach Hub.
+
+**بالعربية، باختصار:**
+
+أنت (المالك):
+1. من «الأعضاء» ادعُ صديقك ببريده وأدواره، ثم أرسل له الرابط بالنسخ أو المشاركة أو واتساب أو البريد. يعمل الرابط مرة واحدة خلال 7 أيام.
+2. شارك هذا الجهاز وحده معه من لوحة Tailscale: <https://login.tailscale.com/admin/machines>، اختر الجهاز، ثم Share، وأرسل له رابط المشاركة. لا تستخدم `tailscale funnel` أبدًا.
+
+صديقك:
+1. يثبّت Tailscale ويسجّل الدخول بحسابه هو.
+2. يقبل مشاركة جهازك من الرابط الذي أرسلته.
+3. يفتح رابط الدعوة وTailscale متصل، وينشئ حسابه بكلمة مرور من 12 حرفًا على الأقل.
+4. بعد ذلك يفتح عنوان Hub نفسه ويسجّل الدخول.
+

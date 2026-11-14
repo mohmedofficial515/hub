@@ -55,9 +55,18 @@ async function until(check: () => Promise<boolean>, what: string, timeoutMs = 12
   throw new Error(`Timed out waiting for ${what}`);
 }
 
-/** Stops the API, waits `downMs` with it gone, and starts it again on the same database and port. */
-export async function restartApi(downMs: number): Promise<void> {
-  const record = JSON.parse(readFileSync(API_FILE, 'utf8')) as ApiRecord;
+/** The variables the stack's API runs with now: throwaway values only. */
+export function apiEnv(): NodeJS.ProcessEnv {
+  return (JSON.parse(readFileSync(API_FILE, 'utf8')) as ApiRecord).env;
+}
+
+/**
+ * Stops the API, waits `downMs` with it gone, and starts it again on the same database and port. With `env`, it comes back with those
+ * variables instead, as the owner's Hub does after an `.env` change and a restart.
+ */
+export async function restartApi(downMs: number, env?: NodeJS.ProcessEnv): Promise<void> {
+  const current = JSON.parse(readFileSync(API_FILE, 'utf8')) as ApiRecord;
+  const record = env ? { ...current, env } : current;
   killTree(record.pid);
   await until(async () => !(await ready()), 'the API to stop', 30_000);
   await new Promise((done) => setTimeout(done, downMs));
