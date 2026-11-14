@@ -71,7 +71,7 @@ export function CardRow({
         action && !lead && 'grid-cols-[auto_minmax(0,1fr)_auto] items-center',
         action && lead && 'items-center sm:@page-sm:grid-cols-[auto_minmax(0,1fr)_auto]',
         variant === 'card'
-          ? cn('rounded-lg border', tone === 'danger' ? 'border-destructive/70' : 'border-border')
+          ? cn('rounded-xl border shadow-xs', tone === 'danger' ? 'border-destructive/70' : 'border-border')
           : 'border-b border-border last:border-b-0',
         lead && 'py-3.5',
         className,
@@ -80,12 +80,12 @@ export function CardRow({
     >
       {/* The word is in the meta line just below, so the icon stays decorative here. */}
       <span aria-hidden className={cn('self-start pt-0.5', typeClass[type].fg)}>
-        <TypeIconGlyph className="size-5" strokeWidth={1.75} />
+        <TypeIconGlyph className="size-4.5" strokeWidth={1.75} />
       </span>
       <div className="min-w-0">
         <p
           id={id}
-          className={cn('font-semibold text-pretty text-foreground', lead ? 'text-title-sm' : 'text-body-lg')}
+          className={cn('font-semibold text-pretty text-foreground', lead ? 'text-body-lg' : 'text-body')}
         >
           <AppLink
             card={cardKey}
@@ -93,7 +93,7 @@ export function CardRow({
             className={cn(
               'underline-offset-4 outline-none after:absolute after:inset-0 hover:underline',
               stretchedFocus,
-              variant === 'card' && 'after:rounded-lg',
+              variant === 'card' && 'after:rounded-xl',
             )}
           >
             <Bidi>{title}</Bidi>

@@ -83,7 +83,13 @@ export function CardChip({
         {k}
       </Ltr>
       {showTitle && resolvedTitle && <span className="min-w-0 truncate">{resolvedTitle}</span>}
-      {showStatus && card && <StatusBadge status={card.status} className="h-4.5" />}
+      {/* A ready task with an open blocker cannot be started, so its chip says Blocked rather than Ready. */}
+      {showStatus && card && (
+        <StatusBadge
+          status={card.flags?.blocked && !card.closedAt ? 'blocked' : card.status}
+          className="h-4.5"
+        />
+      )}
     </AppLink>
   );
 }

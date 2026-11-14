@@ -202,6 +202,50 @@ export function DiffView({
   );
 }
 
+const QUOTED = /"(?:[^"\\\n]|\\.)*"/g;
+const RTL_LETTERS = '\\u0600-\\u06FF\\u0750-\\u077F\\uFB50-\\uFDFF\\uFE70-\\uFEFF';
+const RTL_RUN = new RegExp(`[${RTL_LETTERS}][${RTL_LETTERS}\\s\\d.,،؛؟!()-]*`, 'g');
+
+/** Arabic inside left-to-right code, isolated: each quoted Arabic value and each bare Arabic run reads right to left on its own, so the quotes,
+ * commas and brackets around it stay where the code put them instead of jumping across the line. */
+function isolateRtl(text: string): React.ReactNode[] {
+  if (!ARABIC.test(text)) return [text];
+  const out: React.ReactNode[] = [];
+  const bare = (part: string, at: number) => {
+    let last = 0;
+    for (const m of part.matchAll(RTL_RUN)) {
+      const run = m[0].replace(/\s+$/, '');
+      const i = m.index ?? 0;
+      out.push(
+        part.slice(last, i),
+        <bdi key={`${at}-${i}`} dir="rtl">
+          {run}
+        </bdi>,
+      );
+      last = i + run.length;
+    }
+    out.push(part.slice(last));
+  };
+  let last = 0;
+  for (const m of text.matchAll(QUOTED)) {
+    const i = m.index ?? 0;
+    bare(text.slice(last, i), last);
+    const inner = m[0].slice(1, -1);
+    out.push(
+      ARABIC.test(inner) ? (
+        <bdi key={`q${i}`} dir="ltr">
+          &quot;<bdi dir="auto">{inner}</bdi>&quot;
+        </bdi>
+      ) : (
+        m[0]
+      ),
+    );
+    last = i + m[0].length;
+  }
+  bare(text.slice(last), last);
+  return out;
+}
+
 function CodeBlock({ title, text, tone }: { title: string; text: string; tone?: 'error' | undefined }) {
   const t = useT<ChatMessages>('chat').panel;
   const kit = useT(kitMessages);
@@ -237,7 +281,7 @@ function CodeBlock({ title, text, tone }: { title: string; text: string; tone?: 
         aria-label={title}
         className="key max-h-56 overflow-auto rounded-md bg-card p-2 text-start text-body-sm [overflow-wrap:anywhere] whitespace-pre-wrap text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {text}
+        {isolateRtl(text)}
       </pre>
     </div>
   );
@@ -300,7 +344,7 @@ function StepRow({ call, chatId }: { call: ToolCall; chatId: string }) {
             translate="no"
             className="key min-w-0 flex-1 truncate text-start text-muted-foreground"
           >
-            {call.detail}
+            {isolateRtl(call.detail)}
           </code>
           {call.ms !== undefined && (
             <span className="shrink-0 text-muted-foreground tabular-nums">{duration(call.ms, t)}</span>
@@ -1049,9 +1093,9 @@ function UserLine({ item, chat }: { item: Extract<Item, { kind: 'user' }>; chat:
   const context = item.context;
   const more = context?.attachments ?? [];
   return (
-    <div className="group flex min-w-0 items-start gap-1 rounded-lg bg-muted py-2 ps-3 pe-1">
+    <div className="group animate-rise ms-auto flex max-w-[92%] min-w-0 items-start gap-1 rounded-2xl rounded-se-md border border-primary/15 bg-primary/8 py-2 ps-3 pe-1 shadow-xs">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <p className="text-body text-foreground">
+        <p className="text-body-sm whitespace-pre-wrap text-foreground">
           <Bidi>{item.text}</Bidi>
         </p>
         {(context?.card || context?.page || more.length > 0) && (
@@ -1283,7 +1327,11 @@ export function Thread({
               return <UserLine key={item.id} item={item} chat={chat} />;
             case 'text':
               return (
-                <div key={item.id} data-wb-reply className="wb-prose min-w-0 text-body text-foreground">
+                <div
+                  key={item.id}
+                  data-wb-reply
+                  className="wb-prose animate-rise min-w-0 text-body-sm leading-relaxed text-foreground"
+                >
                   <MarkdownView source={item.text} dir="auto" headingOffset={2} />
                 </div>
               );

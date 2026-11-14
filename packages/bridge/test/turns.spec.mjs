@@ -941,14 +941,83 @@ describe('queued runs: run mode and extra folders (docs/16 D58, D59)', () => {
     await answer;
   });
 
-  it('Auto mode answers a question with its recommended option, and nobody is asked', async () => {
+  it('Auto mode still asks the owner a question: it never answers one for them', async () => {
     const world = aWorld();
     const { answer, child } = await started(world, { mode: 'auto' });
     child.say(toolStart('q1', 'AskUserQuestion'));
     await until(() => world.of('tool.started').length === 1);
-    const asked = await askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
-    expect(asked.updatedInput.answers).toEqual({ 'Which store?': 'Postgres (Recommended)' });
-    expect(world.of('question.asked')).toEqual([]);
+    const asked = askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    await until(() => world.of('question.asked').length === 1);
+    expect(world.of('auto.decision')).toEqual([]);
+    await dispatch(
+      {
+        action: 'turn.answer',
+        args: {
+          chatId: CHAT,
+          approvalId: world.of('question.asked')[0].questionId,
+          decision: 'allow',
+          answers: { 'Which store?': 'SQLite' },
+        },
+      },
+      world.context,
+      () => {},
+    );
+    expect((await asked).updatedInput.answers).toEqual({ 'Which store?': 'SQLite' });
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('switching a running Execute turn to Auto allows the paused call, leaves a question to the owner, and the next call runs at once', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'execute' });
+    child.say(toolStart('t0'));
+    const paused = askAsShim(world, 'Bash', { command: 'git push origin main' }, 't0');
+    await until(() => world.of('approval.requested').length === 1);
+    const switched = await dispatch(
+      { action: 'turn.mode', args: { chatId: CHAT, mode: 'auto' } },
+      world.context,
+      () => {},
+    );
+    expect(switched.data.changed).toBe(true);
+    expect((await paused).behavior).toBe('allow');
+    child.say(toolStart('q1', 'AskUserQuestion'));
+    await until(() => world.of('tool.started').length === 2);
+    askAsShim(world, 'AskUserQuestion', QUESTION, 'q1');
+    await until(() => world.of('question.asked').length === 1);
+    child.say(toolStart('t1'));
+    const pushed = await askAsShim(world, 'Bash', { command: 'git push origin dev' }, 't1');
+    expect(pushed.behavior).toBe('allow');
+    expect(world.of('approval.requested')).toHaveLength(1);
+    await dispatch({ action: 'turn.stop', args: { chatId: CHAT } }, world.context, () => {});
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('Execute runs a command that is not sensitive at once, and asks for a sensitive one', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'execute' });
+    child.say(toolStart('t1'));
+    const tests = await askAsShim(world, 'Bash', { command: 'pnpm test' }, 't1');
+    expect(tests).toEqual({ behavior: 'allow', updatedInput: { command: 'pnpm test' } });
+    child.say(toolStart('t2'));
+    const sudo = askAsShim(world, 'Bash', { command: 'sudo apt install x' }, 't2');
+    await until(() => world.of('approval.requested').length === 1);
+    expect(world.of('approval.requested')[0].command).toBe('sudo apt install x');
+    await dispatch({ action: 'turn.stop', args: { chatId: CHAT } }, world.context, () => {});
+    expect((await sudo).behavior).toBe('deny');
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('a read-only turn does not take Auto mid-turn', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { mode: 'plan' });
+    const switched = await dispatch(
+      { action: 'turn.mode', args: { chatId: CHAT, mode: 'auto' } },
+      world.context,
+      () => {},
+    );
+    expect(switched.data.changed).toBe(false);
     child.say(RESULT);
     await answer;
   });

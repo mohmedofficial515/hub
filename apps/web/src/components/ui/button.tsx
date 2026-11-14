@@ -21,8 +21,8 @@ export type ButtonProps = ComponentProps<'button'> & {
 };
 
 const variantClass: Record<ButtonVariant, string> = {
-  primary: 'bg-primary text-primary-foreground hover:bg-primary-hover',
-  outline: 'border border-border bg-card text-foreground hover:bg-accent',
+  primary: 'btn-sheen bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary-hover',
+  outline: 'border border-border bg-card text-foreground shadow-xs hover:border-primary/30 hover:bg-accent',
   ghost: 'text-muted-foreground hover:bg-accent hover:text-foreground',
   destructive:
     'border border-destructive/60 bg-card text-destructive-soft-foreground hover:bg-destructive-soft',
@@ -49,7 +49,7 @@ export function Button({
       type="button"
       disabled={disabled || busy}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100',
         size === 'md' ? 'h-11 px-4 text-body md:h-9' : 'h-11 px-3 text-body-sm md:h-8',
         variantClass[quiet && variant === 'primary' ? 'outline' : variant],
         focusRing,
@@ -77,7 +77,7 @@ export function IconButton({ label, variant = 'ghost', className, children, ...r
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex size-11 shrink-0 items-center justify-center rounded-md transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60 md:size-9',
+        'inline-flex size-11 shrink-0 items-center justify-center rounded-lg transition-colors duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-60 md:size-9',
         variantClass[variant],
         focusRing,
         className,

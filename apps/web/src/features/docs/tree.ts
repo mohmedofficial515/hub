@@ -21,6 +21,31 @@ export interface DocSource {
 
 export const fileName = (path: string) => (path.split('/').pop() ?? path).replace(/\.md$/, '');
 
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+/** Names in the order a person counts: `2-x` before `10-x`, README first, case ignored. */
+export function naturalCompare(a: string, b: string) {
+  const readme = (n: string) => (/^readme$/i.test(n) ? 0 : 1);
+  return readme(a) - readme(b) || collator.compare(a, b);
+}
+
+/** A file name as words: its leading number kept apart, dashes and underscores as spaces. `15-planning_v2` → { n: '15', words: 'planning v2' }. */
+export function readableName(path: string): { n: string | null; words: string } {
+  const base = fileName(path).replace(/\.ar$/, '');
+  const match = /^(\d+(?:\.\d+)*)[-_. ]+(.+)$/.exec(base);
+  const rest = (match ? match[2] : base) ?? base;
+  return { n: match ? (match[1] ?? null) : null, words: rest.replace(/[-_]+/g, ' ').trim() || base };
+}
+
+/** The same tree with folders and docs in natural order at every level. */
+export function sortTree(folder: DocFolder): DocFolder {
+  return {
+    ...folder,
+    docs: [...folder.docs].sort((a, b) => naturalCompare(fileName(a.doc.path), fileName(b.doc.path))),
+    folders: [...folder.folders].sort((a, b) => naturalCompare(a.name, b.name)).map(sortTree),
+  };
+}
+
 export const isTwinFile = (path: string) => path.endsWith('.ar.md');
 
 const twinOfPath = (path: string) => (isTwinFile(path) ? path.replace(/\.ar\.md$/, '.md') : path.replace(/\.md$/, '.ar.md'));

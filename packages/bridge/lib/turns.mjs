@@ -32,6 +32,7 @@ import {
   categoryOf,
   describeCall,
   executeSettings,
+  isSensitiveCall,
   MODE_FLAGS,
   readOnlySettings,
 } from './permissions.mjs';
@@ -210,8 +211,8 @@ function createManager(context) {
     if (proc.turn !== turn || turn.stopRequested) return refuse('The turn was stopped.');
     const autoApprove = MODE_FLAGS[proc.options.mode].autoApprove;
     if (isQuestionTool(toolName)) {
-      if (proc.options.runMode === 'automatic' || autoApprove)
-        return answerForOwner(turn, message, reply, refuse);
+      // Only an unattended queue run answers for the owner. In the panel, Auto included, a question always reaches the owner.
+      if (proc.options.runMode === 'automatic') return answerForOwner(turn, message, reply, refuse);
       return askOwner(proc, turn, message, reply, socket, refuse);
     }
     if (MODE_FLAGS[proc.options.mode].readOnly) {
@@ -227,6 +228,9 @@ function createManager(context) {
       }
       return refuse(`This chat is in ${proc.options.mode} mode, which is read only.`);
     }
+    // A command that is not sensitive runs at once in every mode that may write: the panel, a queued run With my approval, and an automatic run,
+    // which must be able to run its own tests. Only a sensitive call goes on to be decided by the mode.
+    if (!isSensitiveCall(toolName, input)) return reply({ behavior: 'allow', updatedInput: input ?? {} });
     if (proc.options.runMode === 'automatic') return skipForOwner(turn, message, reply);
     if (autoApprove) return approveForOwner(turn, message, reply);
     const approvalId = randomUUID();
@@ -326,13 +330,7 @@ function createManager(context) {
         'Hub could not read this question. Nobody will answer in this automatic run: take the option you would recommend, and say which.',
       );
     }
-    const answers = Object.fromEntries(
-      questions.map((question) => [
-        question.text,
-        (question.options.find((option) => RECOMMENDED.test(option.label)) ?? question.options[0])?.label ??
-          'Take the option you would recommend, and say which.',
-      ]),
-    );
+    const answers = recommendedOf(questions);
     turn.emit('auto.decision', {
       kind: 'auto.decision',
       decisionId: randomUUID(),
@@ -860,6 +858,29 @@ function createManager(context) {
     );
   }
 
+  /**
+   * The owner changed a running chat's mode. Only between Execute and Auto: the engine started with the same rules for both, so only who decides a paused call
+   * changes. Into Auto, a call still waiting (Hub answers through `turn.answer` first, so this is only what it missed) is allowed; a question keeps waiting
+   * on the owner. Back to Execute, the next sensitive call waits again.
+   */
+  function setMode(args) {
+    const { chatId, mode } = args ?? {};
+    if (!['execute', 'auto'].includes(mode)) throw new Refusal('bad_arguments');
+    const proc = chats.get(chatId);
+    if (!proc) return { changed: false };
+    if (!['execute', 'auto'].includes(proc.options.mode)) return { changed: false };
+    proc.options.mode = mode;
+    const turn = proc.turn;
+    if (mode === 'auto' && turn) {
+      for (const pending of [...turn.approvals.values()]) {
+        // A question stays with the owner in Auto too.
+        if (pending.kind === 'question') continue;
+        pending.settle('allowed', { behavior: 'allow', updatedInput: pending.input ?? {} });
+      }
+    }
+    return { changed: true };
+  }
+
   /** What this turn has changed so far, from the device's own facts, for a report written before the turn ends. */
   async function files(chatId) {
     const proc = chats.get(chatId);
@@ -962,11 +983,23 @@ function createManager(context) {
     shutdown,
     engineStatus,
     files,
+    setMode,
     liveChats: () => [...chats.keys()],
     forget: () => {
       engineCache = null;
     },
   };
+}
+
+/** Each question's recommended option, else its first (docs/16 D58). */
+function recommendedOf(questions) {
+  return Object.fromEntries(
+    questions.map((question) => [
+      question.text,
+      (question.options.find((option) => RECOMMENDED.test(option.label)) ?? question.options[0])?.label ??
+        'Take the option you would recommend, and say which.',
+    ]),
+  );
 }
 
 const managers = new WeakMap();
@@ -984,6 +1017,7 @@ export const turnHandlers = {
   'turn.start': (args, context, emit) => turnManager(context).start(args, emit),
   'turn.answer': (args, context) => turnManager(context).answer(args),
   'turn.stop': (args, context) => turnManager(context).stop(args.chatId),
+  'turn.mode': (args, context) => turnManager(context).setMode(args),
   'turn.files': (args, context) => turnManager(context).files(args.chatId),
   'chat.close': (args, context) => turnManager(context).close(args.chatId),
   'chat.diff': (args, context) => diffOf(context.system, args.folder, args.path, DIFF_LIMIT),

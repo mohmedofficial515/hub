@@ -62,7 +62,7 @@ export function AuthFrame({
       <RadixTooltip.Provider delayDuration={200}>
         <div
           id="hub-root"
-          className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-8 text-foreground"
+          className="aurora flex min-h-dvh flex-col items-center justify-center px-4 py-8 text-foreground"
         >
           <main className={cn('flex w-full flex-col gap-4', wide ? 'max-w-lg' : 'max-w-sm')}>
             <div className="flex items-center gap-2.5 self-center">
@@ -71,9 +71,9 @@ export function AuthFrame({
                 Hub
               </span>
             </div>
-            <section className="flex flex-col gap-5 rounded-xl border border-border bg-card p-5 md:p-6">
+            <section className="glass animate-rise flex flex-col gap-5 rounded-2xl p-5 md:p-7">
               <header className="flex flex-col gap-1">
-                <h1 className="hub-page-title text-headline text-balance text-foreground">{title}</h1>
+                <h1 className="hub-page-title text-gradient text-headline text-balance">{title}</h1>
                 {subtitle && <div className="text-body text-muted-foreground">{subtitle}</div>}
               </header>
               {children}

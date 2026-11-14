@@ -5,14 +5,16 @@
  * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/layout.tsx. Contract: apps/web/README.md.
  */
 import type { LucideIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { forwardRef, type ReactNode, useEffect, useRef } from 'react';
 
 import { Ltr } from '@/components/common/text';
+import { views } from '@/components/shell/views';
 import { num } from '@/lib/format';
 import { useLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-/** Page gutter and width: 24 px desktop, 16 px phone, content max 1100 px (08 §3.3, §7). Every page starts with this. */
+/** Page gutter and width: 32 px desktop, 16 px phone, content up to 80 rem so a wide screen is used without lines running too long (Aurora Glass, 2026-11-09). Every page starts with this. */
 export function PageContainer({
   children,
   className,
@@ -23,7 +25,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-275 flex-col gap-6 px-4 pt-4 pb-28 md:gap-8 md:px-6 md:pt-6',
+        'mx-auto flex w-full max-w-320 flex-col gap-5 px-4 pt-4 pb-28 md:gap-6 md:px-8 md:pt-6',
         className,
       )}
     >
@@ -47,30 +49,50 @@ export function PageHeader({
   title,
   meta,
   actions,
+  icon,
   className,
 }: {
   title: ReactNode;
   meta?: ReactNode | undefined;
   actions?: ReactNode | undefined;
+  /** The page's icon. By default the sidebar's icon for the view in the address. */
+  icon?: LucideIcon | null | undefined;
   className?: string | undefined;
 }) {
   const ref = useRef<HTMLHeadingElement>(null);
+  const viewId = usePathname().split('/').filter(Boolean)[2];
+  const Icon = icon === null ? null : (icon ?? views.find((v) => v.id === viewId)?.icon ?? null);
   useEffect(() => {
     if (!titleFocusPending) return;
     titleFocusPending = false;
     ref.current?.focus({ preventScroll: true });
   }, []);
   return (
-    <header className={cn('flex flex-wrap items-start justify-between gap-x-4 gap-y-2', className)}>
-      <div className="min-w-0">
-        <h1
-          ref={ref}
-          tabIndex={-1}
-          className="hub-page-title text-headline text-balance text-foreground outline-none"
-        >
-          {title}
-        </h1>
-        {meta && <div className="mt-0.5 text-body-lg text-muted-foreground">{meta}</div>}
+    <header
+      className={cn(
+        'glass animate-rise flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 md:px-5',
+        className,
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        {Icon && (
+          <span
+            aria-hidden
+            className="flex size-10 shrink-0 items-center justify-center icon-tile rounded-xl text-primary-text ring-1 ring-primary/15"
+          >
+            <Icon className="size-5" strokeWidth={1.75} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h1
+            ref={ref}
+            tabIndex={-1}
+            className="hub-page-title text-gradient text-headline text-balance outline-none"
+          >
+            {title}
+          </h1>
+          {meta && <div className="mt-0.5 text-body-sm text-muted-foreground">{meta}</div>}
+        </div>
       </div>
       {actions && <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </header>
@@ -103,7 +125,14 @@ export const SectionHeader = forwardRef<
         tabIndex={-1}
         className="flex items-center gap-2 text-title-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        {Icon && <Icon aria-hidden className="size-4.5 text-muted-foreground" strokeWidth={1.75} />}
+        {Icon && (
+          <span
+            aria-hidden
+            className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary-text"
+          >
+            <Icon className="size-4" strokeWidth={1.75} />
+          </span>
+        )}
         {title}
         {count !== undefined && (
           <span className="rounded-full bg-muted px-2 text-caption font-medium text-muted-foreground tabular-nums">

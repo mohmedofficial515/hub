@@ -25,6 +25,7 @@
   },
   "view": {
     "label": "View",
+    "focus": "Focus",
     "board": "Board",
     "list": "List"
   },
@@ -70,6 +71,23 @@
     "columnEmpty": "Nothing here right now.",
     "readOnly": "The Accountant role sees this page read-only.",
     "next": "Tasks move from here to {name}"
+  },
+  "focus": {
+    "label": "Task flow, pick a stage to see its tasks",
+    "next": "Next for you",
+    "nextEmpty": "Nothing in your hands and no ready task you can claim right now.",
+    "queue": "{name} tasks",
+    "queueEmpty": "No tasks in this stage right now.",
+    "mine": "In your hands",
+    "mineEmpty": "Nothing else in your hands.",
+    "review": "Waiting for review",
+    "reviewEmpty": "Nothing is waiting for review.",
+    "blocked": {
+      "one": "1 task blocked by another card",
+      "other": "# tasks blocked by other cards"
+    },
+    "blockedBody": "They will not move until the cards they wait on are settled.",
+    "blockedAction": "Show {name}"
   },
   "card": {
     "blockedBy": "Blocked by {key}",

@@ -14,7 +14,7 @@ import { type CardFullDto, type CardSummaryDto, toHubCard, toListItem } from '@/
 import type { CardListItem, DocCard, DocHeading } from '@/features/cards/types';
 import { get, post } from '@/lib/api/client';
 
-import { allDocs, type DocFolder, type DocSource, hideTwins } from './tree';
+import { allDocs, type DocFolder, type DocSource, hideTwins, sortTree } from './tree';
 
 interface FolderDto {
   name?: string;
@@ -57,7 +57,7 @@ export function toTree(rows: readonly SourceDto[]): DocTreeData {
     root: toFolder(row.root, row.source.name),
   }));
   const all = raw.flatMap((s) => allDocs(s.root));
-  return { all, sources: raw.map((s) => ({ ...s, root: hideTwins(s.root) })) };
+  return { all, sources: raw.map((s) => ({ ...s, root: sortTree(hideTwins(s.root)) })) };
 }
 
 export function useDocTree() {

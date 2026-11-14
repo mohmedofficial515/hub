@@ -946,7 +946,7 @@ export function CardSheet({
       aria-label={fmt(t.sheet.label, { key })}
       data-card-sheet
       onKeyDown={onKeyDown}
-      className={cn('flex flex-col bg-background text-foreground outline-none', className)}
+      className={cn('glass-chrome flex flex-col text-foreground outline-none', className)}
       initial={{ opacity: 0, x: offset }}
       animate={{ opacity: 1, x: 0, transition: { duration: 0.2, ease: EASE } }}
     >

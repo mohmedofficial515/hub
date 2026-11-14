@@ -32,6 +32,7 @@ export const NAMESPACES = [
   'queue',
   'schema',
   'skills',
+  'live',
 ] as const;
 
 export default getRequestConfig(async ({ requestLocale }) => {

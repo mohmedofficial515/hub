@@ -1108,7 +1108,7 @@ export function QuestionCard({
         <div
           role="tablist"
           aria-label={q.tabs}
-          className="-mx-0.5 flex min-w-0 gap-1 overflow-x-auto px-0.5 pb-0.5 scrollbar-thin"
+          className="-mx-0.5 flex min-w-0 gap-1 overflow-x-auto px-0.5 pb-0.5 scrollbar-quiet"
         >
           {all.map((x, i) => {
             const selected = i === at;

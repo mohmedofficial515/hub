@@ -386,7 +386,20 @@ export const markRestored = (draftId: string) =>
 export const setPlanAside = (id: string) =>
   set((s) => ({ ...s, plansAside: { ...s.plansAside, [id]: true } }));
 
-export const setMode = (mode: Mode) => set((s) => ({ ...s, mode }));
+/**
+ * The mode is the chat's own, so it is saved on the chat at once. A turn that is running takes it too: switching a running chat from Execute to Auto
+ * answers what waits on the owner (each question with its recommended option, each paused call allowed) and lets the rest of the turn run to its end;
+ * switching back makes the next call wait again.
+ */
+export function setMode(mode: Mode) {
+  const before = local.mode;
+  set((s) => ({ ...s, mode }));
+  const id = local.activeId;
+  if (!id || before === mode) return;
+  patch(`${base()}/${id}`, { mode })
+    .then(() => reread(id))
+    .catch(refused);
+}
 export function setModel(model: ModelId) {
   writeLocal('model', model);
   set((s) => ({ ...s, model }));
@@ -822,8 +835,23 @@ export async function suggestWithClaude(context: ChatContext): Promise<boolean> 
 }
 
 /** Starts a Hub skill on a card: it runs at once, in Execute, and its tooltip has said so (D51). */
+/**
+ * A skill on a card goes back to the chat that already worked on it when that chat is not running, so the session keeps what it learned (files read,
+ * decisions, a half-done change) and the panel does not fill with one chat per attempt. Otherwise it starts a fresh chat.
+ */
 export function startSkill(text: string, context: ChatContext) {
+  const earlier = chatsInCache().find((c) => !c.deletedAt && !c.running && c.title.trim() === text.trim());
+  if (earlier) {
+    openChat(earlier.id);
+    return send({ text, mode: 'execute', fresh: false, context });
+  }
   return send({ text, mode: 'execute', fresh: true, context });
+}
+
+/** The chats the panel already holds, newest first. */
+function chatsInCache(): ChatDto[] {
+  const list = scope.client?.getQueryData<ChatDto[]>(chatKeys.list(scope.ws)) ?? [];
+  return [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export const chatIsBusy = (status: ChatStatus | undefined) =>

@@ -240,11 +240,11 @@ export function DocsPage() {
   return (
     <PageContainer className="max-w-none">
       {header}
-      <div className="grid items-start gap-8 lg:@page-lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-        <aside className="sticky top-18 max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain pe-1">
+      <div className="grid items-start gap-5 lg:@page-lg:grid-cols-[18.5rem_minmax(0,1fr)]">
+        <aside className="glass sticky top-18 max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain rounded-2xl p-2">
           {treeView}
         </aside>
-        <div className="min-w-0">{reader}</div>
+        <div className="glass min-w-0 rounded-2xl p-4 md:p-6">{reader}</div>
       </div>
     </PageContainer>
   );

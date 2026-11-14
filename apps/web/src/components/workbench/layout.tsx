@@ -23,6 +23,7 @@ import {
   PinOff,
   Plug,
   Plus,
+  Radio,
   Settings2,
   SquareTerminal,
   Trash2,
@@ -53,6 +54,7 @@ import {
   Ltr,
   matchKey,
   Modal,
+  navigate,
   plural,
   Segmented,
   setHelpMode,
@@ -77,6 +79,7 @@ import { QuietPrimary } from '@/components/ui/button';
 import { useQueue } from '@/features/queue/queries';
 import { setSidebarFolded } from '@/lib/preferences';
 
+import { ChatTabs } from './chat-tabs';
 import { Composer, Menu, useModeKeys } from './composer';
 import { PanelNewProject } from './new-project';
 import { PageRoom } from './page-room';
@@ -869,6 +872,18 @@ function PanelHeader({
       </IconButton>
     </Tip>
   );
+  const liveButton = (
+    <Tip content={{ what: t.pro.live }} side="bottom">
+      <IconButton
+        label={t.pro.live}
+        title={undefined}
+        data-wb-live
+        onClick={() => navigate('live', { query: chat ? { chat: chat.id } : {} })}
+      >
+        <Radio aria-hidden className="size-4" strokeWidth={1.75} />
+      </IconButton>
+    </Tip>
+  );
   const closeButton = (
     <Tip k="head:close" side="bottom" keys={['Ctrl /']}>
       <IconButton
@@ -917,11 +932,13 @@ function PanelHeader({
       ) : (
         <div className="flex min-w-0 items-center gap-0.5">
           {heading}
+          {liveButton}
           {newButton}
           {menu}
           {closeButton}
         </div>
       )}
+      {!phone && view === 'chat' && <ChatTabs />}
       {phone && <PendingPill />}
       {phone && (
         <div className="flex min-w-0 items-center gap-1">
@@ -1348,7 +1365,7 @@ export function WorkbenchLayout({
               onDragging={setDragging}
               label={t.resize}
               facts={widthFacts}
-              className="sticky top-0 h-dvh border-s border-border bg-background"
+              className="glass-chrome sticky top-0 h-dvh border-s border-border"
             />
           )}
 
@@ -1379,7 +1396,7 @@ export function WorkbenchLayout({
                 if (key) dropKey(key);
               }}
               className={cn(
-                '@container relative flex min-w-0 flex-col bg-background',
+                '@container glass-chrome relative flex min-w-0 flex-col',
                 phone ? 'fixed inset-0 z-45 w-full' : 'sticky top-0 h-dvh shrink-0',
               )}
             >

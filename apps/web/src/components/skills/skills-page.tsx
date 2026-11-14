@@ -74,14 +74,20 @@ function DevicesCard({
     <section
       aria-labelledby="skills-devices"
       data-skills-devices
-      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3"
+      className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4"
     >
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         <h2 id="skills-devices" className="text-body font-semibold text-foreground">
           {t.title}
         </h2>
-        <p className="text-body-sm text-muted-foreground">
-          {fill(t.version, { version: <Ltr mono>{version}</Ltr> })}
+        <p className="min-w-0 text-body-sm text-muted-foreground wrap-anywhere">
+          {fill(t.version, {
+            version: (
+              <span className="inline-block">
+                <Ltr mono>{version}</Ltr>
+              </span>
+            ),
+          })}
         </p>
       </div>
       <p className="text-body-sm text-muted-foreground">{mode === 'manual' ? t.manual : t.auto}</p>
@@ -166,9 +172,9 @@ function HubSkillRow({
     <li
       data-skill={skill.name}
       data-skill-core={skill.core || undefined}
-      className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-card p-3"
+      className="flex h-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4"
     >
-      <div className="flex min-w-0 items-start gap-2.5">
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
         {skill.core ? (
           <ShieldCheck
             aria-hidden
@@ -191,10 +197,10 @@ function HubSkillRow({
               </Tip>
             )}
           </div>
-          <p dir="auto" className="mt-0.5 text-body-sm text-foreground">
+          <p dir="auto" className="mt-0.5 line-clamp-3 text-body-sm text-foreground">
             {skill.description}
           </p>
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-body-sm text-muted-foreground">
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
             <span>
               {skill.userInvocable ? fill(t.typed, { command: <Ltr mono>{command}</Ltr> }) : t.background}
             </span>
@@ -221,7 +227,7 @@ function HubSkillRow({
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5 ps-7.5">
+      <div className="flex flex-wrap gap-1.5 border-t border-border pt-3">
         <Button size="sm" variant="ghost" data-skill-read onClick={onRead}>
           {t.view}
         </Button>
@@ -251,9 +257,9 @@ function PersonalSkillRow({
   return (
     <li
       data-personal-skill={skill.name}
-      className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-card p-3"
+      className="flex h-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4"
     >
-      <div className="flex min-w-0 items-start gap-2.5">
+      <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <FolderLock aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -275,7 +281,7 @@ function PersonalSkillRow({
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5 ps-7.5">
+      <div className="flex flex-wrap gap-1.5 border-t border-border pt-3">
         <Button size="sm" variant="ghost" data-personal-read onClick={onRead}>
           {hub.view}
         </Button>
@@ -357,7 +363,7 @@ export function SkillsPage() {
 
   if (query.isError && !data) {
     return (
-      <PageContainer className="max-w-200">
+      <PageContainer>
         {header}
         <ErrorState
           thing={t.errorThing}
@@ -370,7 +376,7 @@ export function SkillsPage() {
   }
   if (!data) {
     return (
-      <PageContainer className="max-w-200">
+      <PageContainer>
         {header}
         <LoadingRegion label={t.loading}>
           <div className="flex flex-col gap-3">
@@ -386,65 +392,70 @@ export function SkillsPage() {
   const ownMade = data.hub.filter((skill) => !skill.core);
   const core = data.hub.filter((skill) => skill.core);
   return (
-    <PageContainer className="max-w-200">
+    <PageContainer>
       {header}
-      <DevicesCard devices={data.sync.devices} version={data.sync.version} mode={data.sync.mode} />
+      <div className="grid min-w-0 items-start gap-5 md:gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <section aria-labelledby="skills-hub" data-skills-section="hub" className="flex flex-col gap-3">
+            <SectionHeader id="skills-hub" icon={Sparkles} title={t.hub.title} count={data.hub.length} />
+            <p className="text-body-sm text-muted-foreground">{t.hub.hint}</p>
+            {data.hub.length === 0 ? (
+              <p className="text-body-sm text-muted-foreground">{t.hub.empty}</p>
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {[...ownMade, ...core].map((skill) => (
+                  <HubSkillRow
+                    key={skill.name}
+                    skill={skill}
+                    owner={owner}
+                    onRead={() => setReading({ source: 'hub', name: skill.name })}
+                    onEdit={() => setEditing(skill.name)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
 
-      <section aria-labelledby="skills-hub" data-skills-section="hub" className="flex flex-col gap-2">
-        <SectionHeader id="skills-hub" icon={Sparkles} title={t.hub.title} count={data.hub.length} />
-        <p className="text-body-sm text-muted-foreground">{t.hub.hint}</p>
-        {data.hub.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">{t.hub.empty}</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {[...ownMade, ...core].map((skill) => (
-              <HubSkillRow
-                key={skill.name}
-                skill={skill}
-                owner={owner}
-                onRead={() => setReading({ source: 'hub', name: skill.name })}
-                onEdit={() => setEditing(skill.name)}
+          {owner && (
+            <section
+              aria-labelledby="skills-personal"
+              data-skills-section="personal"
+              className="flex flex-col gap-3"
+            >
+              <SectionHeader
+                id="skills-personal"
+                icon={FolderLock}
+                title={t.personal.title}
+                count={data.personal.length}
               />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {owner && (
-        <section
-          aria-labelledby="skills-personal"
-          data-skills-section="personal"
-          className="flex flex-col gap-2"
-        >
-          <SectionHeader
-            id="skills-personal"
-            icon={FolderLock}
-            title={t.personal.title}
-            count={data.personal.length}
-          />
-          {data.personalFolder && (
-            <p className="text-body-sm text-muted-foreground">
-              {fill(t.personal.hint, { folder: <Ltr mono>{data.personalFolder}</Ltr> })}
-            </p>
+              {data.personalFolder && (
+                <p className="text-body-sm text-muted-foreground">
+                  {fill(t.personal.hint, { folder: <Ltr mono>{data.personalFolder}</Ltr> })}
+                </p>
+              )}
+              {data.personal.length === 0 ? (
+                <EmptyState icon={FolderLock} title={t.personal.emptyTitle}>
+                  {t.personal.empty}
+                </EmptyState>
+              ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {data.personal.map((skill) => (
+                    <PersonalSkillRow
+                      key={skill.name}
+                      skill={skill}
+                      onRead={() => setReading({ source: 'personal', name: skill.name })}
+                      onMove={() => setMoving(skill)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </section>
           )}
-          {data.personal.length === 0 ? (
-            <EmptyState icon={FolderLock} title={t.personal.emptyTitle}>
-              {t.personal.empty}
-            </EmptyState>
-          ) : (
-            <ul className="flex flex-col gap-2">
-              {data.personal.map((skill) => (
-                <PersonalSkillRow
-                  key={skill.name}
-                  skill={skill}
-                  onRead={() => setReading({ source: 'personal', name: skill.name })}
-                  onMove={() => setMoving(skill)}
-                />
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
+        </div>
+        <aside className="min-w-0 lg:sticky lg:top-4">
+          <DevicesCard devices={data.sync.devices} version={data.sync.version} mode={data.sync.mode} />
+        </aside>
+      </div>
 
       <SkillEditor open={creating} onOpenChange={setCreating} />
       <EditHubSkill name={editing} onClose={() => setEditing(null)} />

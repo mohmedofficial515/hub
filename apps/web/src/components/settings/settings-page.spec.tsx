@@ -108,14 +108,14 @@ describe('SettingsPage', () => {
     search.value = 'tab=general';
   });
 
-  it('gives the owner ten tabs, Backups among them, and the project details', async () => {
+  it('gives the owner eleven tabs (Appearance first), Backups among them, and the project details', async () => {
     stubFetch(answer(['owner']));
     renderWithApp(
       <Tooltip.Provider>
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(10));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(11));
     expect(screen.getByRole('tab', { name: 'Backups' })).toBeTruthy();
     expect(await screen.findByDisplayValue('Demo')).toBeTruthy();
     expect(screen.getByDisplayValue('About')).toBeTruthy();
@@ -147,14 +147,14 @@ describe('SettingsPage', () => {
     expect(screen.queryByText(/You don.t have access/)).toBeNull();
   }, 20_000);
 
-  it('gives a pm nine tabs: Backups is the owner’s alone (docs/16 D61)', async () => {
+  it('gives a pm ten tabs: Backups is the owner’s alone (docs/16 D61)', async () => {
     stubFetch(answer(['pm']));
     renderWithApp(
       <Tooltip.Provider>
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(9));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(10));
     expect(screen.queryByRole('tab', { name: 'Backups' })).toBeNull();
   }, 20_000);
 
@@ -179,7 +179,7 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('button', { name: 'Close project' })).toBeNull();
   });
 
-  it('gives any other member four tabs, and a 403 on the rest', async () => {
+  it('gives any other member five tabs (Appearance among them), and a 403 on the rest', async () => {
     search.value = 'tab=audit';
     stubFetch(answer(['frontend']));
     renderWithApp(
@@ -187,7 +187,7 @@ describe('SettingsPage', () => {
         <SettingsPage />
       </Tooltip.Provider>,
     );
-    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(4));
+    await waitFor(() => expect(screen.getAllByRole('tab')).toHaveLength(5));
     expect(screen.getByRole('button', { name: 'Go to my settings' })).toBeTruthy();
   });
 

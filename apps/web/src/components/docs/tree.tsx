@@ -11,7 +11,7 @@ import { useState } from 'react';
 
 import { AppLink, cn, fmt, focusRing, focusRingInset, Ltr, num, useLocale, useT } from '@/components/kit';
 import type { DocCard } from '@/features/cards/types';
-import { type DocFolder, type DocSource, fileName, folderSize, treeContains } from '@/features/docs/tree';
+import { type DocFolder, type DocSource, fileName, folderSize, readableName, treeContains } from '@/features/docs/tree';
 
 import type { DocsMessages } from './messages';
 
@@ -30,6 +30,7 @@ function DocLink({
 }) {
   const t = useT<DocsMessages>('docs');
   const active = current === doc.key;
+  const name = readableName(doc.doc.path);
   return (
     <li>
       <AppLink
@@ -41,17 +42,34 @@ function DocLink({
         title={doc.title}
         style={{ paddingInlineStart: `${0.5 + depth * 0.875}rem` }}
         className={cn(
-          'relative flex min-h-11 items-center gap-2 rounded-md py-1 pe-2 text-body-sm transition-colors duration-120 hover:bg-accent md:min-h-8',
+          'relative flex min-h-11 items-center gap-2 rounded-lg py-1.5 pe-2 text-body-sm transition-colors duration-120 hover:bg-accent md:min-h-10',
           active
-            ? 'bg-accent font-medium text-foreground before:absolute before:inset-y-1 before:start-0 before:w-0.5 before:rounded-full before:bg-foreground'
+            ? 'bg-primary/10 font-medium text-foreground ring-1 ring-primary/15'
             : 'text-muted-foreground hover:text-foreground',
           focusRingInset,
         )}
       >
-        <FileText aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
-        <Ltr mono className="min-w-0 truncate text-caption">
-          {fileName(doc.doc.path)}
-        </Ltr>
+        {name.n ? (
+          <span
+            aria-hidden
+            className={cn(
+              'flex h-5 min-w-6 shrink-0 items-center justify-center rounded-md px-1 text-caption font-semibold tabular-nums',
+              active ? 'bg-primary/15 text-primary-text' : 'bg-muted text-muted-foreground',
+            )}
+          >
+            <Ltr>{name.n}</Ltr>
+          </span>
+        ) : (
+          <FileText aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
+        )}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span dir="auto" className="truncate text-body-sm">
+            {doc.title || name.words}
+          </span>
+          <Ltr mono className="truncate text-caption text-muted-foreground/80">
+            {fileName(doc.doc.path)}
+          </Ltr>
+        </span>
         {doc.status === 'stale' && (
           <span
             title={t.staleHint}

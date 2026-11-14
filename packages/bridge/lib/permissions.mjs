@@ -285,8 +285,10 @@ export function isReadOnlyMcpTool(name) {
 }
 
 /**
- * `auto`: the owner's own choice to let a turn run to its end. The same settings as Execute, so every rule still routes a sensitive call to the permission tool, and the bridge then allows it at
- * once and records it as an `auto.decision` (`approved`), so the chat shows each call that was allowed for the owner. A question takes its recommended option, as an automatic queue run does.
+ * `execute`: a command runs at once unless it is sensitive (`isSensitiveCall`); a sensitive one, and every question, waits on the owner.
+ * `auto`: the owner's own choice to let a turn run to its end. The same settings as Execute, and the bridge allows each sensitive call at once and records it
+ * as an `auto.decision` (`approved`), so the chat shows each call that was allowed for the owner. A question still waits on the owner: a question is
+ * a decision about the business or the way of working, and Auto never makes one for them.
  */
 export const MODE_FLAGS = {
   ask: { permissionMode: 'default', readOnly: true, autoApprove: false },
@@ -317,6 +319,21 @@ export function categoryOf(toolName, input) {
   const command = typeof input?.command === 'string' ? input.command : '';
   for (const [pattern, category] of COMMAND_CATEGORIES) if (pattern.test(command)) return category;
   return 'other';
+}
+
+/** System-wide or remote-code commands the categories above do not name, which still wait on the owner in Execute. */
+const RISKY_OTHER =
+  /(^|[;&|(]\s*)\s*(sudo|su|chmod|chown|icacls|takeown|kill|pkill|killall|taskkill|Stop-Process|shutdown|reboot|Restart-Computer|Stop-Computer|format|mkfs|diskpart|reg|Set-ItemProperty|setx|Set-ExecutionPolicy|crontab|schtasks|systemctl|service|npm\s+(i|install)\s+-g|pnpm\s+(add|install)\s+-g)\b|\b(curl|wget|iwr|Invoke-WebRequest|irm|Invoke-RestMethod)\b[^\n]*\|\s*(sh|bash|zsh|iex|Invoke-Expression|python|node)\b/i;
+
+/**
+ * Whether Execute must ask the owner before this call. A named category (delete, move, Git history, push, branch, worktree, Docker, deploy, Hub's
+ * sensitive tools) always asks; any other command runs at once unless it reaches the system itself (`RISKY_OTHER`).
+ */
+export function isSensitiveCall(toolName, input) {
+  const category = categoryOf(toolName, input);
+  if (category !== 'other') return true;
+  const command = typeof input?.command === 'string' ? input.command : '';
+  return RISKY_OTHER.test(command);
 }
 
 /**

@@ -159,13 +159,13 @@ function NavItem({
         'relative flex min-h-11 items-center gap-2.5 rounded-md text-body transition-colors duration-120 lg:min-h-9',
         collapsed ? 'justify-center px-0' : 'px-2.5',
         active
-          ? 'bg-accent font-semibold text-foreground'
+          ? 'bg-primary/10 font-semibold text-primary-text shadow-xs ring-1 ring-primary/15'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground',
         focusRing,
       )}
     >
       {active && (
-        <span aria-hidden className="absolute inset-y-1.5 -start-2 w-0.75 rounded-full bg-foreground" />
+        <span aria-hidden className="absolute inset-y-1.5 -start-2 w-0.75 rounded-full bg-primary" />
       )}
       <Icon aria-hidden className="size-4.5 shrink-0" strokeWidth={1.75} />
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
@@ -380,7 +380,7 @@ function SidebarBody({
 
       <nav
         aria-label={t.sidebar.label}
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2 [scrollbar-width:thin]"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2 scrollbar-quiet"
       >
         <ul className="flex flex-col gap-0.5">
           {top.map((view) => (
@@ -475,7 +475,7 @@ export function DesktopSidebar({ onShortcuts }: { onShortcuts: () => void }) {
     <aside
       data-collapsed={collapsed}
       className={cn(
-        'sticky top-0 hidden h-dvh shrink-0 border-e border-border bg-(--sidebar) transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block',
+        'sticky top-0 hidden h-dvh shrink-0 border-e border-border bg-(--sidebar) backdrop-blur-xl backdrop-saturate-150 transition-[width] duration-200 ease-out motion-reduce:transition-none lg:block',
         collapsed ? 'w-14' : 'w-62',
       )}
     >

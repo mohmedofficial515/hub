@@ -41,7 +41,7 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = { robots: { index: false } };
 
 /** The browser's own bar follows the theme: the cookie's when there is one, else the system's. */
-const SURFACE = { light: '#f4f8f3', dark: '#0b100c' };
+const SURFACE = { light: '#eef0f8', dark: '#070913' };
 export async function generateViewport(): Promise<Viewport> {
   const theme = (await cookies()).get('hub-theme')?.value;
   if (theme === 'dark' || theme === 'light') return { themeColor: SURFACE[theme] };
@@ -68,6 +68,9 @@ export default async function LocaleLayout({
   const messages = await getMessages();
   const theme = (await cookies()).get('hub-theme')?.value;
   const known = theme === 'dark' || theme === 'light' ? theme : null;
+  // The owner's text size (Settings), from a cookie so the first paint already has it.
+  const font = (await cookies()).get('hub-font')?.value;
+  const fontSize = font && ['xs', 'sm', 'md', 'lg', 'xl'].includes(font) ? font : undefined;
   const fonts = `${cairo.variable} ${inter.variable} ${jetbrains.variable}`;
 
   return (
@@ -76,6 +79,7 @@ export default async function LocaleLayout({
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       className={known === 'dark' ? `dark ${fonts}` : fonts}
       style={known ? { colorScheme: known } : undefined}
+      data-font={fontSize}
       suppressHydrationWarning
     >
       <head>{known ? null : <script dangerouslySetInnerHTML={{ __html: FOLLOW_SYSTEM }} />}</head>

@@ -299,7 +299,7 @@ export class ChatsService implements OnApplicationBootstrap {
 
   async update(actor: MemberActor, id: string, input: UpdateChatInput): Promise<ChatDto> {
     assertNoSecrets(input);
-    await this.owned(actor, id);
+    const before = await this.owned(actor, id);
     const row = await this.txHost.tx.chat.update({
       where: { id, workspaceId: actor.workspaceId },
       data: {
@@ -311,8 +311,33 @@ export class ChatsService implements OnApplicationBootstrap {
       },
       include: CHAT_INCLUDE,
     });
+    if (input.mode !== undefined && input.mode !== before.mode)
+      await this.applyLiveMode(actor, before, input.mode);
     await this.changed(actor, id, 'chat');
     return this.toChat(row);
+  }
+
+  /**
+   * A running turn takes a new mode at once, between Execute and Auto (the engine started with the same rules for both; Ask and Plan are read only and
+   * start a new turn). Into Auto, each call already paused on the owner is allowed through the same path as an Allow from the panel. A question keeps
+   * waiting: it is a decision about the business or the way of working, and Auto never makes one for the owner. The bridge then decides the rest of the
+   * turn by the new mode; an older bridge with no `turn.mode` keeps the mode the turn started with for its later calls.
+   */
+  private async applyLiveMode(actor: MemberActor, chat: ChatRow, mode: ChatMode): Promise<void> {
+    const live = (m: string) => m === 'execute' || m === 'auto';
+    if (!this.isRunning(chat) || !live(mode) || !live(chat.mode) || !this.hub.isOnline(chat.deviceId)) return;
+    if (mode === 'auto') {
+      const waiting = await this.txHost.tx.chatApproval.findMany({
+        where: { workspaceId: actor.workspaceId, chatId: chat.id, status: 'pending', kind: 'approval' },
+        orderBy: { createdAt: 'asc' },
+      });
+      for (const item of waiting) {
+        await this.answer(actor, chat.id, item.id, { decision: 'allow' }).catch(() => undefined);
+      }
+    }
+    await this.hub
+      .request(chat.deviceId, 'turn.mode', { chatId: chat.id, mode }, { timeoutMs: ANSWER_TIMEOUT_MS })
+      .catch(() => undefined);
   }
 
   async remove(actor: MemberActor, id: string): Promise<void> {

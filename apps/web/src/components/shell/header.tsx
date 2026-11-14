@@ -136,7 +136,7 @@ export function Header({
   const mac =
     useMedia('(pointer: fine)') && typeof navigator !== 'undefined' && /Mac/i.test(navigator.platform);
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-2 md:gap-3 md:px-4">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-border glass-chrome px-2 md:gap-3 md:px-4">
       <IconButton id="hub-nav-button" label={t.sidebar.openMenu} className="lg:hidden" onClick={onOpenNav}>
         <Menu aria-hidden className="size-5" strokeWidth={1.75} />
       </IconButton>
@@ -151,7 +151,7 @@ export function Header({
         aria-keyshortcuts="Control+K Meta+K /"
         aria-haspopup="dialog"
         className={cn(
-          'hidden h-9 min-w-0 flex-1 items-center gap-2 rounded-md border border-input bg-card px-3 text-body-sm text-muted-foreground transition-colors duration-120 hover:bg-accent md:max-w-md',
+          'hidden h-9 min-w-0 flex-1 items-center gap-2 rounded-xl border border-input bg-card px-3 text-body-sm text-muted-foreground shadow-xs transition-colors duration-120 hover:bg-accent md:max-w-md',
           !compact && 'md:flex',
           focusRing,
         )}

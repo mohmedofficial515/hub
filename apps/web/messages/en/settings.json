@@ -7,6 +7,7 @@
   "forbiddenRoles": "{owner} or {pm}",
   "backToMine": "Go to my settings",
   "tabs": {
+    "appearance": "Appearance",
     "general": "General",
     "sources": "Sources",
     "roles": "Roles",
@@ -853,5 +854,24 @@
     "copyFailure": "Copy the error text",
     "deleteWhat": "{size}, in the folder {folder}.",
     "folderPlaceholder": "such as D:\\HubBackups"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "font": "Text size",
+    "fontHint": "Applies to every page at once, with its spacing. Kept on this device.",
+    "sizes": {
+      "xs": "Smallest",
+      "sm": "Small",
+      "md": "Medium",
+      "lg": "Large",
+      "xl": "Largest"
+    },
+    "previewLabel": "Preview",
+    "previewTitle": "Steps for the release plan",
+    "previewBody": "This is how cards, lists and documents read at this size."
   }
 }

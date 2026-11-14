@@ -11,7 +11,7 @@ import { saveDocSchema } from './knowledge';
 import { absolutePath } from './projects';
 import { chatSuggestionSchema, chatSuggestionsSchema } from './suggestions';
 
-/** `auto`: Execute that allows each call needing approval at once, and takes a question's recommended option, so the turn runs to its end. Each such decision is recorded. */
+/** `execute`: runs commands at once and asks only for a sensitive one. `auto`: Execute that also allows each sensitive call at once, recorded; a question always waits on the owner. */
 export const CHAT_MODES = ['ask', 'plan', 'execute', 'auto'] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];
 

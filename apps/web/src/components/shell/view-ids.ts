@@ -14,6 +14,7 @@ export const VIEW_IDS = [
   'redesign',
   'releases',
   'queue',
+  'live',
   'docs',
   'ask',
   'onboarding',

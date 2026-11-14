@@ -43,6 +43,37 @@ export function useTheme(): Theme {
   );
 }
 
+// ── Text size ───────────────────────────────────────────────────────────────────────────────────
+
+/** The owner's text size. Every size and space is in rem, so the root size scales the whole page together. `sm` is the default. */
+export const FONT_SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
+export type FontSize = (typeof FONT_SIZES)[number];
+export const FONT_COOKIE = 'hub-font';
+
+const fontListeners = new Set<() => void>();
+const readFont = (): FontSize => {
+  const value = document.documentElement.dataset['font'];
+  return (FONT_SIZES as readonly string[]).includes(value ?? '') ? (value as FontSize) : 'sm';
+};
+
+export function setFontSize(size: FontSize) {
+  if (size === 'sm') delete document.documentElement.dataset['font'];
+  else document.documentElement.dataset['font'] = size;
+  document.cookie = `${FONT_COOKIE}=${size}; path=/; max-age=${YEAR}; samesite=lax`;
+  fontListeners.forEach((l) => l());
+}
+
+export function useFontSize(): FontSize {
+  return useSyncExternalStore(
+    (notify) => {
+      fontListeners.add(notify);
+      return () => fontListeners.delete(notify);
+    },
+    readFont,
+    () => 'sm',
+  );
+}
+
 /** Same page in the other language. The preference follows the member, when signed in. */
 export function setLocaleEverywhere(locale: 'ar' | 'en', { signedIn = true }: { signedIn?: boolean } = {}) {
   document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=${YEAR}; samesite=lax`;

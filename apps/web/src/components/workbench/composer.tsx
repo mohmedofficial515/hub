@@ -917,7 +917,7 @@ export function Composer({
       <div
         data-wb-composer-box
         className={cn(
-          'flex min-w-0 flex-col gap-1 rounded-lg border border-input bg-card p-1.5 focus-within:ring-2 focus-within:ring-ring',
+          'flex min-w-0 flex-col gap-1 rounded-2xl border border-input bg-card p-1.5 shadow-sm transition-[box-shadow,border-color] duration-200 focus-within:border-primary/40 focus-within:shadow-md focus-within:ring-4 focus-within:ring-primary/15',
           blocked && 'bg-muted',
         )}
       >

@@ -35,6 +35,7 @@ export const BRIDGE_ACTIONS = [
   'turn.start',
   'turn.answer',
   'turn.stop',
+  'turn.mode',
   'turn.files',
   'chat.close',
   'chat.diff',

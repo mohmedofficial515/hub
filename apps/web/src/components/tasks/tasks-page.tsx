@@ -5,7 +5,7 @@
  * @description Ported from v5 `pages/tasks/page.tsx`. The board or the list, and the Deleted view at `?view=deleted`. Reasons: `apps/lab/hub/today/v5-peacock-app/pages/tasks/NOTES.md`.
  */
 import { seesAllReadyWork } from '@hub/contracts';
-import { Kanban, List, Plus, SearchX, SquareCheck } from 'lucide-react';
+import { Focus, Kanban, List, Plus, SearchX, SquareCheck } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -48,6 +48,7 @@ import { NewCardDialog } from '@/components/shell/new-card-dialog';
 import { usePageRoom } from '@/components/workbench/page-room';
 import {
   type Column,
+  COLUMNS,
   columnsOf,
   inMyRole,
   matchesFilters,
@@ -62,6 +63,7 @@ import { isHubError } from '@/lib/api/errors';
 
 import { TaskBoard } from './board';
 import { DeletedLink, DeletedView } from './deleted-view';
+import { FocusDesk, focusDeskIds, focusDeskOf } from './focus-desk';
 import { TaskList } from './list';
 import type { TaskMessages } from './messages';
 import type { OnMove } from './task-bits';
@@ -75,7 +77,11 @@ function readView(id: string) {
     return null;
   }
 }
-function writeView(id: string, view: 'board' | 'list') {
+type View = 'focus' | 'board' | 'list';
+const VIEWS: View[] = ['focus', 'board', 'list'];
+const isView = (v: string | null): v is View => VIEWS.includes(v as View);
+
+function writeView(id: string, view: View) {
   try {
     localStorage.setItem(viewKey(id), view);
   } catch {
@@ -106,15 +112,15 @@ function TasksBoardOrList() {
   const [rememberedView] = useState(() => readView(me.id));
   // Beside the panel, with no room for a Board's lanes, its List shows in its place and the chosen view stays the owner's (D54).
   const { boardTight } = usePageRoom();
-  const chosenView: 'board' | 'list' =
-    viewParam === 'list' || viewParam === 'board'
-      ? viewParam
-      : rememberedView === 'list' || rememberedView === 'board'
-        ? rememberedView
-        : wideEnough
-          ? 'board'
-          : 'list';
-  const view = boardTight ? 'list' : chosenView;
+  // A wide page opens on the Focus desk; the full board is one press of `v` away (owner pick, 2026-11-09).
+  const chosenView: View = isView(viewParam)
+    ? viewParam
+    : isView(rememberedView)
+      ? rememberedView
+      : wideEnough
+        ? 'focus'
+        : 'list';
+  const view: View = boardTight && chosenView === 'board' ? 'list' : chosenView;
   const viewToggleRef = useRef<HTMLDivElement>(null);
   const mine = useFilter('mine') === '1';
   const review = useFilter('review') === '1';
@@ -140,10 +146,25 @@ function TasksBoardOrList() {
   const byColumn = columnsOf(visible, me.id, roles);
   const listRows = sortList(visible, { status, sort, desc }, me.id, roles);
 
+  // The Focus desk's stage: a link to a column opens on it, else Ready, where the next piece of work waits.
+  const [stage, setStage] = useState<Column>(() =>
+    COLUMNS.includes(status as Column) ? (status as Column) : 'ready',
+  );
+
   const boardIds = (Object.keys(byColumn) as Column[])
     .flatMap((c) => (c === 'backlog' || c === 'done' ? (railsOpen.has(c) ? byColumn[c] : []) : byColumn[c]))
     .map((c) => c.key);
-  const ids = view === 'list' ? listRows.map((c) => c.key) : boardIds;
+  // The filled button is the next thing this page wants from me: the first Ready task I can claim (kit README, filled-button rule).
+  const seesAll = seesAllReadyWork(roles);
+  const canClaim = (c: TaskCard) =>
+    (seesAll || inMyRole(c, roles)) &&
+    openBlockers(c).length === 0 &&
+    actionsFor(c, roles, me.id).some((a) => a.action === 'claim' && a.enabled);
+  const primaryKey = byColumn.ready.find(canClaim)?.key;
+  const seesReview = roles.includes('qa') || isManager;
+  const desk = focusDeskOf(byColumn, stage, { meId: me.id, primaryKey, seesReview });
+
+  const ids = view === 'list' ? listRows.map((c) => c.key) : view === 'focus' ? focusDeskIds(desk) : boardIds;
 
   const onMove: OnMove = (card, action, mode) => {
     if (mode !== 'now') {
@@ -192,7 +213,7 @@ function TasksBoardOrList() {
     else heading.current?.focus();
   });
 
-  const setView = (next: 'board' | 'list') => {
+  const setView = (next: View) => {
     writeView(me.id, next);
     setQuery({ view: next });
   };
@@ -211,7 +232,7 @@ function TasksBoardOrList() {
         return;
       e.preventDefault();
       afterToggle.current = { key: target.closest<HTMLElement>('[data-row]')?.dataset.row ?? null };
-      setView(view === 'board' ? 'list' : 'board');
+      setView(VIEWS[(VIEWS.indexOf(view) + 1) % VIEWS.length] ?? 'focus');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -225,21 +246,11 @@ function TasksBoardOrList() {
     // Runs when the view changed, after the new rows exist.
   }, [view]);
 
-  // The filled button is the next thing this page wants from me: the first Ready task I can claim (kit README, filled-button rule).
-  const seesAll = seesAllReadyWork(roles);
-  const canClaim = (c: TaskCard) =>
-    (seesAll || inMyRole(c, roles)) &&
-    openBlockers(c).length === 0 &&
-    actionsFor(c, roles, me.id).some((a) => a.action === 'claim' && a.enabled);
-  const primaryKey = byColumn.ready.find(canClaim)?.key;
-
   const readyForMe = useReadyTasks().data?.length ?? 0;
   const inHands = tasks.filter(
     (c) => c.assigneeId === me.id && (c.status === 'claimed' || c.status === 'in_progress'),
   ).length;
-  const awaitingReview = tasks.filter(
-    (c) => c.status === 'in_review' && (roles.includes('qa') || isManager),
-  ).length;
+  const awaitingReview = tasks.filter((c) => c.status === 'in_review' && seesReview).length;
 
   const modules = [...new Set(tasks.map((c) => c.module).filter((m): m is string => !!m))].sort();
   const activeFilters =
@@ -270,6 +281,7 @@ function TasksBoardOrList() {
     >
       {(
         [
+          ['focus', t.view.focus, Focus],
           ['board', t.view.board, Kanban],
           ['list', t.view.list, List],
         ] as const
@@ -343,26 +355,43 @@ function TasksBoardOrList() {
     return (
       <PageContainer className="max-w-none">
         {header}
-        <LoadingRegion label={t.title}>
-          <div className="flex gap-1.5">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-11 w-20 rounded-full md:h-8" />
-            ))}
-          </div>
-          <div className="flex gap-2 overflow-hidden">
-            <Skeleton className="h-40 w-19 shrink-0 rounded-lg" />
-            {[4, 2, 3, 2].map((count, i) => (
-              <div
-                key={i}
-                className="flex w-72 shrink-0 flex-col gap-2 md:w-60 lg:@page-lg:w-auto lg:min-w-52 lg:flex-1 lg:@page-lg:basis-0"
-              >
-                <Skeleton className="h-7 w-28" />
-                <SkeletonRows count={count} withAction={false} />
+        {view === 'focus' ? (
+          <LoadingRegion label={t.title}>
+            <Skeleton className="h-11 w-60 max-w-full rounded-lg md:h-9" />
+            <Skeleton className="h-36 w-full rounded-xl @page-sm:h-20" />
+            <div className="grid items-start gap-4 lg:@page-lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-24 w-full rounded-xl" />
+                <SkeletonRows count={4} />
               </div>
-            ))}
-            <Skeleton className="h-40 w-19 shrink-0 rounded-lg" />
-          </div>
-        </LoadingRegion>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-12 w-full rounded-xl" />
+                <SkeletonRows count={2} />
+              </div>
+            </div>
+          </LoadingRegion>
+        ) : (
+          <LoadingRegion label={t.title}>
+            <div className="flex gap-1.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-11 w-20 rounded-full md:h-8" />
+              ))}
+            </div>
+            <div className="flex gap-2 overflow-hidden">
+              <Skeleton className="h-40 w-19 shrink-0 rounded-lg" />
+              {[4, 2, 3, 2].map((count, i) => (
+                <div
+                  key={i}
+                  className="flex w-72 shrink-0 flex-col gap-2 md:w-60 lg:@page-lg:w-auto lg:min-w-52 lg:flex-1 lg:@page-lg:basis-0"
+                >
+                  <Skeleton className="h-7 w-28" />
+                  <SkeletonRows count={count} withAction={false} />
+                </div>
+              ))}
+              <Skeleton className="h-40 w-19 shrink-0 rounded-lg" />
+            </div>
+          </LoadingRegion>
+        )}
       </PageContainer>
     );
   }
@@ -458,6 +487,19 @@ function TasksBoardOrList() {
         >
           {t.empty.noMatchBody}
         </EmptyState>
+      ) : view === 'focus' ? (
+        <FocusDesk
+          rows={desk}
+          byColumn={byColumn}
+          stage={stage}
+          onStage={setStage}
+          rowProps={list.rowProps}
+          onMove={onMove}
+          canMove={canMove}
+          primaryKey={primaryKey}
+          specialtyFiltered={specialties.length > 0}
+          seesReview={seesReview}
+        />
       ) : view === 'board' ? (
         <TaskBoard
           byColumn={byColumn}

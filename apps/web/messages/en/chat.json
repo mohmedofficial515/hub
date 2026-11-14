@@ -8,8 +8,8 @@
   "modeHints": {
     "ask": "Reads files and Hub only. No terminal and no tools from other servers, so it cannot run tests or change anything.",
     "plan": "Reads files and Hub only, and ends in a proposed plan for you to review. No terminal and no tools from other servers.",
-    "execute": "Claude reads and edits inside this folder freely. Delete, commit, push, deploy, branch, worktree and docker wait for your approval, as does any command you have not allowed.",
-    "auto": "Executes to the end with no stops: every call that would wait for you is allowed at once, and each question takes its recommended option. Each one is recorded in the chat."
+    "execute": "Claude reads, edits and runs commands inside this folder at once. Only sensitive commands wait for your approval: delete, move, commit, push, deploy, branch, worktree, docker, system commands such as sudo, and Hub's sensitive tools. Every question and suggestion comes to you.",
+    "auto": "Allows every command at once, sensitive ones too, and records each in the chat. Questions and suggestions still come to you: it never decides the business or the way of working for you."
   },
   "states": {
     "running": "Working",
@@ -1148,7 +1148,8 @@
           "plan": "Plan created: {ref}",
           "skill": "Skill added: {ref}. Devices take it on the next sync."
         }
-      }
+      },
+      "live": "Open Live: files, edits and preview on a large page"
     },
     "listSeparator": ", ",
     "units": {
@@ -1319,12 +1320,12 @@
       },
       "mode:execute": {
         "what": "Execute: reads and edits freely inside the folder, and runs commands.",
-        "then": "It pauses for you on delete, commit, push, deploy, a new branch and docker. Changing mode restarts Claude, about 10 seconds.",
+        "then": "Ordinary commands run at once; it pauses for you on delete, move, commit, push, deploy, a new branch, docker and system commands. Questions and suggestions always come to you.",
         "detail": "Your Claude Code rules stay loaded, so a command you always allow does not pause."
       },
       "mode:auto": {
-        "what": "Auto: executes to the end with no stops.",
-        "then": "Delete, commit, push, deploy, branch and docker run with no approval, and a question takes its recommended option. Each is recorded in the chat. Changing the mode restarts Claude, about 10 seconds.",
+        "what": "Auto: never stops for a command, and asks you only when it needs your decision.",
+        "then": "Delete, commit, push, deploy, branch and docker run with no approval, and each is recorded in the chat. Questions and suggestions wait for your answer. Switching between Execute and Auto takes effect at once, even mid-turn.",
         "detail": "Use it only on work you trust. Switch back to Execute to be asked again."
       },
       "model": {

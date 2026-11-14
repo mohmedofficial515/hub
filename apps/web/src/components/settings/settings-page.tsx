@@ -33,6 +33,7 @@ import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
 import { useScrollCue } from '@/lib/scroll-cue';
 
+import { AppearanceTab } from './parts/appearance';
 import { AuditTab } from './parts/audit';
 import { BackupsTab } from './parts/backups';
 import { DevicesTab } from './parts/devices';
@@ -45,6 +46,7 @@ import { SystemTab } from './parts/system';
 import { TokensTab } from './parts/tokens';
 
 const TABS = [
+  'appearance',
   'general',
   'sources',
   'roles',
@@ -58,10 +60,11 @@ const TABS = [
 ] as const;
 type SettingsTab = (typeof TABS)[number];
 /** 09 §18.4, §18.5, docs/16 §5 and §9: these four belong to every member. The rest are owner and PM, with a 403 otherwise. */
-const PERSONAL: readonly SettingsTab[] = ['notifications', 'tokens', 'devices', 'queue'];
+const PERSONAL: readonly SettingsTab[] = ['appearance', 'notifications', 'tokens', 'devices', 'queue'];
 const isTab = (v: string | null): v is SettingsTab => !!v && (TABS as readonly string[]).includes(v);
 
 const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
+  appearance: AppearanceTab,
   general: GeneralTab,
   sources: SourcesTab,
   roles: RolesTab,

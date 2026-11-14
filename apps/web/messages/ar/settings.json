@@ -7,6 +7,7 @@
   "forbiddenRoles": "{owner} أو {pm}",
   "backToMine": "اذهب إلى إعداداتي",
   "tabs": {
+    "appearance": "المظهر",
     "general": "عام",
     "sources": "المصادر",
     "roles": "الأدوار",
@@ -888,5 +889,24 @@
     "copyFailure": "انسخ نص الخطأ",
     "deleteWhat": "الحجم {size}، في المجلد {folder}.",
     "folderPlaceholder": "مثل D:\\HubBackups"
+  },
+  "appearance": {
+    "theme": "السمة",
+    "themes": {
+      "light": "فاتح",
+      "dark": "داكن"
+    },
+    "font": "حجم النص",
+    "fontHint": "يُطبّق على كل الصفحات فورًا مع مسافاتها، ويُحفظ على هذا الجهاز.",
+    "sizes": {
+      "xs": "الأصغر",
+      "sm": "صغير",
+      "md": "متوسط",
+      "lg": "كبير",
+      "xl": "الأكبر"
+    },
+    "previewLabel": "معاينة",
+    "previewTitle": "خطوات خطة الإصدار",
+    "previewBody": "هكذا تُقرأ البطاقات والقوائم والوثائق بهذا الحجم."
   }
 }
