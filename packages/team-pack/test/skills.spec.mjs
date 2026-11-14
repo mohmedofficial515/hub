@@ -78,12 +78,13 @@ describe('/hub:work', () => {
     expect(text).toContain('Outside the panel it never moves');
   });
 
-  it('stops at a failed check, asks, and a fix keeps the failure', () => {
-    expect(text).toContain('A failed check stops here');
+  it('fixes a mechanical failure of its own change without asking, asks before anything wider, and a fix keeps the failure', () => {
+    expect(text).toContain("A mechanical failure in this task's own change");
+    expect(text).toContain('without asking. At most two attempts');
     expect(text).toContain('Never report a check you did not run');
     expect(text).toContain('AskUserQuestion');
     expect(text).toContain('the failure stays in the history');
-    expect(text.indexOf('A failed check stops here')).toBeLessThan(text.indexOf('(`report`)'));
+    expect(text.indexOf('**A failed check.**')).toBeLessThan(text.indexOf('(`report`)'));
   });
 
   it('runs each check word for word, since Hub matches the command', () => {

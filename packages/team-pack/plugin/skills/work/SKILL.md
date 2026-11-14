@@ -37,7 +37,11 @@ Do the steps in this folder. Keep to the card's scope, and name anything else yo
 
 Run every check from stage 2, each exactly as written, with no `cd`, pipe or filter added, because Hub matches the command word for word. Show its real output. Never report a check you did not run.
 
-**A failed check stops here.** Report `verify` as `failed` with the check's name in the note, say what failed and what you think the cause is. Then ask me with `AskUserQuestion` whether to fix it or to report it as it stands. If I say fix, fix it and run the check again: the failure stays in the history, and that is correct.
+**A failed check.** Say what failed and what you think the cause is, in one line.
+
+- **A mechanical failure in this task's own change** (formatting, import order, a lint rule with an automatic fix, a type error or a test you broke in a file you changed): fix it and run the check again, without asking. At most two attempts, and the failure stays in the history, which is correct.
+- **Ask me with `AskUserQuestion`** only when the fix would change behaviour I did not ask for, touch files outside this task, weaken or skip a test, or when two attempts did not pass. Then offer to fix it another way or to report it as it stands.
+- A check that fails for a reason outside this task (a broken environment, a failure already on the branch before you started): do not fix it here. Report it as failed, with the cause, and carry on to the report.
 
 ## 5. Report (`report`)
 
