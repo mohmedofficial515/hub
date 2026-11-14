@@ -9,7 +9,9 @@ export function normalizeSteps(
   existing: readonly PlanStep[] = [],
 ): PlanStep[] {
   const byId = new Map(existing.map((step) => [step.id, step]));
+  const byTask = new Map(existing.filter((step) => step.taskKey).map((step) => [step.taskKey, step]));
   const used = new Set<string>(existing.map((step) => step.id));
+  const given = new Set<string>();
   let next = existing.length + 1;
   const freshId = (): string => {
     while (used.has(`s${next}`)) next += 1;
@@ -17,10 +19,25 @@ export function normalizeSteps(
     used.add(id);
     return id;
   };
+  // A step that names one of this plan's tasks is that task's step, whatever id it carries: a writer who never saw the ids
+  // and numbered the steps by position, then inserted one, must not move every task onto its neighbour.
+  const claimed = new Set(
+    inputs.flatMap((input) => (input.taskKey && byTask.has(input.taskKey) ? [input.taskKey] : [])),
+  );
+  const reserved = new Set([...claimed].map((key) => byTask.get(key)?.id));
   return inputs.map((input) => {
-    const before = input.id ? byId.get(input.id) : undefined;
-    const id = input.id ?? freshId();
-    used.add(id);
+    const ownTask = input.taskKey ? byTask.get(input.taskKey) : undefined;
+    const sameId = !ownTask && input.id && !reserved.has(input.id) ? byId.get(input.id) : undefined;
+    const sameStep =
+      sameId &&
+      (!sameId.taskKey ||
+        (!claimed.has(sameId.taskKey) && (!input.taskKey || input.taskKey === sameId.taskKey)))
+        ? sameId
+        : undefined;
+    const before = ownTask ?? sameStep;
+    const wanted = before?.id ?? (input.id && !byId.has(input.id) ? input.id : undefined);
+    const id = wanted && !given.has(wanted) ? wanted : freshId();
+    given.add(id);
     const taskKey = before?.taskKey ?? input.taskKey;
     return {
       id,

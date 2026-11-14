@@ -38,6 +38,38 @@ describe('normalizeSteps', () => {
   });
 });
 
+describe('normalizeSteps when a writer numbers the steps by position', () => {
+  const existing = [
+    { id: 's1', title: 'Settings', taskKey: 'GTV-322', done: true },
+    { id: 's2', title: 'Verify phone', taskKey: 'GTV-323', done: false },
+  ];
+
+  it('keeps each task on the step that names it after a step is inserted above', () => {
+    const steps = normalizeSteps(
+      [
+        { id: 's1', title: 'ADR', done: false },
+        { id: 's2', title: 'Settings', taskKey: 'GTV-322', done: false },
+        { id: 's3', title: 'Verify phone', taskKey: 'GTV-323', done: false },
+      ],
+      existing,
+    );
+    expect(steps.map((s) => [s.title, s.taskKey ?? null, s.done])).toEqual([
+      ['ADR', null, false],
+      ['Settings', 'GTV-322', true],
+      ['Verify phone', 'GTV-323', false],
+    ]);
+    expect(new Set(steps.map((s) => s.id)).size).toBe(3);
+    expect(steps[1]?.id).toBe('s1');
+    expect(steps[2]?.id).toBe('s2');
+  });
+
+  it('does not hand a task to a step whose id matches but names another task', () => {
+    const [step] = normalizeSteps([{ id: 's1', title: 'Other', taskKey: 'GTV-999', done: false }], existing);
+    expect(step?.taskKey).toBe('GTV-999');
+    expect(step?.id).not.toBe('s1');
+  });
+});
+
 describe('specialtyOfStep', () => {
   it('maps a craft role, and falls back for others', () => {
     expect(specialtyOfStep({ id: 'a', title: 't', role: 'designer', done: false }, 'ops')).toBe('design');

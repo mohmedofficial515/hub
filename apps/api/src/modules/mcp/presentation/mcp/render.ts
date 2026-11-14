@@ -150,7 +150,7 @@ function planSections(detail: Readonly<Record<string, unknown>>): string[] {
     `## Steps (${steps.filter((step) => step.done).length}/${steps.length} done)`,
     ...steps.map(
       (step, index) =>
-        `${index + 1}. [${step.done ? 'x' : ' '}] ${step.title}` +
+        `${index + 1}. [${step.done ? 'x' : ' '}] ${step.title} (id ${step.id})` +
         `${step.role ? ` · ${step.role}` : ''}${step.taskKey ? ` · ${step.taskKey}` : ''}`,
     ),
   ];
