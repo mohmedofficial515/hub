@@ -4,7 +4,14 @@ import { describe, expect, it } from 'vitest';
 import ar from '../../../messages/ar/planning.json';
 import en from '../../../messages/en/planning.json';
 import { fitStepTitle, planBody } from './plan-studio';
-import { AFTER_WORDS, sectionCount, splitPlanText, STEPS_HEADINGS } from './plan-text';
+import {
+  AFTER_WORDS,
+  readPlanText,
+  sectionCount,
+  splitPlanText,
+  stepExtras,
+  STEPS_HEADINGS,
+} from './plan-text';
 
 const plan: ProposedPlan = {
   title: 'Hotel bookings',
@@ -89,5 +96,44 @@ describe('splitPlanText', () => {
   it('counts the sections of a text', () => {
     expect(sectionCount(planToMarkdown(plan))).toBeGreaterThan(2);
     expect(sectionCount('Plain words')).toBe(0);
+  });
+});
+
+describe('a step’s details as data (owner decision 9a)', () => {
+  const saved = [
+    { id: 's1', title: 'Sign the supplier', size: 'S' as const, why: 'Nothing moves without the contract.' },
+    { id: 's2', title: 'Build the search', after: ['s1'], acceptance: 'A search returns rates.' },
+    { id: 's3', title: 'Ship it', after: ['s1', 's2', 'gone'] },
+  ];
+
+  it('reads why, size, after (as step numbers) and acceptance from the steps', () => {
+    expect(stepExtras(saved)).toEqual([
+      { why: 'Nothing moves without the contract.', size: 'S' },
+      { after: [1], acceptance: 'A search returns rates.' },
+      { after: [1, 2] },
+    ]);
+  });
+
+  it('is null for steps that carry none of them: an older plan', () => {
+    expect(stepExtras([{ id: 's1' }])).toBeNull();
+  });
+
+  it('prefers the data, and still takes the steps’ list out of the text', () => {
+    const body = planBody(plan);
+    const read = readPlanText(
+      body,
+      saved.map((s, i) => ({ ...s, title: fitStepTitle(plan.steps[i]!.title) })),
+    );
+    expect(read.extras?.[1]).toEqual({ after: [1], acceptance: 'A search returns rates.' });
+    expect(read.rest).not.toContain('1. Sign the supplier');
+  });
+
+  it('falls back to the text for an older plan whose steps carry nothing', () => {
+    const body = planBody(plan);
+    const read = readPlanText(
+      body,
+      stepsOf(plan).map((s, i) => ({ ...s, id: `s${i + 1}` })),
+    );
+    expect(read.extras?.[0]).toEqual({ why: 'Nothing moves without the contract.', size: 'S' });
   });
 });

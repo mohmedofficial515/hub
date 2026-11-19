@@ -545,6 +545,7 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
           <TextPlan
             wb={wb}
             proposal={{ id: `${text.messageId}:plan`, text: text.text, structured: null }}
+            chatId={chat.id}
             asked={asked}
             busy={busy}
             onDevelop={develop}

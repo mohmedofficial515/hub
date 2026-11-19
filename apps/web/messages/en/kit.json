@@ -103,7 +103,8 @@
       "cancel": "Cancel task"
     },
     "plan": {
-      "to_tasks": "Create tasks from steps"
+      "to_tasks": "Create tasks from steps",
+      "request_changes": "Send back for changes"
     }
   },
   "done": {
@@ -314,7 +315,9 @@
         "otherCardKey": "Card",
         "task": "Task",
         "files": "Files",
-        "ref": "Ref"
+        "ref": "Ref",
+        "sourceChatId": "Studio session",
+        "sourceMessageId": "Studio reply"
       },
       "values": {
         "pr_opened": "PR open",

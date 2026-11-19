@@ -70,8 +70,8 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 - "Turn into a plan" creates a linked Plan and moves the idea to `accepted`.
 
 **Plan** (`plan`, «خطة»): a written approach that becomes work.
-- Status: `draft → in_review → approved → in_progress → done`, and `abandoned` from any state. `approved` is for owner or pm.
-- Fields: full Markdown `body`, and ordered `steps`: `{ id, title, role?, taskKey?, done }`.
+- Status: `draft → in_review → approved → in_progress → done`, and `abandoned` from any state. `approved` is for owner or pm. `request_changes` sends a plan in review back to `draft` with a required reason, for owner or pm (owner decision 9b, 2026-11-19).
+- Fields: full Markdown `body`, and ordered `steps`: `{ id, title, role?, taskKey?, done, why?, size?, after?, acceptance? }` (9a). `sourceChatId` / `sourceMessageId` name the studio chat the plan was saved from (9c).
 - Every save of `body` adds a `plan_revised` event with the previous text kept, so history shows revisions and can restore one.
 - "Create tasks from steps" creates one task per step without a `taskKey`, links each with `parent`, and writes `taskKey` back. A step is done when its task completes. The plan moves to `in_progress` on the first task and offers `done` when all are finished.
 
@@ -79,6 +79,7 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 - It answers "what are we thinking about, and what is planned next?": ideas by status, and plans with a step progress count.
 - It has no v5 design. Design it from `kit/README.md` with the same rules and quality bar, then have it reviewed.
 - Plan and idea sheets follow the existing `kit/sheet-sections/*` pattern. The plan's Markdown is editable in the sheet.
+- A step shows its `why` as a muted line, its `size` as a badge, "After step n" linking the earlier step, and "Done when: …" for its `acceptance`, on the page and in the sheet (`components/planning/step-details.tsx`). A plan sent back for changes shows a "Changes requested" box with the reason, who asked and when, until it is submitted for review again (`change-request.tsx`).
 
 **MCP:** `create_idea`, `update_idea`, `list_ideas`, `create_plan`, `update_plan` (body, steps, status), `get_plan`, `list_plans`, `plan_to_tasks`. New team pack skill `/hub:plan <topic>`: Claude reads the project through Hub, drafts, asks the user, then saves the plan.
 

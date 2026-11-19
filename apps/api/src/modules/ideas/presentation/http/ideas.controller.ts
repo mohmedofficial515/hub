@@ -27,6 +27,8 @@ class IdeasQueryDto extends createZodDto(
   z.object({
     status: queryList(z.enum(IDEA_STATUSES)),
     q: z.string().trim().min(1).max(200).optional(),
+    /** The Idea Studio chat an idea was accepted from (owner decision 9c). */
+    sourceChat: z.uuid().optional(),
     cursor: z.string().optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   }),
@@ -54,6 +56,7 @@ export class IdeasController {
     return this.query.listWithDetail(actor, 'idea', {
       statuses: query.status,
       q: query.q,
+      ...(query.sourceChat ? { where: { idea: { is: { sourceChatId: query.sourceChat } } } } : {}),
       cursor: query.cursor,
       limit: query.limit,
     });

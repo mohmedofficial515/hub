@@ -10,6 +10,7 @@ import {
   PlanApproveAction,
   PlanCreateAction,
   PlanFinishAction,
+  PlanRequestChangesAction,
   PlanRestoreRevisionAction,
   PlanStartAction,
   PlanSubmitReviewAction,
@@ -18,6 +19,7 @@ import {
   PlanUpdateAction,
 } from './application/plan-actions';
 import { PlanReadService } from './application/plan-read.service';
+import { StudioSourceCheck } from './application/studio-source.check';
 import { PlansController } from './presentation/http/plans.controller';
 
 @Module({
@@ -25,17 +27,19 @@ import { PlansController } from './presentation/http/plans.controller';
   controllers: [PlansController],
   providers: [
     PlanReadService,
+    StudioSourceCheck,
     PlanCreateAction,
     PlanUpdateAction,
     PlanRestoreRevisionAction,
     PlanSubmitReviewAction,
     PlanApproveAction,
+    PlanRequestChangesAction,
     PlanStartAction,
     PlanFinishAction,
     PlanAbandonAction,
     PlanToTasksAction,
     PlanSyncStepAction,
   ],
-  exports: [PlanReadService],
+  exports: [PlanReadService, StudioSourceCheck],
 })
 export class PlansModule {}

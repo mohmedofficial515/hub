@@ -261,6 +261,9 @@ export const ideaDetailSchema = z.object({
   notes: z.string().nullable(),
   role: z.string().nullable(),
   planCardId: z.string().nullable(),
+  /** The Idea Studio chat whose report this idea is, and that report's message (owner decision 9c). */
+  sourceChatId: z.string().nullable(),
+  sourceMessageId: z.string().nullable(),
 });
 
 export const planDetailSchema = z.object({
@@ -272,10 +275,17 @@ export const planDetailSchema = z.object({
       role: z.string().optional(),
       taskKey: z.string().optional(),
       done: z.boolean(),
+      why: z.string().optional(),
+      size: z.enum(['S', 'M', 'L']).optional(),
+      after: z.array(z.string()).optional(),
+      acceptance: z.string().optional(),
     }),
   ),
   revision: z.number(),
   sourceIdeaId: z.string().nullable(),
+  /** The Plan Studio chat this plan was saved from, and the reply it holds (owner decision 9c). */
+  sourceChatId: z.string().nullable(),
+  sourceMessageId: z.string().nullable(),
   approvedBy: userRef,
   approvedAt: nullableDate,
 });

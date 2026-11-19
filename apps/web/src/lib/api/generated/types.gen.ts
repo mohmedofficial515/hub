@@ -415,6 +415,8 @@ export type CreateCardDto = {
         problem?: string;
         notes?: string;
         role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
+        sourceChatId?: string;
+        sourceMessageId?: string;
     };
     type: 'idea';
 } | {
@@ -433,8 +435,14 @@ export type CreateCardDto = {
             role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
             taskKey?: string;
             done?: boolean;
+            why?: string;
+            size?: 'S' | 'M' | 'L';
+            after?: Array<string>;
+            acceptance?: string;
         }>;
         sourceIdeaKey?: string;
+        sourceChatId?: string;
+        sourceMessageId?: string;
     };
     type: 'plan';
 } | {
@@ -677,6 +685,8 @@ export type CardWrittenResponseDto = {
         notes: string | null;
         role: string | null;
         planCardId: string | null;
+        sourceChatId: string | null;
+        sourceMessageId: string | null;
     } | {
         cardId: string;
         steps: Array<{
@@ -685,9 +695,15 @@ export type CardWrittenResponseDto = {
             role?: string;
             taskKey?: string;
             done: boolean;
+            why?: string;
+            size?: 'S' | 'M' | 'L';
+            after?: Array<string>;
+            acceptance?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
+        sourceChatId: string | null;
+        sourceMessageId: string | null;
         approvedBy: {
             id: string;
             displayName: string;
@@ -1018,6 +1034,8 @@ export type CardFullResponseDto = {
         notes: string | null;
         role: string | null;
         planCardId: string | null;
+        sourceChatId: string | null;
+        sourceMessageId: string | null;
     } | {
         cardId: string;
         steps: Array<{
@@ -1026,9 +1044,15 @@ export type CardFullResponseDto = {
             role?: string;
             taskKey?: string;
             done: boolean;
+            why?: string;
+            size?: 'S' | 'M' | 'L';
+            after?: Array<string>;
+            acceptance?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
+        sourceChatId: string | null;
+        sourceMessageId: string | null;
         approvedBy: {
             id: string;
             displayName: string;
@@ -1434,6 +1458,8 @@ export type TimelineRowDto = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -1442,9 +1468,15 @@ export type TimelineRowDto = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -1697,6 +1729,8 @@ export type InboxItemDto = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -1705,9 +1739,15 @@ export type InboxItemDto = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -2890,6 +2930,8 @@ export type TodayDto = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -2898,9 +2940,15 @@ export type TodayDto = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -3144,6 +3192,8 @@ export type TodayDto = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -3152,9 +3202,15 @@ export type TodayDto = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -3468,6 +3524,8 @@ export type TodayDto = {
                     notes: string | null;
                     role: string | null;
                     planCardId: string | null;
+                    sourceChatId: string | null;
+                    sourceMessageId: string | null;
                 } | {
                     cardId: string;
                     steps: Array<{
@@ -3476,9 +3534,15 @@ export type TodayDto = {
                         role?: string;
                         taskKey?: string;
                         done: boolean;
+                        why?: string;
+                        size?: 'S' | 'M' | 'L';
+                        after?: Array<string>;
+                        acceptance?: string;
                     }>;
                     revision: number;
                     sourceIdeaId: string | null;
+                    sourceChatId: string | null;
+                    sourceMessageId: string | null;
                     approvedBy: {
                         id: string;
                         displayName: string;
@@ -4395,6 +4459,8 @@ export type TreeDtoSchema0 = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -4403,9 +4469,15 @@ export type TreeDtoSchema0 = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -4775,6 +4847,8 @@ export type LabPageDto = {
             notes: string | null;
             role: string | null;
             planCardId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
         } | {
             cardId: string;
             steps: Array<{
@@ -4783,9 +4857,15 @@ export type LabPageDto = {
                 role?: string;
                 taskKey?: string;
                 done: boolean;
+                why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<string>;
+                acceptance?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
+            sourceChatId: string | null;
+            sourceMessageId: string | null;
             approvedBy: {
                 id: string;
                 displayName: string;
@@ -5033,6 +5113,8 @@ export type CompareDto = {
                 notes: string | null;
                 role: string | null;
                 planCardId: string | null;
+                sourceChatId: string | null;
+                sourceMessageId: string | null;
             } | {
                 cardId: string;
                 steps: Array<{
@@ -5041,9 +5123,15 @@ export type CompareDto = {
                     role?: string;
                     taskKey?: string;
                     done: boolean;
+                    why?: string;
+                    size?: 'S' | 'M' | 'L';
+                    after?: Array<string>;
+                    acceptance?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
+                sourceChatId: string | null;
+                sourceMessageId: string | null;
                 approvedBy: {
                     id: string;
                     displayName: string;
@@ -5296,6 +5384,8 @@ export type CompareDto = {
                 notes: string | null;
                 role: string | null;
                 planCardId: string | null;
+                sourceChatId: string | null;
+                sourceMessageId: string | null;
             } | {
                 cardId: string;
                 steps: Array<{
@@ -5304,9 +5394,15 @@ export type CompareDto = {
                     role?: string;
                     taskKey?: string;
                     done: boolean;
+                    why?: string;
+                    size?: 'S' | 'M' | 'L';
+                    after?: Array<string>;
+                    acceptance?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
+                sourceChatId: string | null;
+                sourceMessageId: string | null;
                 approvedBy: {
                     id: string;
                     displayName: string;
@@ -5451,12 +5547,20 @@ export type UpdateDto = {
         role?: 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
         taskKey?: string;
         done?: boolean;
+        why?: string;
+        size?: 'S' | 'M' | 'L';
+        after?: Array<string>;
+        acceptance?: string;
     }>;
+    sourceChatId?: string;
+    sourceMessageId?: string;
 };
 
 export type ToPlanDto = {
     title?: string;
     body?: string;
+    sourceChatId?: string;
+    sourceMessageId?: string;
 };
 
 export type PlanRevisionDto = {
@@ -5501,6 +5605,8 @@ export type HookSessionDto = {
     endedAt: string;
     durationSec?: number | null;
     hasSummary?: boolean;
+    topic?: string | null;
+    outcome?: string | null;
     client?: {
         os: string;
         packVersion: string;
@@ -5661,6 +5767,7 @@ export type ChatFullDto = {
                 why?: string;
                 size?: 'S' | 'M' | 'L';
                 after?: Array<number>;
+                acceptance?: string;
             }>;
             checks?: Array<string>;
             risks?: Array<string>;
@@ -8478,6 +8585,45 @@ export type DocsControllerMentionsResponses = {
 
 export type DocsControllerMentionsResponse = DocsControllerMentionsResponses[keyof DocsControllerMentionsResponses];
 
+export type DocsControllerImageData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query: {
+        src: string;
+    };
+    url: '/api/v1/workspaces/{ws}/docs/{key}/image';
+};
+
+export type DocsControllerImageErrors = {
+    /**
+     * hub.docs.not_found · hub.docs.image_not_found (also a link out of the source)
+     */
+    404: unknown;
+    /**
+     * hub.docs.image_too_large (over 10 MB)
+     */
+    413: unknown;
+    /**
+     * hub.docs.image_type_refused (only png, jpg, jpeg, gif, webp, svg)
+     */
+    415: unknown;
+    /**
+     * hub.docs.image_bad_path (absolute, a scheme, a backslash, or a `..` above the source)
+     */
+    422: unknown;
+};
+
+export type DocsControllerImageResponses = {
+    /**
+     * The image bytes. Cache-Control private, an ETag, nosniff and a CSP that runs nothing
+     */
+    200: Blob | File;
+};
+
+export type DocsControllerImageResponse = DocsControllerImageResponses[keyof DocsControllerImageResponses];
+
 export type DocsControllerGetData = {
     body?: never;
     path: {
@@ -9385,6 +9531,7 @@ export type IdeasControllerListData = {
     query?: {
         status?: Array<'open' | 'exploring' | 'accepted' | 'parked' | 'rejected'>;
         q?: string;
+        sourceChat?: string;
         cursor?: string;
         limit?: number;
     };
@@ -9506,6 +9653,8 @@ export type PlansControllerListData = {
     query?: {
         status?: Array<'draft' | 'in_review' | 'approved' | 'in_progress' | 'done' | 'abandoned'>;
         q?: string;
+        sourceChat?: string;
+        sourceMessage?: string;
         cursor?: string;
         limit?: number;
     };
@@ -9590,6 +9739,21 @@ export type PlansControllerApproveResponses = {
 };
 
 export type PlansControllerApproveResponse = PlansControllerApproveResponses[keyof PlansControllerApproveResponses];
+
+export type PlansControllerRequestChangesData = {
+    body: ReasonDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/request-changes';
+};
+
+export type PlansControllerRequestChangesResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlansControllerRequestChangesResponse = PlansControllerRequestChangesResponses[keyof PlansControllerRequestChangesResponses];
 
 export type PlansControllerStartData = {
     body?: never;

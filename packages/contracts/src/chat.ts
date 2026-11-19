@@ -213,6 +213,8 @@ export const proposedPlanSchema = z.object({
         size: z.enum(PLAN_STEP_SIZES).optional(),
         /** The steps, by number from 1, that must be done first. */
         after: z.array(z.number().int().min(1).max(50)).max(10).optional(),
+        /** When the step counts as done; it becomes its task's acceptance (owner decision 9a). */
+        acceptance: z.string().max(CHAT_LIMITS.reportText).optional(),
       }),
     )
     .min(1)

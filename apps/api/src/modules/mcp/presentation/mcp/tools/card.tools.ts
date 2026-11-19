@@ -346,7 +346,9 @@ export const cardToolHandlers = {
       did.push(`restored revision ${input.restoreRevision}`);
     }
     if (input.move) {
-      const payload = input.move === 'abandon' && input.reason ? { reason: input.reason } : {};
+      // Abandon takes a reason, and Request changes needs one (owner decision 9b): the action refuses it missing.
+      const takesReason = input.move === 'abandon' || input.move === 'request_changes';
+      const payload = takesReason && input.reason ? { reason: input.reason } : {};
       await context.deps.cards.apply(actor, target, `plan.${input.move}`, payload);
       did.push(`move: ${input.move}`);
     }

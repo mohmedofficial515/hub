@@ -253,6 +253,7 @@ describe('permission matrix', () => {
         ['plan.update', 'plan.submit_review', 'plan.start', 'plan.finish', 'plan.abandon', 'plan.to_tasks'],
       ],
       ['Plan: approve', ['plan.approve']],
+      ['Plan: request changes', ['plan.request_changes']],
       ['Audit log: read', ['audit.read']],
     ];
 

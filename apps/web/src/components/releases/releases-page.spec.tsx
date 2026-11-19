@@ -130,6 +130,17 @@ describe('ReleasesPage', () => {
     expect(await screen.findByText(/1 finished card is outside any release/)).toBeInTheDocument();
   });
 
+  it('asks before releasing, naming the version and how many cards it ships (owner decision 6)', async () => {
+    const { calls } = api(['pm'], { body: { data: releases, meta: { pagination: {} } } });
+    renderWithApp(page);
+    await screen.findByRole('heading', { name: 'Release 2026-11-10 · Wallet' });
+    screen.getByRole('button', { name: 'Mark released' }).click();
+    const dialog = await screen.findByRole('dialog', { name: 'Mark 2026-11-10 released?' });
+    expect(dialog).toHaveTextContent('2026-11-10 ships 1 card. This cannot be undone.');
+    // Nothing is sent until the dialog's own button says yes.
+    expect(calls.filter((call) => call.path.endsWith('/release'))).toHaveLength(0);
+  });
+
   it('keeps the release button from those who may not', async () => {
     api(['qa'], { body: { data: releases, meta: { pagination: {} } } });
     renderWithApp(page);

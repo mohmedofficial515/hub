@@ -47,7 +47,7 @@ export function usePlanRevisions(key: string, enabled: boolean) {
 
 export function saveIdea(key: string, input: UpdateIdeaInput) {
   const { ws } = currentRoute();
-  const { title, body, priority, tags, problem, notes, role } = input;
+  const { title, body, priority, tags, problem, notes, role, sourceChatId, sourceMessageId } = input;
   return writeCard(
     {
       key,
@@ -67,6 +67,8 @@ export function saveIdea(key: string, input: UpdateIdeaInput) {
                 ...(problem !== undefined ? { problem: problem ?? undefined } : {}),
                 ...(notes !== undefined ? { notes: notes ?? undefined } : {}),
                 ...(role !== undefined ? { role: role ?? undefined } : {}),
+                ...(sourceChatId ? { sourceChatId } : {}),
+                ...(sourceMessageId ? { sourceMessageId } : {}),
               },
             }
           : card,
@@ -78,7 +80,7 @@ export function saveIdea(key: string, input: UpdateIdeaInput) {
 
 export function savePlan(key: string, input: UpdatePlanInput) {
   const { ws } = currentRoute();
-  const { title, body, priority, tags, steps } = input;
+  const { title, body, priority, tags, steps, sourceChatId, sourceMessageId } = input;
   return writeCard(
     {
       key,
@@ -89,8 +91,16 @@ export function savePlan(key: string, input: UpdatePlanInput) {
         ...(tags ? { tags } : {}),
       },
       card: (card) =>
-        card.type === 'plan' && steps
-          ? { ...card, plan: { ...card.plan, steps: mergeSteps(card.plan.steps, steps) } }
+        card.type === 'plan'
+          ? {
+              ...card,
+              plan: {
+                ...card.plan,
+                ...(steps ? { steps: mergeSteps(card.plan.steps, steps) } : {}),
+                ...(sourceChatId ? { sourceChatId } : {}),
+                ...(sourceMessageId ? { sourceMessageId } : {}),
+              },
+            }
           : card,
     },
     () => patch(`workspaces/${ws}/plans/${key}`, input),
@@ -104,7 +114,10 @@ export function restoreRevision(key: string, revision: number) {
 }
 
 /** "Turn into a plan": moves the idea to accepted and answers with the new plan's key, read from the link the API made. */
-export async function turnIntoPlan(key: string, input: { title?: string; body?: string }) {
+export async function turnIntoPlan(
+  key: string,
+  input: { title?: string; body?: string; sourceChatId?: string; sourceMessageId?: string },
+) {
   const { ws } = currentRoute();
   const written = await writeCard({ key, fields: { status: 'accepted' } }, () =>
     post<CardFullDto>(`workspaces/${ws}/ideas/${key}/to-plan`, input),

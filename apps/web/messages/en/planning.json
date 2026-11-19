@@ -136,7 +136,14 @@
     "restored": "Restored revision {n}",
     "noRevisions": "This is the first text. Saving a change adds a revision.",
     "revisionsThing": "revisions",
-    "emptyText": "This revision had no text."
+    "emptyText": "This revision had no text.",
+    "afterStep": "After step {n}",
+    "afterSteps": "After steps {n}",
+    "acceptance": "Done when",
+    "sizeLabel": "Size: {size}",
+    "whyLabel": "Why",
+    "changesRequested": "Changes requested",
+    "changesRequestedBy": "Asked by"
   },
   "stats": {
     "label": "At a glance",

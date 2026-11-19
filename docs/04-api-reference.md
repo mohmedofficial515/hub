@@ -219,6 +219,10 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.redesign.write_failed` | 500 | front-matter write/commit failed; `details.reason` |
 | `hub.docs.not_found` | 404 | |
 | `hub.docs.reindex_running` | 409 | |
+| `hub.docs.image_not_found` | 404 | the image is missing, in a folder the source leaves out (`.git`, `node_modules`, its `exclude`), behind a link out of the source, or on a paired device |
+| `hub.docs.image_too_large` | 413 | over 10 MB; `details.maxBytes` |
+| `hub.docs.image_type_refused` | 415 | not png, jpg, jpeg, gif, webp or svg |
+| `hub.docs.image_bad_path` | 422 | absolute, a scheme or any `:`, a backslash, a NUL, or a `..` above the source |
 | `hub.capture.payload_invalid` | 400 | hook body fails `HookSessionPayload` |
 | `hub.capture.import_running` | 409 | |
 | `hub.capture.source_disabled` | 409 | |
@@ -294,6 +298,7 @@ and `/me/context`.
 | Plan: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Plan: edit / submit for review / start / finish / abandon / create tasks from steps | ✓ | ✓ | C | C | C | C | C |
 | Plan: approve | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Plan: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Project: create (D30) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Members: invite, change roles, remove, GitHub identity (only an owner grants, takes or removes the owner role, or gets an owner's reset link) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Project: edit details | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
@@ -823,23 +828,30 @@ POST /workspaces/{ws}/redesign/rescan            auth: session | token   role: o
 ### 3.14a Ideas and plans (15 §4)
 
 ```
-GET /workspaces/{ws}/ideas?status=&q=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: IdeaDetail })[] }
-PATCH /workspaces/{ws}/ideas/{key}               auth: session | token   body: { title?; body?; priority?; tags?; problem?; notes?; role? }   200: CardFull   effects: one field_changed; role routes the card
+type IdeaDetail = { problem; notes; role; planCardId; sourceChatId: Uuid | null; sourceMessageId: Uuid | null }
+GET /workspaces/{ws}/ideas?status=&q=&sourceChat=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: IdeaDetail })[] }   sourceChat: the Idea Studio chat an idea was accepted from (owner decision 9c), a uuid, else 400 common.validation
+POST /workspaces/{ws}/cards (type idea)          detail also takes { sourceChatId?: Uuid; sourceMessageId?: Uuid }, written by the Idea Studio's Accept
+PATCH /workspaces/{ws}/ideas/{key}               auth: session | token   body: { title?; body?; priority?; tags?; problem?; notes?; role?; sourceChatId?; sourceMessageId? }   200: CardFull   effects: one field_changed (the source fields named in `changes` too); role routes the card
 POST /workspaces/{ws}/ideas/{key}/explore|accept|reopen   auth: session | token   200: CardFull
 POST /workspaces/{ws}/ideas/{key}/park|reject    auth: session | token   body: { reason?: string }   200: CardFull
-POST /workspaces/{ws}/ideas/{key}/to-plan        auth: session | token   body: { title?: string; body?: Markdown }   200: CardFull
+POST /workspaces/{ws}/ideas/{key}/to-plan        auth: session | token   body: { title?: string; body?: Markdown; sourceChatId?: Uuid; sourceMessageId?: Uuid }   200: CardFull   the source fields go to the new plan
 effects: open|exploring → accepted; event idea_to_plan { planKey }; a draft plan created with the idea's title, tags, priority and text, linked `relates`, with its own event created
 
-type PlanDetail = { steps: { id; title; role?; taskKey?; done }[]; revision: number; sourceIdeaId; approvedBy; approvedAt }
-GET /workspaces/{ws}/plans?status=&q=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: PlanDetail })[] }
+type PlanStep = { id; title; role?; taskKey?; done; why?: string; size?: 'S' | 'M' | 'L'; after?: string[] /* ids of earlier steps */; acceptance?: string }   // owner decision 9a
+type PlanDetail = { steps: PlanStep[]; revision: number; sourceIdeaId; approvedBy; approvedAt; sourceChatId: Uuid | null; sourceMessageId: Uuid | null }
+GET /workspaces/{ws}/plans?status=&q=&sourceChat=&sourceMessage=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: PlanDetail })[] }   sourceChat / sourceMessage: the Plan Studio chat, or the chat reply, a plan was saved from (owner decision 9c), uuids, else 400 common.validation
+POST /workspaces/{ws}/cards (type plan)          detail: { steps: PlanStepInput[]; sourceIdeaKey?; sourceChatId?: Uuid; sourceMessageId?: Uuid }   a step's id is optional; after names ids in the same request, and Hub drops any that is not an earlier step
+// sourceChatId / sourceMessageId (ideas, plans, to-plan): only the writer's own chat in this project, and a message of that chat, else chats.not_found 404 / chats.message_not_found 404; a chat is its member's own, and the studio's next save overwrites the card that names it.
 GET /workspaces/{ws}/plans/{key}/revisions       auth: session | token   200: { data: { revision; body; savedAt; actor; current: boolean }[] } (newest first)
-PATCH /workspaces/{ws}/plans/{key}               auth: session | token   body: { title?; body?; priority?; tags?; steps?: { id?; title; role?; done? }[] }   200: CardFull
+PATCH /workspaces/{ws}/plans/{key}               auth: session | token   body: { title?; body?; priority?; tags?; steps?: { id?; title; role?; done?; why?; size?; after?; acceptance? }[]; sourceChatId?; sourceMessageId? }   200: CardFull
 effects: a new body adds plan_revised { revision, previousBody } and bumps revision; steps alone plan_steps_changed; a step with a task keeps its taskKey and done, because they follow the task
 POST /workspaces/{ws}/plans/{key}/restore        auth: session | token   body: { revision: number }   200: CardFull   errors: plans.revision_not_found 404   effects: the old text comes back as a new revision, plan_revised { restoredFrom }
 POST /workspaces/{ws}/plans/{key}/submit-review|approve|start|finish   auth: session | token   200: CardFull   approve is owner|pm
+POST /workspaces/{ws}/plans/{key}/request-changes   auth: session | token   role: owner|pm   body: { reason: string }   200: CardFull   errors: common.validation 400 (no reason), cards.invalid_transition 409 (not in review), common.forbidden 403
+effects: in_review → draft; event changes_requested { reason, from, to } (owner decision 9b, 2026-11-19)
 POST /workspaces/{ws}/plans/{key}/abandon        auth: session | token   body: { reason?: string }   200: CardFull
 POST /workspaces/{ws}/plans/{key}/to-tasks       auth: session | token   body: { defaultSpecialty?: Specialty }   200: CardFull
-effects: draft|in_review|approved|in_progress → in_progress; one task per step with no taskKey (origin plan, ready, its own event created), linked `parent` to the plan, keys written back; event plan_to_tasks { taskKeys }. Completing or reopening such a task adds plan_steps_changed. `finish` is offered once every step is done.
+effects: draft|in_review|approved|in_progress → in_progress; one task per step with no taskKey (origin plan, ready, its own event created, the step's acceptance as its acceptance), linked `parent` to the plan, keys written back; event plan_to_tasks { taskKeys }. Completing or reopening such a task adds plan_steps_changed. `finish` is offered once every step is done.
 ```
 
 ### 3.15 Docs
@@ -858,6 +870,11 @@ errors: docs.not_found 404
 // `content` is the file now, front-matter removed. `url` of a GitHub blob does not exist in local path mode (15 §3).
 
 GET /workspaces/{ws}/docs/by-path?source=&path=  auth: session | token   200: same as above   (used by MCP get_doc)
+
+GET /workspaces/{ws}/docs/{key}/image?src=<address as written>   auth: session | token   permission: docs.read
+200: the image bytes (image/png | jpeg | gif | webp | svg+xml, ≤ 10 MB) · Cache-Control: private, max-age=300 · ETag (304 on If-None-Match) · X-Content-Type-Options: nosniff · Content-Security-Policy: default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox · Cross-Origin-Resource-Policy: same-origin
+errors: docs.not_found 404 · docs.image_not_found 404 · docs.image_too_large 413 · docs.image_type_refused 415 · docs.image_bad_path 422
+// Decision 13b. `src` is resolved against the document's folder inside a `local_path` source's folder; the real path after links must stay inside it and outside what the indexer leaves out. SVG passes the secret filter. A remote `https:` image never reaches this route: the viewer shows its alt text with a link.
 
 GET /workspaces/{ws}/docs/search?q=&kinds=&limit= auth: session | token   rate: 60/min   200: { data: DocHit[] }
 
@@ -944,7 +961,7 @@ type ReleaseDetail = { version; repo; tag; releasedAt; includedIds: Uuid[]; incl
 GET /workspaces/{ws}/releases?status=&cursor&limit        auth: session | token   200: { data: (CardSummary & { detail: ReleaseDetail })[] }
 PATCH /workspaces/{ws}/releases/{key}            auth: session | token   role: owner|pm   body: { version?; repo?; tag?; includedKeys?: CardKey[]; notes?: Partial<ReleaseDetail['notes']> }   200: CardFull
 POST /workspaces/{ws}/releases/{key}/generate-notes   auth: session | token   role: owner|pm   200: CardFull   effects: notes skeleton rendered from included cards (07 §6.3) only for audiences still null
-POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X")
+POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X"). `CardFull.actions` offers it with `mode: confirm` and no `destructive` (owner decision 6): the web asks first, naming the version and how many cards it ships
 ```
 
 ### 3.21 Audit

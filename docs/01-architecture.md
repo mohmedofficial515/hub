@@ -128,6 +128,7 @@ doc       current | stale | removed                        (stale = source file 
 release   planned → released
 idea      open → exploring → accepted | parked | rejected      reopen: parked | rejected → open   (accepted also directly from open)
 plan      draft → in_review → approved → in_progress → done    abandoned from any state; approved is for owner or pm
+          in_review → draft by request_changes (owner|pm, reason; event changes_requested)
 ```
 
 Transitions are a table per card type in `@hub/contracts` (`cards/<type>.ts`, `CARD_MACHINES`), read by

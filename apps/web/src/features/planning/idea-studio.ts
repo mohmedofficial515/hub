@@ -15,7 +15,7 @@ import {
   type IdeaWords,
   type ProposedIdea,
 } from '@hub/contracts';
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
 
 import type { PlanningMessages } from '@/components/planning/messages';
 import { kitMessages, useT } from '@/lib/i18n';
@@ -24,6 +24,15 @@ import { createCard } from '../cards/store';
 import { isGone } from './plan-studio';
 import { saveIdea } from './queries';
 import { projectPath } from './studio-acts';
+import {
+  findSaved,
+  forgetKey,
+  knownChatOf,
+  knownMessage,
+  rememberSave,
+  sourceFields,
+  useStudioSource,
+} from './studio-source';
 
 /** What the studio sends: Hub's own skill, so the same research runs from the page, the panel or a terminal. */
 export const IDEA_COMMAND = '/hub:idea';
@@ -140,55 +149,11 @@ export function researchProgress(
   return out;
 }
 
-// ── Accepted reports: which chat became which idea, kept across reloads in this browser ──────────────
+// ── Accepted reports: which chat became which idea. The idea card says so itself (studio-source.ts) ───────────
 
-const STORE_KEY = 'hub:idea-studio:accepted';
-const listeners = new Set<() => void>();
-let version = 0;
-const memory = new Map<string, string>();
-
-/** Keys are a report's message id, and `chat:<id>` for the idea a whole studio chat became. */
-function readAll(): Record<string, string> {
-  try {
-    return JSON.parse(window.localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
-
-const recall = (id: string) => memory.get(id) ?? (typeof window === 'undefined' ? undefined : readAll()[id]);
-
-function remember(entries: Record<string, string>) {
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify({ ...readAll(), ...entries }));
-  } catch {
-    // Private windows and blocked storage: the page still works, it only forgets after a reload.
-  }
-  for (const [id, key] of Object.entries(entries)) memory.set(id, key);
-  version += 1;
-  for (const fn of listeners) fn();
-}
-
-/** Forgets an idea that is gone: every record that points at it, so the next Accept makes a new one. */
-function forget(key: string) {
-  const all = readAll();
-  for (const [id, value] of Object.entries(all)) if (value === key) delete all[id];
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(all));
-  } catch {
-    // Blocked storage: memory is what the page reads anyway.
-  }
-  for (const [id, value] of [...memory]) if (value === key) memory.delete(id);
-  version += 1;
-  for (const fn of listeners) fn();
-}
-
-/** The studio chat an idea came from, if this browser accepted it: the way back to its full report. */
-export function studioChatOfIdea(key: string): string | null {
-  for (const [id, value] of memory) if (value === key && id.startsWith('chat:')) return id.slice(5);
-  for (const [id, value] of Object.entries(readAll()))
-    if (value === key && id.startsWith('chat:')) return id.slice(5);
-  return null;
+/** The studio chat an idea came from: the card's own field first, then what this tab or an older version of this browser knew. */
+export function studioChatOfIdea(key: string, sourceChatId?: string | null): string | null {
+  return sourceChatId ?? knownChatOf('idea', key);
 }
 
 export interface AcceptedIdea {
@@ -198,19 +163,13 @@ export interface AcceptedIdea {
   current: boolean;
 }
 
-/** The idea a studio chat became, and whether it holds the report on the page. */
+/** The idea a studio chat became, and whether it holds the report on the page. Any browser sees it, because the idea names its chat. */
 export function useAcceptedIdea(chatId: string, messageId: string | null | undefined): AcceptedIdea {
-  useSyncExternalStore(
-    (fn) => {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    },
-    () => version,
-    () => 0,
-  );
-  const byMessage = messageId ? recall(messageId) : undefined;
-  const key = recall(`chat:${chatId}`) ?? byMessage ?? null;
-  return { key, current: !!byMessage };
+  const source = useStudioSource('idea', chatId);
+  const byMessage = messageId ? knownMessage('idea', messageId) : null;
+  const key = source?.key ?? byMessage ?? null;
+  const current = !!messageId && key !== null && (byMessage === key || source?.messageId === messageId);
+  return { key, current };
 }
 
 const ROLES = new Set(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
@@ -271,27 +230,34 @@ export async function acceptIdea(
   chatId: string,
   words?: IdeaWords,
 ): Promise<{ key: string; updated: boolean }> {
-  const known = recall(messageId);
+  const known = knownMessage('idea', messageId);
   if (known) return { key: known, updated: false };
   const { title, body, detail } = cardFields(idea, words);
-  const existing = recall(`chat:${chatId}`);
+  // The card names the chat and the report it holds, so every browser sees this session as accepted (owner decision 9c).
+  const source = sourceFields(chatId, messageId);
+  const existing = await findSaved('idea', chatId);
+  if (existing?.messageId === messageId) {
+    rememberSave('idea', existing.key, chatId, messageId);
+    return { key: existing.key, updated: false };
+  }
   if (existing) {
     try {
-      await saveIdea(existing, {
+      await saveIdea(existing.key, {
         title,
         body,
         ...(detail.problem ? { problem: detail.problem } : {}),
         ...(detail.notes ? { notes: detail.notes } : {}),
+        ...source,
       });
-      remember({ [messageId]: existing });
-      return { key: existing, updated: true };
+      rememberSave('idea', existing.key, chatId, messageId);
+      return { key: existing.key, updated: true };
     } catch (error) {
       // The accepted idea was deleted since: this report becomes a new idea rather than failing every time.
       if (!isGone(error)) throw error;
-      forget(existing);
+      forgetKey('idea', existing.key);
     }
   }
-  const base = { type: 'idea' as const, title, body, detail };
+  const base = { type: 'idea' as const, title, body, detail: { ...detail, ...source } };
   const links = ideaCardKeys(idea, CARD_KEY_PATTERN).map((key) => ({ kind: 'relates' as const, key }));
   let card: { key: string };
   try {
@@ -300,6 +266,6 @@ export async function acceptIdea(
     if (!links.length) throw error;
     card = await createCard(base);
   }
-  remember({ [messageId]: card.key, [`chat:${chatId}`]: card.key });
+  rememberSave('idea', card.key, chatId, messageId);
   return { key: card.key, updated: false };
 }

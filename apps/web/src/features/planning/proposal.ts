@@ -8,14 +8,8 @@
 import { CARD_LIMITS, type PlanWords, type ProposedPlan } from '@hub/contracts';
 
 import { createCard } from '../cards/store';
-import type { Role } from '../cards/types';
-import {
-  fitStepTitle,
-  markMessagePlan,
-  planBody,
-  savedMessagePlan,
-  useSavedMessagePlan,
-} from './plan-studio';
+import { markMessagePlan, planBody, planSteps, savedMessagePlan, useSavedMessagePlan } from './plan-studio';
+import { sourceFields } from './studio-source';
 
 export interface PlanProposal {
   /** The thread item's id: `<messageId>:plan`. */
@@ -24,7 +18,6 @@ export interface PlanProposal {
   structured: ProposedPlan | null;
 }
 
-const ROLES = new Set<string>(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
 const cap = (text: string) => text.trim().slice(0, CARD_LIMITS.title);
 
 /** The title a proposal gets: its own, or the first line of its text. */
@@ -48,37 +41,37 @@ export function useSavedProposal(id: string | null | undefined): string | null {
 }
 
 /**
- * Save to Planning: a draft plan card through the same create path as New plan. The steps keep their titles and a role Hub knows; the whole proposal, with each
- * step's reason, the checks and the risks, is the plan's text. A plan that came only as words is saved as its text, titled by its first line.
+ * Save to Planning: a draft plan card through the same create path as New plan. The steps keep their titles, a role Hub knows, their reason, size and the
+ * steps before them (owner decision 9a); the whole proposal, with the checks and the risks, is the plan's text. The card names the reply it came from, and
+ * its chat when the caller knows it, so every browser shows the proposal as saved (owner decision 9c). A plan that came only as words is saved as its text,
+ * titled by its first line.
  */
 export async function saveProposal(
   proposal: PlanProposal,
   fallbackTitle: string,
   words?: PlanWords,
+  chatId: string | null = null,
 ): Promise<string> {
-  const known = savedMessagePlan(messageOf(proposal.id));
+  const messageId = messageOf(proposal.id);
+  const known = await savedMessagePlan(messageId);
   if (known) return known;
   const { structured } = proposal;
+  const source = sourceFields(chatId, messageId);
   const card = await createCard(
     structured
       ? {
           type: 'plan',
           title: proposalTitle(proposal, fallbackTitle),
           body: planBody(structured, words),
-          detail: {
-            steps: structured.steps.map((s) => ({
-              title: fitStepTitle(s.title),
-              ...(s.role && ROLES.has(s.role) ? { role: s.role as Role } : {}),
-            })),
-          },
+          detail: { steps: planSteps(structured), ...source },
         }
       : {
           type: 'plan',
           title: proposalTitle(proposal, fallbackTitle),
           body: proposal.text,
-          detail: { steps: [] },
+          detail: { steps: [], ...source },
         },
   );
-  markMessagePlan(messageOf(proposal.id), card.key);
+  markMessagePlan(messageId, card.key, chatId);
   return card.key;
 }

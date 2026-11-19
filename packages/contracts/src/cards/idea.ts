@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { roleSchema } from '../roles';
 import { bodySchema, createLinksSchema, prioritySchema, tagsSchema, titleSchema } from './card';
 import { defineMachine } from './machine';
-import { planBodySchema } from './plan';
+import { planBodySchema, sourceChatFields } from './plan';
 
 export const IDEA_STATUSES = ['open', 'exploring', 'accepted', 'parked', 'rejected'] as const;
 export type IdeaStatus = (typeof IDEA_STATUSES)[number];
@@ -37,6 +37,7 @@ export const createIdeaSchema = z.object({
     problem: bodySchema.optional(),
     notes: bodySchema.optional(),
     role: roleSchema.optional(),
+    ...sourceChatFields,
   }),
 });
 export type CreateIdeaInput = z.infer<typeof createIdeaSchema>;
@@ -49,12 +50,14 @@ export const updateIdeaSchema = z.object({
   problem: bodySchema.nullable().optional(),
   notes: bodySchema.nullable().optional(),
   role: roleSchema.nullable().optional(),
+  ...sourceChatFields,
 });
 export type UpdateIdeaInput = z.infer<typeof updateIdeaSchema>;
 
-/** "Turn into a plan". The plan's title defaults to the idea's, its body to the idea's problem and notes. */
+/** "Turn into a plan". The plan's title defaults to the idea's, its body to the idea's problem and notes. A studio save names its chat. */
 export const ideaToPlanSchema = z.object({
   title: titleSchema.optional(),
   body: planBodySchema.optional(),
+  ...sourceChatFields,
 });
 export type IdeaToPlanInput = z.infer<typeof ideaToPlanSchema>;

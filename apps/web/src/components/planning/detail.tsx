@@ -94,10 +94,11 @@ import type { ChatMessages } from '@/components/workbench/words';
 import { studioChatOfIdea } from '@/features/planning/idea-studio';
 import { guideOf, isMineHere, nextStepOf, planFacts, progressOf } from '@/features/planning/model';
 import { studioChatOfPlan } from '@/features/planning/plan-studio';
-import { sectionCount, splitPlanText } from '@/features/planning/plan-text';
+import { readPlanText, sectionCount, splitPlanText } from '@/features/planning/plan-text';
 import { linkedOfType } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 
+import { ChangeRequestNote } from './change-request';
 import {
   DetailRow,
   LivePill,
@@ -442,10 +443,13 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
   );
 }
 
-/** A plan's text with its steps' list taken out when the list is the plan's own steps: the page shows them once, on the timeline. */
+/**
+ * A plan's text with its steps' list taken out when the list is the plan's own steps: the page shows them once, on the timeline. Each step's details come
+ * from the step itself (owner decision 9a); an older plan's are read from its text.
+ */
 function usePlanText(card: PlanCard) {
   const body = card.body ?? '';
-  return useMemo(() => splitPlanText(body, card.plan.steps), [body, card.plan.steps]);
+  return useMemo(() => readPlanText(body, card.plan.steps), [body, card.plan.steps]);
 }
 
 /** Each step's task as the page knows it, without asking the API: the cache's card, or the summary on the plan's own link. */
@@ -476,6 +480,7 @@ function PlanBody({ card }: { card: PlanCard }) {
     fillComposer(fmt(d.claude.developPrompt, { key: card.key }), 'execute', { show: true });
   return (
     <div className="flex min-w-0 flex-col gap-5">
+      <ChangeRequestNote card={card} />
       <Panel
         id={`steps-${card.key}`}
         title={d.steps}
@@ -588,10 +593,16 @@ function IdeaBody({ card }: { card: IdeaCard }) {
   );
 }
 
-/** The studio chat this card came from, when this browser made it and the chat is still there: the way back to the full report. */
+/**
+ * The studio chat this card came from, named on the card itself (owner decision 9c), and still in the member's chats: the way back to the full report, in
+ * any of their browsers. A card saved before that is found from what this browser kept.
+ */
 function useStudioChatOf(card: Shaped) {
   const wb = useMaybeWb();
-  const id = card.type === 'idea' ? studioChatOfIdea(card.key) : studioChatOfPlan(card.key);
+  const id =
+    card.type === 'idea'
+      ? studioChatOfIdea(card.key, card.idea.sourceChatId)
+      : studioChatOfPlan(card.key, card.plan.sourceChatId);
   if (!id || !wb?.chats.some((c) => c.id === id && !c.deletedAt)) return null;
   return id;
 }

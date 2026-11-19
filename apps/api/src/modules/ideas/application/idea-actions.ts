@@ -23,6 +23,7 @@ import {
   OptionalReasonTransition,
   PlainTransition,
 } from '@/modules/cards';
+import { StudioSourceCheck } from '@/modules/plans';
 
 @Injectable()
 @CardActionHandler()
@@ -30,12 +31,21 @@ export class IdeaCreateAction implements CardActionDefinition<CreateIdeaInput> {
   readonly action = 'idea.create';
   readonly payload = createIdeaSchema;
 
-  plan({ payload }: CardActionContext<CreateIdeaInput>): CardActionPlan {
+  constructor(private readonly sources: StudioSourceCheck) {}
+
+  async plan({ actor, payload }: CardActionContext<CreateIdeaInput>): Promise<CardActionPlan> {
     const { detail } = payload;
+    await this.sources.assertOwn(actor, detail);
     const followUps = linkFollowUps(payload.links);
     return {
       create: { ...baseCreateFields(payload), ownerRole: detail.role ?? null },
-      detail: { problem: detail.problem ?? null, notes: detail.notes ?? null, role: detail.role ?? null },
+      detail: {
+        problem: detail.problem ?? null,
+        notes: detail.notes ?? null,
+        role: detail.role ?? null,
+        sourceChatId: detail.sourceChatId ?? null,
+        sourceMessageId: detail.sourceMessageId ?? null,
+      },
       ...(followUps ? { followUps } : {}),
     };
   }
@@ -43,6 +53,8 @@ export class IdeaCreateAction implements CardActionDefinition<CreateIdeaInput> {
 
 const HEADER_FIELDS = ['title', 'body', 'priority', 'tags'] as const;
 const DETAIL_FIELDS = ['problem', 'notes', 'role'] as const;
+/** The studio chat a save came from (owner decision 9c): only the writer's own chat, named on the event like any edit. */
+const SOURCE_FIELDS = ['sourceChatId', 'sourceMessageId'] as const;
 
 @Injectable()
 @CardActionHandler()
@@ -50,7 +62,9 @@ export class IdeaUpdateAction implements CardActionDefinition<UpdateIdeaInput> {
   readonly action = 'idea.update';
   readonly payload = updateIdeaSchema;
 
-  plan({ card, payload }: CardActionContext<UpdateIdeaInput>): CardActionPlan {
+  constructor(private readonly sources: StudioSourceCheck) {}
+
+  async plan({ actor, card, payload }: CardActionContext<UpdateIdeaInput>): Promise<CardActionPlan> {
     if (!card) throw new Error('idea.update needs a card');
     const header = card as unknown as Record<string, unknown>;
     const detail = card.detail ?? {};
@@ -62,18 +76,31 @@ export class IdeaUpdateAction implements CardActionDefinition<UpdateIdeaInput> {
       );
     const headerChanged = changedOf(HEADER_FIELDS, header);
     const detailChanged = changedOf(DETAIL_FIELDS, detail);
-    if (headerChanged.length + detailChanged.length === 0) return { noop: true };
+    const sourceChanged = changedOf(SOURCE_FIELDS, detail);
+    if (headerChanged.length + detailChanged.length + sourceChanged.length === 0) return { noop: true };
+    if (sourceChanged.length > 0) {
+      await this.sources.assertOwn(actor, {
+        ...(sourceChanged.includes('sourceChatId') ? { sourceChatId: payload.sourceChatId } : {}),
+        ...(sourceChanged.includes('sourceMessageId')
+          ? {
+              sourceMessageId: payload.sourceMessageId,
+              sourceChatId: payload.sourceChatId ?? (detail['sourceChatId'] as string | null | undefined),
+            }
+          : {}),
+      });
+    }
     const pick = (fields: readonly (keyof UpdateIdeaInput)[]) =>
       Object.fromEntries(fields.map((field) => [field, payload[field]]));
+    const detailPatch = [...detailChanged, ...sourceChanged];
     return {
       patch: {
         ...pick(headerChanged),
         ...(detailChanged.includes('role') ? { ownerRole: payload.role ?? null } : {}),
       },
-      ...(detailChanged.length > 0 ? { detail: pick(detailChanged) } : {}),
+      ...(detailPatch.length > 0 ? { detail: pick(detailPatch) } : {}),
       event: {
         kind: 'field_changed',
-        data: { changes: [...headerChanged, ...detailChanged].map((field) => ({ field })) },
+        data: { changes: [...headerChanged, ...detailChanged, ...sourceChanged].map((field) => ({ field })) },
       },
     };
   }
@@ -138,7 +165,12 @@ export class IdeaToPlanAction implements CardActionDefinition<IdeaToPlanInput> {
             ...(body ? { body } : {}),
             priority: card.priority,
             tags: [...card.tags],
-            detail: { steps: [], sourceIdeaKey: card.key },
+            detail: {
+              steps: [],
+              sourceIdeaKey: card.key,
+              ...(payload.sourceChatId ? { sourceChatId: payload.sourceChatId } : {}),
+              ...(payload.sourceMessageId ? { sourceMessageId: payload.sourceMessageId } : {}),
+            },
           },
           trusted: true,
         },

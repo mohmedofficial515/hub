@@ -79,6 +79,24 @@ describe('actionsFor', () => {
     expect(verbs(finished, ['backend'])).toEqual(['finish', 'abandon']);
   });
 
+  it('a plan in review can go back to draft with a reason, for owner and pm only (owner decision 9b)', () => {
+    const plan = card({ type: 'plan', status: 'in_review', createdById: ME, detail: { steps: [] } });
+    expect(verbs(plan, ['pm'])).toEqual(['approve', 'request_changes', 'abandon']);
+    const back = actionsFor(plan, ['pm'], ME).find((a) => a.action === 'request_changes');
+    expect(back).toMatchObject({ mode: 'confirm', reason: true, enabled: true });
+    expect(back?.destructive).toBeUndefined();
+    const asBackend = actionsFor(plan, ['backend'], ME).find((a) => a.action === 'request_changes');
+    expect(asBackend).toMatchObject({ enabled: false, needsRole: 'owner' });
+  });
+
+  it('releasing asks to confirm, and is not drawn as destructive (owner decision 6)', () => {
+    const release = card({ type: 'release', status: 'planned', detail: { version: '2026-11-19' } });
+    const [first] = actionsFor(release, ['pm'], ME);
+    expect(first).toMatchObject({ action: 'release', mode: 'confirm', enabled: true });
+    expect(first?.destructive).toBeUndefined();
+    expect(first?.reason).toBeUndefined();
+  });
+
   it('an approved redesign offers the port task’s Claim first, pointing at the task', () => {
     const redesign = card({
       type: 'redesign',

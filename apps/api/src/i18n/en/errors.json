@@ -129,7 +129,11 @@
       "base_required": "Saving over an existing document needs the version you read.",
       "too_large": "This document is too large to save.",
       "revision_not_found": "No such revision.",
-      "unavailable": "The device that holds this document is not reachable."
+      "unavailable": "The device that holds this document is not reachable.",
+      "image_bad_path": "That image address is not a file inside this document’s source.",
+      "image_type_refused": "Only png, jpg, gif, webp and svg images are served.",
+      "image_not_found": "That image is not in this document’s source.",
+      "image_too_large": "That image is larger than 10 MB, so Hub does not serve it."
     },
     "capture": {
       "payload_invalid": "The hook payload is not valid.",

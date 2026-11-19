@@ -13,7 +13,7 @@ import {
   type PlanWords,
   type ProposedPlan,
 } from '@hub/contracts';
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
 
 import type { PlanningMessages } from '@/components/planning/messages';
 import { currentRoute } from '@/components/shell/router';
@@ -25,6 +25,17 @@ import { type CardFullDto, toHubCard } from '../cards/map';
 import { createCard, getCard } from '../cards/store';
 import type { PlanStep, Role } from '../cards/types';
 import { savePlan, turnIntoPlan } from './queries';
+import {
+  findMessagePlan,
+  findSaved,
+  forgetKey,
+  knownChatOf,
+  knownMessage,
+  rememberSave,
+  sourceFields,
+  useMessagePlan,
+  useStudioSource,
+} from './studio-source';
 
 /** The studio sends Hub's own planning skill, so the same plan comes from the page, the panel or a terminal. */
 export const PLAN_COMMAND = '/hub:plan';
@@ -112,94 +123,38 @@ export function effortOf(plan: ProposedPlan): { points: number; sized: number } 
   return { points, sized };
 }
 
-// ── Saved plans: which studio chat became which plan, kept across reloads in this browser ────────────
+// ── Saved plans: which studio chat became which plan. The plan card says so itself (studio-source.ts) ───────────
 
-const STORE_KEY = 'hub:plan-studio:saved';
-const listeners = new Set<() => void>();
-let version = 0;
-const memory = new Map<string, string>();
-
-function readAll(): Record<string, string> {
-  try {
-    return JSON.parse(window.localStorage.getItem(STORE_KEY) ?? '{}') as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
-
-const recall = (id: string) => memory.get(id) ?? (typeof window === 'undefined' ? undefined : readAll()[id]);
-
-function remember(entries: Record<string, string>) {
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify({ ...readAll(), ...entries }));
-  } catch {
-    // Blocked storage: the page still works, it only forgets after a reload.
-  }
-  for (const [id, key] of Object.entries(entries)) memory.set(id, key);
-  version += 1;
-  for (const fn of listeners) fn();
-}
-
-/** Forgets a plan that is gone (deleted since it was saved): every record that points at it, so the next Save makes a new one. */
-function forget(key: string) {
-  const all = readAll();
-  for (const [id, value] of Object.entries(all)) if (value === key) delete all[id];
-  try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify(all));
-  } catch {
-    // Blocked storage: memory is what the page reads anyway.
-  }
-  for (const [id, value] of [...memory]) if (value === key) memory.delete(id);
-  version += 1;
-  for (const fn of listeners) fn();
-}
-
-/** The studio chat a plan was saved from, if this browser saved it: the way back to its full report. */
-export function studioChatOfPlan(key: string): string | null {
-  for (const [id, value] of memory) if (value === key && id.startsWith('chat:')) return id.slice(5);
-  for (const [id, value] of Object.entries(readAll()))
-    if (value === key && id.startsWith('chat:')) return id.slice(5);
-  return null;
+/** The studio chat a plan was saved from: the card's own field first, then what this tab or an older version of this browser knew. */
+export function studioChatOfPlan(key: string, sourceChatId?: string | null): string | null {
+  return sourceChatId ?? knownChatOf('plan', key);
 }
 
 /** A card the API no longer has: deleted, or never in this project. */
 export const isGone = (error: unknown) =>
   isHubError(error) && (error.status === 404 || error.code.endsWith('not_found'));
 
-/** The plan a studio chat became, and whether it holds the plan on the page. */
+/** The plan a studio chat became, and whether it holds the plan on the page. Any browser sees it, because the plan names its chat. */
 export function useSavedPlan(
   chatId: string,
   messageId: string | null | undefined,
 ): { key: string | null; current: boolean } {
-  useSyncExternalStore(
-    (fn) => {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    },
-    () => version,
-    () => 0,
-  );
-  const byMessage = messageId ? recall(messageId) : undefined;
-  return { key: recall(`chat:${chatId}`) ?? byMessage ?? null, current: !!byMessage };
+  const source = useStudioSource('plan', chatId);
+  const byMessage = useMessagePlan(messageId);
+  const key = source?.key ?? byMessage ?? null;
+  const current = !!messageId && (byMessage === key || source?.messageId === messageId) && key !== null;
+  return { key, current };
 }
 
 /**
  * The plan a proposed plan became, by the message that proposed it, saved here or from Claude's panel: one record for both, so the same plan is never saved
  * twice from two places.
  */
-export function useSavedMessagePlan(messageId: string | null | undefined): string | null {
-  useSyncExternalStore(
-    (fn) => {
-      listeners.add(fn);
-      return () => listeners.delete(fn);
-    },
-    () => version,
-    () => 0,
-  );
-  return messageId ? (recall(messageId) ?? null) : null;
-}
-export const savedMessagePlan = (messageId: string) => recall(messageId) ?? null;
-export const markMessagePlan = (messageId: string, key: string) => remember({ [messageId]: key });
+export const useSavedMessagePlan = (messageId: string | null | undefined): string | null =>
+  useMessagePlan(messageId);
+export const savedMessagePlan = (messageId: string) => findMessagePlan(messageId);
+export const markMessagePlan = (messageId: string, key: string, chatId: string | null = null) =>
+  rememberSave('plan', key, chatId, messageId);
 
 /** A saved plan's text: the plan in the reader's words, without its title, which is the card's own. */
 export const planBody = (plan: ProposedPlan, words?: PlanWords) =>
@@ -236,12 +191,44 @@ export function usePlanWords(): PlanWords {
   return useMemo(() => ({ ...words, roles }), [words, roles]);
 }
 
-const stepsOf = (plan: ProposedPlan): PlanStepInput[] =>
-  plan.steps.map((s) => ({
+const textOf = (value: string | undefined) => value?.trim().slice(0, 2_000) || undefined;
+
+/** A proposed step as a plan card holds it: its title cut to fit, a role Hub knows, its reason, size and acceptance (owner decision 9a). */
+const stepOf = (s: ProposedPlan['steps'][number]): PlanStepInput => {
+  const why = textOf(s.why);
+  const acceptance = textOf(s.acceptance);
+  return {
     title: fitStepTitle(s.title),
     done: false,
     ...(s.role && ROLES.has(s.role) ? { role: s.role as Role } : {}),
-  }));
+    ...(why ? { why } : {}),
+    ...(s.size ? { size: s.size } : {}),
+    ...(acceptance ? { acceptance } : {}),
+  };
+};
+
+/**
+ * The proposed plan's steps as a plan card holds them, brought onto the steps it already has (`carrySteps`). Each step has an id, so `after`, which the
+ * proposal writes as step numbers, can name the earlier steps by id. A new step's id is one the plan has never used.
+ */
+export function planSteps(plan: ProposedPlan, existing: readonly PlanStep[] = []): PlanStepInput[] {
+  const carried = carrySteps(existing, plan.steps.map(stepOf));
+  const taken = new Set([...existing.map((s) => s.id), ...carried.flatMap((s) => (s.id ? [s.id] : []))]);
+  let n = 0;
+  const ids = carried.map((s) => {
+    if (s.id) return s.id;
+    n += 1;
+    while (taken.has(`s${n}`)) n += 1;
+    taken.add(`s${n}`);
+    return `s${n}`;
+  });
+  return carried.map((s, i) => {
+    const after = [...new Set(plan.steps[i]?.after ?? [])].flatMap((k) =>
+      k >= 1 && k <= i && ids[k - 1] ? [ids[k - 1]!] : [],
+    );
+    return { ...s, id: ids[i]!, ...(after.length ? { after } : {}) };
+  });
+}
 
 /**
  * The refined plan's steps, keeping what the saved plan's steps already are: a step with the same title as one already saved is that step, with its id
@@ -279,36 +266,42 @@ export async function savePlanFromStudio(
   ideaKey: string | null,
   words?: PlanWords,
 ): Promise<{ key: string; updated: boolean }> {
-  const known = recall(messageId);
+  const known = knownMessage('plan', messageId);
   if (known) return { key: known, updated: false };
   // The plan's own name: a card key at its start is the idea it came from, which the link already says.
   const title = cap(plan.title.replace(/^[A-Z]{2,6}-\d{1,7}\s*[:—–-]?\s*/, '') || plan.title);
   const body = planBody(plan, words);
-  const existing = recall(`chat:${chatId}`);
+  // The card names the chat and the reply it holds, so every browser sees this session as saved (owner decision 9c).
+  const source = sourceFields(chatId, messageId);
+  const existing = await findSaved('plan', chatId);
+  if (existing?.messageId === messageId) {
+    rememberSave('plan', existing.key, chatId, messageId);
+    return { key: existing.key, updated: false };
+  }
   if (existing) {
     try {
-      const steps = carrySteps(await savedSteps(existing), stepsOf(plan));
-      await savePlan(existing, { title, body, steps });
-      remember({ [messageId]: existing });
-      return { key: existing, updated: true };
+      const steps = planSteps(plan, await savedSteps(existing.key));
+      await savePlan(existing.key, { title, body, steps, ...source });
+      rememberSave('plan', existing.key, chatId, messageId);
+      return { key: existing.key, updated: true };
     } catch (error) {
       // The saved plan was deleted since: this session saves a new one instead of failing every time.
       if (!isGone(error)) throw error;
-      forget(existing);
+      forgetKey('plan', existing.key);
     }
   }
   let key: string | undefined;
   if (ideaKey) {
     // An idea that cannot become a plan any more (it already did, or it was closed) still gets its link: the plan is made apart and relates to it.
-    key = await turnIntoPlan(ideaKey, { title, body }).catch(() => undefined);
+    key = await turnIntoPlan(ideaKey, { title, body, ...sourceFields(chatId, null) }).catch(() => undefined);
     if (key) {
       // Recorded before its steps are written: if that fails, Save again updates this plan rather than making a second one.
-      remember({ [`chat:${chatId}`]: key });
-      await savePlan(key, { steps: stepsOf(plan) });
+      rememberSave('plan', key, chatId, null);
+      await savePlan(key, { steps: planSteps(plan), ...source });
     }
   }
   if (!key) {
-    const base = { type: 'plan' as const, title, body, detail: { steps: stepsOf(plan) } };
+    const base = { type: 'plan' as const, title, body, detail: { steps: planSteps(plan), ...source } };
     const card = ideaKey
       ? await createCard({ ...base, links: [{ kind: 'relates', key: ideaKey }] }).catch(() =>
           createCard(base),
@@ -316,6 +309,6 @@ export async function savePlanFromStudio(
       : await createCard(base);
     key = card.key;
   }
-  remember({ [messageId]: key, [`chat:${chatId}`]: key });
+  rememberSave('plan', key, chatId, messageId);
   return { key, updated: false };
 }

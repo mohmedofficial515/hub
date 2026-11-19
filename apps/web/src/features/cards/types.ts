@@ -260,6 +260,9 @@ export interface IdeaDetail {
   notes?: string | undefined;
   role?: Role | undefined;
   planKey?: string | undefined;
+  /** The Idea Studio chat it was accepted from, and the report it holds (owner decision 9c). */
+  sourceChatId?: string | undefined;
+  sourceMessageId?: string | undefined;
 }
 
 export interface PlanStep {
@@ -268,6 +271,11 @@ export interface PlanStep {
   role?: Role | undefined;
   taskKey?: string | undefined;
   done: boolean;
+  /** What the studio proposed for the step (owner decision 9a). `after` names earlier steps by id. */
+  why?: string | undefined;
+  size?: 'S' | 'M' | 'L' | undefined;
+  after?: string[] | undefined;
+  acceptance?: string | undefined;
 }
 
 /** docs/15 §4. */
@@ -275,6 +283,9 @@ export interface PlanDetail {
   body: string;
   steps: PlanStep[];
   ideaKey?: string | undefined;
+  /** The Plan Studio chat it was saved from, and the reply whose plan it holds (owner decision 9c). */
+  sourceChatId?: string | undefined;
+  sourceMessageId?: string | undefined;
 }
 
 export interface CardCore {

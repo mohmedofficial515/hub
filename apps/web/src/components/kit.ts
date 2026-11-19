@@ -221,7 +221,13 @@ export { tabTriggerClass } from '@/components/ui/tabs-class';
 
 // Screenshots and markdown
 export { Lightbox, type LightboxImage } from '@/components/common/lightbox';
-export { headingsOf, type MarkdownHeading, MarkdownView, slugify } from '@/components/common/markdown';
+export {
+  headingsOf,
+  type MarkdownHeading,
+  type MarkdownImage,
+  MarkdownView,
+  slugify,
+} from '@/components/common/markdown';
 export { CommandBlock, ShownOnce } from '@/components/common/shown-once';
 export { RoleChecks } from '@/components/ui/role-checks';
 export { RowMenu, type RowMenuItem } from '@/components/ui/row-menu';

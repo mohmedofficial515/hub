@@ -6,7 +6,7 @@
 import type { CardAction } from '@/lib/i18n';
 
 import { actionsFor } from '../cards/rules';
-import type { IdeaCard, PlanCard, PlanStep, Role } from '../cards/types';
+import type { CardEvent, IdeaCard, PlanCard, PlanStep, Role } from '../cards/types';
 
 export const ACTIVE_IDEAS = ['exploring', 'open'] as const;
 export const CLOSED_IDEAS = ['accepted', 'parked', 'rejected'] as const;
@@ -45,6 +45,10 @@ export function mergeSteps(
     role?: Role | undefined;
     taskKey?: string | undefined;
     done?: boolean | undefined;
+    why?: string | undefined;
+    size?: PlanStep['size'];
+    after?: string[] | undefined;
+    acceptance?: string | undefined;
   }[],
 ): PlanStep[] {
   const byId = new Map(existing.map((s) => [s.id, s]));
@@ -59,6 +63,10 @@ export function mergeSteps(
       ...(step.role ? { role: step.role } : {}),
       ...(taskKey ? { taskKey } : {}),
       done: before?.taskKey ? before.done : (step.done ?? false),
+      ...(step.why ? { why: step.why } : {}),
+      ...(step.size ? { size: step.size } : {}),
+      ...(step.after?.length ? { after: step.after } : {}),
+      ...(step.acceptance ? { acceptance: step.acceptance } : {}),
     };
   });
 }
@@ -221,4 +229,25 @@ export function excerptOf(markdown: string | undefined, length = 220) {
     .replace(/\s+/g, ' ')
     .trim();
   return plain.length > length ? `${plain.slice(0, length).trimEnd()}…` : plain;
+}
+
+/** Why a draft plan is back: the reason of the Request changes that sent it there (owner decision 9b). */
+export interface ChangeRequest {
+  reason: string;
+  actorKind: CardEvent['actorKind'];
+  actorId?: string | undefined;
+  at: string;
+}
+
+/** The change request a draft plan is waiting on: its latest status move was Request changes. Anything since (a new submit) clears it. */
+export function changeRequestOf(status: string, events: readonly CardEvent[]): ChangeRequest | null {
+  if (status !== 'draft') return null;
+  let last: CardEvent | undefined;
+  for (const event of events) {
+    if (event.data['to'] === undefined && event.kind !== 'changes_requested') continue;
+    if (!last || event.seq > last.seq) last = event;
+  }
+  const reason = last?.kind === 'changes_requested' ? last.data['reason'] : undefined;
+  if (!last || typeof reason !== 'string' || !reason.trim()) return null;
+  return { reason, actorKind: last.actorKind, actorId: last.actorId, at: last.at };
 }

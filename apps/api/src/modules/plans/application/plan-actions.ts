@@ -9,6 +9,8 @@ import {
   type PlanStep,
   type PlanToTasksInput,
   planToTasksSchema,
+  type ReasonInput,
+  reasonSchema,
   restorePlanRevisionSchema,
   type UpdatePlanInput,
   updatePlanSchema,
@@ -32,6 +34,7 @@ import {
 import { AppException } from '@/shared/errors';
 
 import { normalizeSteps, specialtyOfStep } from './plan-steps';
+import { StudioSourceCheck } from './studio-source.check';
 
 function stepsOf(card: CardView): PlanStep[] {
   return ((card.detail?.['steps'] ?? []) as PlanStep[]).map((step) => ({ ...step }));
@@ -43,10 +46,14 @@ export class PlanCreateAction implements CardActionDefinition<CreatePlanInput> {
   readonly action = 'plan.create';
   readonly payload = createPlanSchema;
 
-  constructor(private readonly cards: CardRepository) {}
+  constructor(
+    private readonly cards: CardRepository,
+    private readonly sources: StudioSourceCheck,
+  ) {}
 
   async plan({ actor, payload }: CardActionContext<CreatePlanInput>): Promise<CardActionPlan> {
     const { detail } = payload;
+    await this.sources.assertOwn(actor, detail);
     const idea = detail.sourceIdeaKey
       ? await this.cards.findCard(actor.workspaceId, { cardKey: detail.sourceIdeaKey })
       : null;
@@ -54,7 +61,12 @@ export class PlanCreateAction implements CardActionDefinition<CreatePlanInput> {
     const followUps = linkFollowUps(payload.links);
     return {
       create: { ...baseCreateFields(payload) },
-      detail: { steps: normalizeSteps(detail.steps), sourceIdeaId: idea?.id ?? null },
+      detail: {
+        steps: normalizeSteps(detail.steps),
+        sourceIdeaId: idea?.id ?? null,
+        sourceChatId: detail.sourceChatId ?? null,
+        sourceMessageId: detail.sourceMessageId ?? null,
+      },
       ...(followUps ? { followUps } : {}),
     };
   }
@@ -66,7 +78,9 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
   readonly action = 'plan.update';
   readonly payload = updatePlanSchema;
 
-  plan({ card, payload }: CardActionContext<UpdatePlanInput>): CardActionPlan {
+  constructor(private readonly sources: StudioSourceCheck) {}
+
+  async plan({ actor, card, payload }: CardActionContext<UpdatePlanInput>): Promise<CardActionPlan> {
     if (!card) throw new Error('plan.update needs a card');
     const header = card as unknown as Record<string, unknown>;
     const fields = (['title', 'priority', 'tags'] as const).filter(
@@ -78,14 +92,36 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
     const current = stepsOf(card);
     const steps = payload.steps ? normalizeSteps(payload.steps, current) : current;
     const stepsChanged = JSON.stringify(steps) !== JSON.stringify(current);
-    if (fields.length === 0 && !bodyChanged && !stepsChanged) return { noop: true };
+    // The studio chat a save came from (owner decision 9c): only the writer's own chat, and named on the event, so the
+    // history says who tied the card to a session.
+    const source = (['sourceChatId', 'sourceMessageId'] as const).filter(
+      (field) => payload[field] !== undefined && payload[field] !== (card.detail?.[field] ?? null),
+    );
+    if (fields.length === 0 && !bodyChanged && !stepsChanged && source.length === 0) return { noop: true };
+    if (source.length > 0) {
+      await this.sources.assertOwn(actor, {
+        ...(source.includes('sourceChatId') ? { sourceChatId: payload.sourceChatId } : {}),
+        // A message alone is checked against the chat the card keeps, or the one this save names.
+        ...(source.includes('sourceMessageId')
+          ? {
+              sourceMessageId: payload.sourceMessageId,
+              sourceChatId:
+                payload.sourceChatId ?? (card.detail?.['sourceChatId'] as string | null | undefined),
+            }
+          : {}),
+      });
+    }
 
     const revision = Number(card.detail?.['revision'] ?? 1) + 1;
     const detail: JsonObject = {
       ...(stepsChanged ? { steps } : {}),
       ...(bodyChanged ? { revision } : {}),
+      ...Object.fromEntries(source.map((field) => [field, payload[field] ?? null])),
     };
-    const changes = fields.map((field) => ({ field, from: header[field] ?? null, to: payload[field] }));
+    const changes = [
+      ...fields.map((field) => ({ field, from: header[field] ?? null, to: payload[field] })),
+      ...source.map((field) => ({ field, from: card.detail?.[field] ?? null, to: payload[field] ?? null })),
+    ];
     return {
       patch: {
         ...Object.fromEntries(fields.map((field) => [field, payload[field]])),
@@ -155,6 +191,18 @@ export class PlanApproveAction implements CardActionDefinition<Record<string, ne
   }
 }
 
+/** In review back to draft, saying what to change (owner decision 9b). The reason is on the event, where History and the timeline show it. */
+@Injectable()
+@CardActionHandler()
+export class PlanRequestChangesAction implements CardActionDefinition<ReasonInput> {
+  readonly action = 'plan.request_changes';
+  readonly payload: z.ZodType<ReasonInput> = reasonSchema;
+
+  plan({ payload }: CardActionContext<ReasonInput>): CardActionPlan {
+    return { event: { kind: 'changes_requested', data: { reason: payload.reason } } };
+  }
+}
+
 @Injectable()
 @CardActionHandler()
 export class PlanStartAction extends PlainTransition {
@@ -201,7 +249,13 @@ export class PlanToTasksAction implements CardActionDefinition<PlanToTasksInput>
             detail: {
               specialty: specialtyOfStep(step, fallback),
               origin: 'plan',
-              prompt: `Step of plan ${card.key} (${card.title}): ${step.title}`,
+              prompt: `Step of plan ${card.key} (${card.title}): ${step.title}${
+                step.why
+                  ? `
+Why: ${step.why}`
+                  : ''
+              }`,
+              ...(step.acceptance ? { acceptance: step.acceptance } : {}),
             },
           },
         })),

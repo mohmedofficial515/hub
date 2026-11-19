@@ -29,6 +29,14 @@
     "one": "1 card",
     "other": "# cards"
   },
+  "confirm": {
+    "title": "Mark {version} released?",
+    "body": {
+      "zero": "{version} ships no cards. This cannot be undone.",
+      "one": "{version} ships 1 card. This cannot be undone.",
+      "other": "{version} ships # cards. This cannot be undone."
+    }
+  },
   "includedTitle": "What it includes",
   "notes": "Notes per audience",
   "wroteBy": "Written by",

@@ -571,7 +571,13 @@ Phone: tree as a list page; viewer full screen.
 - Route for a doc: `/docs/[key]` (card key), also reachable as `/cards/[key]`.
 - Search box → `/ask?scope=docs&q=`. Above the tree a local filter by name or path keeps the matching docs with their folders open; `Esc` clears it.
 - Viewer: `DocViewer` (§08 5.4); relative links between docs resolve to Hub doc routes when the
-  target is indexed, otherwise to GitHub. Images are not loaded: an inline placeholder (dashed frame, icon, alt text) with "Open the image" for an `https` source.
+  target is indexed, otherwise to GitHub. Images (decision 13b): a relative address is resolved against the doc's folder in its
+  source's local checkout and served by `GET /api/v1/workspaces/{ws}/docs/{key}/image?src=<address as written>` (read only, png, jpg,
+  jpeg, gif, webp, svg up to 10 MB, `private, max-age=300` with an ETag, `nosniff` and a CSP that runs nothing; errors
+  `docs.image_bad_path` 422, `docs.image_type_refused` 415, `docs.image_too_large` 413, `docs.image_not_found` 404). The image opens
+  in the `Lightbox`; one the API cannot serve shows a dashed note with its file name. A remote `http(s)` image is not loaded: an inline
+  placeholder (dashed frame, icon, alt text) with "Open the image", so no request leaves Hub. A source on a paired device has no local
+  file, so its images show that note. A `mermaid` block is drawn as a diagram, with "Show source" (08 §5.4).
 - A 404 (or a code ending in `not_found`) shows "No such document"; any other error is an `ErrorState` with Retry.
 - A doc that is a step of the member's onboarding path shows "Step N of your path" with "Mark as read", then the next step.
 - `.ar.md` twins: a language toggle on the viewer when both exist (`path` without suffix matched).
@@ -710,6 +716,8 @@ Purpose: planned and shipped releases with per-audience notes. Who: pm/owner (wr
   tasks, `applied` handoffs, `decided` decisions, `ported` redesigns since the last release) →
   `POST /cards {type: release, …}`; "Regenerate skeleton" → `POST /cards/{key}/actions/render_notes`
   (digest template per audience); "Mark released" → `release {releasedAt, tag?}`.
+  It is a confirm, not a destructive action (owner decision 6): the dialog names the version and the card count
+  («يحمل الإصدار 1.4.0 ثلاث بطاقات»), and its button is the primary one, not red.
 - Sheet `ReleaseSection` with notes tabs (team / owner / accountant) and `CopyButton`; agents may
   polish via `hub.update_card` (visible author chip changes to agent).
 - Empty: "No releases yet. Create one when a batch goes to production."

@@ -9,6 +9,7 @@ import {
   planRevisionSchema,
   planToTasksSchema,
   queryList,
+  reasonSchema,
   restorePlanRevisionSchema,
   updatePlanSchema,
 } from '@hub/contracts';
@@ -31,6 +32,10 @@ class PlansQueryDto extends createZodDto(
   z.object({
     status: queryList(z.enum(PLAN_STATUSES)),
     q: z.string().trim().min(1).max(200).optional(),
+    /** The Plan Studio chat a plan was saved from (owner decision 9c). */
+    sourceChat: z.uuid().optional(),
+    /** The chat reply whose plan a plan holds. */
+    sourceMessage: z.uuid().optional(),
     cursor: z.string().optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),
   }),
@@ -39,6 +44,7 @@ class UpdateDto extends createZodDto(updatePlanSchema) {}
 class RestoreDto extends createZodDto(restorePlanRevisionSchema) {}
 class ToTasksDto extends createZodDto(planToTasksSchema) {}
 class OptionalReasonDto extends createZodDto(optionalReasonSchema) {}
+class ReasonDto extends createZodDto(reasonSchema) {}
 class PlanRevisionDto extends createZodDto(planRevisionSchema) {}
 
 @ApiTags('plans')
@@ -61,6 +67,18 @@ export class PlansController {
     return this.query.listWithDetail(actor, 'plan', {
       statuses: query.status,
       q: query.q,
+      ...(query.sourceChat || query.sourceMessage
+        ? {
+            where: {
+              plan: {
+                is: {
+                  ...(query.sourceChat ? { sourceChatId: query.sourceChat } : {}),
+                  ...(query.sourceMessage ? { sourceMessageId: query.sourceMessage } : {}),
+                },
+              },
+            },
+          }
+        : {}),
       cursor: query.cursor,
       limit: query.limit,
     });
@@ -107,6 +125,15 @@ export class PlansController {
   @ApiOkResponse({ type: CardWrittenResponseDto })
   approve(@Actor() actor: MemberActor, @Param('key') key: string) {
     return this.run(actor, key, 'plan.approve', {});
+  }
+
+  @Post(':key/request-changes')
+  @HttpCode(200)
+  @Permissions('plan.request_changes')
+  @ApiOperation({ summary: 'Send a plan in review back to draft, saying what to change' })
+  @ApiOkResponse({ type: CardWrittenResponseDto })
+  requestChanges(@Actor() actor: MemberActor, @Param('key') key: string, @Body() body: ReasonDto) {
+    return this.run(actor, key, 'plan.request_changes', body);
   }
 
   @Post(':key/start')

@@ -569,7 +569,8 @@ const TOOL_TABLE = {
     routes: [`PATCH ${W}/releases/:key`, `POST ${W}/releases/:key/generate-notes`],
   },
   release: {
-    description: 'Mark a release released.',
+    description:
+      'Mark a release released. It cannot be undone: tell the user the version and how many cards it ships, and wait for a yes.',
     input: key.extend(releaseSchema.shape),
     actions: ['release.release'],
     routes: [`POST ${W}/releases/:key/release`],
@@ -647,11 +648,11 @@ const TOOL_TABLE = {
   },
   update_plan: {
     description:
-      'Edit a plan: body, steps, title. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, start, finish, abandon.',
+      'Edit a plan: body, steps, title. Each step may carry `why`, `size` (S, M, L), `after` (ids of earlier steps) and `acceptance`. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, request_changes (owner or pm, back to draft, `reason` required), start, finish, abandon.',
     input: key.extend({
       ...updatePlanSchema.shape,
       restoreRevision: z.number().int().min(1).optional(),
-      move: z.enum(['submit_review', 'approve', 'start', 'finish', 'abandon']).optional(),
+      move: z.enum(['submit_review', 'approve', 'request_changes', 'start', 'finish', 'abandon']).optional(),
       reason: z.string().trim().max(2000).optional(),
     }),
     actions: [
@@ -659,6 +660,7 @@ const TOOL_TABLE = {
       'plan.restore_revision',
       'plan.submit_review',
       'plan.approve',
+      'plan.request_changes',
       'plan.start',
       'plan.finish',
       'plan.abandon',
@@ -668,6 +670,7 @@ const TOOL_TABLE = {
       `POST ${W}/plans/:key/restore`,
       `POST ${W}/plans/:key/submit-review`,
       `POST ${W}/plans/:key/approve`,
+      `POST ${W}/plans/:key/request-changes`,
       `POST ${W}/plans/:key/start`,
       `POST ${W}/plans/:key/finish`,
       `POST ${W}/plans/:key/abandon`,
@@ -918,7 +921,7 @@ const TOOL_TABLE = {
   },
   propose_plan: {
     description:
-      'Propose a plan in structured form, so the panel and the Plan Studio show its steps, checks and risks and offer Run this plan. Add what you know: the `goal`, the `approach`, the `size` of each step (S, M, L) and the steps each comes `after` (by number), what is `outOfScope`, the `questions` only the user can answer, a small flow `diagram`, and the `sources` you relied on. Write each of the `questions` as `{text, options, recommended, why, multi}`: 2 to 5 short `options` the owner can pick, the index of the one you `recommended` and `why` in one line, and `multi: true` when several can be true together. The page adds Other, for an answer in their own words. It stores the plan on this turn and changes nothing else. Call it again with the whole plan after each change. Outside a panel, show the answer to the user in your reply. To save a plan as a card, use create_plan once the user agrees; in Plan mode the user saves it from the page.',
+      'Propose a plan in structured form, so the panel and the Plan Studio show its steps, checks and risks and offer Run this plan. Add what you know: the `goal`, the `approach`, the `size` of each step (S, M, L), the steps each comes `after` (by number) and its `acceptance` (when it counts as done), what is `outOfScope`, the `questions` only the user can answer, a small flow `diagram`, and the `sources` you relied on. Write each of the `questions` as `{text, options, recommended, why, multi}`: 2 to 5 short `options` the owner can pick, the index of the one you `recommended` and `why` in one line, and `multi: true` when several can be true together. The page adds Other, for an answer in their own words. It stores the plan on this turn and changes nothing else. Call it again with the whole plan after each change. Outside a panel, show the answer to the user in your reply. To save a plan as a card, use create_plan once the user agrees; in Plan mode the user saves it from the page.',
     input: proposedPlanSchema,
     actions: ['chat.read'],
     readOnly: true,

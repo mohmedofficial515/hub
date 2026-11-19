@@ -65,6 +65,7 @@ const EXPECTED: Record<CardType, string[]> = {
   plan: [
     'draft>in_review',
     'in_review>approved',
+    'in_review>draft',
     'approved>in_progress',
     'draft>in_progress',
     'in_review>in_progress',

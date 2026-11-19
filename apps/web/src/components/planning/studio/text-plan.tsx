@@ -38,12 +38,15 @@ import { STUDIO_ANCHOR } from './shared';
 export function TextPlan({
   wb,
   proposal,
+  chatId,
   asked,
   busy,
   onDevelop,
 }: {
   wb: Wb;
   proposal: PlanProposal;
+  /** The studio chat: the saved plan names it, so every browser shows the session as saved (owner decision 9c). */
+  chatId?: string | undefined;
   asked: string;
   busy: boolean;
   onDevelop: () => void;
@@ -62,7 +65,7 @@ export function TextPlan({
     if (saving || saved) return;
     setSaving(true);
     try {
-      const key = await saveProposal(proposal, w.fallbackTitle, planText);
+      const key = await saveProposal(proposal, w.fallbackTitle, planText, chatId ?? null);
       showToast({ tone: 'success', message: fmt(w.savedToast, { key }) });
     } catch (error) {
       showToast({ tone: 'error', message: isHubError(error) ? error.message : kit.actionFailed });

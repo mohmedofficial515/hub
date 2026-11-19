@@ -132,6 +132,12 @@ describe('routeEvent', () => {
     },
   );
 
+  it('a plan sent back for changes tells its creator and watchers, not the designers', () => {
+    expect(brief(route('changes_requested', card('plan', { ownerRole: null })))).toEqual([
+      { kind: 'watch_update', roles: [], userIds: ['creator'], watchers: true, action: null },
+    ]);
+  });
+
   it('ported tells the owner and watchers', () => {
     expect(brief(route('ported', card('redesign')))[0]).toMatchObject({ roles: ['owner'], watchers: true });
   });

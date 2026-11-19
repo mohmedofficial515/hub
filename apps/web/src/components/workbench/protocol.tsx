@@ -274,7 +274,7 @@ export function PlanCard({ item }: { item: Extract<Item, { kind: 'plan' }> }) {
     if (saving || savedKey) return;
     setSaving(true);
     try {
-      const key = await saveProposal(item, p.title, planText);
+      const key = await saveProposal(item, p.title, planText, wb.chat?.id ?? null);
       showToast({
         tone: 'success',
         message: fmt(p.savedToast, { key }),

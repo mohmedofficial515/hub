@@ -342,7 +342,7 @@ All of `kit/README.md` § Rules stands. ESLint's `hub/no-raw-palette` (`tools/es
 
 Props and notes are in `apps/lab/hub/today/v5-peacock-app/kit/README.md` § Components, and stand unchanged, all from `@/components/kit`: `TypeIcon TypeDot TypeBadge StatusBadge Pill MineMark PriorityBadge RoleBadge CardKey CardChip Avatar ActorChip RelativeTime CopyButton Kbd Tooltip`,
 `Button IconButton Field TextInput Textarea Select detectSecret SecretFilterError Modal ConfirmDialog Segmented ChipGroup PickField RowAction RowMenu RoleChecks CommandBlock ShownOnce CardPicker DocPicker`,
-`PageContainer PageHeader SectionHeader EmptyState ErrorState Skeleton SkeletonRow SkeletonRows LoadingRegion FilterBar`, `Lightbox MarkdownView`, `CardRow useKeyboardList showToast`.
+`PageContainer PageHeader SectionHeader EmptyState ErrorState Skeleton SkeletonRow SkeletonRows LoadingRegion FilterBar`, `Lightbox MarkdownView`, `CardRow useKeyboardList showToast`. `MarkdownView` creates no element from raw HTML; its one `dangerouslySetInnerHTML` is a drawn Mermaid diagram (`strict`, a block may not set the theme or its CSS, and `inertSvg` strips anything that would load from outside). `renderImage` is optional: without it an image is its alt text.
 
 Changed from the design:
 

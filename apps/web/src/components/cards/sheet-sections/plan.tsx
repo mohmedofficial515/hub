@@ -2,7 +2,8 @@
 
 /**
  * @file plan.tsx
- * @description Sheet section for a Plan (docs/15 §4): the written approach in Markdown, ordered steps, and every saved text with restore. A plan's text lives on `card.body`, and the API
+ * @description Sheet section for a Plan (docs/15 §4): the written approach in Markdown, ordered steps with their why, size, after and acceptance (owner
+ * decision 9a), why a draft came back from review (9b), and every saved text with restore. A plan's text lives on `card.body`, and the API
  * keeps each previous text on its `plan_revised` event. Tasks are created from the action bar ("Create tasks from steps"), and each step then shows its task live.
  */
 import { ArrowDown, ArrowUp, Check, ChevronDown, Circle, History, Plus, RotateCcw, X } from 'lucide-react';
@@ -17,6 +18,8 @@ import { RelativeTime } from '@/components/common/relative-time';
 import { ErrorState, SkeletonRows } from '@/components/common/states';
 import { Bidi, fill, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
+import { ChangeRequestNote } from '@/components/planning/change-request';
+import { StepAcceptance, StepAfter, StepSize, StepWhy } from '@/components/planning/step-details';
 import { StepRunMenu } from '@/components/queue/run-entry';
 import { setQuery } from '@/components/shell/router';
 import { Button, IconButton } from '@/components/ui/button';
@@ -24,6 +27,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { detectSecret, Field, SecretFilterError, Select, TextInput } from '@/components/ui/form';
 import { useMaybeWb } from '@/components/workbench/store';
 import type { PlanCard, PlanStep, Priority, Role } from '@/features/cards/types';
+import { readPlanText, type StepExtra } from '@/features/planning/plan-text';
 import { linkedOfType, restoreRevision, savePlan, usePlanRevisions } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 import { num } from '@/lib/format';
@@ -85,6 +89,8 @@ interface StepDraft {
   taskKey?: string | undefined;
   /** Kept as it is: a step done through Claude (update_plan) stays done when the form saves. */
   done: boolean;
+  /** Kept as they are: what the studio proposed for the step (owner decision 9a), which this form does not edit. */
+  extra: Pick<PlanStep, 'why' | 'size' | 'after' | 'acceptance'>;
 }
 
 function StepsEditor({
@@ -183,7 +189,10 @@ function StepsEditor({
         className="self-start"
         onClick={() => {
           nextUid.current += 1;
-          onChange([...steps, { uid: `new-${nextUid.current}`, title: '', role: '', done: false }]);
+          onChange([
+            ...steps,
+            { uid: `new-${nextUid.current}`, title: '', role: '', done: false, extra: {} },
+          ]);
         }}
       >
         <Plus aria-hidden className="size-3.5" strokeWidth={1.75} />
@@ -211,6 +220,12 @@ function PlanEditForm({ card }: { card: PlanCard }) {
       role: step.role ?? '',
       taskKey: step.taskKey,
       done: step.done,
+      extra: {
+        ...(step.why ? { why: step.why } : {}),
+        ...(step.size ? { size: step.size } : {}),
+        ...(step.after?.length ? { after: step.after } : {}),
+        ...(step.acceptance ? { acceptance: step.acceptance } : {}),
+      },
     })),
   );
   const [tried, setTried] = useState(false);
@@ -243,6 +258,7 @@ function PlanEditForm({ card }: { card: PlanCard }) {
           ...(step.role ? { role: step.role as Role } : {}),
           ...(step.taskKey ? { taskKey: step.taskKey } : {}),
           done: step.done,
+          ...step.extra,
         })),
       }),
     );
@@ -399,7 +415,17 @@ export function Revisions({ card, canRestore }: { card: PlanCard; canRestore: bo
   );
 }
 
-function StepLine({ step, run }: { step: PlanStep; run?: { cardKey: string; index: number } | undefined }) {
+function StepLine({
+  step,
+  extra,
+  run,
+}: {
+  step: PlanStep;
+  /** Why, size, after and acceptance (owner decision 9a). */
+  extra?: StepExtra | undefined;
+  run?: { cardKey: string; index: number } | undefined;
+}) {
+  const hasMeta = !!extra?.size || !!extra?.after?.length;
   return (
     <li className="flex items-start gap-2 text-body text-foreground">
       {step.done ? (
@@ -407,8 +433,18 @@ function StepLine({ step, run }: { step: PlanStep; run?: { cardKey: string; inde
       ) : (
         <Circle aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
       )}
-      <span className={cn('min-w-0 flex-1', step.done && 'text-muted-foreground')}>
-        <Bidi>{step.title}</Bidi>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className={cn(step.done && 'text-muted-foreground')}>
+          <Bidi>{step.title}</Bidi>
+        </span>
+        {extra?.why && <StepWhy why={extra.why} />}
+        {hasMeta && (
+          <span className="flex flex-wrap items-center gap-1.5">
+            {extra?.size && <StepSize size={extra.size} />}
+            {extra?.after?.length ? <StepAfter after={extra.after} /> : null}
+          </span>
+        )}
+        {extra?.acceptance && <StepAcceptance acceptance={extra.acceptance} />}
       </span>
       {step.role && <RoleBadge role={step.role} outline={false} className="text-body-sm" />}
       {step.taskKey && <CardChip k={step.taskKey} type="task" showStatus />}
@@ -425,6 +461,7 @@ export function PlanSection({ card, action }: SectionProps<'plan'>) {
   const done = steps.filter((step) => step.done).length;
   const withoutTask = steps.filter((step) => !step.taskKey).length;
   const idea = linkedOfType(card, 'idea');
+  const { extras } = readPlanText(card.body ?? '', steps);
   const canEdit = !card.archivedAt && card.allowedActions.includes('plan.update');
   const canRestore = !card.archivedAt && card.allowedActions.includes('plan.restore_revision');
   const wb = useMaybeWb();
@@ -433,6 +470,7 @@ export function PlanSection({ card, action }: SectionProps<'plan'>) {
 
   return (
     <div className="flex flex-col gap-5">
+      <ChangeRequestNote card={card} />
       {canEdit && <EditButton />}
       {idea && (
         <p className="flex flex-wrap items-center gap-2 text-body-sm text-muted-foreground">
@@ -455,6 +493,7 @@ export function PlanSection({ card, action }: SectionProps<'plan'>) {
                 <StepLine
                   key={step.id}
                   step={step}
+                  extra={extras?.[index]}
                   run={card.archivedAt || !wb ? undefined : { cardKey: card.key, index }}
                 />
               ))}

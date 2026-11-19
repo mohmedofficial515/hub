@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { IdeaCard, PlanCard, Role } from '../cards/types';
 import {
+  changeRequestOf,
   excerptOf,
   guideOf,
   ideaIdOfPlan,
@@ -225,5 +226,37 @@ describe('planFacts, planIdOfIdea, ideaIdOfPlan', () => {
       planIdOfIdea(idea('I', 'accepted', { idea: { planCardId: 'p1' } } as unknown as Partial<IdeaCard>)),
     ).toBe('p1');
     expect(planIdOfIdea(idea('J', 'open'))).toBeUndefined();
+  });
+});
+
+describe('changeRequestOf (owner decision 9b)', () => {
+  const event = (seq: number, kind: string, data: Record<string, string>) => ({
+    id: `e${seq}`,
+    seq,
+    kind,
+    actorKind: 'user' as const,
+    actorId: 'u1',
+    via: 'web' as const,
+    at: `2026-11-19T10:0${seq}:00Z`,
+    data,
+  });
+
+  it('a draft sent back says why, and who asked', () => {
+    const events = [
+      event(1, 'created', {}),
+      event(2, 'status_changed', { from: 'draft', to: 'in_review' }),
+      event(3, 'changes_requested', { reason: 'Split step two', from: 'in_review', to: 'draft' }),
+      event(4, 'plan_revised', { revision: '2' }),
+    ];
+    expect(changeRequestOf('draft', events)).toMatchObject({ reason: 'Split step two', actorId: 'u1' });
+  });
+
+  it('nothing once the plan was sent to review again, or when it is not a draft', () => {
+    const events = [
+      event(3, 'changes_requested', { reason: 'Split', from: 'in_review', to: 'draft' }),
+      event(5, 'status_changed', { from: 'draft', to: 'in_review' }),
+    ];
+    expect(changeRequestOf('draft', events)).toBeNull();
+    expect(changeRequestOf('in_review', events.slice(0, 1))).toBeNull();
   });
 });

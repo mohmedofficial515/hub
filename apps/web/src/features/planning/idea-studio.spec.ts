@@ -10,6 +10,11 @@ const createCard = vi.fn<(...args: unknown[]) => unknown>();
 const saveIdea = vi.fn<(...args: unknown[]) => unknown>();
 vi.mock('../cards/store', () => ({ createCard: (...args: unknown[]) => createCard(...args) }));
 vi.mock('./queries', () => ({ saveIdea: (...args: unknown[]) => saveIdea(...args) }));
+vi.mock('@/lib/api/client', () => ({ get: async () => [], patch: async () => undefined }));
+vi.mock('@/components/shell/router', () => ({
+  currentRoute: () => ({ ws: 'demo' }),
+  useRoute: () => ({ ws: 'demo' }),
+}));
 
 const { acceptIdea, studioChatOfIdea } = await import('./idea-studio');
 
@@ -49,5 +54,17 @@ describe('acceptIdea', () => {
     expect(await acceptIdea(idea, 'm3', 'c2')).toEqual({ key: 'I-3', updated: false });
     expect(studioChatOfIdea('I-2')).toBeNull();
     expect(studioChatOfIdea('I-3')).toBe('c2');
+  });
+
+  it('names its chat and report on the card, and writes nothing to localStorage (owner decision 9c)', async () => {
+    const chat = '019a6b52-6d1e-7c3a-9d1f-3a2b4c5d6e7f';
+    const report = '019a6b52-7000-7c3a-9d1f-3a2b4c5d6e7f';
+    createCard.mockResolvedValueOnce({ key: 'I-4' });
+    await acceptIdea(idea, report, chat);
+    expect(createCard.mock.calls[0]?.[0]).toMatchObject({
+      detail: { sourceChatId: chat, sourceMessageId: report },
+    });
+    expect(window.localStorage.getItem('hub:idea-studio:accepted')).toBeNull();
+    expect(studioChatOfIdea('I-4')).toBe(chat);
   });
 });

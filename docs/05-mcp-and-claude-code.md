@@ -89,6 +89,12 @@ requires every mutating route to be in a tool's `routes`, or in `MCP_EXCLUDED_RO
 | Devices | `list_devices`, `check_device`, `fix_device`, `revoke_device`. No pairing tool and no Link tool (§9) |
 | Administration | `list_members`, `invite_member`, `list_invites`, `resend_invite`, `revoke_invite`, `change_member_roles`, `disable_member`, `enable_member`, `set_github_identity`, `get_settings`, `update_settings`, `list_sources`, `add_source`, `update_source`, `enable_source`, `disable_source`, `delete_source`, `test_source`, `run_source`, `reindex_docs`, `read_audit`, `list_notifications`, `read_notification`, `get_onboarding`, `tick_onboarding_item` |
 
+**Plans and releases (owner decisions 6 and 9, 2026-11-19).** `update_plan`'s `move` takes `request_changes` (owner or pm), which sends a plan in
+review back to draft and needs `reason`; it stands for `POST /plans/:key/request-changes` and records `changes_requested`. Each step that `create_plan`
+and `update_plan` take may carry `why`, `size` (S, M, L), `after` (ids of earlier steps) and `acceptance`, the fields the Plan Studio saves. `release`
+stays `destructive: true` for Claude, which asks in the chat first, naming the version and how many cards it ships; on the web the same action is
+`mode: confirm` and not drawn as destructive, so both ask before shipping and neither treats it as a deletion.
+
 `open_adr_pr` answers `hub.common.unavailable` until a GitHub connection exists (H3-06, deferred by 15 §3). It is there so that
 the answer is honest rather than "no such tool".
 

@@ -39,7 +39,7 @@ import { roadOf } from '@/features/planning/model';
 import type { StepExtra } from '@/features/planning/plan-text';
 
 import type { PlanningMessages } from './messages';
-import { AfterChip } from './studio/plan-report';
+import { StepAcceptance, StepAfter, StepSize, StepWhy } from './step-details';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 
@@ -347,13 +347,12 @@ export function StepsTimeline({
   run?: { cardKey: string } | undefined;
   /** Each step's task, by key, where the page knows it. */
   tasks?: ReadonlyMap<string, StepTask> | undefined;
-  /** Each step's reason, size and the steps before it, read from the plan's own text. */
+  /** Each step's reason, size, the steps before it and when it is done: from the steps, or from an older plan's text. */
   extras?: readonly StepExtra[] | null | undefined;
   /** With an anchor, each step is `<anchor>-<n>`, so "after 1, 2" can link to it. */
   anchor?: string | undefined;
 }) {
   const d = useT<PlanningMessages>('planning').detail;
-  const sizes = useT<PlanningMessages>('planning').planStudio.sizes;
   const locale = useLocale();
   const reduce = useReducedMotion();
   const uid = useId();
@@ -436,19 +435,11 @@ export function StepsTimeline({
                   </span>
                 )}
               </div>
-              {extra?.why && (
-                <p className="text-caption text-pretty text-muted-foreground">
-                  <Bidi>{extra.why}</Bidi>
-                </p>
-              )}
+              {extra?.why && <StepWhy why={extra.why} />}
               <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                 {step.role && <RoleBadge role={step.role} outline={false} className="text-caption" />}
-                {extra?.size && (
-                  <span className="inline-flex h-5 items-center rounded-full bg-muted px-2 text-caption font-semibold text-foreground">
-                    {sizes[extra.size]}
-                  </span>
-                )}
-                {extra?.after?.length ? <AfterChip after={extra.after} idPrefix={anchor} /> : null}
+                {extra?.size && <StepSize size={extra.size} />}
+                {extra?.after?.length ? <StepAfter after={extra.after} anchor={anchor} /> : null}
                 {step.taskKey ? (
                   <>
                     <CardChip
@@ -473,6 +464,7 @@ export function StepsTimeline({
                   </span>
                 )}
               </div>
+              {extra?.acceptance && <StepAcceptance acceptance={extra.acceptance} />}
               {isNext && blocked && (
                 <p className="flex items-center gap-1.5 text-caption font-medium text-destructive-soft-foreground">
                   <AlertTriangle aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />

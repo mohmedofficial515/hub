@@ -103,7 +103,8 @@
       "cancel": "ألغِ المهمة"
     },
     "plan": {
-      "to_tasks": "أنشئ مهامًا من الخطوات"
+      "to_tasks": "أنشئ مهامًا من الخطوات",
+      "request_changes": "أعِدها للتعديل"
     }
   },
   "done": {
@@ -314,7 +315,9 @@
         "otherCardKey": "البطاقة",
         "task": "المهمة",
         "files": "الملفات",
-        "ref": "المرجع"
+        "ref": "المرجع",
+        "sourceChatId": "جلسة الاستوديو",
+        "sourceMessageId": "ردّ الاستوديو"
       },
       "values": {
         "pr_opened": "PR مفتوح",

@@ -438,6 +438,7 @@ from, to }`, with no separate `status_changed`). An edit of several fields is on
 | `plan_steps_changed` | `{ steps }` | plan |
 | `idea_to_plan` | `{ planKey }` | idea, moving it to accepted |
 | `plan_to_tasks` | `{ taskKeys[] }` | plan |
+| `changes_requested` | `{ reason, from: in_review, to: draft }` | plan: Request changes sends a plan in review back to draft, owner or pm, reason required (owner decision 9b, 2026-11-19) |
 | `redacted` | `{ commentId }` | owner/pm |
 | `watch` / `unwatch` | `{ userId, reason }` | all (not shown in the timeline, only in card history) |
 
@@ -595,26 +596,41 @@ model ReleaseDetail {
 }
 
 model IdeaDetail {                                       // D29, 15 §4
-  cardId     String  @id @map("card_id") @db.Uuid
-  problem    String?                                     // markdown
-  notes      String?                                     // markdown
-  role       String?                                     // optional role the idea concerns
-  planCardId String? @map("plan_card_id") @db.Uuid       // set by "turn into a plan"
-  card       Card    @relation(fields: [cardId], references: [id])
+  cardId          String  @id @map("card_id") @db.Uuid
+  problem         String?                                // markdown
+  notes           String?                                // markdown
+  role            String?                                // optional role the idea concerns
+  planCardId      String? @map("plan_card_id") @db.Uuid  // set by "turn into a plan"
+  sourceChatId    String? @map("source_chat_id") @db.Uuid    // the Idea Studio chat it was accepted from (owner decision 9c)
+  sourceMessageId String? @map("source_message_id") @db.Uuid // the report it holds
+  card            Card    @relation(fields: [cardId], references: [id])
+  @@index([sourceChatId])
   @@map("idea_details")
 }
 
 model PlanDetail {                                       // D29, 15 §4. The body is cards.body.
-  cardId       String    @id @map("card_id") @db.Uuid
-  steps        Json      @default("[]")                  // ordered { id, title, role?, taskKey?, done }[]
-  revision     Int       @default(1)                     // bumped by each body save; history is in plan_revised events
-  sourceIdeaId String?   @map("source_idea_id") @db.Uuid
-  approvedById String?   @map("approved_by_id") @db.Uuid
-  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(3)
-  card         Card      @relation(fields: [cardId], references: [id])
+  cardId          String    @id @map("card_id") @db.Uuid
+  steps           Json      @default("[]")               // ordered PlanStep[], below
+  revision        Int       @default(1)                  // bumped by each body save; history is in plan_revised events
+  sourceIdeaId    String?   @map("source_idea_id") @db.Uuid
+  approvedById    String?   @map("approved_by_id") @db.Uuid
+  approvedAt      DateTime? @map("approved_at") @db.Timestamptz(3)
+  sourceChatId    String?   @map("source_chat_id") @db.Uuid    // the Plan Studio chat it was saved from (owner decision 9c)
+  sourceMessageId String?   @map("source_message_id") @db.Uuid // the reply whose plan it holds
+  card            Card      @relation(fields: [cardId], references: [id])
+  @@index([sourceChatId])
   @@map("plan_details")
 }
 ```
+
+A plan step (`PlanDetail.steps[]`, owner decision 9a, 2026-11-19): `{ id, title, role?, taskKey?, done, why?, size?: 'S' | 'M' | 'L', after?: id[],
+acceptance? }`. `why`, `size`, `after` and `acceptance` are what the Plan Studio proposed; the studio's saves write them, so no page parses the plan's
+text for them (an older plan's text is still read as a fallback). `after` names earlier steps of the same plan by id: Hub follows an id it changed while
+saving and drops any that is not an earlier step. "Create tasks from steps" copies a step's `acceptance` into its task's `acceptance`.
+
+`sourceChatId` and `sourceMessageId` (migration `0014_studio_source_chat`) are written by the Idea Studio's Accept and the Plan Studio's Save, and by
+Save to Planning from a chat reply; `GET /ideas?sourceChat=` and `GET /plans?sourceChat=|sourceMessage=` find them. They replace the browser's
+`hub:idea-studio:accepted` and `hub:plan-studio:saved` records, which the web now only reads, once, to give an older card its chat.
 
 ## 7. docs.prisma
 

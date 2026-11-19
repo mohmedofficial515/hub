@@ -4,6 +4,7 @@
 import { Module } from '@nestjs/common';
 
 import { CardsModule } from '@/modules/cards';
+import { PlansModule } from '@/modules/plans';
 
 import {
   IdeaAcceptAction,
@@ -18,7 +19,7 @@ import {
 import { IdeasController } from './presentation/http/ideas.controller';
 
 @Module({
-  imports: [CardsModule],
+  imports: [CardsModule, PlansModule],
   controllers: [IdeasController],
   providers: [
     IdeaCreateAction,

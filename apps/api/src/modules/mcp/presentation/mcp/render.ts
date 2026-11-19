@@ -141,6 +141,24 @@ interface StepRow {
   readonly role?: string;
   readonly taskKey?: string;
   readonly done: boolean;
+  readonly why?: string;
+  readonly size?: string;
+  readonly after?: readonly string[];
+  readonly acceptance?: string;
+}
+
+/** A step's line, then its reason, size, the steps it waits for and when it is done, each indented (owner decision 9a). */
+function stepLines(step: StepRow, index: number): string[] {
+  const head =
+    `${index + 1}. [${step.done ? 'x' : ' '}] ${step.title}` +
+    `${step.role ? ` · ${step.role}` : ''}${step.taskKey ? ` · ${step.taskKey}` : ''}` +
+    `${step.size ? ` · size ${step.size}` : ''} (id ${step.id})`;
+  return [
+    head,
+    ...(step.why ? [`   Why: ${step.why}`] : []),
+    ...(step.after?.length ? [`   After: ${step.after.join(', ')}`] : []),
+    ...(step.acceptance ? [`   Done when: ${step.acceptance}`] : []),
+  ];
 }
 
 function planSections(detail: Readonly<Record<string, unknown>>): string[] {
@@ -148,11 +166,7 @@ function planSections(detail: Readonly<Record<string, unknown>>): string[] {
   return [
     `Revision ${plain(detail['revision'] ?? 1)}`,
     `## Steps (${steps.filter((step) => step.done).length}/${steps.length} done)`,
-    ...steps.map(
-      (step, index) =>
-        `${index + 1}. [${step.done ? 'x' : ' '}] ${step.title} (id ${step.id})` +
-        `${step.role ? ` · ${step.role}` : ''}${step.taskKey ? ` · ${step.taskKey}` : ''}`,
-    ),
+    ...steps.flatMap(stepLines),
   ];
 }
 

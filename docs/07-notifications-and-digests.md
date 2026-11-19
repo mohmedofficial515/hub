@@ -29,6 +29,7 @@ notification.
 | `verified` need | creator; watchers; assignees of blocked cards | `watch_update`; `unblocked` | — |
 | `acknowledged` / `applied` / `dismissed` handoff | creator; watchers | `watch_update` | — |
 | `approved` / `rejected` / `changes_requested` redesign | creator; holders of `designer`; watchers | `watch_update` | — |
+| `changes_requested` plan (sent back to draft) | creator; watchers (no role) | `watch_update` | — |
 | `ported` redesign | holders of `owner`; watchers | `watch_update` | — |
 | `done` task (`status_changed` → done) | watchers; assignees of blocked cards | `watch_update`; `unblocked` | — |
 | `pr_merged` on a change linked to a task | watchers of the task | `watch_update` | — |

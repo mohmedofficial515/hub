@@ -18,6 +18,7 @@ import {
   type CardListItem,
   CardRow,
   cn,
+  ConfirmDialog,
   CopyButton,
   dayOfMonth,
   EmptyState,
@@ -75,6 +76,7 @@ import { isHubError } from '@/lib/api/errors';
 
 import type { ReleasesMessages } from './messages';
 import { NewReleaseDialog } from './new-release';
+import { useReleaseConfirm } from './release-confirm';
 
 const intlLocale = (locale: Locale) => (locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB');
 const monthName = (iso: string, locale: Locale) =>
@@ -134,6 +136,9 @@ function Manifest({
   const rows = useIncluded(r, pool);
   const author = notesAuthor(events.data ?? []);
   const audiences = ['team', 'owner', 'accountant'] as const;
+  // Shipping cannot be undone, so Release asks first, naming the version and how many cards go out (owner decision 6).
+  const [asking, setAsking] = useState(false);
+  const confirmWords = useReleaseConfirm()(card);
 
   const fail = (error: unknown) =>
     showToast({ message: isHubError(error) ? error.message : kit.actionFailed, tone: 'error' });
@@ -155,7 +160,7 @@ function Manifest({
       // Disabled, it sits inside the wrapper that names why, which is the one Tab stop and the one thing a screen reader announces.
       tabIndex={isManager ? undefined : -1}
       aria-hidden={isManager ? undefined : true}
-      onClick={() => perform(card.key, 'release')}
+      onClick={() => setAsking(true)}
     >
       <Rocket aria-hidden className="size-4" strokeWidth={1.75} />
       {kit.actions.release}
@@ -291,6 +296,15 @@ function Manifest({
           {author.kind === 'system' && <p className="mt-1 text-body-sm text-muted-foreground">{t.polish}</p>}
         </section>
       </div>
+      <ConfirmDialog
+        open={asking}
+        onOpenChange={setAsking}
+        title={confirmWords.title}
+        description={confirmWords.description}
+        confirmLabel={kit.actions.release}
+        destructive={false}
+        onConfirm={() => perform(card.key, 'release')}
+      />
     </article>
   );
 }

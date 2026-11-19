@@ -122,6 +122,7 @@ const MATRIX = {
   'plan.update': OWNER_PM_CREATOR,
   'plan.submit_review': OWNER_PM_CREATOR,
   'plan.approve': OWNER_PM,
+  'plan.request_changes': OWNER_PM,
   'plan.start': OWNER_PM_CREATOR,
   'plan.finish': OWNER_PM_CREATOR,
   'plan.abandon': OWNER_PM_CREATOR,

@@ -123,6 +123,17 @@ const watchUpdate = (i18nKey = 'watch_update', userIds: readonly string[] = []):
 const creatorAndWatchers = (card: RoutingCard, i18nKey = 'watch_update'): Notice =>
   watchUpdate(i18nKey, onlyDefined(card.createdById));
 
+/** A redesign approved, rejected or sent back: its creator, the designers and the watchers. */
+const redesignVerdict = (card: RoutingCard): Notice[] => [
+  {
+    kind: 'watch_update',
+    i18nKey: 'watch_update',
+    roles: ['designer'],
+    userIds: onlyDefined(card.createdById),
+    watchers: true,
+  },
+];
+
 function onReview(): Notice[] {
   return [
     { kind: 'routed_review', i18nKey: 'routed_review', roles: ['owner', 'qa'], action: 'review' },
@@ -272,18 +283,13 @@ export function routeEvent(
     case 'applied':
     case 'dismissed':
       return [creatorAndWatchers(card)];
+    case 'changes_requested':
+      // A plan sent back for changes (in_review -> draft) is its author's news, not the designers'.
+      if (card.type === 'plan') return [creatorAndWatchers(card)];
+      return redesignVerdict(card);
     case 'approved':
     case 'rejected':
-    case 'changes_requested':
-      return [
-        {
-          kind: 'watch_update',
-          i18nKey: 'watch_update',
-          roles: ['designer'],
-          userIds: onlyDefined(card.createdById),
-          watchers: true,
-        },
-      ];
+      return redesignVerdict(card);
     case 'ported':
       return [{ kind: 'watch_update', i18nKey: 'watch_update', roles: ['owner'], watchers: true }];
     case 'pr_merged':

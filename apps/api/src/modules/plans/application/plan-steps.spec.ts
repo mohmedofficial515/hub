@@ -77,3 +77,52 @@ describe('specialtyOfStep', () => {
     expect(specialtyOfStep({ id: 'a', title: 't', done: false }, 'docs')).toBe('docs');
   });
 });
+
+describe('normalizeSteps with a step’s details (owner decision 9a)', () => {
+  it('keeps why, size, after and acceptance', () => {
+    const steps = normalizeSteps([
+      { id: 's1', title: 'Schema', done: false, size: 'S' },
+      {
+        id: 's2',
+        title: 'API',
+        done: false,
+        why: 'The page reads it.',
+        size: 'M',
+        after: ['s1'],
+        acceptance: 'The e2e suite passes.',
+      },
+    ]);
+    expect(steps[1]).toEqual({
+      id: 's2',
+      title: 'API',
+      done: false,
+      why: 'The page reads it.',
+      size: 'M',
+      after: ['s1'],
+      acceptance: 'The e2e suite passes.',
+    });
+  });
+
+  it('drops an after that names no earlier step: a later one, itself, or one that does not exist', () => {
+    const steps = normalizeSteps([
+      { id: 's1', title: 'One', done: false, after: ['s2'] },
+      { id: 's2', title: 'Two', done: false, after: ['s2', 'nope', 's1', 's1'] },
+    ]);
+    expect(steps[0]?.after).toBeUndefined();
+    expect(steps[1]?.after).toEqual(['s1']);
+  });
+
+  it('follows a step whose id Hub changed, so after still points at it', () => {
+    const existing = [{ id: 's1', title: 'Settings', taskKey: 'GTV-322', done: true }];
+    const steps = normalizeSteps(
+      [
+        { id: 's1', title: 'ADR', done: false },
+        { id: 's2', title: 'Settings', taskKey: 'GTV-322', done: false, after: ['s1'] },
+      ],
+      existing,
+    );
+    const adr = steps[0]?.id;
+    expect(adr).not.toBe('s1');
+    expect(steps[1]).toMatchObject({ id: 's1', after: [adr] });
+  });
+});

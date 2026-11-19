@@ -151,17 +151,23 @@ model IdeaDetail {
   notes      String?                                 // markdown
   role       String?                                 // optional role the idea concerns
   planCardId String? @map("plan_card_id") @db.Uuid   // set by "turn into a plan"
+  sourceChatId    String? @map("source_chat_id") @db.Uuid    // the Idea Studio chat it was accepted from (owner decision 9c)
+  sourceMessageId String? @map("source_message_id") @db.Uuid // the report it holds
   card       Card    @relation(fields: [cardId], references: [id])
+  @@index([sourceChatId])
   @@map("idea_details")
 }
 
 model PlanDetail {
   cardId       String    @id @map("card_id") @db.Uuid
-  steps        Json      @default("[]")               // ordered { id, title, role?, taskKey?, done }[]
+  steps        Json      @default("[]")               // ordered { id, title, role?, taskKey?, done, why?, size?, after?, acceptance? }[]
   revision     Int       @default(1)                  // bumped by each body save; history is in plan_revised events
   sourceIdeaId String?   @map("source_idea_id") @db.Uuid
   approvedById String?   @map("approved_by_id") @db.Uuid
   approvedAt   DateTime? @map("approved_at") @db.Timestamptz(3)
+  sourceChatId    String? @map("source_chat_id") @db.Uuid    // the Plan Studio chat it was saved from (owner decision 9c)
+  sourceMessageId String? @map("source_message_id") @db.Uuid // the reply whose plan it holds
   card         Card      @relation(fields: [cardId], references: [id])
+  @@index([sourceChatId])
   @@map("plan_details")
 }

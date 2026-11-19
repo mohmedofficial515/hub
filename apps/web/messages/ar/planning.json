@@ -145,7 +145,14 @@
     "restored": "استُعيدت المراجعة {n}",
     "noRevisions": "هذا أول نص. حفظ أي تعديل يضيف مراجعة.",
     "revisionsThing": "المراجعات",
-    "emptyText": "لم يكن في هذه المراجعة نص."
+    "emptyText": "لم يكن في هذه المراجعة نص.",
+    "afterStep": "بعد الخطوة {n}",
+    "afterSteps": "بعد الخطوات {n}",
+    "acceptance": "تكتمل حين",
+    "sizeLabel": "الحجم: {size}",
+    "whyLabel": "السبب",
+    "changesRequested": "طُلبت تعديلات",
+    "changesRequestedBy": "طلبها"
   },
   "stats": {
     "label": "نظرة سريعة",

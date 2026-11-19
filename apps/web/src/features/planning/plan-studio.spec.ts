@@ -24,7 +24,7 @@ vi.mock('../cards/store', () => ({
 vi.mock('@/lib/api/client', () => ({ get: (...args: unknown[]) => get(...args) }));
 vi.mock('@/components/shell/router', () => ({ currentRoute: () => ({ ws: 'demo' }) }));
 
-const { carrySteps, fitStepTitle, planIdeaKey, planWords, savePlanFromStudio, studioChatOfPlan } =
+const { carrySteps, fitStepTitle, planIdeaKey, planSteps, planWords, savePlanFromStudio, studioChatOfPlan } =
   await import('./plan-studio');
 
 const plan: ProposedPlan = {
@@ -82,7 +82,8 @@ describe('savePlanFromStudio', () => {
     const steps = (savePlan.mock.calls[0]?.[1] as { steps: { id?: string; taskKey?: string }[] }).steps;
     expect(steps[0]).toMatchObject({ id: 's1', taskKey: 'T-1', done: true });
     expect(steps[1]).toMatchObject({ id: 's2' });
-    expect(steps[2]?.id).toBeUndefined();
+    // A new step gets an id the plan has never used, so `after` can name it.
+    expect(steps[2]?.id).toBe('s3');
   });
 
   it('saves a new plan when the one this session saved was deleted', async () => {
@@ -97,6 +98,89 @@ describe('savePlanFromStudio', () => {
     expect(result).toEqual({ key: 'P-4', updated: false });
     expect(studioChatOfPlan('P-3')).toBeNull();
     expect(studioChatOfPlan('P-4')).toBe(first.chat);
+  });
+});
+
+describe('the studio chat on the card (owner decision 9c)', () => {
+  const CHAT = '019a6b52-6d1e-7c3a-9d1f-3a2b4c5d6e7f';
+  const REPLY = '019a6b52-7000-7c3a-9d1f-3a2b4c5d6e7f';
+
+  it('a save names its chat and reply on the card, and writes nothing to localStorage', async () => {
+    get.mockResolvedValueOnce([]);
+    createCard.mockResolvedValueOnce({ key: 'P-10' });
+    await savePlanFromStudio(plan, REPLY, CHAT, null);
+    expect(get).toHaveBeenCalledWith('workspaces/demo/plans', { sourceChat: CHAT, limit: 1 });
+    expect(createCard.mock.calls[0]?.[0]).toMatchObject({
+      detail: { sourceChatId: CHAT, sourceMessageId: REPLY },
+    });
+    expect(window.localStorage.getItem('hub:plan-studio:saved')).toBeNull();
+    expect(studioChatOfPlan('P-10')).toBe(CHAT);
+  });
+
+  it('a plan another browser saved from this chat is brought up to date, never made twice', async () => {
+    const chat = '019a6b52-6d1e-7c3a-9d1f-3a2b4c5d6e81';
+    get.mockResolvedValueOnce([{ key: 'P-11', detail: { sourceChatId: chat, sourceMessageId: null } }]);
+    getCard.mockReturnValue({ type: 'plan', plan: { steps: [] } });
+    savePlan.mockResolvedValueOnce(undefined);
+    const reply = '019a6b52-7000-7c3a-9d1f-3a2b4c5d6e81';
+    expect(await savePlanFromStudio(plan, reply, chat, null)).toEqual({ key: 'P-11', updated: true });
+    expect(createCard).not.toHaveBeenCalled();
+    expect(savePlan.mock.calls[0]?.[1]).toMatchObject({ sourceMessageId: reply });
+  });
+
+  it('reads an older version’s localStorage record, without writing it', async () => {
+    window.localStorage.setItem(
+      'hub:plan-studio:saved',
+      JSON.stringify({ 'chat:c-old': 'P-12', 'm-old': 'P-12' }),
+    );
+    expect(studioChatOfPlan('P-12')).toBe('c-old');
+    expect(await savePlanFromStudio(plan, 'm-old', 'c-old', null)).toEqual({ key: 'P-12', updated: false });
+    expect(window.localStorage.getItem('hub:plan-studio:saved')).toBe(
+      JSON.stringify({ 'chat:c-old': 'P-12', 'm-old': 'P-12' }),
+    );
+    // The card's own field wins over any record.
+    expect(studioChatOfPlan('P-12', CHAT)).toBe(CHAT);
+  });
+});
+
+describe('planSteps (owner decision 9a)', () => {
+  it('keeps each step’s reason, size and acceptance, and turns after from step numbers into ids', () => {
+    const steps = planSteps({
+      title: 'Hotels',
+      steps: [
+        { title: 'Sign', size: 'S', why: ' The contract first. ' },
+        {
+          title: 'Build',
+          role: 'backend',
+          size: 'L',
+          after: [1, 1, 3],
+          acceptance: ' The e2e suite passes. ',
+        },
+      ],
+    });
+    expect(steps).toEqual([
+      { id: 's1', title: 'Sign', done: false, size: 'S', why: 'The contract first.' },
+      {
+        id: 's2',
+        title: 'Build',
+        done: false,
+        role: 'backend',
+        size: 'L',
+        after: ['s1'],
+        acceptance: 'The e2e suite passes.',
+      },
+    ]);
+  });
+
+  it('a refined plan keeps the saved ids, and its new steps take unused ones', () => {
+    const steps = planSteps(
+      { title: 'Hotels', steps: [{ title: 'New first' }, { title: 'Sign', after: [1] }] },
+      [{ id: 's1', title: 'Sign', taskKey: 'T-1', done: true }],
+    );
+    expect(steps.map((s) => [s.id, s.after ?? null])).toEqual([
+      ['s2', null],
+      ['s1', ['s2']],
+    ]);
   });
 });
 

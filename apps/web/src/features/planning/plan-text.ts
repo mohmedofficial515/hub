@@ -3,7 +3,8 @@
  * @description A saved plan's text and its steps, read together. A plan saved from the Plan Studio or the chat holds its steps twice: in `plan.steps`, and
  * as the numbered list under «Steps» in its text (`planToMarkdown` in `@hub/contracts`), where each line also carries the step's reason, size and the
  * steps before it. When that list matches the plan's steps exactly, the page shows the steps once, with those details, and the rest of the text apart.
- * Anything else (a text written by hand, steps changed since) is left exactly as it is: nothing is guessed.
+ * Anything else (a text written by hand, steps changed since) is left exactly as it is: nothing is guessed. Since owner decision 9a (2026-11-19) a saved
+ * step carries its why, size, after and acceptance as data, which `readPlanText` prefers; the text is read for them only on an older plan.
  */
 
 /** The «Steps» heading, in every language a plan's text is written in (the catalogs' `planText.steps`). */
@@ -16,7 +17,42 @@ export type StepSize = 'S' | 'M' | 'L';
 export interface StepExtra {
   why?: string;
   size?: StepSize;
+  /** The steps that come first, by number from 1. */
   after?: number[];
+  /** When the step is done: one line, drawn as a checklist item. */
+  acceptance?: string;
+}
+
+interface StepData {
+  id: string;
+  why?: string | undefined;
+  size?: StepSize | undefined;
+  after?: readonly string[] | undefined;
+  acceptance?: string | undefined;
+}
+
+/** Each step's details from the steps themselves, with `after` turned from ids into step numbers. Null when no step has any: an older plan. */
+export function stepExtras(steps: readonly StepData[]): StepExtra[] | null {
+  if (!steps.some((s) => s.why || s.size || s.after?.length || s.acceptance)) return null;
+  const position = new Map(steps.map((s, i) => [s.id, i + 1]));
+  return steps.map((s) => {
+    const after = (s.after ?? []).flatMap((id) => {
+      const n = position.get(id);
+      return n === undefined ? [] : [n];
+    });
+    return {
+      ...(s.why ? { why: s.why } : {}),
+      ...(s.size ? { size: s.size } : {}),
+      ...(after.length ? { after } : {}),
+      ...(s.acceptance ? { acceptance: s.acceptance } : {}),
+    };
+  });
+}
+
+/** The plan's text without its steps' list, and each step's details: from the data first, from the text for an older plan. */
+export function readPlanText(body: string, steps: readonly (StepData & { title: string })[]): PlanText {
+  const split = splitPlanText(body, steps);
+  return { rest: split.rest, extras: stepExtras(steps) ?? split.extras };
 }
 
 export interface PlanText {

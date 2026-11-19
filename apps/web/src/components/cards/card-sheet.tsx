@@ -50,6 +50,7 @@ import { ErrorState, LoadingRegion, Skeleton, SkeletonRows } from '@/components/
 import { Bidi, fmt, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
 import { CardRuns } from '@/components/queue/run-entry';
+import { useReleaseConfirm } from '@/components/releases/release-confirm';
 import {
   closeCard,
   openCard,
@@ -138,6 +139,8 @@ export function ActionBar({
   const available = offered.filter((a) => !inMenu(a));
   const menu = offered.filter(inMenu);
   const [confirm, setConfirm] = useState<AvailableAction | null>(null);
+  const releaseWords = useReleaseConfirm();
+  const asked = confirm?.action === 'release' && card.type === 'release' ? releaseWords(card) : null;
 
   const blocker = card.type === 'task' ? openBlockers(card)[0] : undefined;
 
@@ -257,10 +260,13 @@ export function ActionBar({
       <ConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => !open && setConfirm(null)}
-        title={confirm ? `${actionName(t, card.type, confirm.action)} ${card.key}` : ''}
+        title={asked?.title ?? (confirm ? `${actionName(t, card.type, confirm.action)} ${card.key}` : '')}
+        description={asked?.description}
         confirmLabel={confirm ? actionName(t, card.type, confirm.action) : ''}
         reason={!!confirm?.reason}
-        onConfirm={(reason) => confirm && perform(card.key, confirm.action, { reason })}
+        // Only an action that ends something is drawn red: Release and Send back for changes ask, and are not (owner decision 6).
+        destructive={!!confirm?.destructive}
+        onConfirm={(reason) => confirm && perform(card.key, confirm.action, reason ? { reason } : {})}
       />
     </div>
   );

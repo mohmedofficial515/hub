@@ -116,7 +116,8 @@ const SPECS: Partial<Record<CardType, Readonly<Record<string, readonly Spec[]>>>
     ],
     approved: [{ verb: 'mark_ported', mode: 'form' }],
   },
-  release: { planned: [{ verb: 'release', mode: 'now' }] },
+  // Shipping cannot be undone, so it asks first; it ends nothing, so it is not drawn as destructive (owner decision 6, 2026-11-19).
+  release: { planned: [{ verb: 'release', mode: 'confirm' }] },
   task: {
     backlog: [{ verb: 'mark_ready', mode: 'now' }, cancel],
     ready: [{ verb: 'claim', mode: 'now' }, cancel],
@@ -146,7 +147,13 @@ const SPECS: Partial<Record<CardType, Readonly<Record<string, readonly Spec[]>>>
   },
   plan: {
     draft: [{ verb: 'submit_review', mode: 'now' }, { verb: 'to_tasks', mode: 'now' }, abandon],
-    in_review: [{ verb: 'approve', mode: 'now' }, { verb: 'to_tasks', mode: 'now' }, abandon],
+    in_review: [
+      { verb: 'approve', mode: 'now' },
+      // Back to draft, saying what to change (owner decision 9b, 2026-11-19).
+      { verb: 'request_changes', mode: 'confirm', reason: true },
+      { verb: 'to_tasks', mode: 'now' },
+      abandon,
+    ],
     approved: [{ verb: 'to_tasks', mode: 'now' }, { verb: 'start', mode: 'now' }, abandon],
     in_progress: [{ verb: 'finish', mode: 'now' }, { verb: 'to_tasks', mode: 'now' }, abandon],
     done: [{ ...abandon, private: true }],
