@@ -18,7 +18,7 @@ export function readMode(params: URLSearchParams): ViewMode {
 }
 
 /** Data scenarios a version may support (read with `scenarioFromHash()` in its mocks). */
-export const SCENARIOS = ['default', 'empty', 'loading', 'frozen', 'topup-pending', 'topup-done', 'topup-failed', 'frontend'];
+export const SCENARIOS = ['default', 'empty', 'loading', 'frozen', 'topup-pending', 'topup-done', 'topup-failed', 'frontend', 'long', 'error'];
 
 /** Frame hash: `#/<page>/<version>?lang=ar&theme=dark&scenario=empty` */
 export function frameHash(page: string, version: string, mode: ViewMode & { scenario?: string }) {
