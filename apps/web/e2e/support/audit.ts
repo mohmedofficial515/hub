@@ -45,6 +45,20 @@ export const audit = (page: Page) =>
       while (stack.length > 0) out = over(stack.pop() as Rgb, out);
       return out;
     };
+    /** The colour stops of the gradient that paints this text, when its ink is transparent and an element up the tree clips a background to text. */
+    const gradientInk = (element: Element): Rgb[] | null => {
+      if (rgb(getComputedStyle(element).color).a > 0) return null;
+      for (let e: Element | null = element; e; e = e.parentElement) {
+        const style = getComputedStyle(e);
+        const clip = style.backgroundClip || style.getPropertyValue('-webkit-background-clip');
+        if (clip !== 'text') continue;
+        const stops = style.backgroundImage.match(
+          /(?:rgba?|hsla?|oklch|oklab|lch|lab|color)\([^()]*\)|#[0-9a-f]{3,8}/gi,
+        );
+        return stops?.length ? stops.map(rgb) : null;
+      }
+      return null;
+    };
     const fails: string[] = [];
     let nodes = 0;
     let lowest = 99;
@@ -59,9 +73,13 @@ export const audit = (page: Page) =>
       const box = element.getBoundingClientRect();
       if (!box.width || !box.height) continue;
       const under = background(element);
-      const fore = over(rgb(style.color), under);
-      const [a, b] = [lum(fore), lum(under)];
-      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      const contrast = (colour: Rgb) => {
+        const [a, b] = [lum(over(colour, under)), lum(under)];
+        return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      };
+      // Gradient text (`background-clip: text` over transparent ink) is read at its weakest stop, never as the transparent colour.
+      const painted = gradientInk(element);
+      const ratio = painted ? Math.min(...painted.map(contrast)) : contrast(rgb(style.color));
       nodes += 1;
       lowest = Math.min(lowest, ratio);
       const px = parseFloat(style.fontSize);
