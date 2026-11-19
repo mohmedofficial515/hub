@@ -51,10 +51,22 @@ function run(command, args, options = {}) {
   });
 }
 
+/**
+ * Every step before Hub runs has its own limit. With none, `prisma migrate deploy` started while Docker had stalled waited on a dead connection for as long
+ * as anyone let it, and Hub stayed off with nothing in the log after "HubServer starting." (2026-11-16, 15 minutes). A step past its limit is ended and tried again.
+ */
+const COMPOSE_ATTEMPT_MS = 3 * 60_000;
+const MIGRATE_ATTEMPT_MS = 2 * 60_000;
+const MIGRATE_ATTEMPTS = 3;
+
+const timedOut = (result) => result.error?.code === 'ETIMEDOUT';
+
 async function composeUp() {
   const deadline = Date.now() + DOCKER_WAIT_MS;
   for (;;) {
-    const result = run('docker', ['compose', '-f', 'infra/compose.dev.yaml', 'up', '-d', '--wait']);
+    const result = run('docker', ['compose', '-f', 'infra/compose.dev.yaml', 'up', '-d', '--wait'], {
+      timeout: COMPOSE_ATTEMPT_MS,
+    });
     if (result.status === 0) return true;
     if (Date.now() > deadline) {
       log(
@@ -62,6 +74,26 @@ async function composeUp() {
       );
       return false;
     }
+    await sleep(15_000);
+  }
+}
+
+async function migrate() {
+  const prisma = join(apiDir, 'node_modules/prisma/build/index.js');
+  for (let attempt = 1; ; attempt += 1) {
+    const result = run(process.execPath, [prisma, 'migrate', 'deploy'], {
+      cwd: apiDir,
+      timeout: MIGRATE_ATTEMPT_MS,
+    });
+    if (result.status === 0) return true;
+    const why = timedOut(result)
+      ? `no answer in ${MIGRATE_ATTEMPT_MS / 60_000} minutes`
+      : (result.stderr || result.stdout || '').trim().slice(-500);
+    if (attempt >= MIGRATE_ATTEMPTS) {
+      log(`Migrations failed after ${attempt} attempts: ${why}`);
+      return false;
+    }
+    log(`Migrations did not finish (${why}). Trying again in 15 s.`);
     await sleep(15_000);
   }
 }
@@ -137,12 +169,7 @@ async function main() {
   }
   if (dev) log('Dev mode (HUB_MODE=dev): running from source, and saved changes show at once.');
   if (!(await composeUp())) process.exit(1);
-  const prisma = join(apiDir, 'node_modules/prisma/build/index.js');
-  const migrated = run(process.execPath, [prisma, 'migrate', 'deploy'], { cwd: apiDir });
-  if (migrated.status !== 0) {
-    log(`Migrations failed: ${(migrated.stderr || migrated.stdout || '').trim().slice(-500)}`);
-    process.exit(1);
-  }
+  if (!(await migrate())) process.exit(1);
 
   const host = bindHostOf(env);
   const webEnv = {

@@ -29,7 +29,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnAppli
 
   constructor(@Inject(APP_CONFIG) config: AppConfig) {
     super({
-      adapter: new PrismaPg({ connectionString: config.DATABASE_URL }),
+      // A connection that does not open within the timeout fails and the next query tries a fresh one. Without it, a stalled database held each
+      // attempt until Postgres itself gave up a minute later. `keepAlive` lets a dropped connection be found rather than waited on.
+      adapter: new PrismaPg({
+        connectionString: config.DATABASE_URL,
+        connectionTimeoutMillis: 15_000,
+        keepAlive: true,
+      }),
       log: ['warn', 'error'],
       transactionOptions: { maxWait: 5_000, timeout: 15_000 },
     });

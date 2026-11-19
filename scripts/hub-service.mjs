@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 
 import {
+  HUB_SERVER_TASK,
   hubServerTaskState,
   installHubServer,
   runHubServerTask,
@@ -79,6 +80,28 @@ async function status() {
   return 0;
 }
 
+const STATUS_WAIT_MS = 15_000;
+const STATUS_POLL_MS = 500;
+
+/** Polls the task's status word until `fits` holds, for `STATUS_WAIT_MS` at most. Answers whether it did. */
+async function waitForTaskStatus(fits) {
+  const deadline = Date.now() + STATUS_WAIT_MS;
+  for (;;) {
+    if (fits((await hubServerTaskState(system)).status)) return true;
+    if (Date.now() >= deadline) return false;
+    await new Promise((done) => setTimeout(done, STATUS_POLL_MS));
+  }
+}
+
+/**
+ * Ends the task's own instance: the `conhost` that started the runner. Until it ends, Task Scheduler counts the task as running, and its `IgnoreNew`
+ * drops the next start without a word (a `stop` then `start` left Hub off twice, 2026-11-16). Call it only with no runner alive. Nothing on another system.
+ */
+function endTaskInstance() {
+  if (isWindows)
+    spawnSync('schtasks.exe', ['/End', '/TN', HUB_SERVER_TASK], { stdio: 'ignore', windowsHide: true });
+}
+
 function stop() {
   const running = runningHubServer();
   if (!running) {
@@ -87,6 +110,7 @@ function stop() {
   }
   stopTree(running.pid);
   for (const pid of running.children ?? []) stopTree(pid);
+  endTaskInstance();
   say(
     'HubServer stopped. It starts again at your next logon; `pnpm hub:service uninstall` removes the task.',
   );
@@ -130,9 +154,23 @@ async function main(command) {
       );
       return 1;
     }
+    // No runner is alive (checked above), yet a leftover instance would make `IgnoreNew` drop this start while schtasks still says SUCCESS.
+    // So end any such instance, note the idle status (its word is in Windows' own language), and check that the start changed it.
+    endTaskInstance();
+    const idle = (await hubServerTaskState(system)).status;
     const answer = await runHubServerTask(system);
-    say(answer.ok ? `Started. Logs: ${join(logDir, 'hub-server.log')}` : `Not started: ${answer.how}`);
-    return answer.ok ? 0 : 1;
+    if (!answer.ok) {
+      say(`Not started: ${answer.how}`);
+      return 1;
+    }
+    if (!(await waitForTaskStatus((status) => status !== idle))) {
+      say(
+        `Task Scheduler took the start but did not run it. \`pnpm hub:service status\` and ${join(logDir, 'hub-server.log')} say more.`,
+      );
+      return 1;
+    }
+    say(`Started. Logs: ${join(logDir, 'hub-server.log')}`);
+    return 0;
   }
   say('Usage: pnpm hub:service install | uninstall | status | start | stop | build');
   say(`The task runs ${script}, which never builds.`);

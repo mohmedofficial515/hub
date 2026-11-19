@@ -11,18 +11,37 @@ import { join } from 'node:path';
 const TASK_NAME = 'HubBridge';
 const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
 const LAUNCH_LABEL = 'com.hub.bridge';
+/**
+ * Written into the task's description. A task without it is from before the repeat, started the bridge once at login and never again, so a bridge that
+ * stopped stayed stopped until the next login (2026-11-15). `isLoginStartRegistered` answers false for such a task, so `connect` and the Fix button replace it.
+ * r2 repeated on the logon trigger, which Task Scheduler only begins at a logon, so a task written after logging in never repeated that session: r3 repeats
+ * on a time trigger from the moment it is written.
+ */
+export const TASK_REVISION = 'hub-bridge task r3';
+/** How often the task looks again. While the bridge it started runs, `IgnoreNew` makes each look nothing; once it has stopped, the next look starts it. */
+export const TASK_REPEAT = 'PT2M';
 
 const xmlEscape = (text) =>
   text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
 const isSkipped = (system) => system.env.HUB_BRIDGE_SKIP_LOGIN_START === '1';
 
-export function windowsTaskXml(user, node, script) {
+/** Task Scheduler's own form: local time, no zone, no fraction. */
+export function taskTime(date) {
+  const two = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}T${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`;
+}
+
+/**
+ * Two triggers: the logon starts the bridge at once, and a time trigger from `start` onward looks again every `TASK_REPEAT`, with no end. The time trigger
+ * runs only while this user is logged on (`InteractiveToken`), which is when a bridge has anything to do.
+ */
+export function windowsTaskXml(user, node, script, start = new Date()) {
   const argumentsText = xmlEscape(`--headless "${node}" "${script}" run`);
   return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo><Description>Connects this device to Hub (hub-bridge)</Description></RegistrationInfo>
-  <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>${xmlEscape(user)}</UserId></LogonTrigger></Triggers>
+  <RegistrationInfo><Description>Connects this device to Hub, and starts it again if it stops (${TASK_REVISION})</Description></RegistrationInfo>
+  <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>${xmlEscape(user)}</UserId></LogonTrigger><TimeTrigger><Enabled>true</Enabled><StartBoundary>${taskTime(start)}</StartBoundary><Repetition><Interval>${TASK_REPEAT}</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition></TimeTrigger></Triggers>
   <Principals><Principal id="Author"><UserId>${xmlEscape(user)}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
@@ -76,6 +95,8 @@ async function registerMac(system, node, script) {
   <key>Label</key><string>${LAUNCH_LABEL}</string>
   <key>ProgramArguments</key><array><string>${xmlEscape(node)}</string><string>${xmlEscape(script)}</string><string>run</string></array>
   <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>30</integer>
 </dict></plist>
 `,
   );
@@ -105,8 +126,11 @@ export async function registerLoginStart(system, node, script) {
 export async function isLoginStartRegistered(system) {
   if (isSkipped(system)) return true;
   if (system.platform === 'win32') {
-    const task = await system.run('schtasks.exe', ['/Query', '/TN', TASK_NAME], { timeoutMs: 15_000 });
-    if (task.status === 0) return true;
+    const task = await system.run('schtasks.exe', ['/Query', '/TN', TASK_NAME, '/XML'], {
+      timeoutMs: 15_000,
+    });
+    // The XML can come back as UTF-16, so the zero bytes go before looking for the revision.
+    if (task.status === 0) return task.stdout.replaceAll('\0', '').includes(TASK_REVISION);
     const run = await system.run('reg.exe', ['query', RUN_KEY, '/v', TASK_NAME], { timeoutMs: 15_000 });
     return run.status === 0;
   }
