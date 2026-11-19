@@ -43,7 +43,7 @@ export function ForgotForm() {
 
   if (sent) {
     return (
-      <AuthFrame title={t.forgot.sentTitle} subtitle={t.forgot.sentBody} foot={back}>
+      <AuthFrame title={t.forgot.sentTitle} subtitle={t.forgot.sentBody} foot={back} live>
         {null}
       </AuthFrame>
     );

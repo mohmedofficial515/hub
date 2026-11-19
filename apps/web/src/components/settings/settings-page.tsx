@@ -5,7 +5,7 @@
  * @description The tabs in `?tab=` (docs/09 §18). Backups (docs/16 D61 to D63) shows for the owner alone. Ported from the approved design, pages/settings. Contract: apps/web/README.md.
  */
 import { Tabs } from 'radix-ui';
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useId, useRef } from 'react';
 
 import {
   Button,
@@ -28,6 +28,7 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
+import { useHasDraft } from '@/features/settings/drafts';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
@@ -47,20 +48,28 @@ import { TokensTab } from './parts/tokens';
 
 const TABS = [
   'appearance',
-  'general',
-  'sources',
-  'roles',
   'notifications',
   'tokens',
   'devices',
   'queue',
+  'general',
+  'sources',
+  'roles',
+  'audit',
   'system',
   'backups',
-  'audit',
 ] as const;
 type SettingsTab = (typeof TABS)[number];
-/** 09 §18.4, §18.5, docs/16 §5 and §9: these four belong to every member. The rest are owner and PM, with a 403 otherwise. */
+/** 09 §18.4, §18.5, docs/16 §5 and §9: these five belong to every member. The rest are owner and PM, with a 403 otherwise. */
 const PERSONAL: readonly SettingsTab[] = ['appearance', 'notifications', 'tokens', 'devices', 'queue'];
+type TabGroup = 'mine' | 'project' | 'server';
+/** The strip reads in three named runs: what is mine, what is the project's, what is this machine's. */
+const GROUPS: { id: TabGroup; tabs: readonly SettingsTab[] }[] = [
+  { id: 'mine', tabs: PERSONAL },
+  { id: 'project', tabs: ['general', 'sources', 'roles', 'audit'] },
+  { id: 'server', tabs: ['system', 'backups'] },
+];
+const groupOf = (tab: SettingsTab) => GROUPS.find((g) => g.tabs.includes(tab))!.id;
 const isTab = (v: string | null): v is SettingsTab => !!v && (TABS as readonly string[]).includes(v);
 
 const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
@@ -97,6 +106,44 @@ function useSettingsTab(fallback: SettingsTab | null) {
   return current;
 }
 
+/** One tab. A tab holding unsaved edits carries a dot, and says so to a screen reader through its description, so its name stays the tab's. */
+function SettingsTrigger({
+  id,
+  label,
+  describedBy,
+  triggerRef,
+  children,
+}: {
+  id: SettingsTab;
+  label: string;
+  describedBy: string;
+  triggerRef: React.Ref<HTMLButtonElement> | undefined;
+  children?: React.ReactNode;
+}) {
+  const t = useT<SettingsMessages>('settings');
+  const drafted = useHasDraft(id);
+  const draftId = `${describedBy}-${id}-draft`;
+  return (
+    <Tabs.Trigger
+      ref={triggerRef}
+      value={id}
+      aria-describedby={drafted ? `${describedBy} ${draftId}` : describedBy}
+      className={cn(tabTriggerClass, 'shrink-0 whitespace-nowrap')}
+    >
+      {label}
+      {drafted && (
+        <>
+          <span aria-hidden data-unsaved-dot className="size-1.5 shrink-0 rounded-full bg-foreground" />
+          <span id={draftId} hidden>
+            {t.unsavedTab}
+          </span>
+        </>
+      )}
+      {children}
+    </Tabs.Trigger>
+  );
+}
+
 export function SettingsPage() {
   const t = useT<SettingsMessages>('settings');
   const kit = useT(kitMessages);
@@ -108,7 +155,7 @@ export function SettingsPage() {
   const landing: SettingsTab | null = loading
     ? null
     : !isManager
-      ? 'notifications'
+      ? 'appearance'
       : sources.isPending
         ? null
         : problems > 0
@@ -120,6 +167,7 @@ export function SettingsPage() {
   const allowed = !!tab && visible.includes(tab);
   const activeTab = useRef<HTMLButtonElement>(null);
   const strip = useRef<HTMLDivElement>(null);
+  const uid = useId();
   const ready = !!tab && !loading;
 
   // The selected tab comes into view once it exists: on a direct load it appears only after the session answers (review M2).
@@ -172,22 +220,39 @@ export function SettingsPage() {
           aria-label={t.tabsLabel}
           className="scroll-cue -mx-4 flex gap-1 overflow-x-auto border-b border-border px-4 [scrollbar-width:none] md:mx-0 md:px-0"
         >
-          {visible.map((id) => (
-            <Tabs.Trigger
-              key={id}
-              ref={id === tab ? activeTab : undefined}
-              value={id}
-              className={cn(tabTriggerClass, 'shrink-0 whitespace-nowrap')}
-            >
-              {t.tabs[id]}
-              {id === 'sources' && problems > 0 && (
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive-soft px-1.5 text-caption font-medium text-destructive-soft-foreground tabular-nums">
-                  <Ltr aria-hidden>{num(problems, locale)}</Ltr>
-                  <span className="sr-only">{plural(problems, locale, t.sources.problemsSr)}</span>
-                </span>
-              )}
-            </Tabs.Trigger>
-          ))}
+          {visible.map((id, index) => {
+            const group = groupOf(id);
+            const opensGroup = index === 0 || groupOf(visible[index - 1]!) !== group;
+            return (
+              <Fragment key={id}>
+                {opensGroup && (
+                  <>
+                    {index > 0 && <span aria-hidden className="h-4 w-px shrink-0 self-center bg-border" />}
+                    <span
+                      id={`${uid}-group-${group}`}
+                      aria-hidden
+                      className="shrink-0 self-center ps-3 pe-1 text-caption font-medium text-muted-foreground first:ps-0"
+                    >
+                      {t.tabGroups[group]}
+                    </span>
+                  </>
+                )}
+                <SettingsTrigger
+                  id={id}
+                  label={t.tabs[id]}
+                  describedBy={`${uid}-group-${group}`}
+                  triggerRef={id === tab ? activeTab : undefined}
+                >
+                  {id === 'sources' && problems > 0 && (
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive-soft px-1.5 text-caption font-medium text-destructive-soft-foreground tabular-nums">
+                      <Ltr aria-hidden>{num(problems, locale)}</Ltr>
+                      <span className="sr-only">{plural(problems, locale, t.sources.problemsSr)}</span>
+                    </span>
+                  )}
+                </SettingsTrigger>
+              </Fragment>
+            );
+          })}
         </Tabs.List>
         {allowed ? (
           <Tabs.Content value={tab} tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none">
@@ -199,7 +264,7 @@ export function SettingsPage() {
               forbiddenRole={fmt(t.forbiddenRoles, { owner: kit.roles.owner, pm: kit.roles.pm })}
               className="pb-4"
             />
-            <Button onClick={() => setQuery({ tab: 'notifications' })}>{t.backToMine}</Button>
+            <Button onClick={() => setQuery({ tab: 'appearance' })}>{t.backToMine}</Button>
           </div>
         )}
       </Tabs.Root>

@@ -91,7 +91,8 @@ export function NewProjectWizard({
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [touched, setTouched] = useState({ slug: false, prefix: false });
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const devices = useDevices();
+  // Only the link step lists devices, so a closed wizard asks nothing every few seconds.
+  const devices = useDevices(undefined, open && step === 3);
   const online = (devices.data ?? []).filter((device) => device.online);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -197,6 +198,7 @@ export function NewProjectWizard({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
+      dirty={!!draft.name.trim() || step > 1}
       title={t.wizard.title}
       description={step === 1 ? t.wizard.stepOne : step === 2 ? t.wizard.stepTwo : t.wizard.stepThree}
       footer={

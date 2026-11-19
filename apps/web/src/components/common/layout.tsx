@@ -6,7 +6,7 @@
  */
 import type { LucideIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { forwardRef, type ReactNode, useEffect, useRef } from 'react';
+import { forwardRef, type ReactNode, type RefObject, useEffect, useRef } from 'react';
 
 import { Ltr } from '@/components/common/text';
 import { views } from '@/components/shell/views';
@@ -34,11 +34,27 @@ export function PageContainer({
   );
 }
 
-let titleFocusPending = false;
+/** When the shell last asked for the title's focus, or 0. */
+let titleFocusAskedAt = 0;
+/** A page that loads slowly still takes focus on its title; a title mounted long after the move (going back to the lists) does not. */
+const TITLE_FOCUS_MS = 2_000;
 
-/** The shell calls this on a view change. The next `PageHeader` to mount takes focus, even if its page loads later. */
+/** The shell calls this on a view change. The next page title to mount within two seconds takes focus, even if its page loads later. */
 export function requestTitleFocus() {
-  titleFocusPending = true;
+  titleFocusAskedAt = Date.now();
+}
+
+/**
+ * Puts focus on a page's own h1 after a view change, for a page that draws its title itself instead of `PageHeader`
+ * (the database, Live, a plan's page). The heading needs `tabIndex={-1}`.
+ */
+export function usePageTitleFocus(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!titleFocusAskedAt) return;
+    const fresh = Date.now() - titleFocusAskedAt <= TITLE_FOCUS_MS;
+    titleFocusAskedAt = 0;
+    if (fresh) ref.current?.focus({ preventScroll: true });
+  }, [ref]);
 }
 
 /**
@@ -62,11 +78,7 @@ export function PageHeader({
   const ref = useRef<HTMLHeadingElement>(null);
   const viewId = usePathname().split('/').filter(Boolean)[2];
   const Icon = icon === null ? null : (icon ?? views.find((v) => v.id === viewId)?.icon ?? null);
-  useEffect(() => {
-    if (!titleFocusPending) return;
-    titleFocusPending = false;
-    ref.current?.focus({ preventScroll: true });
-  }, []);
+  usePageTitleFocus(ref);
   return (
     <header
       className={cn(

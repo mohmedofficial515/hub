@@ -7,7 +7,7 @@
  */
 import { Languages, Moon, Sun } from 'lucide-react';
 import { Direction, Tooltip as RadixTooltip } from 'radix-ui';
-import type { ReactNode } from 'react';
+import { type ReactNode, useEffect, useRef } from 'react';
 
 import { IconButton } from '@/components/kit';
 import { Ocellus } from '@/components/shell/ocellus';
@@ -47,14 +47,21 @@ export function AuthFrame({
   children,
   foot,
   wide = false,
+  live = false,
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
   foot?: ReactNode;
   wide?: boolean;
+  /** The frame replaced a form with its answer ("Check your email"): the answer is announced and focus moves to its title. */
+  live?: boolean;
 }) {
   useDocumentTitle(typeof title === 'string' ? title : undefined);
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (live) heading.current?.focus();
+  }, [live]);
   const t = useT(messages);
   const locale = useLocale();
   return (
@@ -73,8 +80,18 @@ export function AuthFrame({
             </div>
             <section className="glass animate-rise flex flex-col gap-5 rounded-2xl p-5 md:p-7">
               <header className="flex flex-col gap-1">
-                <h1 className="hub-page-title text-gradient text-headline text-balance">{title}</h1>
-                {subtitle && <div className="text-body text-muted-foreground">{subtitle}</div>}
+                <h1
+                  ref={heading}
+                  tabIndex={live ? -1 : undefined}
+                  className="hub-page-title text-gradient text-headline text-balance outline-none"
+                >
+                  {title}
+                </h1>
+                {subtitle && (
+                  <div role={live ? 'status' : undefined} className="text-body text-muted-foreground">
+                    {subtitle}
+                  </div>
+                )}
               </header>
               {children}
             </section>

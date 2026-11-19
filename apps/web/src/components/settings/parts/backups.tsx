@@ -55,8 +55,10 @@ import {
   usePinBackup,
   useSaveBackupSettings,
 } from '@/features/backups/queries';
+import { useDraft, useLeaveWithDraft } from '@/features/settings/drafts';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { isHubError } from '@/lib/api/errors';
+import { useUnsavedGuard } from '@/lib/hooks';
 
 import { FormSection } from './shared';
 import { Bytes } from './system';
@@ -303,6 +305,13 @@ export function paddedTime(value: string): string {
   return match ? `${match[1]!.padStart(2, '0')}:${match[2]!.padStart(2, '0')}` : value.trim();
 }
 
+interface BackupsDraft {
+  enabled: boolean;
+  time: string;
+  keepText: string;
+  folder: string;
+}
+
 function SettingsForm({ data }: { data: BackupsDto }) {
   const t = useT<SettingsMessages>('settings');
   const words = t.backups;
@@ -312,18 +321,26 @@ function SettingsForm({ data }: { data: BackupsDto }) {
   const save = useSaveBackupSettings();
   const failed = useFailureToast();
   const settings = data.settings;
-  const [enabled, setEnabled] = useState(settings.enabled);
-  const [time, setTime] = useState(settings.time);
-  const [keepText, setKeepText] = useState(String(settings.keep));
-  const [folder, setFolder] = useState(settings.folderSource === 'setting' ? settings.folder : '');
-
-  const reset = () => {
-    setEnabled(settings.enabled);
-    setTime(settings.time);
-    setKeepText(String(settings.keep));
-    setFolder(settings.folderSource === 'setting' ? settings.folder : '');
+  // What is typed lives outside the tab (`null` follows the saved values), so a tab switch keeps it (docs/08 §5.7).
+  const [draft, setDraft, reset] = useDraft<BackupsDraft | null>('backups', null);
+  const fields: BackupsDraft = draft ?? {
+    enabled: settings.enabled,
+    time: settings.time,
+    keepText: String(settings.keep),
+    folder: settings.folderSource === 'setting' ? settings.folder : '',
   };
-  useEffect(reset, [settings]);
+  const { enabled, time, keepText, folder } = fields;
+  const edit = (patch: Partial<BackupsDraft> | ((current: BackupsDraft) => Partial<BackupsDraft>)) =>
+    setDraft((current) => {
+      const base = current ?? fields;
+      return { ...base, ...(typeof patch === 'function' ? patch(base) : patch) };
+    });
+  const setEnabled = (value: boolean) => edit({ enabled: value });
+  const setTime = (value: string | ((current: string) => string)) =>
+    edit((current) => ({ time: typeof value === 'function' ? value(current.time) : value }));
+  const setKeepText = (value: string) => edit({ keepText: value });
+  const setFolder = (value: string) => edit({ folder: value });
+  useLeaveWithDraft('backups', () => showToast({ message: fmt(t.unsavedKept, { tab: t.tabs.backups }) }));
 
   const keep = Math.max(
     BACKUP_LIMITS.keepMin,
@@ -340,6 +357,11 @@ function SettingsForm({ data }: { data: BackupsDto }) {
     ...(chosenFolder !== savedFolder ? { folder: chosenFolder } : {}),
   };
   const changed = Object.keys(changes).length;
+  useUnsavedGuard(changed > 0);
+  // Typed back to what is saved: nothing is kept, and the tab loses its mark.
+  useEffect(() => {
+    if (draft && changed === 0 && timeValid) reset();
+  }, [draft, changed, timeValid, reset]);
 
   // The save bar appears under the field being typed in: bring that field above it once.
   const hadChanges = useRef(false);
@@ -450,7 +472,13 @@ function SettingsForm({ data }: { data: BackupsDto }) {
           variant="primary"
           busy={save.isPending}
           onClick={() =>
-            save.mutate(changes, { onSuccess: () => showToast({ message: words.saved }), onError: failed })
+            save.mutate(changes, {
+              onSuccess: () => {
+                reset();
+                showToast({ message: words.saved });
+              },
+              onError: failed,
+            })
           }
           data-backups-save
         >

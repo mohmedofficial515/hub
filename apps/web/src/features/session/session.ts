@@ -153,7 +153,8 @@ export function useSession(): Session {
       isManager: roles.includes('owner') || roles.includes('pm'),
       workspace,
       loading: me.isPending,
-      error: me.isError,
+      // A failed reread with data in hand is not a failed session.
+      error: me.isError && !me.data,
     };
   }, [me.data, me.isPending, me.isError, ws]);
 }

@@ -34,6 +34,7 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
+import { useConnectCommand } from '@/features/devices/queries';
 import type { SettingsMessages } from '@/features/settings/messages';
 import { type TokenRow, useCreateToken, useRevokeToken, useTokens } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -42,8 +43,12 @@ import { rowFocus, Segmented } from './shared';
 
 type Kind = TokenRow['kind'];
 
-/** Where Claude Code reaches this Hub. The API's own port on this host, unless the deployment says otherwise (docs/15 §1, D33). */
-const hubApiUrl = () =>
+/**
+ * Where Claude Code reaches this Hub. The API says (`apiUrl` of `me/devices/connect-command`): once Hub is published at
+ * an https address it is that address with no port. Until the answer lands, the deployment's setting, else the API's
+ * own port on this host (docs/15 §1, D33).
+ */
+const fallbackApiUrl = () =>
   process.env.NEXT_PUBLIC_HUB_API_URL ?? `${window.location.protocol}//${window.location.hostname}:7310`;
 
 function KindBadge({ kind }: { kind: Kind }) {
@@ -69,6 +74,7 @@ function CreateTokenDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const kit = useT(kitMessages);
   const { ws } = useRoute();
   const createToken = useCreateToken();
+  const connect = useConnectCommand(open);
   const s = t.tokens;
   const [name, setName] = useState('');
   const [kind, setKind] = useState<Kind>('mcp');
@@ -102,11 +108,12 @@ function CreateTokenDialog({ open, onClose }: { open: boolean; onClose: () => vo
   };
 
   // docs/05 §3.3 and packages/team-pack/README.md.
+  const api = connect.data?.apiUrl ?? fallbackApiUrl();
   const mcpCommand = created
-    ? `claude mcp add --transport http --scope user hub ${hubApiUrl()}/mcp --header "Authorization: Bearer ${created.token}"`
+    ? `claude mcp add --transport http --scope user hub ${api}/mcp --header "Authorization: Bearer ${created.token}"`
     : '';
   const linkCommand = `hub link ${ws}`;
-  const packCommand = created ? `hub init --url ${hubApiUrl()} --token ${created.token}` : '';
+  const packCommand = created ? `hub init --url ${api} --token ${created.token}` : '';
 
   return (
     <Modal

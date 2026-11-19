@@ -198,7 +198,10 @@ function NavItem({
   );
   if (!collapsed) return link;
   return (
-    <Tooltip side={locale === 'ar' ? 'left' : 'right'} content={badge ? `${label}: ${badge.label}` : label}>
+    <Tooltip
+      side={locale === 'ar' ? 'left' : 'right'}
+      content={badge ? `${label}${locale === 'ar' ? '، ' : ', '}${badge.label}` : label}
+    >
       {link}
     </Tooltip>
   );
@@ -215,7 +218,10 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
   const locale = useLocale();
   const { workspace } = useSession();
   const { data } = useMe();
-  const others = (data?.workspaces ?? []).filter((w) => w.slug !== workspace?.slug && w.status !== 'closed');
+  const all = data?.workspaces ?? [];
+  const others = all.filter((w) => w.slug !== workspace?.slug && w.status !== 'closed');
+  // The projects page sends a member with one project straight back to Today (docs/09 §2), so the item would only lose their page.
+  const many = all.length > 1;
   return (
     <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <DropdownMenu.Trigger
@@ -269,10 +275,12 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
             <Plus aria-hidden className="size-4" strokeWidth={1.75} />
             {t.sidebar.newProject}
           </DropdownMenu.Item>
-          <DropdownMenu.Item onSelect={() => goTo(`/${locale}/workspaces`)} className={menuItem}>
-            <FolderKanban aria-hidden className="size-4" strokeWidth={1.75} />
-            {t.sidebar.allWorkspaces}
-          </DropdownMenu.Item>
+          {many && (
+            <DropdownMenu.Item onSelect={() => goTo(`/${locale}/workspaces`)} className={menuItem}>
+              <FolderKanban aria-hidden className="size-4" strokeWidth={1.75} />
+              {t.sidebar.allWorkspaces}
+            </DropdownMenu.Item>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

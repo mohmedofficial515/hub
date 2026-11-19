@@ -1,11 +1,14 @@
 /**
  * @file Settings: who sees which tab, honest "not connected" states, sources in real words, a token shown once.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tooltip } from 'radix-ui';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { dismissToast, ToastRegion } from '@/components/common/toast';
+import { clearAllDrafts } from '@/features/settings/drafts';
 import { renderWithApp, stubFetch } from '@/test/render';
 
 import { SettingsPage } from './settings-page';
@@ -87,6 +90,13 @@ const answer =
       };
     }
     if (path.endsWith('/sources')) return { body: { data: sources } };
+    if (path.endsWith('/me/devices/connect-command')) {
+      return {
+        body: {
+          data: { apiUrl: 'https://hub.example.ts.net', connect: 'node -e "x"', uninstall: 'node -e "y"' },
+        },
+      };
+    }
     if (path.endsWith('/capture/runs')) return { body: { data: [] } };
     if (path.endsWith('/workspaces/demo')) return { body: { data: projectRow } };
     if (path.endsWith('/me/tokens')) {
@@ -102,10 +112,26 @@ const answer =
     return undefined;
   };
 
+/** Rerenders the page on demand, as a URL change would: the mocked search params are read again. */
+function Harness() {
+  const [, setTick] = useState(0);
+  return (
+    <Tooltip.Provider>
+      <button type="button" onClick={() => setTick((n) => n + 1)}>
+        flip
+      </button>
+      <SettingsPage />
+      <ToastRegion />
+    </Tooltip.Provider>
+  );
+}
+
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
     search.value = 'tab=general';
+    clearAllDrafts();
+    dismissToast();
   });
 
   it('gives the owner eleven tabs (Appearance first), Backups among them, and the project details', async () => {
@@ -249,5 +275,89 @@ describe('SettingsPage', () => {
       screen.getByText(/claude mcp add --transport http --scope user hub .*\/mcp --header/),
     ).toBeTruthy();
     expect(screen.getByText('hub link demo')).toBeTruthy();
+    // The address comes from the API, which knows how Hub is published: no guessed port.
+    expect(
+      screen.getByText(
+        /claude mcp add --transport http --scope user hub https:\/\/hub\.example\.ts\.net\/mcp --header/,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/:7310/)).toBeNull();
+  });
+
+  it('names the three groups for the owner, and only Mine for any other member', async () => {
+    stubFetch(answer(['owner']));
+    const { unmount } = renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    const list = await screen.findByRole('tablist');
+    await waitFor(() => expect(within(list).getAllByRole('tab')).toHaveLength(11));
+    expect(within(list).getByText('Mine')).toBeTruthy();
+    expect(within(list).getByText('Project')).toBeTruthy();
+    expect(within(list).getByText('This Hub')).toBeTruthy();
+    expect(within(list).getAllByRole('tab')[0]?.textContent).toBe('Appearance');
+    unmount();
+    vi.unstubAllGlobals();
+    stubFetch(answer(['frontend']));
+    renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    const member = await screen.findByRole('tablist');
+    await waitFor(() => expect(within(member).getAllByRole('tab')).toHaveLength(5));
+    expect(within(member).getByText('Mine')).toBeTruthy();
+    expect(within(member).queryByText('Project')).toBeNull();
+  });
+
+  it('lands a member with no tab in the URL on Appearance', async () => {
+    search.value = '';
+    stubFetch(answer(['frontend']));
+    renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Appearance' }).getAttribute('aria-selected')).toBe('true'),
+    );
+  });
+
+  it('keeps an unsaved name across a tab switch, marks the tab, and drops it on Discard', async () => {
+    stubFetch(answer(['owner']));
+    renderWithApp(<Harness />);
+    fireEvent.change(await screen.findByDisplayValue('Demo'), { target: { value: 'Demo two' } });
+    expect(await screen.findByText('1 unsaved change')).toBeTruthy();
+    search.value = 'tab=roles';
+    fireEvent.click(screen.getByRole('button', { name: 'flip' }));
+    await waitFor(() => expect(screen.queryByDisplayValue('Demo two')).toBeNull());
+    expect(await screen.findByText(/kept here, not saved yet/)).toBeTruthy();
+    const general = screen.getByRole('tab', { name: 'General' });
+    expect(general.querySelector('[data-unsaved-dot]')).toBeTruthy();
+    search.value = 'tab=general';
+    fireEvent.click(screen.getByRole('button', { name: 'flip' }));
+    expect(await screen.findByDisplayValue('Demo two')).toBeTruthy();
+    expect(screen.getByText('1 unsaved change')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+    expect(await screen.findByDisplayValue('Demo')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'General' }).querySelector('[data-unsaved-dot]')).toBeNull();
+  });
+
+  it('shows who holds a role only once the members answer, never a false "Nobody"', async () => {
+    search.value = 'tab=roles';
+    const { fake } = stubFetch(answer(['owner']));
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const raw = input instanceof Request ? input.url : String(input);
+      if (/\/workspaces\/demo\/members/.test(raw)) return new Promise<Response>(() => undefined);
+      return fake(input, init);
+    });
+    renderWithApp(
+      <Tooltip.Provider>
+        <SettingsPage />
+      </Tooltip.Provider>,
+    );
+    expect(await screen.findByText('Change a member’s roles on the Members page')).toBeTruthy();
+    expect(screen.queryByText('Nobody')).toBeNull();
   });
 });

@@ -25,7 +25,11 @@ export interface ToastOptions {
   /** One follow-up action, such as Open chat after Run now. Runs once; the toast closes first. */
   action?: { label: string; onSelect: () => void } | undefined;
   tone?: 'success' | 'error' | undefined;
-  /** Stays until dismissed or replaced, never on a timer. For an action one stray key can take, such as Claim, which is the first Tab stop after a sheet's title (owner's choice on review m9). */
+  /**
+   * Stays until dismissed or replaced, never on a timer. For an action one stray key can take, such as Claim, which is the first Tab stop after a
+   * sheet's title (owner's choice on review m9). A toast with `tone: 'error'` is always sticky (docs/08 §5.5): a refusal is a sentence with the next
+   * step, and it waits to be read.
+   */
   sticky?: boolean | undefined;
 }
 
@@ -92,7 +96,7 @@ function ToastCard({ toast }: { toast: ToastData }) {
   const focused = useRef(false);
 
   useEffect(() => {
-    if (toast.sticky) return;
+    if (toast.sticky || toast.tone === 'error') return;
     let left = toast.onUndo || toast.cmd || toast.action ? UNDO_MS : PLAIN_MS;
     const id = window.setInterval(() => {
       if (hovered.current || focused.current) return;
@@ -114,6 +118,8 @@ function ToastCard({ toast }: { toast: ToastData }) {
       onMouseLeave={() => (hovered.current = false)}
       onFocus={() => (focused.current = true)}
       onBlur={() => (focused.current = false)}
+      // A refusal interrupts a screen reader; everything else waits its turn in the polite region.
+      {...(toast.tone === 'error' ? { role: 'alert' } : {})}
       className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border border-border bg-popover p-3.5 text-popover-foreground shadow-md sm:w-auto"
     >
       <Icon
@@ -170,27 +176,45 @@ export function ToastRegion() {
   // `u` undoes while the toast is open; Ctrl/Cmd+Z too. Neither fires while typing.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
-      if (el.closest('input, textarea, select, [contenteditable="true"]')) return;
+      const el = e.target instanceof Element ? e.target : null;
+      if (el?.closest('input, textarea, select, [contenteditable="true"]')) return;
       const combo = (e.ctrlKey || e.metaKey) && matchKey(e, 'z');
       const single = matchKey(e, 'u') && !e.ctrlKey && !e.metaKey && !e.altKey && shortcutsEnabled();
-      if ((combo || single) && runUndo()) e.preventDefault();
+      if ((combo || single) && runUndo()) {
+        e.preventDefault();
+        return;
+      }
+      // Esc closes a sticky error, unless it belongs to a field or a dialog. It is not consumed, so the sheet still closes on the same press.
+      if (matchKey(e, 'Escape') && slots.notice?.tone === 'error' && !el?.closest('[role="dialog"]')) {
+        dismissToast(slots.notice.id);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // An error card is its own `role="alert"`, so it sits outside the polite region: one announcement per toast.
+  const shown = [notice, lasting].filter((x): x is ToastData => x !== null);
+  const isError = (x: ToastData) => x.tone === 'error';
   return (
     <div
       data-toast
-      role="status"
-      aria-live="polite"
       className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-end gap-2 sm:inset-x-auto sm:end-6 sm:bottom-6"
     >
       <AnimatePresence>
-        {notice && <ToastCard key={notice.id} toast={notice} />}
-        {lasting && <ToastCard key={lasting.id} toast={lasting} />}
+        {shown.filter(isError).map((x) => (
+          <ToastCard key={x.id} toast={x} />
+        ))}
       </AnimatePresence>
+      <div role="status" aria-live="polite" className="flex w-full flex-col items-end gap-2 sm:w-auto">
+        <AnimatePresence>
+          {shown
+            .filter((x) => !isError(x))
+            .map((x) => (
+              <ToastCard key={x.id} toast={x} />
+            ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

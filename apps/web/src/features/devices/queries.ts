@@ -23,18 +23,26 @@ export interface PairingView {
   expiresAt: string;
 }
 
-/** The panel is on every page, so it asks less often than Settings, where someone is watching this list. */
-export function useDevices(refreshMs: number = LIST_REFRESH_MS) {
+/**
+ * The panel is on every page, so it asks less often than Settings, where someone is watching this list. A short
+ * `staleTime` keeps a component that mounts and unmounts (a dialog, a sheet section) from asking again on every mount,
+ * and `enabled: false` asks nothing at all, for a closed dialog.
+ */
+export function useDevices(refreshMs: number = LIST_REFRESH_MS, enabled = true) {
   return useQuery({
     queryKey: DEVICES_KEY,
-    refetchInterval: refreshMs,
+    enabled,
+    staleTime: Math.min(refreshMs, LIST_REFRESH_MS) - 1_000,
+    refetchInterval: enabled ? refreshMs : false,
     queryFn: () => get<DeviceDto[]>('me/devices'),
   });
 }
 
-export function useConnectCommand() {
+/** `{ apiUrl, connect, uninstall }`: the address agents reach and the one command that connects a device, from the API, which knows how Hub is published. */
+export function useConnectCommand(enabled = true) {
   return useQuery({
     queryKey: ['connect-command'],
+    enabled,
     staleTime: 300_000,
     queryFn: () => get<{ apiUrl: string; connect: string; uninstall: string }>('me/devices/connect-command'),
   });

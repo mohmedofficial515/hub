@@ -7,9 +7,9 @@
  */
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
-import { type FormEvent, useEffect, useId, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 
-import { Button, CommandBlock, CopyButton, Field, TextInput } from '@/components/kit';
+import { Button, CommandBlock, CopyButton, Field, kitMessages, TextInput } from '@/components/kit';
 import {
   clearChallenge,
   confirmTotp,
@@ -25,6 +25,7 @@ import { useLocale, useT } from '@/lib/i18n';
 import type { AuthDict } from '@/lib/i18n/page-dicts';
 
 import { AuthFrame, authLink, FormError } from './auth-frame';
+import { authErrorText } from './sign-in-form';
 
 function CodeField({
   id,
@@ -80,8 +81,9 @@ function VerifyStep({ challenge }: { challenge: string }) {
       clearChallenge();
       router.push(landingFor(user, locale, params.get('next')));
     } catch (error) {
+      // A lock or a disabled account says so, as sign-in does, rather than blaming the server.
       setFailure(
-        isHubError(error, 'hub.identity.totp_invalid') ? t.errors.totpInvalid : t.errors.unavailable,
+        isHubError(error, 'hub.identity.totp_invalid') ? t.errors.totpInvalid : authErrorText(t, error),
       );
       setBusy(false);
     }
@@ -124,6 +126,7 @@ function VerifyStep({ challenge }: { challenge: string }) {
 
 function SetupStep() {
   const t = useT<AuthDict>('auth');
+  const kit = useT(kitMessages);
   const locale = useLocale();
   const router = useRouter();
   const params = useSearchParams();
@@ -133,12 +136,46 @@ function SetupStep() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  // Starting the enrolment is its own step: when it fails, the page offers to start again instead of a button that can never work.
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
+  const next = params.get('next');
+  const proceed = useCallback(async () => {
+    setLeaving(true);
+    setLeaveError(null);
+    try {
+      const me = await fetchMe();
+      router.push(landingFor(me, locale, next));
+    } catch {
+      setLeaveError(t.errors.unavailable);
+      setLeaving(false);
+    }
+  }, [router, locale, next, t.errors.unavailable]);
+
+  const proceedRef = useRef(proceed);
+  proceedRef.current = proceed;
+  const tRef = useRef(t);
+  tRef.current = t;
   useEffect(() => {
+    let live = true;
+    setSetupError(null);
     setupTotp()
-      .then(setSetup)
-      .catch(() => setFailure(t.errors.unavailable));
-  }, [t.errors.unavailable]);
+      .then((answer) => {
+        if (live) setSetup(answer);
+      })
+      .catch((error: unknown) => {
+        if (!live) return;
+        // Already enrolled, for example in another tab: there is nothing to set up, so go on to where the member was heading.
+        if (isHubError(error, 'hub.identity.totp_already_enabled')) void proceedRef.current();
+        else setSetupError(authErrorText(tRef.current, error));
+      });
+    return () => {
+      live = false;
+    };
+  }, [attempt]);
 
   const confirm = async (e: FormEvent) => {
     e.preventDefault();
@@ -156,11 +193,6 @@ function SetupStep() {
     }
   };
 
-  const proceed = async () => {
-    const me = await fetchMe();
-    router.push(landingFor(me, locale, params.get('next')));
-  };
-
   if (codes) {
     return (
       <AuthFrame title={t.totp.savedTitle} subtitle={t.totp.savedBody} wide>
@@ -176,7 +208,8 @@ function SetupStep() {
           ))}
         </ul>
         <CopyButton text={codes.join('\n')} label={t.totp.copyCodes} className="self-start" />
-        <Button variant="primary" className="w-full" onClick={() => void proceed()}>
+        <FormError>{leaveError}</FormError>
+        <Button variant="primary" className="w-full" busy={leaving} onClick={() => void proceed()}>
           {t.totp.saved}
         </Button>
       </AuthFrame>
@@ -194,9 +227,23 @@ function SetupStep() {
           <CommandBlock label={t.totp.manual} value={setup.secret} copyLabel={t.totp.copySecret} />
         </div>
       )}
+      {setupError && (
+        <div className="flex flex-col gap-2">
+          <FormError>{setupError}</FormError>
+          <Button
+            className="self-start"
+            onClick={() => {
+              setSetup(null);
+              setAttempt((n) => n + 1);
+            }}
+          >
+            {kit.retry}
+          </Button>
+        </div>
+      )}
       <form noValidate onSubmit={(e) => void confirm(e)} className="flex flex-col gap-4">
         <CodeField id={`${id}-code`} label={t.totp.codeLabel} value={code} onChange={setCode} />
-        <FormError>{failure}</FormError>
+        <FormError>{failure ?? leaveError}</FormError>
         <Button type="submit" variant="primary" busy={busy} disabled={!setup} className="w-full">
           {t.totp.confirm}
         </Button>

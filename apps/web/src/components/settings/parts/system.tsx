@@ -19,6 +19,7 @@ import {
   Ltr,
   num,
   Pill,
+  plural,
   rel,
   SectionHeader,
   SkeletonRows,
@@ -289,7 +290,7 @@ export function SystemTab() {
         <SectionHeader
           id="system-title"
           icon={Server}
-          title={failing === 0 ? s.allGood : `${num(failing, locale)} ${s.down}`}
+          title={failing === 0 ? s.allGood : plural(failing, locale, s.failingCount)}
           aside={
             <>
               <span className="text-body-sm text-muted-foreground">

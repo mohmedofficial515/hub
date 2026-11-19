@@ -8,7 +8,7 @@
  * Claude steps out of it, since Claude answers in the panel beside the page.
  * Keys: `/` or Ctrl+Shift+K searches the design (on this page `/` is the page's search, not the global palette, review M9), L the layers, I the side panel, Escape leaves a focus.
  */
-import { changeCount, type SchemaChangeSummary, type SchemaStudioDto } from '@hub/contracts';
+import { changeCount, grantFor, type SchemaChangeSummary, type SchemaStudioDto } from '@hub/contracts';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BookOpenText,
@@ -39,6 +39,7 @@ import {
   Skeleton,
   Tooltip,
   useLocale,
+  usePageTitleFocus,
   useSession,
 } from '@/components/kit';
 import { useRefreshSchema, useSchemaStudio } from '@/features/schema/queries';
@@ -70,7 +71,7 @@ function summaryOf(
     enums && plural(enums, locale, t.summary.enums),
   ]
     .filter(Boolean)
-    .join('، ');
+    .join(locale === 'ar' ? '، ' : ', ');
 }
 
 /** A bar's button with its name in a tooltip, and the key that does the same. */
@@ -111,6 +112,9 @@ function StartBar({ onLayers }: { onLayers: () => void }) {
   const t = useSchemaWords();
   const locale = useLocale();
   const Layers = locale === 'ar' ? PanelRight : PanelLeft;
+  // The page draws its own title, so it takes the focus a view change asks for, as a `PageHeader` would.
+  const title = useRef<HTMLHeadingElement>(null);
+  usePageTitleFocus(title);
   const views: { value: StudioView; label: string; icon: typeof Waypoints }[] = [
     { value: 'diagram', label: t.views.diagram, icon: Waypoints },
     { value: 'dictionary', label: t.views.dictionary, icon: BookOpenText },
@@ -133,7 +137,13 @@ function StartBar({ onLayers }: { onLayers: () => void }) {
           <Database className="size-4" strokeWidth={1.75} />
         </span>
         <div className="min-w-0">
-          <h1 className="truncate text-body font-semibold text-foreground">{t.title}</h1>
+          <h1
+            ref={title}
+            tabIndex={-1}
+            className="truncate text-body font-semibold text-foreground outline-none"
+          >
+            {t.title}
+          </h1>
           <p className="schema-title-meta truncate text-caption text-muted-foreground">
             <bdi dir="ltr">{studio.data.source?.name}</bdi> ·{' '}
             {plural(studio.doc.stats.models, locale, t.stats.models)}
@@ -382,7 +392,8 @@ export function SchemaPage() {
   const t = useSchemaWords();
   const session = useSession();
   const query = useSchemaStudio();
-  const canManage = session.roles.some((role) => role === 'owner' || role === 'pm' || role === 'backend');
+  // The rule is the contract's (`schema.manage`), the same table the API enforces.
+  const canManage = session.roles.some((role) => grantFor('schema.manage', role) !== 'N');
 
   if (query.isPending || session.loading) return <Loading />;
   if (query.isError) {

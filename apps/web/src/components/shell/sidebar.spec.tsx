@@ -93,6 +93,24 @@ describe('DesktopSidebar', () => {
     expect(screen.getByRole('menuitem', { name: 'New project' })).toBeInTheDocument();
   });
 
+  it('offers All projects only when there is another project to see', async () => {
+    stubFetch(api);
+    mount();
+    await screen.findByText('Goteav');
+    await userEvent.setup().click(screen.getByRole('button', { name: /switch project/i }));
+    expect(await screen.findByRole('menuitem', { name: 'All projects' })).toBeInTheDocument();
+  });
+
+  it('hides All projects with a single project, and keeps New project', async () => {
+    const one = { ...me, workspaces: me.workspaces.slice(0, 1) };
+    stubFetch((url) => (url.pathname.endsWith('/auth/me') ? { body: { data: one } } : api(url)));
+    mount();
+    await screen.findByText('Goteav');
+    await userEvent.setup().click(screen.getByRole('button', { name: /switch project/i }));
+    expect(await screen.findByRole('menuitem', { name: 'New project' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'All projects' })).not.toBeInTheDocument();
+  });
+
   it('renders in Arabic', () => {
     stubFetch(() => undefined);
     mount('ar');

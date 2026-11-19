@@ -28,12 +28,28 @@ export function PageCrash({ error, reset }: CaughtError) {
   );
 }
 
-/** Something outside any page crashed, such as the shell itself. */
+/** Something outside any page crashed, such as the shell itself. A way to the projects stays, in case Retry crashes again. */
 export function FullPageCrash({ error, reset }: CaughtError) {
   const t = useT(messages).boundary;
+  const locale = useLocale();
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-1 bg-background p-4">
-      <ErrorState title={t.crashTitle} detail={t.crashBody} code={error.digest} onRetry={reset} />
+      <ErrorState
+        title={t.crashTitle}
+        detail={t.crashBody}
+        code={error.digest}
+        onRetry={reset}
+        className="pb-4"
+      />
+      <a
+        href={`/${locale}/workspaces`}
+        className={cn(
+          'hit-44 rounded-sm font-medium text-primary-text underline-offset-4 hover:underline',
+          focusRing,
+        )}
+      >
+        {t.toProjects}
+      </a>
     </main>
   );
 }
@@ -45,7 +61,13 @@ function NotFoundBody({ href, action }: { href: string; action: string }) {
   }, [t.notFoundTitle]);
   return (
     <>
-      <ErrorState title={t.notFoundTitle} detail={t.notFoundBody} code="404" className="pb-0" />
+      <ErrorState
+        kind="notFound"
+        title={t.notFoundTitle}
+        detail={t.notFoundBody}
+        code="404"
+        className="pb-0"
+      />
       <a
         href={href}
         className={cn(

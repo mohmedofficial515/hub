@@ -227,7 +227,7 @@
     "noBody": "لا وصف لهذه البطاقة.",
     "comments": {
       "empty": "لا تعليقات بعد. اكتب أول تعليق.",
-      "placeholder": "اكتب تعليقًا. استخدم GTV- لربط بطاقة.",
+      "placeholder": "اكتب تعليقًا. اذكر مفتاح بطاقة ليظهر رابطها.",
       "label": "تعليق جديد",
       "send": "أرسل",
       "hint": "Ctrl+Enter للإرسال",
@@ -282,9 +282,9 @@
         "watch": "بدء المتابعة",
         "unwatch": "إيقاف المتابعة",
         "plan_revised": "حفظ مراجعة جديدة",
-        "plan_steps_changed": "عدّل الخطوات",
-        "plan_to_tasks": "أنشأ مهامًا من الخطوات",
-        "idea_to_plan": "حوّل الفكرة إلى خطة"
+        "plan_steps_changed": "تعديل الخطوات",
+        "plan_to_tasks": "إنشاء مهام من الخطوات",
+        "idea_to_plan": "تحويل الفكرة إلى خطة"
       },
       "fieldNames": {
         "status": "الحالة",
@@ -335,6 +335,7 @@
         "blocked_by": "متوقفة على",
         "relates": "مرتبطة بـ",
         "parent": "تابعة لـ",
+        "child": "تتبعها",
         "duplicates": "مكررة من"
       },
       "add": "أضف رابطًا",
@@ -646,7 +647,11 @@
       "reason": "السبب",
       "replacedBy": "حلّ محله",
       "related": "وثائق مرتبطة",
-      "withdrawnNote": "سُحب هذا القرار قبل أن يُحسم."
+      "withdrawnNote": "سُحب هذا القرار قبل أن يُحسم.",
+      "noOptions": "لا يُحسم قرار بلا خيارات. أضف خيارين على الأقل ثم قرّر.",
+      "addOptions": "أضف الخيارات",
+      "noOptionsAsk": "إضافة الخيارات للمالك أو مدير المشروع أو من أنشأ القرار.",
+      "remindersBefore": "قبل الموعد بـ {list}"
     },
     "doc": {
       "read": "اقرأها في صفحة الوثائق",
@@ -655,6 +660,20 @@
       "langs": {
         "ar": "العربية",
         "en": "الإنجليزية"
+      },
+      "indexedLabel": "الفهرسة",
+      "copySha": "انسخ الـ commit كاملًا {sha}",
+      "wrap": "لفّ الأسطر",
+      "diagram": "مخطط Mermaid",
+      "code": "كود",
+      "image": "صورة",
+      "openImage": "افتح الصورة",
+      "callouts": {
+        "note": "ملاحظة",
+        "tip": "نصيحة",
+        "important": "مهم",
+        "warning": "تحذير",
+        "caution": "انتبه"
       }
     },
     "handoff": {
@@ -716,7 +735,52 @@
       "blockerTitle": "بطاقات تتوقف عليها هذه المهمة",
       "docTitle": "وثائق مرتبطة بهذه المهمة",
       "overdue": "متأخرة {d}",
-      "dueSoon": "تبقّى {d}"
+      "dueSoon": "تبقّى {d}",
+      "acceptanceProgress": "{done} من {total}",
+      "criterionDone": "تم",
+      "criterionOpen": "لم يتم بعد",
+      "noAcceptance": "لا معايير قبول بعد. بدونها لا يعرف المنفّذ ولا المراجع متى تنتهي المهمة.",
+      "addAcceptance": "اكتب المعايير",
+      "reviewNote": "ملاحظة المراجع",
+      "cancelReason": "سبب الإلغاء",
+      "historyEdited": "عُدّل",
+      "historyFields": {
+        "title": "العنوان",
+        "body": "الوصف",
+        "ownerRole": "الدور",
+        "dueAt": "الموعد",
+        "tags": "الوسوم",
+        "module": "الوحدة",
+        "assigneeId": "المكلّف",
+        "repo": "المستودع",
+        "specialty": "التخصص",
+        "effort": "الجهد",
+        "prUrl": "رابط PR",
+        "acceptance": "معايير القبول",
+        "prompt": "أمر البدء",
+        "comment": "تعليق",
+        "options": "الخيارات",
+        "notes": "الملاحظات"
+      },
+      "removeLink": "أزل الرابط مع {key}",
+      "discardTitle": "تجاهل ما كتبته؟",
+      "discardBody": "لم يُحفظ هذا النص بعد.",
+      "discardConfirm": "تجاهل",
+      "stages": "مراحل المهمة",
+      "comesFrom": "جاءت من",
+      "next": {
+        "backlog": "ليست جاهزة بعد. جهّزها لتظهر لمن يحجزها.",
+        "blocked": "متوقفة على {key}، وتُحجز حين تُحسم.",
+        "claim": "التالي: احجزها ثم الصق {cmd} في Claude Code.",
+        "waitsRole": "تنتظر من يحجزها من دور {role}.",
+        "waits": "تنتظر من يحجزها.",
+        "start": "التالي: ابدأ العمل عليها.",
+        "submit": "حين تنتهي أرسلها للمراجعة مع رابط PR.",
+        "heldBy": "يعمل عليها {who}، وقد حجزها {when}.",
+        "review": "راجع الدليل ومعايير القبول، ثم أنجزها أو أعدها مع ملاحظة.",
+        "waitsReview": "تنتظر المراجعة.",
+        "done": "أُنجزت {when}."
+      }
     },
     "idea": {
       "problem": "المشكلة",

@@ -100,7 +100,6 @@
     "tokens": "Access tokens",
     "shortcuts": "Keyboard shortcuts",
     "signOut": "Sign out",
-    "shortcutsOn": "Single-key shortcuts are on",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
     "newProject": "New project"
@@ -120,6 +119,7 @@
     "label": "Command palette",
     "placeholder": "Search for a card, page or command…",
     "empty": "No results. Try a card key like GTV-231.",
+    "searching": "Searching…",
     "recent": "Recent",
     "pages": "Pages",
     "cards": "Cards",
@@ -131,13 +131,15 @@
       "newDecision": "New decision",
       "newNeed": "New need",
       "newHandoff": "New handoff",
+      "newIdea": "New idea",
+      "newPlan": "New plan",
       "toggleTheme": "Toggle light and dark",
       "toggleLanguage": "Switch language",
       "switchWorkspace": "Switch project",
-      "copyMcp": "Copy my MCP setup",
+      "copyMcp": "Copy the command to connect a device",
       "showShortcuts": "Show shortcuts"
     },
-    "mcpCopied": "Copied the MCP setup"
+    "mcpCopied": "Copied the connect command"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -147,7 +149,8 @@
       "nav": "Navigation",
       "go": "Go to",
       "lists": "Lists",
-      "cards": "Cards"
+      "cards": "Cards",
+      "schema": "Database"
     },
     "items": {
       "palette": "Command palette",
@@ -157,6 +160,8 @@
       "newDecision": "New decision",
       "newNeed": "New need",
       "newHandoff": "New handoff",
+      "newIdea": "New idea",
+      "newPlan": "New plan",
       "move": "Next or previous row",
       "open": "Open the row",
       "undo": "Undo the last action",
@@ -170,8 +175,15 @@
       "decide": "Decide",
       "acknowledge": "Acknowledge the handoff",
       "watch": "Watch the card",
+      "sheetMove": "In a card: the next or previous one",
       "copyKey": "Copy the card key",
-      "close": "Close the card or dialog"
+      "close": "Close the card or dialog",
+      "schemaSearch": "Search the tables",
+      "schemaLayers": "Show or hide the domains",
+      "schemaPanel": "Show or hide the side panel",
+      "schemaFit": "Fit the map to the screen",
+      "schemaTilt": "Turn the 3D view on or off",
+      "schemaMinimap": "Show or hide the minimap"
     }
   },
   "newCard": {
@@ -181,18 +193,17 @@
     "titleHint": "One short line that says what is needed.",
     "role": "Responsible role",
     "priority": "Priority",
+    "specialty": "Specialty",
+    "pickSpecialty": "Pick a specialty",
     "body": "Details (optional)",
     "create": "Create",
     "createOpen": "Create and open",
+    "open": "Open it",
     "created": "Created {key}",
     "required": "Write a title to continue.",
+    "specialtyRequired": "Pick the task's specialty.",
     "failed": "The card was not created. Try again."
   },
-  "notFound": {
-    "title": "This page does not exist",
-    "body": "Pick a page from the sidebar."
-  },
-  "viewError": "this page",
   "gate": {
     "session": "your session",
     "notMember": "You are not a member of this project",

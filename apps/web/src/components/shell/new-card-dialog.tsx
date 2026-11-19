@@ -4,6 +4,7 @@
  * @file new-card-dialog.tsx
  * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/new-card-dialog.tsx. Contract: apps/web/README.md.
  */
+import { SPECIALTIES } from '@hub/contracts';
 import { Tabs } from 'radix-ui';
 import { useEffect, useId, useState } from 'react';
 
@@ -37,6 +38,7 @@ export type NewCardType = 'task' | 'decision' | 'need' | 'handoff';
 const TYPES: NewCardType[] = ['task', 'decision', 'need', 'handoff'];
 const ROLES: Role[] = ['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa'];
 const PRIORITIES: Priority[] = ['P0', 'P1', 'P2', 'P3'];
+/** A role that has one specialty starts the task on it. Owner, pm and accountant do not, so they pick one (a task is never "backend" by accident). */
 const SPECIALTY_OF: Partial<Record<Role, string>> = {
   backend: 'backend',
   frontend: 'frontend',
@@ -66,19 +68,31 @@ export function NewCardDialog({
   const [body, setBody] = useState('');
   const [role, setRole] = useState<Role>(roles[0] ?? 'owner');
   const [priority, setPriority] = useState<Priority>('P2');
+  const [specialty, setSpecialty] = useState('');
+  // Once the member picks a specialty, changing the role no longer replaces it.
+  const [specialtyPicked, setSpecialtyPicked] = useState(false);
   const [tried, setTried] = useState(false);
 
   useEffect(() => {
     if (!open) return;
+    const first = roles[0] ?? 'owner';
     setType(initialType);
     setTitle('');
     setBody('');
     setPriority('P2');
     setTried(false);
-    setRole(roles[0] ?? 'owner');
+    setRole(first);
+    setSpecialty(SPECIALTY_OF[first] ?? '');
+    setSpecialtyPicked(false);
   }, [open, initialType, roles]);
 
+  const pickRole = (next: Role) => {
+    setRole(next);
+    if (!specialtyPicked) setSpecialty(SPECIALTY_OF[next] ?? '');
+  };
+
   const missing = !title.trim();
+  const noSpecialty = type === 'task' && !specialty;
   const secret = detectSecret(title) ?? detectSecret(body);
 
   const [busy, setBusy] = useState(false);
@@ -86,7 +100,7 @@ export function NewCardDialog({
 
   /** The smallest valid detail per type. "Create and open" lands in the sheet, where the rest is edited (09 §19). */
   const detailFor = (text: string): Record<string, unknown> => {
-    if (type === 'task') return { specialty: SPECIALTY_OF[role] ?? 'backend' };
+    if (type === 'task') return { specialty };
     if (type === 'decision') return { kind: 'product', question: text, options: [], deciderRole: role };
     if (type === 'need') return { kind: 'other', responsibleRole: role };
     return { kind: 'other', fromRole: roles[0] ?? role, toRole: role, severity: 'info', summary: text };
@@ -95,7 +109,7 @@ export function NewCardDialog({
   const create = async (andOpen: boolean) => {
     setTried(true);
     setFailure(null);
-    if (missing || secret || busy) return;
+    if (missing || noSpecialty || secret || busy) return;
     const text = title.trim();
     setBusy(true);
     try {
@@ -112,7 +126,10 @@ export function NewCardDialog({
         // Wait for the dialog's own focus return, so the sheet records the right opener.
         window.setTimeout(() => openCard(card.key), 0);
       } else {
-        showToast({ message: fill(t.newCard.created, { key: <Ltr mono>{card.key}</Ltr> }) });
+        showToast({
+          message: fill(t.newCard.created, { key: <Ltr mono>{card.key}</Ltr> }),
+          action: { label: t.newCard.open, onSelect: () => openCard(card.key) },
+        });
       }
     } catch (error) {
       setFailure(isHubError(error) ? error.message : t.newCard.failed);
@@ -126,6 +143,7 @@ export function NewCardDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t.newCard.title}
+      dirty={!!title.trim() || !!body.trim()}
       footer={
         <>
           <Button busy={busy} onClick={() => void create(false)}>
@@ -181,7 +199,7 @@ export function NewCardDialog({
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field id={`${id}-role`} label={t.newCard.role}>
-            <Select id={`${id}-role`} value={role} onChange={(e) => setRole(e.target.value as Role)}>
+            <Select id={`${id}-role`} value={role} onChange={(e) => pickRole(e.target.value as Role)}>
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {kit.roles[r]}
@@ -202,6 +220,36 @@ export function NewCardDialog({
               ))}
             </Select>
           </Field>
+          {type === 'task' && (
+            <Field
+              id={`${id}-specialty`}
+              label={t.newCard.specialty}
+              required
+              error={tried && noSpecialty ? t.newCard.specialtyRequired : undefined}
+              className="col-span-2"
+            >
+              <Select
+                id={`${id}-specialty`}
+                value={specialty}
+                aria-invalid={tried && noSpecialty}
+                onChange={(e) => {
+                  setSpecialty(e.target.value);
+                  setSpecialtyPicked(true);
+                }}
+              >
+                {!specialty && (
+                  <option value="" disabled>
+                    {t.newCard.pickSpecialty}
+                  </option>
+                )}
+                {SPECIALTIES.map((value) => (
+                  <option key={value} value={value}>
+                    {kit.sheet.task.specialties[value] ?? value}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
         </div>
         <Field id={`${id}-body`} label={t.newCard.body}>
           <Textarea

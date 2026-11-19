@@ -50,22 +50,39 @@ const CARD_KEY = /^[A-Z][A-Z0-9]{1,5}-\d+$/;
  * Use it wherever a mock or API sentence is shown; `fmt`/`fill` handle our own templates.
  */
 export function Bidi({ children }: { children: string }) {
-  const parts = children.split(ISOLATE);
   // The whole string is isolated too and takes its direction from most of its letters: an English title's "?" stays at its end in the Arabic UI, and an Arabic line that opens with a product name stays Arabic.
   const dir = textDirection(children);
-  if (parts.length === 1) return <bdi dir={dir}>{children}</bdi>;
+  // In a right-to-left line, an English aside in brackets is one left-to-right run with its own brackets, so a wrap
+  // inside it never leaves "Refund →)" on one line and "(Wallet first" on the next (tour: mixed titles).
+  const groups = dir === 'rtl' ? children.split(LATIN_ASIDE) : [children];
+  if (groups.length === 1 && children.split(ISOLATE).length === 1) return <bdi dir={dir}>{children}</bdi>;
   return (
     <bdi dir={dir}>
-      {parts.map((part, i) =>
-        i % 2 === 1 ? (
-          // A card key never breaks at its hyphen. A slug may: it can be longer than the line.
-          <bdi key={i} dir="ltr" className={CARD_KEY.test(part) ? 'whitespace-nowrap' : undefined}>
-            {part}
+      {groups.map((group, g) =>
+        g % 2 === 1 ? (
+          <bdi key={g} dir="ltr">
+            {group}
           </bdi>
         ) : (
-          <Fragment key={i}>{part}</Fragment>
+          <Fragment key={g}>{isolated(group)}</Fragment>
         ),
       )}
     </bdi>
+  );
+}
+
+/** A bracketed aside with Latin letters and no Arabic ones: "(Refund → Wallet first)". */
+const LATIN_ASIDE = /(\([^()\u0600-\u06FF]*[A-Za-z][^()\u0600-\u06FF]*\))/g;
+
+function isolated(text: string): ReactNode[] {
+  return text.split(ISOLATE).map((part, i) =>
+    i % 2 === 1 ? (
+      // A card key never breaks at its hyphen. A slug may: it can be longer than the line.
+      <bdi key={i} dir="ltr" className={CARD_KEY.test(part) ? 'whitespace-nowrap' : undefined}>
+        {part}
+      </bdi>
+    ) : (
+      <Fragment key={i}>{part}</Fragment>
+    ),
   );
 }

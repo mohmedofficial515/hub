@@ -10,9 +10,10 @@ import { renderWithApp, stubFetch } from '@/test/render';
 import { SignInForm } from './sign-in-form';
 
 const push = vi.fn();
+const search = vi.hoisted(() => ({ value: '' }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(search.value),
   usePathname: () => '/en/sign-in',
 }));
 
@@ -24,7 +25,10 @@ const fillForm = async (password: string) => {
 };
 
 describe('SignInForm', () => {
-  beforeEach(() => push.mockClear());
+  beforeEach(() => {
+    push.mockClear();
+    search.value = '';
+  });
 
   it('goes to the only project on success', async () => {
     stubFetch((url) =>
@@ -70,6 +74,21 @@ describe('SignInForm', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Enter your email to continue.')).toBeInTheDocument();
     expect(calls).toHaveLength(0);
+  });
+
+  it('says the password changed when the reset page sends the member here', () => {
+    search.value = 'reset=1';
+    stubFetch(() => undefined);
+    renderWithApp(<SignInForm />);
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Your password was changed. Sign in with the new one.',
+    );
+  });
+
+  it('says nothing of a reset on a plain visit', () => {
+    stubFetch(() => undefined);
+    renderWithApp(<SignInForm />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('renders in Arabic', () => {

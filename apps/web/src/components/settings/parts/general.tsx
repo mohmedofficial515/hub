@@ -7,7 +7,7 @@
  */
 import { type Role, ROLES } from '@hub/contracts';
 import { ArrowDown, ArrowUp, Lock, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   Bidi,
@@ -36,6 +36,7 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
+import { useDraft, useLeaveWithDraft } from '@/features/settings/drafts';
 import type { SettingsMessages } from '@/features/settings/messages';
 import {
   type ProjectChanges,
@@ -311,6 +312,8 @@ function CloseDialog({
   );
 }
 
+const NO_OVERRIDES: Partial<Fields> = {};
+
 export function GeneralTab() {
   const t = useT<SettingsMessages>('settings');
   const locale = useLocale();
@@ -322,8 +325,10 @@ export function GeneralTab() {
   const saveSettings = useSaveSettings();
   const setClosed = useSetProjectClosed();
   const s = t.general;
-  const [overrides, setOverrides] = useState<Partial<Fields>>({});
+  // Kept outside the tab, so a tab switch or a move to another page keeps what was typed (docs/08 §5.7).
+  const [overrides, setOverrides, clearOverrides] = useDraft<Partial<Fields>>('general', NO_OVERRIDES);
   useUnsavedGuard(Object.keys(overrides).length > 0);
+  useLeaveWithDraft('general', () => showToast({ message: fmt(t.unsavedKept, { tab: t.tabs.general }) }));
   const [closing, setClosing] = useState(false);
 
   const saved = useMemo<Fields | null>(() => {
@@ -355,6 +360,16 @@ export function GeneralTab() {
       onboarding: v['onboarding.paths'] as OnboardingPaths,
     };
   }, [project.data, settings.data]);
+
+  // An edit typed back to the saved value is no edit: the field follows outside changes again, and the tab loses its mark.
+  const edited = Object.keys(overrides) as (keyof Fields)[];
+  const sameAsSaved =
+    !!saved &&
+    edited.length > 0 &&
+    edited.every((k) => JSON.stringify(overrides[k]) === JSON.stringify(saved[k]));
+  useEffect(() => {
+    if (sameAsSaved) clearOverrides();
+  }, [sameAsSaved, clearOverrides]);
 
   if (project.isError || settings.isError) {
     const error = project.error ?? settings.error;
@@ -442,7 +457,7 @@ export function GeneralTab() {
       if (Object.keys(projectChanges).length) await saveProject.mutateAsync(projectChanges);
       if (Object.keys(values).length) await saveSettings.mutateAsync(values);
       showToast({ message: plural(changedKeys.length, locale, s.savedForms) });
-      setOverrides({});
+      clearOverrides();
     } catch (error) {
       showToast({ tone: 'error', message: isHubError(error) ? error.message : t.errorThing });
     }
@@ -816,7 +831,7 @@ export function GeneralTab() {
         <p role="status" className="min-w-0 flex-1 basis-40 text-body-sm font-medium text-foreground">
           {changedKeys.length > 0 && plural(changedKeys.length, locale, s.unsaved)}
         </p>
-        <Button variant="ghost" onClick={() => setOverrides({})}>
+        <Button variant="ghost" onClick={clearOverrides}>
           {s.discard}
         </Button>
         <Button variant="primary" busy={busy} onClick={() => void save()}>

@@ -5,7 +5,7 @@
  * @description Ported from the approved design, pages/members. Contract: apps/web/README.md.
  */
 import type { MailMode } from '@hub/contracts';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   Button,
@@ -161,6 +161,7 @@ export function InviteDialog({ open, onClose }: { open: boolean; onClose: () => 
       open={open}
       onOpenChange={(next) => !next && close()}
       title={link ? s.createdTitle : s.title}
+      dirty={!link && (!!email.trim() || roles.length > 0)}
       description={link ? fmt(s.createdBody, { email: clean }) : undefined}
       footer={
         link ? (
@@ -400,6 +401,12 @@ export function ProfileDialog({ open, onClose }: { open: boolean; onClose: () =>
   const [serverError, setServerError] = useState<string | null>(null);
   const [turningOff, setTurningOff] = useState(false);
   const [code, setCode] = useState('');
+  // The dialog stays mounted on the page: each opening starts from the current name and language, which may have arrived after mount.
+  useEffect(() => {
+    if (!open) return;
+    setName(me.name);
+    setLang(locale);
+  }, [open, me.name, locale]);
   const required = roles.some((r) => (totpRoles ?? []).includes(r));
   const nameError = !name.trim() ? s.nameRequired : undefined;
   const nextError = next && next.length < 12 ? s.tooShort : undefined;
@@ -407,6 +414,8 @@ export function ProfileDialog({ open, onClose }: { open: boolean; onClose: () =>
   const saving = writes.save.isPending;
 
   const close = () => {
+    setName(me.name);
+    setLang(locale);
     setCurrent('');
     setNext('');
     setCode('');

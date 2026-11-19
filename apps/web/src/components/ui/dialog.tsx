@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * Centred dialog base (08 §3.4: 160 ms fade and scale). Traps focus, `Esc` closes, focus returns to the opener.
- * Full-width at the bottom edge on a phone.
+ * Full-width at the bottom edge on a phone. `dirty` says the member has typed something: a press outside the dialog
+ * then does nothing, so a stray click never wipes the form, while `Esc`, × and Cancel still close it.
  */
 export function Modal({
   open,
@@ -28,6 +29,7 @@ export function Modal({
   footer,
   className,
   returnFocus,
+  dirty = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -38,6 +40,8 @@ export function Modal({
   className?: string | undefined;
   /** Where focus goes on close when the opener is gone, such as the menu item that opened it. */
   returnFocus?: (() => HTMLElement | null) | undefined;
+  /** The form holds unsaved input: a press outside does not close the dialog. */
+  dirty?: boolean | undefined;
 }) {
   const t = useT(kitMessages);
   const onCloseAutoFocus = useFocusReturn(open, returnFocus);
@@ -48,6 +52,7 @@ export function Modal({
           <Dialog.Overlay className="fixed inset-0 z-[70] bg-(--scrim) motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150" />
           <Dialog.Content
             onCloseAutoFocus={onCloseAutoFocus}
+            {...(dirty ? { onInteractOutside: (e: Event) => e.preventDefault() } : {})}
             // `autoFocus` loses to the sheet's focus trap when a dialog opens over it, so the field to land on is marked instead.
             onOpenAutoFocus={(e) => {
               const target = (e.currentTarget as HTMLElement).querySelector<HTMLElement>('[data-autofocus]');

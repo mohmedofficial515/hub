@@ -18,19 +18,24 @@ import { Bot, Check, Minus, ShieldCheck } from 'lucide-react';
 import { Fragment, useState } from 'react';
 
 import {
+  AppLink,
   Avatar,
+  Button,
   cn,
   Field,
   kitMessages,
   roleIcon,
   SectionHeader,
   Select,
+  Skeleton,
   useLocale,
   usePageWide,
   useT,
 } from '@/components/kit';
 import { useDirectory } from '@/features/members/queries';
 import type { SettingsMessages } from '@/features/settings/messages';
+
+import { inlineLink } from './shared';
 
 type Group = keyof SettingsMessages['roles']['groups'];
 
@@ -293,13 +298,27 @@ export function RolesTab() {
   const t = useT<SettingsMessages>('settings');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const directory = useDirectory().data ?? [];
+  const directoryQuery = useDirectory();
+  const directory = directoryQuery.data ?? [];
+  // Who holds a role is known only once the members have answered: before that, or after a failure, "Nobody" would be false (no fake data).
+  const known = directoryQuery.isSuccess;
   const wide = usePageWide(768);
   const active = directory.filter((d) => d.status === 'active');
   return (
     <>
       <section aria-labelledby="roles-title" className="flex flex-col gap-3">
         <SectionHeader id="roles-title" icon={ShieldCheck} title={t.roles.title} />
+        {directoryQuery.isError && (
+          <p
+            role="status"
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground"
+          >
+            {t.roles.holdersUnknown}
+            <Button size="sm" variant="ghost" onClick={() => void directoryQuery.refetch()}>
+              {kit.retry}
+            </Button>
+          </p>
+        )}
         <ul className="grid gap-x-8 sm:@page-sm:grid-cols-2">
           {ROLES.map((role) => {
             const Icon = roleIcon[role];
@@ -314,23 +333,26 @@ export function RolesTab() {
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                     <span className="text-body font-semibold text-foreground">{kit.roles[role]}</span>
-                    <span
-                      className="flex items-center gap-1"
-                      aria-label={
-                        holders.length
-                          ? holders.map((h) => h.member.name).join(locale === 'ar' ? '، ' : ', ')
-                          : t.roles.noHolders
-                      }
-                    >
-                      {holders.map((h) => (
-                        <span key={h.member.id} title={h.member.name}>
-                          <Avatar member={h.member} size="xs" />
-                        </span>
-                      ))}
-                      {holders.length === 0 && (
-                        <span className="text-body-sm text-muted-foreground">{t.roles.noHolders}</span>
-                      )}
-                    </span>
+                    {directoryQuery.isPending && <Skeleton className="h-5 w-16" />}
+                    {known && (
+                      <span
+                        className="flex items-center gap-1"
+                        aria-label={
+                          holders.length
+                            ? holders.map((h) => h.member.name).join(locale === 'ar' ? '، ' : ', ')
+                            : t.roles.noHolders
+                        }
+                      >
+                        {holders.map((h) => (
+                          <span key={h.member.id} title={h.member.name}>
+                            <Avatar member={h.member} size="xs" />
+                          </span>
+                        ))}
+                        {holders.length === 0 && (
+                          <span className="text-body-sm text-muted-foreground">{t.roles.noHolders}</span>
+                        )}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 text-body-sm text-muted-foreground">{t.roles.notes[role]}</p>
                 </div>
@@ -343,6 +365,11 @@ export function RolesTab() {
       <section aria-labelledby="matrix-title" className={cn('flex flex-col gap-3')}>
         <SectionHeader id="matrix-title" title={t.roles.matrixTitle} level={3} />
         <p className="max-w-prose text-body-sm text-muted-foreground">{t.roles.matrixBody}</p>
+        <p className="text-body-sm">
+          <AppLink view="members" className={inlineLink}>
+            {t.roles.changeInMembers}
+          </AppLink>
+        </p>
         <Legend />
         {wide ? <FullMatrix /> : <OneRoleMatrix />}
       </section>

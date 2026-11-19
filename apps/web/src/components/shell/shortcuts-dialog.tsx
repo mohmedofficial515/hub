@@ -26,7 +26,7 @@ const PANEL: [string[], 'regions' | 'toggle' | 'modes' | 'stop' | 'send' | 'newl
   [['/'], 'skills'],
 ];
 
-const LIST: { group: 'nav' | 'lists' | 'cards'; keys: [string[], string][] }[] = [
+const LIST: { group: 'nav' | 'lists' | 'cards' | 'schema'; keys: [string[], string][] }[] = [
   {
     group: 'nav',
     keys: [
@@ -37,6 +37,8 @@ const LIST: { group: 'nav' | 'lists' | 'cards'; keys: [string[], string][] }[] =
       [['n d'], 'newDecision'],
       [['n n'], 'newNeed'],
       [['n h'], 'newHandoff'],
+      [['n i'], 'newIdea'],
+      [['n p'], 'newPlan'],
     ],
   },
   {
@@ -60,8 +62,20 @@ const LIST: { group: 'nav' | 'lists' | 'cards'; keys: [string[], string][] }[] =
       [['d'], 'decide'],
       [['a'], 'acknowledge'],
       [['w'], 'watch'],
+      [['j', 'k'], 'sheetMove'],
       [['Ctrl Shift C'], 'copyKey'],
       [['Esc'], 'close'],
+    ],
+  },
+  {
+    group: 'schema',
+    keys: [
+      [['/'], 'schemaSearch'],
+      [['L'], 'schemaLayers'],
+      [['I'], 'schemaPanel'],
+      [['F'], 'schemaFit'],
+      [['T'], 'schemaTilt'],
+      [['M'], 'schemaMinimap'],
     ],
   },
 ];
@@ -142,7 +156,7 @@ export function ShortcutsDialog({
                   <dt className="min-w-0 text-body-sm text-foreground">{t.shortcuts.items[item]}</dt>
                   <dd className="flex shrink-0 flex-wrap justify-end gap-1">
                     {combo.map((key) => (
-                      <Kbd key={key}>{key}</Kbd>
+                      <Kbd key={key}>{label(key)}</Kbd>
                     ))}
                   </dd>
                 </div>

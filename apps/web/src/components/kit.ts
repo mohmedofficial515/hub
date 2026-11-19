@@ -123,7 +123,7 @@ export {
   useFilter,
   useFilterList,
 } from '@/components/common/filter-bar';
-export { PageContainer, PageHeader, SectionHeader } from '@/components/common/layout';
+export { PageContainer, PageHeader, SectionHeader, usePageTitleFocus } from '@/components/common/layout';
 export {
   EmptyState,
   ErrorState,

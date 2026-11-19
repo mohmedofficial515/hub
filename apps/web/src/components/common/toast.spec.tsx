@@ -41,3 +41,45 @@ describe('ToastRegion', () => {
     await waitFor(() => expect(container.textContent).not.toContain('Claimed'));
   });
 });
+
+describe('ToastRegion errors', () => {
+  beforeAll(() => (MotionGlobalConfig.skipAnimations = true));
+  afterAll(() => (MotionGlobalConfig.skipAnimations = false));
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] }));
+  afterEach(() => {
+    act(() => dismissToast());
+    vi.useRealTimers();
+  });
+
+  it('keeps an error until it is dismissed, and announces it as an alert', () => {
+    const { container, getByRole } = renderWithApp(<ToastRegion />);
+    act(() => showToast({ tone: 'error', message: 'Refused: pick a role first' }));
+    act(() => {
+      vi.advanceTimersByTime(12_000);
+    });
+    expect(container.textContent).toContain('Refused: pick a role first');
+    expect(getByRole('alert').textContent).toContain('Refused');
+  });
+
+  it('closes an error on Esc', async () => {
+    const { container } = renderWithApp(<ToastRegion />);
+    act(() => showToast({ tone: 'error', message: 'Refused' }));
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape' }));
+    });
+    await waitFor(() => expect(container.textContent).not.toContain('Refused'));
+  });
+
+  it('closes a plain notice after five seconds', async () => {
+    const { container } = renderWithApp(<ToastRegion />);
+    act(() => showToast({ message: 'Saved' }));
+    act(() => {
+      vi.advanceTimersByTime(4_000);
+    });
+    expect(container.textContent).toContain('Saved');
+    act(() => {
+      vi.advanceTimersByTime(1_500);
+    });
+    await waitFor(() => expect(container.textContent).not.toContain('Saved'));
+  });
+});

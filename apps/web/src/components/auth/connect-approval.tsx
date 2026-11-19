@@ -8,7 +8,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-import { Button, fill, Ltr, showToast } from '@/components/kit';
+import { Button, fill, Ltr } from '@/components/kit';
 import { useAnswerPairing, usePairing } from '@/features/devices/queries';
 import { isHubError } from '@/lib/api/errors';
 import { useT } from '@/lib/i18n';
@@ -31,7 +31,7 @@ export function ConnectApproval() {
     setChoice(next);
     setFailure(null);
     answer.mutate(next, {
-      onSuccess: () => showToast({ message: next === 'approve' ? s.approvedToast : s.deniedToast }),
+      // The page itself turns into the answer, which is the confirmation: this frame has no toast region.
       onError: (error) => setFailure(isHubError(error) ? error.message : s.failed),
     });
   };

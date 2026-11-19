@@ -56,7 +56,7 @@ function useViewFocus() {
 }
 
 /** Global keys (08 §12). Ctrl/Cmd+K and Esc are always on; the rest respects the shortcuts preference. */
-function useGlobalKeys(actions: {
+export function useGlobalKeys(actions: {
   palette: () => void;
   help: () => void;
   newCard: (type: NewCardType) => void;
@@ -96,6 +96,13 @@ function useGlobalKeys(actions: {
       }
       if (sequence === 'n') {
         sequence = null;
+        // An idea and a plan are written in Planning's studio, which the page opens from `?studio=`.
+        const studio = matchKey(e, 'i') ? 'idea' : matchKey(e, 'p') ? 'plan' : null;
+        if (studio) {
+          e.preventDefault();
+          navigate('planning', { query: { studio, chat: null, plan: null } });
+          return;
+        }
         const type = (['t', 'd', 'n', 'h'] as const).flatMap((k) =>
           matchKey(e, k) ? [({ t: 'task', d: 'decision', n: 'need', h: 'handoff' } as const)[k]] : [],
         )[0];

@@ -53,7 +53,6 @@ export interface ShellDict {
     tokens: string;
     shortcuts: string;
     signOut: string;
-    shortcutsOn: string;
     openMenu: string;
     closeMenu: string;
   };
@@ -72,6 +71,8 @@ export interface ShellDict {
     label: string;
     placeholder: string;
     empty: string;
+    /** While the server search is answering, instead of a false "no results". */
+    searching: string;
     recent: string;
     pages: string;
     cards: string;
@@ -83,6 +84,8 @@ export interface ShellDict {
       newDecision: string;
       newNeed: string;
       newHandoff: string;
+      newIdea: string;
+      newPlan: string;
       toggleTheme: string;
       toggleLanguage: string;
       switchWorkspace: string;
@@ -95,7 +98,7 @@ export interface ShellDict {
     title: string;
     disable: string;
     disableHint: string;
-    groups: { nav: string; go: string; lists: string; cards: string };
+    groups: { nav: string; go: string; lists: string; cards: string; schema: string };
     items: Record<string, string>;
   };
   newCard: {
@@ -111,7 +114,10 @@ export interface ShellDict {
     createOpen: string;
     created: string;
     required: string;
+    /** The toast's follow-up after Create. */
+    open: string;
+    specialty: string;
+    pickSpecialty: string;
+    specialtyRequired: string;
   };
-  notFound: { title: string; body: string };
-  viewError: string;
 }

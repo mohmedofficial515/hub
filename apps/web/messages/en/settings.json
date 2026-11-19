@@ -19,6 +19,13 @@
     "backups": "Backups",
     "audit": "Audit"
   },
+  "tabGroups": {
+    "mine": "Mine",
+    "project": "Project",
+    "server": "This Hub"
+  },
+  "unsavedTab": "has unsaved changes",
+  "unsavedKept": "Your edits in {tab} are kept here, not saved yet",
   "strip": {
     "label": "Last 24 hours",
     "start": "24 h ago",
@@ -288,8 +295,10 @@
   "roles": {
     "title": "The seven roles",
     "noHolders": "Nobody",
+    "holdersUnknown": "Couldn’t load members",
     "matrixTitle": "Who can do what",
     "matrixBody": "What each role may do. A member’s Claude Code may do the same, through their token.",
+    "changeInMembers": "Change a member’s roles on the Members page",
     "action": "Action",
     "pickRole": "Show the permissions of",
     "viaMcp": "Also through MCP",
@@ -427,6 +436,10 @@
     "refreshed": "Status refreshed",
     "ok": "Running",
     "down": "Failing",
+    "failingCount": {
+      "one": "1 service is failing",
+      "other": "# services are failing"
+    },
     "lagTitle": "Source lag",
     "lagBody": "Time since the last successful run. It counts as late past three times the run period.",
     "lagSource": "Source",

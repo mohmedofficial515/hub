@@ -77,6 +77,15 @@ export function SignInForm() {
         </a>
       }
     >
+      {params.get('reset') === '1' && (
+        // The reset page sends the member here: say that it worked before asking for the new password.
+        <p
+          role="status"
+          className="rounded-md bg-success-soft px-3 py-2 text-body-sm text-success-soft-foreground"
+        >
+          {t.signIn.resetDone}
+        </p>
+      )}
       <form noValidate onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
         <Field
           id={`${id}-email`}

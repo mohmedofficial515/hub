@@ -4,9 +4,10 @@
  * @file states.tsx
  * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/states.tsx. Contract: apps/web/README.md.
  */
-import { type LucideIcon, TriangleAlert } from 'lucide-react';
+import { FileQuestion, Lock, type LucideIcon, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
+import { CopyButton } from '@/components/common/copy-button';
 import { fmt, Ltr } from '@/components/common/text';
 import { Button } from '@/components/ui/button';
 import { useT } from '@/lib/i18n';
@@ -64,7 +65,8 @@ export function EmptyState({
 
 /**
  * 08 §5.6: says what failed and how to go on. `thing` completes "Couldn't load <thing>". A 403 names the role
- * instead of offering Retry.
+ * instead of offering Retry. `kind` sets the tone: only a real failure is the danger tone and an alert; "no access"
+ * and "not found" are facts about the address, drawn neutral and announced politely.
  */
 export function ErrorState({
   thing,
@@ -75,7 +77,10 @@ export function ErrorState({
   forbiddenRole,
   detail,
   className,
+  kind,
 }: {
+  /** `forbidden` when `forbiddenRole` is set, else `error`. */
+  kind?: 'error' | 'forbidden' | 'notFound' | undefined;
   /** A sentence under the title, above the retry. */
   detail?: string | undefined;
   thing?: string | undefined;
@@ -89,11 +94,27 @@ export function ErrorState({
   className?: string | undefined;
 }) {
   const t = useT(kitMessages);
+  const tone = kind ?? (forbiddenRole ? 'forbidden' : 'error');
+  const failed = tone === 'error';
+  const Icon = tone === 'forbidden' ? Lock : tone === 'notFound' ? FileQuestion : TriangleAlert;
   const heading = forbiddenRole ? t.error.forbidden : (title ?? fmt(t.error.title, { thing: thing ?? '' }));
   return (
-    <div role="alert" className={cn('flex flex-col items-center px-6 py-12 text-center', className)}>
-      <span className="flex size-12 items-center justify-center rounded-full bg-destructive-soft">
-        <TriangleAlert aria-hidden className="size-6 text-destructive-soft-foreground" strokeWidth={1.75} />
+    <div
+      role={failed ? 'alert' : 'status'}
+      data-error-kind={tone}
+      className={cn('flex flex-col items-center px-6 py-12 text-center', className)}
+    >
+      <span
+        className={cn(
+          'flex size-12 items-center justify-center rounded-full',
+          failed ? 'bg-destructive-soft' : 'bg-muted',
+        )}
+      >
+        <Icon
+          aria-hidden
+          className={cn('size-6', failed ? 'text-destructive-soft-foreground' : 'text-muted-foreground')}
+          strokeWidth={1.75}
+        />
       </span>
       <p className="mt-4 text-title-sm font-semibold text-foreground">{heading}</p>
       {forbiddenRole && (
@@ -103,14 +124,21 @@ export function ErrorState({
       )}
       {detail && <p className="mt-1.5 max-w-md text-body text-muted-foreground">{detail}</p>}
       {code && (
-        <p
-          className="mt-1.5 text-body-sm text-muted-foreground"
-          title={requestId ? `${t.error.requestId}: ${requestId}` : undefined}
-        >
+        <p className="mt-1.5 text-body-sm text-muted-foreground">
           {t.error.code}{' '}
           <Ltr mono className="text-foreground">
             {code}
           </Ltr>
+        </p>
+      )}
+      {requestId && (
+        // What support asks for, readable and copyable by touch and keyboard, not only in a hover title.
+        <p className="mt-1 flex items-center gap-1 text-body-sm text-muted-foreground">
+          {t.error.requestId}{' '}
+          <Ltr mono className="text-foreground">
+            {requestId}
+          </Ltr>
+          <CopyButton compact showText={false} text={requestId} />
         </p>
       )}
       {onRetry && (

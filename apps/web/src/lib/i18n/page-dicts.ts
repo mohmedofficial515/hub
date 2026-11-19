@@ -41,6 +41,8 @@ export interface RedesignMessages {
   noMatchTitle: string;
   noMatchBody: string;
   clearFilters: string;
+  reviewDoneTitle: string;
+  showAllVersions: string;
   errorThing: string;
   loading: string;
   compare: {

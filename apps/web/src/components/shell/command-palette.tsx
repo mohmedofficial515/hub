@@ -4,7 +4,19 @@
  * @file command-palette.tsx
  * @description Ported from apps/lab/hub/today/v5-peacock-app/shell/command-palette.tsx. Contract: apps/web/README.md.
  */
-import { CircleDot, Copy, FilePlus2, Keyboard, Languages, Replace, Search, SunMoon } from 'lucide-react';
+import { grantFor, type PermissionAction } from '@hub/contracts';
+import {
+  CircleDot,
+  Copy,
+  FilePlus2,
+  Keyboard,
+  Languages,
+  Lightbulb,
+  ListChecks,
+  Replace,
+  Search,
+  SunMoon,
+} from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
@@ -20,11 +32,14 @@ import {
   showToast,
   TypeDot,
   useCardSearch,
+  useMe,
+  useSession,
 } from '@/components/kit';
 import type { NewCardType } from '@/components/shell/new-card-dialog';
 import { goTo } from '@/components/shell/router';
 import { views } from '@/components/shell/views';
 import type { CardListItem } from '@/features/cards/types';
+import { useConnectCommand } from '@/features/devices/queries';
 import { portalRoot, useFocusReturn } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { messages } from '@/lib/i18n';
@@ -44,6 +59,24 @@ type Group = { id: string; title: string; items: Item[] };
 
 /** A key that matches 08 §5.5: `GTV-123` jumps straight to the card. */
 const KEY_RE = /^[a-z]+-\d+$/i;
+/** 08 §5.5: the server search waits for a pause in typing. */
+const SEARCH_DEBOUNCE_MS = 150;
+const NO_CARDS: CardListItem[] = [];
+
+/** The text the search asks for: `query` once typing has paused, so a word is one request, not one per letter. */
+function useSettledText(query: string, open: boolean) {
+  const [settled, setSettled] = useState(query);
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => setSettled(query), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(id);
+  }, [query, open]);
+  // A fresh palette starts with nothing to search.
+  useEffect(() => {
+    if (open) setSettled('');
+  }, [open]);
+  return settled;
+}
 
 export function CommandPalette({
   open,
@@ -61,12 +94,28 @@ export function CommandPalette({
   const [query, setText] = useState('');
   const [active, setActive] = useState(0);
   const onCloseAutoFocus = useFocusReturn(open);
-  const found = useCardSearch(query);
+  const searchText = useSettledText(query, open);
+  const found = useCardSearch(searchText);
+  // The last answer stays on screen while the next one is on its way, so rows do not blink away with every letter.
+  const [lastFound, setLastFound] = useState<CardListItem[]>(NO_CARDS);
+  useEffect(() => {
+    if (found.data && !found.isFetching) setLastFound(found.data);
+  }, [found.data, found.isFetching]);
+  const waiting = query.trim().length >= 2 && (found.isFetching || searchText !== query);
+  const cardsFound = waiting ? (found.data ?? lastFound) : (found.data ?? NO_CARDS);
+  const connect = useConnectCommand(open);
+  const connectCommand = connect.data?.connect;
+  const projects = useMe().data?.workspaces.length ?? 0;
+  const { roles } = useSession();
+  const may = (action: PermissionAction) => roles.some((role) => grantFor(action, role) !== 'N');
+  const canIdea = may('idea.create');
+  const canPlan = may('plan.create');
 
   useEffect(() => {
     if (open) {
       setText('');
       setActive(0);
+      setLastFound(NO_CARDS);
     }
   }, [open]);
 
@@ -129,11 +178,29 @@ export function CommandPalette({
       },
     });
 
+    const studio = (kind: 'idea' | 'plan', label: string): Item => ({
+      id: `new-${kind}`,
+      text: label,
+      icon:
+        kind === 'idea' ? (
+          <Lightbulb aria-hidden className="size-4" strokeWidth={1.75} />
+        ) : (
+          <ListChecks aria-hidden className="size-4" strokeWidth={1.75} />
+        ),
+      label,
+      run: () => {
+        close();
+        navigate('planning', { query: { studio: kind, chat: null, plan: null } });
+      },
+    });
+
     const actions: Item[] = [
       newCard('task', t.palette.act.newTask),
       newCard('decision', t.palette.act.newDecision),
       newCard('need', t.palette.act.newNeed),
       newCard('handoff', t.palette.act.newHandoff),
+      ...(canIdea ? [studio('idea', t.palette.act.newIdea)] : []),
+      ...(canPlan ? [studio('plan', t.palette.act.newPlan)] : []),
       {
         id: 'theme',
         text: t.palette.act.toggleTheme,
@@ -154,26 +221,34 @@ export function CommandPalette({
           setLocaleEverywhere(locale === 'ar' ? 'en' : 'ar');
         },
       },
+      // With one project there is nothing to switch to: the projects page would only send the member back to Today.
+      ...(projects > 1
+        ? [
+            {
+              id: 'workspace',
+              text: t.palette.act.switchWorkspace,
+              icon: <Replace aria-hidden className="size-4" strokeWidth={1.75} />,
+              label: t.palette.act.switchWorkspace,
+              run: () => {
+                close();
+                goTo(`/${locale}/workspaces`);
+              },
+            },
+          ]
+        : []),
       {
-        id: 'workspace',
-        text: t.palette.act.switchWorkspace,
-        icon: <Replace aria-hidden className="size-4" strokeWidth={1.75} />,
-        label: t.palette.act.switchWorkspace,
-        run: () => {
-          close();
-          goTo(`/${locale}/workspaces`);
-        },
-      },
-      {
+        // The one command of Settings › Devices, from the API, which knows the address a device reaches (no guessed port).
         id: 'mcp',
         text: t.palette.act.copyMcp,
         icon: <Copy aria-hidden className="size-4" strokeWidth={1.75} />,
         label: t.palette.act.copyMcp,
         run: () => {
           close();
-          void copyText(
-            `claude mcp add hub --transport http ${window.location.protocol}//${window.location.hostname}:7310/mcp`,
-          ).then(() => showToast({ message: t.palette.mcpCopied }));
+          if (connectCommand) {
+            void copyText(connectCommand).then(() => showToast({ message: t.palette.mcpCopied }));
+          } else {
+            navigate('settings', { query: { tab: 'devices' } });
+          }
         },
       },
       {
@@ -190,7 +265,7 @@ export function CommandPalette({
 
     const out: Group[] = [];
     if (q) {
-      const cards = (found.data ?? []).map(cardRow);
+      const cards = cardsFound.map(cardRow);
       // An exact key that is not in the catalogue still jumps, and the sheet says it does not exist (09 §14).
       if (KEY_RE.test(q) && !cards.some((c) => c.id === `card-${q.toUpperCase()}`)) {
         const key = q.toUpperCase();
@@ -213,7 +288,19 @@ export function CommandPalette({
     if (pages.length) out.push({ id: 'pages', title: t.palette.pages, items: pages });
     if (actions.length) out.push({ id: 'actions', title: t.palette.actions, items: actions });
     return out;
-  }, [query, locale, t, onOpenChange, onNewCard, onShortcuts, found.data]);
+  }, [
+    query,
+    locale,
+    t,
+    onOpenChange,
+    onNewCard,
+    onShortcuts,
+    cardsFound,
+    canIdea,
+    canPlan,
+    projects,
+    connectCommand,
+  ]);
 
   const flat = groups.flatMap((g) => g.items);
   const safeActive = Math.min(active, Math.max(0, flat.length - 1));
@@ -275,9 +362,14 @@ export function CommandPalette({
             aria-label={t.palette.label}
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
           >
-            {flat.length === 0 && (
-              <p className="px-3 py-6 text-center text-body text-muted-foreground">{t.palette.empty}</p>
-            )}
+            {flat.length === 0 &&
+              (waiting ? (
+                <p role="status" className="px-3 py-6 text-center text-body text-muted-foreground">
+                  {t.palette.searching}
+                </p>
+              ) : (
+                <p className="px-3 py-6 text-center text-body text-muted-foreground">{t.palette.empty}</p>
+              ))}
             {groups.map((group) => (
               <div key={group.id} role="group" aria-labelledby={`palette-group-${group.id}`} className="pb-1">
                 <p

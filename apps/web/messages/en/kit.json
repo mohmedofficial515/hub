@@ -227,7 +227,7 @@
     "noBody": "This card has no description.",
     "comments": {
       "empty": "No comments yet. Write the first one.",
-      "placeholder": "Write a comment. Use GTV- to link a card.",
+      "placeholder": "Write a comment. Mention a card's key to link it.",
       "label": "New comment",
       "send": "Send",
       "hint": "Ctrl+Enter sends",
@@ -335,6 +335,7 @@
         "blocked_by": "Blocked by",
         "relates": "Relates to",
         "parent": "Child of",
+        "child": "Parent of",
         "duplicates": "Duplicates"
       },
       "add": "Add link",
@@ -631,7 +632,11 @@
       "reason": "Reason",
       "replacedBy": "Replaced by",
       "related": "Related docs",
-      "withdrawnNote": "This decision was withdrawn before it was made."
+      "withdrawnNote": "This decision was withdrawn before it was made.",
+      "noOptions": "A decision can’t be made without options. Add at least two, then decide.",
+      "addOptions": "Add options",
+      "noOptionsAsk": "Options can be added by the owner, the PM or whoever created the decision.",
+      "remindersBefore": "{list} before the deadline"
     },
     "doc": {
       "read": "Read it on the Docs page",
@@ -640,6 +645,20 @@
       "langs": {
         "ar": "Arabic",
         "en": "English"
+      },
+      "indexedLabel": "Indexed",
+      "copySha": "Copy the full commit {sha}",
+      "wrap": "Wrap lines",
+      "diagram": "Mermaid diagram",
+      "code": "Code",
+      "image": "Image",
+      "openImage": "Open the image",
+      "callouts": {
+        "note": "Note",
+        "tip": "Tip",
+        "important": "Important",
+        "warning": "Warning",
+        "caution": "Caution"
       }
     },
     "handoff": {
@@ -701,7 +720,52 @@
       "blockerTitle": "Cards this task waits on",
       "docTitle": "Docs related to this task",
       "overdue": "{d} overdue",
-      "dueSoon": "{d} left"
+      "dueSoon": "{d} left",
+      "acceptanceProgress": "{done} of {total}",
+      "criterionDone": "done",
+      "criterionOpen": "not done yet",
+      "noAcceptance": "No acceptance criteria yet. Without them neither the doer nor the reviewer knows when the task is finished.",
+      "addAcceptance": "Write the criteria",
+      "reviewNote": "Reviewer's note",
+      "cancelReason": "Why it was cancelled",
+      "historyEdited": "edited",
+      "historyFields": {
+        "title": "Title",
+        "body": "Description",
+        "ownerRole": "Role",
+        "dueAt": "Due",
+        "tags": "Tags",
+        "module": "Module",
+        "assigneeId": "Assignee",
+        "repo": "Repository",
+        "specialty": "Specialty",
+        "effort": "Effort",
+        "prUrl": "PR link",
+        "acceptance": "Acceptance criteria",
+        "prompt": "Start prompt",
+        "comment": "Comment",
+        "options": "Options",
+        "notes": "Notes"
+      },
+      "removeLink": "Remove the link to {key}",
+      "discardTitle": "Discard what you wrote?",
+      "discardBody": "This text has not been saved yet.",
+      "discardConfirm": "Discard",
+      "stages": "Task stages",
+      "comesFrom": "Comes from",
+      "next": {
+        "backlog": "Not ready yet. Mark it ready so someone can claim it.",
+        "blocked": "Blocked by {key}; it can be claimed once that is settled.",
+        "claim": "Next: claim it, then paste {cmd} in Claude Code.",
+        "waitsRole": "Waiting for someone in the {role} role to claim it.",
+        "waits": "Waiting for someone to claim it.",
+        "start": "Next: start working on it.",
+        "submit": "When you finish, submit it for review with the PR link.",
+        "heldBy": "{who} is working on it, claimed {when}.",
+        "review": "Check the evidence and the acceptance criteria, then complete it or send it back with a note.",
+        "waitsReview": "Waiting for review.",
+        "done": "Finished {when}."
+      }
     },
     "idea": {
       "problem": "Problem",

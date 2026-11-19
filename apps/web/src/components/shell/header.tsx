@@ -59,12 +59,27 @@ export function LiveIndicator() {
   );
 }
 
-function Breadcrumb({ compact }: { compact?: boolean | undefined }) {
+export function Breadcrumb({ compact }: { compact?: boolean | undefined }) {
   const t = useT(messages);
-  const { view, known, cardKey } = useRoute();
+  const { view, known, cardKey, query } = useRoute();
   const { workspace } = useSession();
+  // A page of its own under a view, such as a plan on Planning or a doc on Docs, is one step below it, as a card in the sheet is.
+  const sub =
+    cardKey ?? (view === 'planning' ? query.get('plan') : view === 'docs' ? query.get('doc') : null);
+  const crumbLink = cn('rounded-sm underline-offset-4 hover:underline', focusRing);
   const crumbs = [
-    ...(compact ? [] : [{ key: 'ws', node: <span className="max-md:hidden">{workspace?.name}</span> }]),
+    ...(compact
+      ? []
+      : [
+          {
+            key: 'ws',
+            node: (
+              <AppLink view="today" className={cn('max-md:hidden', crumbLink)}>
+                {workspace?.name}
+              </AppLink>
+            ),
+          },
+        ]),
     {
       key: 'view',
       node: !known ? (
@@ -72,7 +87,16 @@ function Breadcrumb({ compact }: { compact?: boolean | undefined }) {
           {t.boundary.notFoundTitle}
         </span>
       ) : cardKey ? (
-        <AppLink view={view} className={cn('rounded-sm underline-offset-4 hover:underline', focusRing)}>
+        <AppLink view={view} className={crumbLink}>
+          {t.nav[view]}
+        </AppLink>
+      ) : sub ? (
+        // Back to the lists, with their filters kept: only what opened the sub-page is cleared.
+        <AppLink
+          view={view}
+          query={{ plan: null, doc: null, anchor: null, studio: null, draft: null, action: null, tab: null }}
+          className={crumbLink}
+        >
           {t.nav[view]}
         </AppLink>
       ) : (
@@ -81,14 +105,16 @@ function Breadcrumb({ compact }: { compact?: boolean | undefined }) {
         </span>
       ),
     },
-    ...(cardKey && !compact
+    ...(sub && known && !compact
       ? [
           {
             key: 'card',
             node: (
-              <Ltr mono className="text-body-sm font-medium text-foreground">
-                {cardKey}
-              </Ltr>
+              <span aria-current="page">
+                <Ltr mono className="text-body-sm font-medium text-foreground">
+                  {sub}
+                </Ltr>
+              </span>
             ),
           },
         ]

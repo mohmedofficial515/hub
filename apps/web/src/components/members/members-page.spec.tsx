@@ -1,13 +1,28 @@
 /**
  * @file Members: manager and member views, invites, the four states.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
 import { MembersPage } from './members-page';
+import { ProfileDialog } from './parts/dialogs';
+
+/** The page keeps the dialog mounted and toggles `open`, as here. */
+function ProfileHarness() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div id="hub-root">
+      <button type="button" onClick={() => setOpen(true)}>
+        open profile
+      </button>
+      <ProfileDialog open={open} onClose={() => setOpen(false)} />
+    </div>
+  );
+}
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -156,5 +171,21 @@ describe('MembersPage', () => {
       </Tooltip.Provider>,
     );
     expect(await screen.findByText(/hub\.common\.internal/)).toBeTruthy();
+  });
+
+  it('opens My profile on the current name every time, after a cancelled edit too', async () => {
+    stubFetch(answer(['owner']));
+    renderWithApp(
+      <Tooltip.Provider>
+        <ProfileHarness />
+      </Tooltip.Provider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'open profile' }));
+    await waitFor(() => expect(screen.getByLabelText(/Display name/)).toHaveValue('Owner One'));
+    fireEvent.change(screen.getByLabelText(/Display name/), { target: { value: 'Someone else' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'open profile' }));
+    await waitFor(() => expect(screen.getByLabelText(/Display name/)).toHaveValue('Owner One'));
   });
 });
