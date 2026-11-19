@@ -5,10 +5,11 @@
  * @description The agent queue (docs/16 §9), in Hub's own style (owner's decision, 2026-11-08): one reading column like the Inbox, sections like Tasks, neutral cards with coloured icons only. Running, waiting for approval, next, recent.
  * Next keeps the owner's order: drag a row by its grip, or use Move up and Move down in its menu, or Alt with an arrow on a focused row; a live region says where it went. The one filled button is Answer on the first run waiting on the owner.
  * Nothing here runs by itself: a run is added by the owner, and starts within the limits shown in the header.
+ * Two views under one title (owner's decision, 2026-11-19): the queue, and "Running now" in `?show=live`, which is the Live page.
  */
 import { type AgentRunDto, type QueueSection, sectionOf } from '@hub/contracts';
 import { GripVertical, ListOrdered, Moon, Pause, Play, Plus, Settings2 } from 'lucide-react';
-import { type DragEvent, type KeyboardEvent, useMemo, useRef, useState } from 'react';
+import { type DragEvent, type KeyboardEvent, type ReactNode, useMemo, useRef, useState } from 'react';
 
 import {
   AppLink,
@@ -27,11 +28,14 @@ import {
   Skeleton,
   SkeletonRows,
   useLocale,
+  useRoute,
   when as whenText,
 } from '@/components/kit';
+import { LivePage } from '@/components/live/live-page';
 import { usePauseQueue, useQueue, useReorderRuns } from '@/features/queue/queries';
 import { isHubError } from '@/lib/api/errors';
 
+import { QueueTabs, queueViewOf } from './queue-tabs';
 import {
   runAgainTarget,
   runMenuItems,
@@ -46,6 +50,13 @@ import {
 const ORDER: readonly QueueSection[] = ['running', 'waiting', 'next', 'recent'];
 
 export function QueuePage() {
+  const t = useQueueWords();
+  const view = queueViewOf(useRoute().query.get('show'));
+  const tabs = <QueueTabs current={view} />;
+  return view === 'live' ? <LivePage title={t.title} tabs={tabs} /> : <QueueBoard tabs={tabs} />;
+}
+
+function QueueBoard({ tabs }: { tabs: ReactNode }) {
   const t = useQueueWords();
   const locale = useLocale();
   const query = useQueue();
@@ -169,6 +180,7 @@ export function QueuePage() {
     return (
       <PageContainer className="max-w-200">
         {header}
+        {tabs}
         <ErrorState
           thing={t.errorThing}
           code={isHubError(error) ? error.code : undefined}
@@ -182,6 +194,7 @@ export function QueuePage() {
     return (
       <PageContainer className="max-w-200">
         {header}
+        {tabs}
         <LoadingRegion label={t.title}>
           <div className="flex flex-col gap-3">
             <Skeleton className="h-5 w-24" />
@@ -209,6 +222,7 @@ export function QueuePage() {
   return (
     <PageContainer className="max-w-200">
       {header}
+      {tabs}
       <p role="status" className="sr-only">
         {said}
       </p>

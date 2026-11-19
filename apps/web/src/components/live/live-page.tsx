@@ -27,7 +27,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Tabs } from 'radix-ui';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 
 import {
   Bidi,
@@ -670,7 +670,11 @@ function LiveSkeleton({ label, strip }: { label: string; strip: boolean }) {
   );
 }
 
-export function LivePage() {
+/**
+ * The queue's "Running now" tab draws this page (owner's decision, 2026-11-19): it passes the queue's title and its tab strip, which sit
+ * under the header. On its own it is still titled Live.
+ */
+export function LivePage({ title, tabs }: { title?: string | undefined; tabs?: ReactNode | undefined } = {}) {
   const w = useT<LiveWords>('live');
   const { query, locale, ws } = useRoute();
   const wb = useMaybeWb();
@@ -749,7 +753,7 @@ export function LivePage() {
   return (
     <PageContainer className="max-w-440">
       <PageHeader
-        title={w.title}
+        title={title ?? w.title}
         meta={w.meta}
         actions={
           <Tip content={{ what: w.newWindow }}>
@@ -757,7 +761,7 @@ export function LivePage() {
               variant="outline"
               onClick={() =>
                 window.open(
-                  `/${locale}/${ws}/live${chatId ? `?chat=${chatId}` : ''}`,
+                  `/${locale}/${ws}/queue?show=live${chatId ? `&chat=${chatId}` : ''}`,
                   'hub-live',
                   'popup,width=1440,height=900',
                 )
@@ -769,6 +773,8 @@ export function LivePage() {
           </Tip>
         }
       />
+
+      {tabs}
 
       <ChatStrip selected={chatId} />
 

@@ -1,28 +1,21 @@
 /**
  * @file Members: manager and member views, invites, the four states.
  */
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Tooltip } from 'radix-ui';
-import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type * as KitModule from '@/components/kit';
 import { renderWithApp, stubFetch } from '@/test/render';
 
-import { MembersPage } from './members-page';
-import { ProfileDialog } from './parts/dialogs';
+const navigate = vi.hoisted(() => vi.fn());
+vi.mock('@/components/kit', async (original) => ({
+  ...(await original<typeof KitModule>()),
+  navigate,
+}));
 
-/** The page keeps the dialog mounted and toggles `open`, as here. */
-function ProfileHarness() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div id="hub-root">
-      <button type="button" onClick={() => setOpen(true)}>
-        open profile
-      </button>
-      <ProfileDialog open={open} onClose={() => setOpen(false)} />
-    </div>
-  );
-}
+const { MembersPage } = await import('./members-page');
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
@@ -173,19 +166,18 @@ describe('MembersPage', () => {
     expect(await screen.findByText(/hub\.common\.internal/)).toBeTruthy();
   });
 
-  it('opens My profile on the current name every time, after a cancelled edit too', async () => {
+  it('sends My profile to Settings › Account, where the profile lives now', async () => {
     stubFetch(answer(['owner']));
     renderWithApp(
       <Tooltip.Provider>
-        <ProfileHarness />
+        <div id="hub-root">
+          <MembersPage />
+        </div>
       </Tooltip.Provider>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'open profile' }));
-    await waitFor(() => expect(screen.getByLabelText(/Display name/)).toHaveValue('Owner One'));
-    fireEvent.change(screen.getByLabelText(/Display name/), { target: { value: 'Someone else' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'open profile' }));
-    await waitFor(() => expect(screen.getByLabelText(/Display name/)).toHaveValue('Owner One'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Options for Owner One' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'My profile' }));
+    expect(navigate).toHaveBeenCalledWith('settings', { query: { tab: 'account' } });
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

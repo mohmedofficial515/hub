@@ -7,6 +7,7 @@
 import {
   Check,
   ChevronsUpDown,
+  Compass,
   FolderKanban,
   Keyboard,
   KeyRound,
@@ -37,6 +38,7 @@ import {
   type PluralForms,
   setPreference,
   Tooltip,
+  useCounters,
   useMe,
   useMedia,
   useMyCounts,
@@ -287,7 +289,7 @@ function WorkspaceSwitcher({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-/** Profile, tokens, shortcuts, sign out (08 §2). The sidebar's foot and the header avatar both open it. */
+/** Account, tokens, Getting started, shortcuts, sign out (08 §2). The sidebar's foot and the header avatar both open it. */
 export function MemberMenu({
   onShortcuts,
   trigger,
@@ -315,7 +317,7 @@ export function MemberMenu({
             {me.name}
           </DropdownMenu.Label>
           <DropdownMenu.Item
-            onSelect={() => navigate('members', { query: { profile: 'me' } })}
+            onSelect={() => navigate('settings', { query: { tab: 'account' } })}
             className={menuItem}
           >
             <UserRound aria-hidden className="size-4" strokeWidth={1.75} />
@@ -327,6 +329,11 @@ export function MemberMenu({
           >
             <KeyRound aria-hidden className="size-4" strokeWidth={1.75} />
             {t.sidebar.tokens}
+          </DropdownMenu.Item>
+          {/* The sidebar hides Getting started once it is done; it stays here and in the palette. */}
+          <DropdownMenu.Item onSelect={() => navigate('onboarding')} className={menuItem}>
+            <Compass aria-hidden className="size-4" strokeWidth={1.75} />
+            {t.nav.onboarding}
           </DropdownMenu.Item>
           <DropdownMenu.Item onSelect={onShortcuts} className={menuItem}>
             <Keyboard aria-hidden className="size-4" strokeWidth={1.75} />
@@ -341,6 +348,16 @@ export function MemberMenu({
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );
+}
+
+/**
+ * Which views get a sidebar item. Live is a tab of the queue (no item). Getting started shows only while steps are left by the
+ * counters' own answer, so a member who finished it never sees it flash in; the page they are on keeps its item.
+ */
+export function sidebarShows(view: ViewDef, onboardingLeft: number | undefined, current: ViewId) {
+  if (view.nav === false) return false;
+  if (view.id === 'onboarding') return current === 'onboarding' || (onboardingLeft ?? 0) > 0;
+  return true;
 }
 
 /** Sidebar contents: one body for the desktop rail and the phone drawer. */
@@ -362,7 +379,11 @@ function SidebarBody({
   const dark = useTheme() === 'dark';
   const Collapse = collapsed ? PanelLeftOpen : PanelLeftClose;
   const badge = (view: ViewDef) => badgeFor(view.counter, counts, t, locale, isManager, isOwner);
-  const top = views.filter((v) => v.group === null);
+  const onboardingLeft = useCounters().data?.onboardingLeft;
+  const { view: current } = useRoute();
+  const shown = views.filter((v) => sidebarShows(v, onboardingLeft, current));
+  const top = shown.filter((v) => v.group === null);
+  const groups = NAV_GROUPS.filter((group) => shown.some((v) => v.group === group));
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -397,7 +418,7 @@ function SidebarBody({
             </li>
           ))}
         </ul>
-        {NAV_GROUPS.map((group) => (
+        {groups.map((group) => (
           <section key={group} aria-labelledby={`nav-${group}${drawer ? '-d' : ''}`} className="mt-3">
             {collapsed ? (
               <div className="mx-2 mb-2 h-px bg-border">
@@ -414,7 +435,7 @@ function SidebarBody({
               </h2>
             )}
             <ul className="flex flex-col gap-0.5">
-              {views
+              {shown
                 .filter((v) => v.group === group)
                 .map((view) => (
                   <li key={view.id}>

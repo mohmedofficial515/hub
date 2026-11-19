@@ -90,7 +90,9 @@ export function useGlobalKeys(actions: {
         const view = views.find((v) => v.goKey && matchKey(e, v.goKey));
         if (view) {
           e.preventDefault();
-          navigate(view.id);
+          // Live is a tab of the queue: its key opens that tab.
+          if (view.to) navigate(view.to.view, { query: view.to.query });
+          else navigate(view.id);
         }
         return;
       }

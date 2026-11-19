@@ -161,7 +161,8 @@ export function CommandPalette({
           trailing: view.goKey ? <Kbd>{`g ${view.goKey}`}</Kbd> : undefined,
           run: () => {
             close();
-            navigate(view.id);
+            if (view.to) navigate(view.to.view, { query: view.to.query });
+            else navigate(view.id);
           },
         };
       })

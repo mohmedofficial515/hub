@@ -1,5 +1,14 @@
 {
   "title": "Agent queue",
+  "tabs": {
+    "label": "Queue views",
+    "queue": "Queue",
+    "live": "Running now",
+    "running": {
+      "one": "1 chat running",
+      "other": "# chats running"
+    }
+  },
   "summary": "{concurrent} at a time · {used} of {perDay} runs today",
   "quiet": "Quiet {from}–{to}",
   "timezone": "Times in {zone}",

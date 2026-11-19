@@ -165,8 +165,8 @@ test.describe('Settings › Backups', () => {
   }) => {
     const { page, rest } = await member('accountant');
     const settings = words(locale, 'settings');
-    await page.goto(view(locale, ws, 'settings', 'tab=notifications'));
-    await expect(page.getByRole('tab', { name: word(settings, 'tabs.notifications') })).toBeVisible();
+    await page.goto(view(locale, ws, 'settings', 'tab=account'));
+    await expect(page.getByRole('tab', { name: word(settings, 'tabs.account') })).toBeVisible();
     await expect(page.getByRole('tab', { name: word(settings, 'tabs.backups') })).toHaveCount(0);
     const answer = await rest.context.get(`/api/v1/workspaces/${ws}/backups`);
     expect(answer.status()).toBe(403);

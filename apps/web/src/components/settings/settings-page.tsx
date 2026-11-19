@@ -3,6 +3,7 @@
 /**
  * @file settings-page.tsx
  * @description The tabs in `?tab=` (docs/09 §18). Backups (docs/16 D61 to D63) shows for the owner alone. Ported from the approved design, pages/settings. Contract: apps/web/README.md.
+ * Account (owner's decision, 2026-11-19) holds the profile and the notifications; the old `?tab=notifications` lands on it.
  */
 import { Tabs } from 'radix-ui';
 import { Fragment, useEffect, useId, useRef } from 'react';
@@ -34,12 +35,12 @@ import { useSettings, useSources } from '@/features/settings/queries';
 import { isProblem, sourceState } from '@/features/settings/source-state';
 import { useScrollCue } from '@/lib/scroll-cue';
 
+import { AccountTab } from './parts/account';
 import { AppearanceTab } from './parts/appearance';
 import { AuditTab } from './parts/audit';
 import { BackupsTab } from './parts/backups';
 import { DevicesTab } from './parts/devices';
 import { GeneralTab } from './parts/general';
-import { NotificationsTab } from './parts/notifications';
 import { QueueTab } from './parts/queue';
 import { RolesTab } from './parts/roles';
 import { SourcesTab } from './parts/sources';
@@ -47,8 +48,8 @@ import { SystemTab } from './parts/system';
 import { TokensTab } from './parts/tokens';
 
 const TABS = [
+  'account',
   'appearance',
-  'notifications',
   'tokens',
   'devices',
   'queue',
@@ -61,7 +62,7 @@ const TABS = [
 ] as const;
 type SettingsTab = (typeof TABS)[number];
 /** 09 §18.4, §18.5, docs/16 §5 and §9: these five belong to every member. The rest are owner and PM, with a 403 otherwise. */
-const PERSONAL: readonly SettingsTab[] = ['appearance', 'notifications', 'tokens', 'devices', 'queue'];
+const PERSONAL: readonly SettingsTab[] = ['account', 'appearance', 'tokens', 'devices', 'queue'];
 type TabGroup = 'mine' | 'project' | 'server';
 /** The strip reads in three named runs: what is mine, what is the project's, what is this machine's. */
 const GROUPS: { id: TabGroup; tabs: readonly SettingsTab[] }[] = [
@@ -71,13 +72,15 @@ const GROUPS: { id: TabGroup; tabs: readonly SettingsTab[] }[] = [
 ];
 const groupOf = (tab: SettingsTab) => GROUPS.find((g) => g.tabs.includes(tab))!.id;
 const isTab = (v: string | null): v is SettingsTab => !!v && (TABS as readonly string[]).includes(v);
+/** Old addresses: Notifications is a section of Account now. */
+const ALIASES: Record<string, SettingsTab> = { notifications: 'account' };
 
 const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
+  account: AccountTab,
   appearance: AppearanceTab,
   general: GeneralTab,
   sources: SourcesTab,
   roles: RolesTab,
-  notifications: NotificationsTab,
   tokens: TokensTab,
   devices: DevicesTab,
   queue: QueueTab,
@@ -95,14 +98,15 @@ const PANELS: Record<SettingsTab, () => React.JSX.Element> = {
  */
 function useSettingsTab(fallback: SettingsTab | null) {
   const { query, cardKey } = useRoute();
-  const raw = query.get('tab');
+  const asked = query.get('tab');
+  const raw = (asked && ALIASES[asked]) || asked;
   const latched = useRef<SettingsTab | null>(null);
   if (!cardKey && isTab(raw)) latched.current = raw;
   latched.current ??= isTab(raw) ? raw : fallback;
   const current = latched.current;
   useEffect(() => {
-    if (!cardKey && current && raw !== current) setQuery({ tab: current });
-  }, [cardKey, raw, current]);
+    if (!cardKey && current && asked !== current) setQuery({ tab: current });
+  }, [cardKey, asked, current]);
   return current;
 }
 
@@ -155,7 +159,7 @@ export function SettingsPage() {
   const landing: SettingsTab | null = loading
     ? null
     : !isManager
-      ? 'appearance'
+      ? 'account'
       : sources.isPending
         ? null
         : problems > 0
@@ -264,7 +268,7 @@ export function SettingsPage() {
               forbiddenRole={fmt(t.forbiddenRoles, { owner: kit.roles.owner, pm: kit.roles.pm })}
               className="pb-4"
             />
-            <Button onClick={() => setQuery({ tab: 'appearance' })}>{t.backToMine}</Button>
+            <Button onClick={() => setQuery({ tab: 'account' })}>{t.backToMine}</Button>
           </div>
         )}
       </Tabs.Root>

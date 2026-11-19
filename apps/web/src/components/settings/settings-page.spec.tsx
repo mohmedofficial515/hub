@@ -134,7 +134,7 @@ describe('SettingsPage', () => {
     dismissToast();
   });
 
-  it('gives the owner eleven tabs (Appearance first), Backups among them, and the project details', async () => {
+  it('gives the owner eleven tabs (Account first), Backups among them, and the project details', async () => {
     stubFetch(answer(['owner']));
     renderWithApp(
       <Tooltip.Provider>
@@ -205,7 +205,7 @@ describe('SettingsPage', () => {
     expect(screen.queryByRole('button', { name: 'Close project' })).toBeNull();
   });
 
-  it('gives any other member five tabs (Appearance among them), and a 403 on the rest', async () => {
+  it('gives any other member five tabs (Account among them), and a 403 on the rest', async () => {
     search.value = 'tab=audit';
     stubFetch(answer(['frontend']));
     renderWithApp(
@@ -217,7 +217,7 @@ describe('SettingsPage', () => {
     expect(screen.getByRole('button', { name: 'Go to my settings' })).toBeTruthy();
   });
 
-  it('says what notifications need, and offers no switch for them', async () => {
+  it('says what notifications need, and offers no switch for them, inside Account where the old address lands', async () => {
     search.value = 'tab=notifications';
     stubFetch(answer(['frontend']));
     renderWithApp(
@@ -226,6 +226,8 @@ describe('SettingsPage', () => {
       </Tooltip.Provider>,
     );
     expect(await screen.findAllByText('Not connected')).toHaveLength(3);
+    expect(screen.getByRole('tab', { name: 'Account' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByRole('tab', { name: 'Notifications' })).toBeNull();
     expect(screen.getByText(/VAPID/)).toBeTruthy();
     expect(screen.queryByRole('radio')).toBeNull();
   });
@@ -296,7 +298,7 @@ describe('SettingsPage', () => {
     expect(within(list).getByText('Mine')).toBeTruthy();
     expect(within(list).getByText('Project')).toBeTruthy();
     expect(within(list).getByText('This Hub')).toBeTruthy();
-    expect(within(list).getAllByRole('tab')[0]?.textContent).toBe('Appearance');
+    expect(within(list).getAllByRole('tab')[0]?.textContent).toBe('Account');
     unmount();
     vi.unstubAllGlobals();
     stubFetch(answer(['frontend']));
@@ -311,7 +313,7 @@ describe('SettingsPage', () => {
     expect(within(member).queryByText('Project')).toBeNull();
   });
 
-  it('lands a member with no tab in the URL on Appearance', async () => {
+  it('lands a member with no tab in the URL on Account', async () => {
     search.value = '';
     stubFetch(answer(['frontend']));
     renderWithApp(
@@ -320,7 +322,7 @@ describe('SettingsPage', () => {
       </Tooltip.Provider>,
     );
     await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Appearance' }).getAttribute('aria-selected')).toBe('true'),
+      expect(screen.getByRole('tab', { name: 'Account' }).getAttribute('aria-selected')).toBe('true'),
     );
   });
 

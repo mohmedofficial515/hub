@@ -878,7 +878,9 @@ function PanelHeader({
         label={t.pro.live}
         title={undefined}
         data-wb-live
-        onClick={() => navigate('live', { query: chat ? { chat: chat.id } : {} })}
+        onClick={() =>
+          navigate('queue', { query: chat ? { show: 'live', chat: chat.id } : { show: 'live' } })
+        }
       >
         <Radio aria-hidden className="size-4" strokeWidth={1.75} />
       </IconButton>

@@ -1,5 +1,6 @@
 /**
- * @file The sidebar: groups, Planning first in Work (docs/15 §4), badges in words, the project switcher (docs/15 §5), in both directions.
+ * @file The sidebar: the five groups of 2026-11-19 (Work, Follow, Delivery, Knowledge, Project), Planning first in Work (docs/15 §4), no Live
+ * item, Getting started only while steps are left, badges in words, the project switcher (docs/15 §5), in both directions.
  */
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -116,5 +117,50 @@ describe('DesktopSidebar', () => {
     mount('ar');
     expect(screen.getByRole('link', { name: 'المهام' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'التخطيط' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'البحث' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'المتابعة' })).toBeInTheDocument();
+  });
+
+  it('groups the pages as Work, Follow, Delivery, Knowledge and Project, with no Admin and no Live', () => {
+    stubFetch(() => undefined);
+    mount();
+    const names = screen.getAllByRole('region').map((region) => region.getAttribute('aria-labelledby'));
+    expect(names).toEqual(['nav-work', 'nav-follow', 'nav-delivery', 'nav-knowledge', 'nav-workspace']);
+    const hrefs = (name: string) =>
+      within(screen.getByRole('region', { name }))
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href'));
+    expect(hrefs('Work')).toEqual([
+      '/en/goteav/planning',
+      '/en/goteav/tasks',
+      '/en/goteav/decisions',
+      '/en/goteav/needs',
+      '/en/goteav/handoffs',
+    ]);
+    expect(hrefs('Follow')).toEqual(['/en/goteav/timeline', '/en/goteav/queue']);
+    expect(hrefs('Delivery')).toEqual(['/en/goteav/redesign', '/en/goteav/releases']);
+    expect(hrefs('Knowledge')).toContain('/en/goteav/schema');
+    expect(screen.queryByRole('link', { name: /Live|Running now/ })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', '/en/goteav/ask');
+  });
+
+  it('shows Getting started while steps are left, and hides it once the path is done', async () => {
+    stubFetch((url) =>
+      url.pathname.endsWith('/counters') ? { body: { data: { onboardingLeft: 2 } } } : api(url),
+    );
+    mount();
+    expect(await screen.findByRole('link', { name: 'Getting started, 2 steps left' })).toBeInTheDocument();
+  });
+
+  it('keeps Getting started out of the sidebar once nothing is left, and in the member menu', async () => {
+    stubFetch((url) =>
+      url.pathname.endsWith('/counters') ? { body: { data: { onboardingLeft: 0 } } } : api(url),
+    );
+    mount();
+    await screen.findByText('Goteav');
+    expect(screen.queryByRole('link', { name: /Getting started/ })).toBeNull();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'My account' }));
+    expect(await screen.findByRole('menuitem', { name: 'Getting started' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Profile' })).toBeInTheDocument();
   });
 });

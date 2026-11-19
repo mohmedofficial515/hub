@@ -2,11 +2,12 @@
  * @file views.tsx
  * @description The one list of views: the sidebar, the palette, the breadcrumb and the `g` shortcuts all read it. Ported from
  * v5 `shell/views.tsx`, with Planning first in Work (docs/15 §4). A route lives in `app/[locale]/[ws]/<id>/page.tsx`.
+ * The groups follow the owner's decision of 2026-11-19: Work, Follow, Delivery, Knowledge, Project. Live is a tab of the queue now, so it has
+ * no sidebar item; its `g v` key and its palette entry open that tab.
  */
 import {
   ArrowLeftRight,
   CalendarDays,
-  CircleHelp,
   Compass,
   Database,
   FileText,
@@ -20,6 +21,7 @@ import {
   Radio,
   Rocket,
   Scale,
+  Search,
   Settings,
   Sparkles,
   SquareCheck,
@@ -52,29 +54,40 @@ export interface ViewDef {
   counter?: CounterKey;
   /** Second key of the `g` sequence (08 §12), if it has one. */
   goKey?: string;
+  /** false: reachable from the palette and its `g` key, but no sidebar item. */
+  nav?: false;
+  /** Where the palette and the `g` key go, when it is not the view's own page (Live is a tab of the queue). */
+  to?: { view: ViewId; query: Record<string, string> };
 }
 
 export const views: ViewDef[] = [
   { id: 'today', icon: CalendarDays, group: null, goKey: 't' },
   { id: 'inbox', icon: Inbox, group: null, counter: 'inbox', goKey: 'i' },
   { id: 'planning', icon: Lightbulb, group: 'work', counter: 'planning', goKey: 'p' },
-  { id: 'timeline', icon: GitCommitHorizontal, group: 'work', counter: 'timeline', goKey: 'l' },
   { id: 'tasks', icon: SquareCheck, group: 'work', counter: 'tasks', goKey: 'k' },
   { id: 'decisions', icon: Scale, group: 'work', counter: 'decisions', goKey: 'd' },
   { id: 'needs', icon: KeyRound, group: 'work', counter: 'needs', goKey: 'n' },
   { id: 'handoffs', icon: ArrowLeftRight, group: 'work', counter: 'handoffs', goKey: 'h' },
-  { id: 'redesign', icon: Palette, group: 'work', counter: 'redesign', goKey: 'r' },
-  { id: 'releases', icon: Rocket, group: 'work', goKey: 'e' },
-  { id: 'queue', icon: ListOrdered, group: 'work', goKey: 'q' },
-  { id: 'live', icon: Radio, group: 'work', goKey: 'v' },
+  { id: 'timeline', icon: GitCommitHorizontal, group: 'follow', counter: 'timeline', goKey: 'l' },
+  { id: 'queue', icon: ListOrdered, group: 'follow', goKey: 'q' },
+  {
+    id: 'live',
+    icon: Radio,
+    group: 'follow',
+    goKey: 'v',
+    nav: false,
+    to: { view: 'queue', query: { show: 'live' } },
+  },
+  { id: 'redesign', icon: Palette, group: 'delivery', counter: 'redesign', goKey: 'r' },
+  { id: 'releases', icon: Rocket, group: 'delivery', goKey: 'e' },
   { id: 'docs', icon: FileText, group: 'knowledge', goKey: 'o' },
-  { id: 'ask', icon: CircleHelp, group: 'knowledge', goKey: 'a' },
+  { id: 'ask', icon: Search, group: 'knowledge', goKey: 'a' },
   { id: 'onboarding', icon: Compass, group: 'knowledge', counter: 'onboarding', goKey: 'w' },
   { id: 'skills', icon: Sparkles, group: 'knowledge', goKey: 'c' },
+  { id: 'schema', icon: Database, group: 'knowledge', goKey: 'b' },
   { id: 'members', icon: Users, group: 'workspace', counter: 'members', goKey: 'm' },
   { id: 'settings', icon: Settings, group: 'workspace', counter: 'settings', goKey: 's' },
-  { id: 'schema', icon: Database, group: 'admin', goKey: 'b' },
 ];
 
 export const viewById = (id: ViewId) => views.find((v) => v.id === id)!;
-export const NAV_GROUPS: NavGroup[] = ['work', 'knowledge', 'workspace', 'admin'];
+export const NAV_GROUPS: NavGroup[] = ['work', 'follow', 'delivery', 'knowledge', 'workspace'];

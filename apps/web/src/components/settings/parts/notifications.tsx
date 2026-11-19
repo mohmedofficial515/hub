@@ -4,12 +4,15 @@
  * @file notifications.tsx
  * @description In-app is the one real channel in this release (docs/15 §3). Push, Telegram and email say they are not connected and what
  * they need. The design's mode switches, kinds grid and personal quiet hours return with those channels, because nothing stores them yet.
+ * It is a section of Settings › Account now (owner's decision, 2026-11-19), and `?tab=notifications` lands there.
  */
 import { BellRing, Inbox, type LucideIcon, Mail, MessageCircle, Unplug } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { Pill, SectionHeader, useT } from '@/components/kit';
+import { Pill, useT } from '@/components/kit';
 import type { SettingsMessages } from '@/features/settings/messages';
+
+import { FormSection } from './shared';
 
 function ChannelRow({
   icon: Icon,
@@ -36,7 +39,7 @@ function ChannelRow({
   );
 }
 
-export function NotificationsTab() {
+export function NotificationsSection() {
   const s = useT<SettingsMessages>('settings').notifications;
   const notConnected = (
     <Pill tone="muted" icon={Unplug}>
@@ -44,9 +47,7 @@ export function NotificationsTab() {
     </Pill>
   );
   return (
-    <section aria-labelledby="channels-title" className="flex flex-col gap-3">
-      <SectionHeader id="channels-title" icon={BellRing} title={s.title} />
-      <p className="max-w-prose text-body-sm text-muted-foreground">{s.intro}</p>
+    <FormSection title={s.title} description={s.intro}>
       <ul className="flex flex-col divide-y divide-border rounded-lg border border-border bg-card">
         <ChannelRow
           icon={Inbox}
@@ -63,6 +64,6 @@ export function NotificationsTab() {
         />
         <ChannelRow icon={Mail} name={s.channels.email} status={s.needs.email} control={notConnected} />
       </ul>
-    </section>
+    </FormSection>
   );
 }

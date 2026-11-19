@@ -1,13 +1,9 @@
 /**
- * @file Any sidebar view whose page has not been ported yet. A folder named after the view (`[ws]/tasks/page.tsx`) takes over from this.
+ * @file An address under a project that names no view (`/en/goteav/nope`). Every view has its own folder now, so this only says
+ * "not found", inside the shell: without it the address would fall through to `[locale]/[...rest]`, outside the project's frame.
  */
 import { notFound } from 'next/navigation';
 
-import { VIEW_IDS } from '@/components/shell/view-ids';
-import { ViewPlaceholder } from '@/components/shell/view-placeholder';
-
-export default async function ViewPage({ params }: { params: Promise<{ view: string }> }) {
-  const { view } = await params;
-  if (!(VIEW_IDS as readonly string[]).includes(view)) notFound();
-  return <ViewPlaceholder />;
+export default function UnknownView() {
+  notFound();
 }

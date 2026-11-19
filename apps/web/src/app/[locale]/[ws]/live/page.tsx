@@ -1,8 +1,18 @@
 /**
- * @file The Live route: what a running chat is changing, as a large page outside the panel.
+ * @file The old Live address. Live is the "Running now" tab of the queue now (owner's decision, 2026-11-19); a link to
+ * `/[ws]/live?chat=` still opens that chat there.
  */
-import { LivePage } from '@/components/live/live-page';
+import { redirect } from 'next/navigation';
 
-export default function Page() {
-  return <LivePage />;
+import { liveTarget } from './target';
+
+export default async function LiveRedirect({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string; ws: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { locale, ws } = await params;
+  redirect(liveTarget(locale, ws, await searchParams));
 }

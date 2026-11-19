@@ -17,7 +17,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   Avatar,
@@ -32,6 +32,7 @@ import {
   kitMessages,
   LoadingRegion,
   Ltr,
+  navigate,
   PageContainer,
   PageHeader,
   Pill,
@@ -49,7 +50,6 @@ import {
   useKeyboardList,
   useLocale,
   usePageWide,
-  useRoute,
   useSession,
   useT,
 } from '@/components/kit';
@@ -58,19 +58,11 @@ import { type DirectoryRow, useDirectory, useInvites, useMemberWrites } from '@/
 import { useSettings } from '@/features/settings/queries';
 import { isHubError } from '@/lib/api/errors';
 
-import {
-  GithubDialog,
-  InviteDialog,
-  InviteLinkDialog,
-  ProfileDialog,
-  RolesDialog,
-  ShownOnceDialog,
-} from './parts/dialogs';
+import { GithubDialog, InviteDialog, InviteLinkDialog, RolesDialog, ShownOnceDialog } from './parts/dialogs';
 import { EarlierInvites, Invites } from './parts/invites';
 
 type Dialog =
   | { kind: 'invite' }
-  | { kind: 'profile' }
   | { kind: 'roles' | 'github' | 'disable'; id: string }
   | { kind: 'link'; title: string; body: string; link: string }
   | { kind: 'invite-link'; email: string; url: string; mail: MailMode }
@@ -147,20 +139,11 @@ export function MembersPage() {
   const writes = useMemberWrites();
   const loading = directoryQuery.isPending;
   const error = directoryQuery.isError;
-  const { query } = useRoute();
   const wide = usePageWide(768);
   const role = useFilter('role') as Role | null;
   const q = (useFilter('q') ?? '').trim().toLowerCase();
   const [dialog, setDialog] = useState<Dialog>(null);
   const heading = useRef<HTMLHeadingElement>(null);
-
-  // The shell's "Profile" item can deep-link here: `?profile=me` (09 §17: the own row opens the profile).
-  useEffect(() => {
-    if (query.get('profile') === 'me') {
-      setDialog({ kind: 'profile' });
-      setQuery({ profile: null });
-    }
-  }, [query]);
 
   const active = directory.filter((d) => d.status === 'active');
   const disabled = directory.filter((d) => d.status === 'disabled');
@@ -173,8 +156,10 @@ export function MembersPage() {
         d.githubLogins.some((l) => l.toLowerCase().includes(q))),
   );
 
+  const openAccount = () => navigate('settings', { query: { tab: 'account' } });
   const openRow = (id: string) => {
-    if (id === me.id) setDialog({ kind: 'profile' });
+    // The profile lives in Settings › Account (owner's decision, 2026-11-19): the own row goes there.
+    if (id === me.id) openAccount();
     else if (isManager) setDialog({ kind: 'roles', id });
   };
   const list = useKeyboardList({
@@ -208,9 +193,7 @@ export function MembersPage() {
       <RowMenu
         label={fmt(t.menu.label, { name })}
         items={[
-          ...(mine
-            ? [{ label: t.menu.profile, icon: UserRound, onSelect: () => setDialog({ kind: 'profile' }) }]
-            : []),
+          ...(mine ? [{ label: t.menu.profile, icon: UserRound, onSelect: openAccount }] : []),
           ...(isManager
             ? [
                 {
@@ -504,7 +487,6 @@ export function MembersPage() {
       )}
 
       <InviteDialog open={dialog?.kind === 'invite'} onClose={() => setDialog(null)} />
-      <ProfileDialog open={dialog?.kind === 'profile'} onClose={() => setDialog(null)} />
       {target && (
         <RolesDialog
           key={`roles-${target.member.id}`}

@@ -4,15 +4,23 @@
 import type { AgentRunDto, QueueDto } from '@hub/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
+import { Tooltip } from 'radix-ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
+import chat from '../../../messages/en/chat.json';
+import kit from '../../../messages/en/kit.json';
+import live from '../../../messages/en/live.json';
+import queue from '../../../messages/en/queue.json';
+import shell from '../../../messages/en/shell.json';
 import { QueuePage } from './queue-page';
 
+const search = vi.hoisted(() => ({ value: '' }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(''),
+  useSearchParams: () => new URLSearchParams(search.value),
   usePathname: () => '/en/demo/queue',
 }));
 
@@ -78,7 +86,51 @@ function serve(queue: QueueDto | 'error') {
 }
 
 describe('QueuePage', () => {
-  beforeEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+    search.value = '';
+  });
+
+  it('has two views, the queue current, and Running now as a link to ?show=live', async () => {
+    serve({ state, runs: [] });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    const views = screen.getByRole('navigation', { name: 'Queue views' });
+    expect(within(views).getByRole('link', { name: 'Queue' })).toHaveAttribute('aria-current', 'page');
+    expect(within(views).getByRole('link', { name: 'Running now' })).toHaveAttribute(
+      'href',
+      '/en/demo/queue?show=live',
+    );
+    expect(await screen.findByText('Nothing in the queue')).toBeInTheDocument();
+  });
+
+  it('shows what runs now under the queue’s title on ?show=live, with a running count on its tab', async () => {
+    search.value = 'show=live';
+    stubFetch((url) =>
+      url.pathname.endsWith('/chats')
+        ? { body: { data: [{ id: 'c1', title: 'Fix the login', running: true }] } }
+        : undefined,
+    );
+    renderWithApp(
+      <NextIntlClientProvider
+        locale="en"
+        timeZone="Europe/Istanbul"
+        messages={{ kit, shell, live, chat, queue }}
+      >
+        <Tooltip.Provider>
+          <div id="hub-root">
+            <QueuePage />
+          </div>
+        </Tooltip.Provider>
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByRole('heading', { level: 1, name: 'Agent queue' })).toBeInTheDocument();
+    const views = screen.getByRole('navigation', { name: 'Queue views' });
+    const running = within(views).getByRole('link', { name: /Running now/ });
+    expect(running).toHaveAttribute('aria-current', 'page');
+    expect(await within(running).findByText('1 chat running')).toBeInTheDocument();
+    expect(within(views).getByRole('link', { name: 'Queue' })).toHaveAttribute('href', '/en/demo/queue');
+    expect(screen.queryByRole('button', { name: /New run/ })).toBeNull();
+  });
 
   it('says when nothing is in the queue, and New run is the filled button', async () => {
     serve({ state, runs: [] });

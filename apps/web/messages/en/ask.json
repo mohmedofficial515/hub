@@ -1,5 +1,5 @@
 {
-  "title": "Ask the project",
+  "title": "Search the project",
   "meta": "Search across docs and cards, with excerpts of the text itself. Hub writes no answers.",
   "inputLabel": "Search docs and cards",
   "placeholder": "Search by words such as: refunds, wallet…",

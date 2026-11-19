@@ -7,6 +7,7 @@
   "forbiddenRoles": "{owner} or {pm}",
   "backToMine": "Go to my settings",
   "tabs": {
+    "account": "Account",
     "appearance": "Appearance",
     "general": "General",
     "sources": "Sources",
@@ -23,6 +24,13 @@
     "mine": "Mine",
     "project": "Project",
     "server": "This Hub"
+  },
+  "account": {
+    "profileBody": "Your name and language follow you in every project.",
+    "passwordBody": "At least 12 characters. Leave both empty to keep your password.",
+    "totpBody": "A code from an app on your phone, with your password, at every sign-in.",
+    "unsaved": "Changes not saved yet",
+    "discard": "Undo changes"
   },
   "unsavedTab": "has unsaved changes",
   "unsavedKept": "Your edits in {tab} are kept here, not saved yet",

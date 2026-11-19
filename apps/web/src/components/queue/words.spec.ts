@@ -13,8 +13,10 @@ const keys = (value: unknown, path = ''): string[] =>
 
 describe('queue.json', () => {
   it('holds the same keys in ar and en, apart from plural forms', () => {
-    const plain = (list: string[]) => list.filter((path) => !path.startsWith('files.'));
+    const plain = (list: string[]) =>
+      list.filter((path) => !path.startsWith('files.') && !path.startsWith('tabs.running.'));
     expect(plain(keys(ar)).sort()).toEqual(plain(keys(en)).sort());
     expect(Object.keys(ar.files)).toEqual(expect.arrayContaining(['one', 'other']));
+    expect(Object.keys(ar.tabs.running)).toEqual(expect.arrayContaining(['one', 'two', 'few', 'other']));
   });
 });

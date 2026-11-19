@@ -10,8 +10,8 @@
     "redesign": "Redesign",
     "releases": "Releases",
     "docs": "Docs",
-    "ask": "Ask",
-    "onboarding": "Onboarding",
+    "ask": "Search",
+    "onboarding": "Getting started",
     "members": "Members",
     "settings": "Settings",
     "planning": "Planning",
@@ -19,13 +19,14 @@
     "queue": "Agent queue",
     "skills": "Skills",
     "schema": "Database",
-    "live": "Live"
+    "live": "Running now"
   },
   "groups": {
     "work": "Work",
+    "follow": "Follow",
+    "delivery": "Delivery",
     "knowledge": "Knowledge",
-    "workspace": "Project",
-    "admin": "Admin"
+    "workspace": "Project"
   },
   "counts": {
     "inbox": {
@@ -209,10 +210,6 @@
     "notMember": "You are not a member of this project",
     "notMemberBody": "Ask its owner for an invitation, or pick one of your projects.",
     "toProjects": "To my projects"
-  },
-  "placeholder": {
-    "title": "This page is being moved in",
-    "body": "It arrives with the next build group. The sidebar, cards and search work now."
   },
   "boundary": {
     "crashTitle": "This page could not be shown",
