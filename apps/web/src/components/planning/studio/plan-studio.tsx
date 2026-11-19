@@ -11,22 +11,13 @@ import { planToPrompt, type ProposedPlan } from '@hub/contracts';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   AlertTriangle,
-  Ban,
-  BookOpen,
   CheckCircle2,
-  CircleHelp,
-  Compass,
-  ExternalLink,
-  FileText,
   Gauge,
-  GitBranch,
   Lightbulb,
-  ListChecks,
   ListOrdered,
   Loader2,
   type LucideIcon,
   MessagesSquare,
-  Network,
   PenLine,
   Play,
   Plus,
@@ -37,7 +28,6 @@ import {
   Save,
   Search,
   Sparkles,
-  Target,
   Users,
   X,
   XCircle,
@@ -54,16 +44,17 @@ import {
   focusRing,
   type IdeaCard,
   kitMessages,
+  Ltr,
+  matchKey,
   num,
   PageContainer,
   plural,
-  type Role,
-  RoleBadge,
   SecretFilterError,
   setQuery,
   showToast,
   Skeleton,
   Tip,
+  useCardQuery,
   useLocale,
   useRoute,
   useT,
@@ -73,7 +64,6 @@ import {
   activeChatId,
   engineBlocks,
   fillComposer,
-  openChat,
   type PanelChat,
   send,
   useMaybeWb,
@@ -93,28 +83,31 @@ import {
   useSavedPlan,
 } from '@/features/planning/plan-studio';
 import { useIdeasQuery } from '@/features/planning/queries';
-import { hostOf } from '@/features/planning/studio-acts';
 import { isHubError } from '@/lib/api/errors';
 
 import { LivePill } from '../detail-parts';
 import type { PlanningMessages } from '../messages';
 import { NewPlanDialog } from '../new-cards';
 import { ReportNote, signed, StudioConversation, type StudioKind } from './conversation';
-import { FlowDiagram } from './diagram';
 import { RecentSessions, RefiningLine, ResearchBoard, studioTurn } from './idea-studio';
-import { Questions, ReportToc, Section } from './report';
+import { PlanReport } from './plan-report';
 import {
+  ManualWay,
+  STUDIO_ANCHOR,
+  STUDIO_PANELS,
   StudioBack,
   StudioFrame,
   StudioMark,
+  StudioMissing,
   type StudioTab,
   StudioTabs,
   useConversationWidth,
+  useStudioChat,
   useStudioSend,
+  wantsAutoFocus,
 } from './shared';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
-const ROLES = new Set<string>(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
 const offOf = (wb: Wb) => (engineBlocks(wb.engine) ? (wb.engine as 'offline') : null);
 
 /** How the plan's versions read in the conversation: each with what changed since the one before. */
@@ -170,22 +163,31 @@ export function PlanStudio() {
   const { query } = useRoute();
   const chatId = query.get('chat');
   const wb = useMaybeWb();
-  const p = useT<PlanningMessages>('planning').planStudio;
-
-  useEffect(() => {
-    if (wb && chatId && wb.activeId !== chatId) openChat(chatId);
-  }, [wb?.activeId, chatId]);
+  const t = useT<PlanningMessages>('planning');
+  const p = t.planStudio;
+  const { chat, missing } = useStudioChat(wb, chatId);
+  const [manual, setManual] = useState(false);
 
   if (!wb) {
     return (
       <PageContainer>
         <StudioBack label={p.back} />
-        <EmptyState icon={Route} title={p.noPanel} />
+        <EmptyState
+          icon={Route}
+          title={p.noPanel}
+          action={
+            <Button variant="primary" onClick={() => setManual(true)}>
+              <PenLine aria-hidden className="size-4" strokeWidth={1.75} />
+              {p.manual}
+            </Button>
+          }
+        />
+        <NewPlanDialog open={manual} onOpenChange={setManual} />
       </PageContainer>
     );
   }
   if (!chatId) return <PlanStart wb={wb} ideaKey={query.get('idea')} />;
-  const chat = wb.chat?.id === chatId ? wb.chat : null;
+  if (missing) return <StudioMissing icon={Route} back={p.back} words={t.studio.missing} />;
   if (!chat) {
     return (
       <PageContainer className="gap-4">
@@ -204,10 +206,14 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
   const p = useT<PlanningMessages>('planning').planStudio;
   const locale = useLocale();
   const reduce = useReducedMotion();
-  const ideas = (useIdeasQuery().data?.items ?? [])
-    .filter((c) => (ACTIVE_IDEAS as readonly string[]).includes(c.status))
-    .slice(0, 6);
+  const active = (useIdeasQuery().data?.items ?? []).filter((c) =>
+    (ACTIVE_IDEAS as readonly string[]).includes(c.status),
+  );
+  const ideas = active.slice(0, 6);
   const [idea, setIdea] = useState<string | null>(ideaKey);
+  // An idea from the address may be past the first six, accepted, or not loaded: its own card names it.
+  const listed = idea ? (active.find((c) => c.key === idea) ?? null) : null;
+  const own = useCardQuery(idea && !listed ? idea : null).data;
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
@@ -215,14 +221,16 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
   const off = offOf(wb);
   const secret = detectSecret(text);
   const ready = wb.ready && !off;
-  const chosen = idea ? (ideas.find((c) => c.key === idea) ?? null) : null;
+  const chosen: { title: string } | null = listed ?? (own && own.key === idea ? own : null);
   const canStart = (!!text.trim() || !!idea) && !secret && ready && !busy;
   const recent = wb.chats
     .filter((c) => !c.deletedAt && c.title.trimStart().startsWith(PLAN_COMMAND))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 6);
 
-  useEffect(() => box.current?.focus(), []);
+  useEffect(() => {
+    if (wantsAutoFocus()) box.current?.focus();
+  }, []);
 
   const start = async () => {
     if (!canStart) return;
@@ -240,11 +248,12 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
   };
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
+    if (matchKey(e, 'Enter') && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
       e.preventDefault();
       void start();
     }
   };
+  const manualWay = <ManualWay hint={p.manualHint} label={p.manual} onOpen={() => setManual(true)} />;
 
   const how: { icon: LucideIcon; title: string; body: string }[] = [
     { icon: Quote, ...p.how.describe },
@@ -267,12 +276,14 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
           <p className="max-w-xl text-body-lg text-pretty text-muted-foreground">{p.subtitle}</p>
         </header>
 
-        <div className="flex flex-col rounded-3xl border border-border bg-card shadow-md transition-shadow focus-within:border-primary/50 focus-within:shadow-lg focus-within:ring-4 focus-within:ring-primary/10">
+        <div className="flex flex-col rounded-3xl border border-border bg-card shadow-sm transition-shadow focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10">
           {idea && (
             <div className="flex min-w-0 items-center gap-2 px-5 pt-4">
-              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-type-idea-soft px-2.5 py-1 text-caption font-medium text-type-idea-fg">
+              <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-type-idea-soft ps-2.5 text-caption font-medium text-type-idea-fg">
                 <Lightbulb aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
-                <span className="shrink-0 font-mono">{idea}</span>
+                <Ltr mono className="shrink-0">
+                  {idea}
+                </Ltr>
                 {chosen && (
                   <span className="min-w-0 truncate">
                     <Bidi>{chosen.title}</Bidi>
@@ -282,9 +293,12 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
                   type="button"
                   aria-label={p.clearIdea}
                   onClick={() => setIdea(null)}
-                  className={cn('-me-1 rounded-full p-0.5 hover:bg-type-idea/20', focusRing)}
+                  className={cn(
+                    'hit-44 flex size-7 shrink-0 items-center justify-center rounded-full hover:bg-type-idea/20',
+                    focusRing,
+                  )}
                 >
-                  <X aria-hidden className="size-3" strokeWidth={2} />
+                  <X aria-hidden className="size-3.5" strokeWidth={2} />
                 </button>
               </span>
             </div>
@@ -326,6 +340,8 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
         </div>
         {secret && <SecretFilterError pattern={secret} />}
         {!wb.ready && <p className="text-center text-caption text-muted-foreground">{p.noDevice}</p>}
+        {/* With no Claude to draft it, writing the plan by hand is the way on, so it sits right here. */}
+        {!ready && manualWay}
 
         {ideas.length > 0 && (
           <div className="flex flex-col gap-2.5">
@@ -349,7 +365,9 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
                   )}
                 >
                   <Lightbulb aria-hidden className="size-3.5 shrink-0 text-type-idea-fg" strokeWidth={1.75} />
-                  <span className="shrink-0 font-mono text-caption text-muted-foreground">{c.key}</span>
+                  <Ltr mono className="shrink-0 text-caption text-muted-foreground">
+                    {c.key}
+                  </Ltr>
                   <span className="min-w-0 truncate">
                     <Bidi>{c.title}</Bidi>
                   </span>
@@ -407,13 +425,7 @@ function PlanStart({ wb, ideaKey }: { wb: Wb; ideaKey: string | null }) {
           </ol>
         </section>
 
-        <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-center">
-          <span className="text-body-sm text-muted-foreground">{p.manualHint}</span>
-          <Button variant="ghost" size="sm" onClick={() => setManual(true)}>
-            <PenLine aria-hidden className="size-4" strokeWidth={1.75} />
-            {p.manual}
-          </Button>
-        </div>
+        {ready && manualWay}
 
         {recent.length > 0 && (
           <RecentSessions
@@ -440,12 +452,14 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const { busy, running, lastAssistant, reportedNow, refines } = studioTurn(chat, (m) => m.structuredPlan);
   const found = latestPlan(chat.raw);
   const first = chat.raw.messages.find((m) => m.role === 'user')?.content ?? '';
-  const asked = planWords(first);
   const ideaKey = planIdeaKey(first);
+  // A session started from an idea alone has no words of its own: the idea's title stands for them.
+  const ideaTitle = useCardQuery(ideaKey && !planWords(first) ? ideaKey : null).data?.title;
+  const asked = planWords(first) || ideaTitle || '';
   const composer = useRef<HTMLTextAreaElement>(null);
   const [width, setWidth] = useConversationWidth();
   const [tab, setTab] = useState<StudioTab>('report');
-  const { queued, sending, onSend, cancelQueued } = useStudioSend(chat, busy);
+  const { queued, sending, onSend, cancelQueued, blocked } = useStudioSend(chat, busy);
   const researching = busy && !found;
   const refining = busy && !!found && !reportedNow;
   // A turn that ended with words but no structured plan: shown as a stop, with the way to carry on.
@@ -475,9 +489,11 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
       0,
     );
   };
-  const ask = (text: string) => {
-    void onSend(text);
-    setTab('chat');
+  /** A request from the plan itself (answers to its questions). It goes now, or waits in line; a full line refuses it. */
+  const ask = async (text: string) => {
+    const taken = await onSend(text);
+    if (taken) setTab('chat');
+    return taken;
   };
 
   const report = (
@@ -532,7 +548,7 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             busy={busy}
             onDevelop={develop}
           />
-          <PlanReport plan={found.plan} onAsk={ask} busy={busy} />
+          <PlanReport plan={found.plan} onAsk={ask} busy={busy} blocked={blocked} />
         </motion.div>
       )}
     </>
@@ -569,6 +585,7 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             onSend={onSend}
             onCancelQueued={cancelQueued}
             className={className}
+            id={STUDIO_PANELS.chat}
           />
         )}
       />
@@ -638,14 +655,21 @@ function PlanHead({
   return (
     <header
       id="studio-report-head"
-      className="flex scroll-mt-20 flex-col gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6"
+      className={cn(
+        'flex flex-col gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6',
+        STUDIO_ANCHOR,
+      )}
     >
       <p className="flex min-w-0 items-start gap-2 text-caption text-muted-foreground">
         <Quote aria-hidden className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} />
         <span className="line-clamp-2">
           <span className="font-medium text-foreground">{p.yourTopic}: </span>
-          {ideaKey && <span className="me-1 font-mono">{ideaKey}</span>}
-          <Bidi>{asked}</Bidi>
+          {ideaKey && (
+            <Ltr mono className="me-1">
+              {ideaKey}
+            </Ltr>
+          )}
+          <Bidi>{asked || (ideaKey ? '' : p.untitled)}</Bidi>
         </span>
       </p>
       <div className="flex min-w-0 flex-col gap-2">
@@ -723,279 +747,3 @@ function PlanHead({
     </header>
   );
 }
-
-// ── The plan ────────────────────────────────────────────────────────────────────────────────────────
-
-const SIZE_TONE = {
-  S: 'bg-success-soft text-success-soft-foreground',
-  M: 'bg-info-soft text-info-soft-foreground',
-  L: 'bg-warning-soft text-warning-soft-foreground',
-} as const;
-
-function PlanReport({
-  plan,
-  onAsk,
-  busy,
-}: {
-  plan: ProposedPlan;
-  onAsk: (text: string) => void;
-  busy: boolean;
-}) {
-  const t = useT<PlanningMessages>('planning');
-  const p = t.planStudio;
-  const locale = useLocale();
-  const roles = rolesOf(plan);
-  const total = plan.steps.length;
-  const sections = [
-    { id: 'plan-goal', label: p.sections.approach, show: !!(plan.goal || plan.approach) },
-    { id: 'plan-roles', label: p.sections.roles, show: roles.some((r) => r.role) },
-    { id: 'plan-steps', label: p.sections.steps, show: true },
-    { id: 'plan-diagram', label: p.sections.diagram, show: !!plan.diagram },
-    { id: 'plan-checks', label: p.sections.checks, show: !!plan.checks?.length },
-    { id: 'plan-risks', label: p.sections.risks, show: !!(plan.risks?.length || plan.outOfScope?.length) },
-    { id: 'plan-questions', label: p.sections.questions, show: !!plan.questions?.length },
-    { id: 'plan-sources', label: p.sections.sources, show: !!plan.sources?.length },
-  ].filter((s) => s.show);
-
-  return (
-    <div className="flex min-w-0 flex-col gap-4">
-      <ReportToc sections={sections} label={t.studio.toc} />
-
-      {(plan.goal || plan.approach) && (
-        <div id="plan-goal" className="grid scroll-mt-36 gap-4 @page-lg:grid-cols-2">
-          {plan.goal && (
-            <Section id="plan-goal-g" title={p.sections.goal} icon={Target}>
-              <p className="text-body text-pretty text-foreground">
-                <Bidi>{plan.goal}</Bidi>
-              </p>
-            </Section>
-          )}
-          {plan.approach && (
-            <Section id="plan-approach" title={p.sections.approach} icon={Compass}>
-              <p className="text-body text-pretty text-foreground">
-                <Bidi>{plan.approach}</Bidi>
-              </p>
-            </Section>
-          )}
-        </div>
-      )}
-
-      {roles.some((r) => r.role) && (
-        <Section id="plan-roles" title={p.sections.roles} icon={Users}>
-          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted" aria-hidden>
-            {roles.map((r, i) => (
-              <span
-                key={r.role ?? 'none'}
-                className={cn('h-full', r.role ? ROLE_BAR[i % ROLE_BAR.length] : 'bg-muted-foreground/30')}
-                style={{ width: `${(r.steps / total) * 100}%` }}
-              />
-            ))}
-          </div>
-          <ul className="flex flex-wrap gap-x-4 gap-y-2">
-            {roles.map((r, i) => (
-              <li
-                key={r.role ?? 'none'}
-                className="flex items-center gap-1.5 text-caption text-muted-foreground"
-              >
-                <span
-                  aria-hidden
-                  className={cn(
-                    'size-2.5 rounded-full',
-                    r.role ? ROLE_BAR[i % ROLE_BAR.length] : 'bg-muted-foreground/30',
-                  )}
-                />
-                {r.role ? (
-                  <RoleBadge role={r.role as Role} outline={false} className="text-caption" />
-                ) : (
-                  p.noRole
-                )}
-                <span className="tabular-nums">{plural(r.steps, locale, t.studio.chat.stepCount)}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      <Section
-        id="plan-steps"
-        title={p.sections.steps}
-        icon={ListOrdered}
-        aside={
-          <span className="text-caption text-muted-foreground">
-            {plural(total, locale, t.studio.chat.stepCount)}
-          </span>
-        }
-      >
-        <ol className="flex min-w-0 flex-col">
-          {plan.steps.map((s, i) => (
-            <li
-              key={`${i}-${s.title}`}
-              id={`plan-step-${i + 1}`}
-              className="relative flex min-w-0 scroll-mt-36 gap-3 pb-4 last:pb-0"
-            >
-              {i < total - 1 && (
-                <span aria-hidden className="absolute start-3.5 top-8 bottom-1 w-px bg-border" />
-              )}
-              <span
-                aria-hidden
-                className="relative flex size-7 shrink-0 items-center justify-center rounded-full border border-type-plan/40 bg-type-plan-soft text-caption font-semibold text-type-plan-fg tabular-nums"
-              >
-                {num(i + 1, locale)}
-              </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-1 pt-0.5">
-                <span className="text-body-sm font-medium text-pretty text-foreground">
-                  <Bidi>{s.title}</Bidi>
-                </span>
-                {s.why && (
-                  <span className="text-caption text-pretty text-muted-foreground">
-                    <Bidi>{s.why}</Bidi>
-                  </span>
-                )}
-                <span className="flex flex-wrap items-center gap-1.5">
-                  {s.role && ROLES.has(s.role) && (
-                    <RoleBadge role={s.role as Role} outline={false} className="text-caption" />
-                  )}
-                  {s.size && (
-                    <span
-                      title={p.sizeHint}
-                      className={cn(
-                        'inline-flex h-5 items-center rounded-full px-2 text-caption font-semibold',
-                        SIZE_TONE[s.size],
-                      )}
-                    >
-                      {p.sizes[s.size]}
-                    </span>
-                  )}
-                  {s.after?.length ? (
-                    <span className="inline-flex h-5 items-center gap-1 rounded-full bg-muted px-2 text-caption text-muted-foreground">
-                      <GitBranch aria-hidden className="size-3" strokeWidth={1.75} />
-                      {p.after}{' '}
-                      {s.after.map((n, j) => (
-                        <a
-                          key={n}
-                          href={`#plan-step-${n}`}
-                          className={cn(
-                            'font-semibold text-foreground tabular-nums hover:underline',
-                            focusRing,
-                          )}
-                        >
-                          {num(n, locale)}
-                          {j < s.after!.length - 1 ? '،' : ''}
-                        </a>
-                      ))}
-                    </span>
-                  ) : null}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      {plan.diagram && (
-        <Section id="plan-diagram" title={plan.diagram.title || p.sections.diagram} icon={Network}>
-          <FlowDiagram
-            diagram={plan.diagram}
-            words={{ shapes: t.studio.shapes, listLabel: t.studio.diagramList, to: t.studio.to }}
-          />
-        </Section>
-      )}
-
-      {!!plan.checks?.length && (
-        <Section id="plan-checks" title={p.sections.checks} icon={ListChecks}>
-          <ul className="flex min-w-0 flex-col gap-2">
-            {plan.checks.map((c) => (
-              <li key={c} className="flex min-w-0 items-start gap-2 text-body-sm text-foreground">
-                <CheckCircle2
-                  aria-hidden
-                  className="mt-0.5 size-4 shrink-0 text-success"
-                  strokeWidth={1.75}
-                />
-                <span className="min-w-0">
-                  <Bidi>{c}</Bidi>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-      )}
-
-      {!!(plan.risks?.length || plan.outOfScope?.length) && (
-        <div id="plan-risks" className="grid scroll-mt-36 gap-4 @page-lg:grid-cols-2">
-          {!!plan.risks?.length && (
-            <Section id="plan-risks-r" title={p.sections.risks} icon={AlertTriangle}>
-              <ul className="flex min-w-0 list-disc flex-col gap-1.5 ps-4 text-body-sm text-foreground marker:text-warning-strong">
-                {plan.risks.map((r) => (
-                  <li key={r}>
-                    <Bidi>{r}</Bidi>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-          {!!plan.outOfScope?.length && (
-            <Section id="plan-out" title={p.sections.outOfScope} icon={Ban}>
-              <ul className="flex min-w-0 list-disc flex-col gap-1.5 ps-4 text-body-sm text-foreground marker:text-muted-foreground">
-                {plan.outOfScope.map((r) => (
-                  <li key={r}>
-                    <Bidi>{r}</Bidi>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-        </div>
-      )}
-
-      {!!plan.questions?.length && (
-        <Section id="plan-questions" title={p.sections.questions} icon={CircleHelp}>
-          <Questions questions={plan.questions} onAsk={onAsk} busy={busy} prompt={p.answersPrompt} />
-        </Section>
-      )}
-
-      {!!plan.sources?.length && (
-        <Section id="plan-sources" title={p.sections.sources} icon={BookOpen}>
-          <ol className="flex min-w-0 flex-col gap-2">
-            {plan.sources.map((s, i) => (
-              <li key={`${s.url}-${i}`} className="flex min-w-0 items-start gap-2.5">
-                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-bold text-muted-foreground tabular-nums">
-                  {num(i + 1, locale)}
-                </span>
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn('group flex min-w-0 flex-col rounded-md', focusRing)}
-                >
-                  <span className="inline-flex items-center gap-1 text-body-sm font-medium text-foreground group-hover:text-primary group-hover:underline">
-                    <Bidi>{s.title}</Bidi>
-                    <ExternalLink aria-hidden className="size-3 shrink-0" />
-                  </span>
-                  <span dir="ltr" className="truncate text-start text-caption text-muted-foreground">
-                    {hostOf(s.url)}
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </Section>
-      )}
-
-      <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
-        <FileText aria-hidden className="size-3.5" strokeWidth={1.75} />
-        {p.draftNote}
-      </p>
-    </div>
-  );
-}
-
-/** The roles' share of the steps, each in its own token colour so the bar reads in both themes. */
-const ROLE_BAR = [
-  'bg-type-plan',
-  'bg-info',
-  'bg-success',
-  'bg-warning-strong',
-  'bg-type-idea',
-  'bg-primary',
-  'bg-destructive',
-];

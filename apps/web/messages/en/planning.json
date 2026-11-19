@@ -35,7 +35,8 @@
     },
     "noSteps": "No steps yet. Add them, then create tasks from them.",
     "progress": "{done} of {total} steps done",
-    "noProblem": "The problem has not been written yet."
+    "noProblem": "The problem has not been written yet.",
+    "waiting": "Waiting for approval"
   },
   "lanes": {
     "ideas": "What we are thinking about",
@@ -60,7 +61,10 @@
     "progress": "{done} of {total}",
     "noSteps": "No steps yet",
     "noText": "Not written yet",
-    "steps": "Step progress"
+    "steps": "Step progress",
+    "next": "Next: {n}. {title}",
+    "allDone": "Every step is done",
+    "noTask": "{n} without a task"
   },
   "empty": {
     "firstTitle": "Nothing is being thought about yet",
@@ -105,7 +109,8 @@
     "planTitle": "Plan title",
     "planBody": "The plan’s text",
     "toPlanSave": "Create the plan",
-    "turned": "Created plan {key}"
+    "turned": "Created plan {key}",
+    "toPlanStudio": "Or let Claude write its steps in the Plan Studio"
   },
   "plan": {
     "fromIdea": "From idea",
@@ -143,7 +148,8 @@
   "liveBanner": {
     "drafting": "Claude is drafting a plan in the chat",
     "proposed": "Claude proposed a plan in the chat",
-    "open": "Watch it here"
+    "open": "Watch it here",
+    "dismiss": "Dismiss"
   },
   "detail": {
     "back": "Planning",
@@ -155,10 +161,6 @@
     "road": "Where it stands",
     "next": {
       "plan": {
-        "draft": "A draft. Review it, develop it with Claude, then send it for approval.",
-        "in_review": "Waiting for approval. Read the steps and the approach, then approve it or send it back.",
-        "approved": "Approved. Turn the steps into tasks, then start.",
-        "in_progress": "In progress. Each step is done when its task is.",
         "done": "Done. Every step is finished.",
         "abandoned": "Abandoned. It stays here for the record."
       },
@@ -191,8 +193,6 @@
     "role": "Role",
     "tags": "Tags",
     "none": "None",
-    "fromIdea": "From the idea",
-    "becamePlan": "Became the plan",
     "problem": "The problem",
     "notes": "Notes",
     "noProblem": "The problem is not written yet.",
@@ -208,13 +208,55 @@
       "developPrompt": "Develop the plan {key} in Hub and save it with update_plan: keep what works, fill what is missing in the approach and the steps, and give each step a role. Do not change any code. What I want: ",
       "draft": "Plan it with Claude",
       "draftTip": "Opens the Plan Studio on this idea: Claude reads it with what is in Hub and the code, and returns a plan with its steps. Saving it turns the idea into that plan.",
-      "draftPrompt": "Turn the idea {key} into a plan in Hub with idea_to_plan, then write its approach and its steps with update_plan. Do not change any code.",
       "explain": "Explain it",
       "runNext": "Run the next step",
       "runNextTip": "Runs /hub:work on {task}, the task of step {n}, in Execute.",
       "runNextNoTask": "The next step has no task yet. Create tasks from the steps first.",
       "allDone": "Every step is done."
-    }
+    },
+    "guide": {
+      "noSteps": "No steps yet. Add them, or develop the plan with Claude.",
+      "review": "Review it, then send it for approval.",
+      "approve": "Read the steps and the approach, then approve it, or edit it before approving.",
+      "waitApproval": "Waiting for the owner or the project manager to approve it.",
+      "createTasks": "Create tasks from the steps ({n} without a task), then start.",
+      "start": "Start the work.",
+      "step": "Step {n} of {total}: {title}",
+      "stepNoTask": "The next step has no task. Create the tasks first.",
+      "finish": "Every step is done. Finish the plan."
+    },
+    "stage": {
+      "plan": {
+        "draft": "Draft",
+        "in_review": "Waiting for approval",
+        "approved": "Approved",
+        "in_progress": "In progress",
+        "done": "Done",
+        "abandoned": "Abandoned"
+      },
+      "idea": {
+        "open": "Not started",
+        "exploring": "Being explored",
+        "accepted": "Accepted",
+        "parked": "Parked",
+        "rejected": "Rejected"
+      }
+    },
+    "stageOf": "Stage {n} of {total}: {label}",
+    "path": "From idea to work",
+    "pathTasks": "Tasks: {done} of {total} done",
+    "stepNoTask": "No task yet",
+    "stepUnassigned": "Unassigned",
+    "stepBlocked": "Blocked: its task is blocked",
+    "stepEvidence": "Evidence",
+    "stepNoEvidence": "No evidence yet",
+    "addSteps": "Add steps",
+    "planText": "The plan's text",
+    "outlineIdea": "In this idea",
+    "report": "Report",
+    "openStudio": "Open its report in the studio",
+    "approvedBy": "Approved by",
+    "revisionLabel": "Revision"
   },
   "draft": {
     "back": "Planning",
@@ -234,9 +276,6 @@
     "developPrompt": "Develop this plan: ",
     "run": "Run this plan",
     "runTip": "Puts the plan in the chat in Execute. Nothing runs until you send it.",
-    "steps": "Steps",
-    "checks": "Checks",
-    "risks": "Risks",
     "fallbackTitle": "Plan from the chat",
     "text": "The plan as written",
     "reply": "What Claude is writing"
@@ -357,7 +396,6 @@
     "diagramList": "The flow",
     "to": "to",
     "source": "Source {n}",
-    "conversation": "Conversation",
     "composerPlaceholder": "Ask Claude to change the report…",
     "send": "Send",
     "stop": "Stop",
@@ -477,9 +515,6 @@
     "apply": "Apply this",
     "applyLater": "Apply it next",
     "applyPrompt": "Apply this suggestion to the idea: «{title}». Keep the rest as it is, and send the whole updated report with propose_idea.",
-    "answerPlaceholder": "Your answer, in a line…",
-    "sendAnswers": "Send my answers to Claude",
-    "answersLater": "Send them when Claude finishes",
     "answersPrompt": "My answers to your open questions. Work them into the report, take the answered ones out of the questions, and send the whole updated report with propose_idea:",
     "deck": {
       "of": "Question {n} of {total}",
@@ -503,8 +538,21 @@
       "allAnswered": "Every question is answered. Review them or send them.",
       "clear": "Clear this answer",
       "send": "Send answers ({n})",
-      "sendLater": "Send when Claude is done ({n})"
-    }
+      "sendLater": "Send when Claude is done ({n})",
+      "sep": "; ",
+      "dots": "The questions",
+      "goToAnswered": "Question {n}, answered"
+    },
+    "missing": {
+      "title": "This session was not found",
+      "body": "Its chat may have been deleted, or belongs to another member or browser.",
+      "new": "Start a new session"
+    },
+    "queueFull": "One request is already waiting. Cancel it or wait for the turn to end.",
+    "manual": "Write it yourself",
+    "manualHint": "Know the idea and need no research?",
+    "listSep": ", ",
+    "percent": "{n}%"
   },
   "planStudio": {
     "back": "Planning",
@@ -639,5 +687,14 @@
     "sources": "Sources",
     "after": "after",
     "recommended": "recommended"
+  },
+  "newIdeaForm": {
+    "title": "New idea",
+    "titleLabel": "Idea title",
+    "problem": "The problem",
+    "notes": "Notes",
+    "role": "Role",
+    "noRole": "No role",
+    "create": "Create idea"
   }
 }

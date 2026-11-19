@@ -8,19 +8,7 @@
  */
 import { planToPrompt } from '@hub/contracts';
 import { motion, useReducedMotion } from 'framer-motion';
-import {
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  FileText,
-  ListChecks,
-  ListOrdered,
-  Loader2,
-  Play,
-  Save,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Loader2, Play, Save, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -33,10 +21,7 @@ import {
   focusRing,
   kitMessages,
   MarkdownView,
-  num,
   PageContainer,
-  type Role,
-  RoleBadge,
   showToast,
   Tip,
   useLocale,
@@ -51,8 +36,7 @@ import { isHubError } from '@/lib/api/errors';
 import { LivePill, Panel } from './detail-parts';
 import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
-
-const ROLES = new Set<string>(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
+import { PlanReport } from './studio/plan-report';
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 
 function Back() {
@@ -77,7 +61,6 @@ function Back() {
 export function PlanningDraft() {
   const w = useT<PlanningMessages>('planning').draft;
   const kit = useT(kitMessages);
-  const locale = useLocale();
   const wb = useMaybeWb();
   const draft = useLiveDraft();
   const reduce = useReducedMotion();
@@ -215,68 +198,10 @@ export function PlanningDraft() {
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } }}
-          className="grid items-start gap-5 @page-xl:grid-cols-[minmax(0,1fr)_16.5rem]"
+          className="min-w-0"
         >
-          <Panel title={w.steps} icon={ListOrdered} id="draft-steps">
-            <ol className="flex min-w-0 flex-col">
-              {structured.steps.map((s, i) => (
-                <li key={`${i}-${s.title}`} className="relative flex min-w-0 gap-3 pb-4 last:pb-0">
-                  {i < structured.steps.length - 1 && (
-                    <span aria-hidden className="absolute start-3.5 top-8 bottom-1 w-px bg-border" />
-                  )}
-                  <span
-                    aria-hidden
-                    className="relative flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card text-caption font-semibold text-muted-foreground tabular-nums"
-                  >
-                    {num(i + 1, locale)}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1 px-1 pt-0.5">
-                    <span className="text-body-sm font-medium text-pretty text-foreground">
-                      <Bidi>{s.title}</Bidi>
-                    </span>
-                    {s.why && (
-                      <span className="text-caption text-muted-foreground">
-                        <Bidi>{s.why}</Bidi>
-                      </span>
-                    )}
-                    {s.role && ROLES.has(s.role) && (
-                      <RoleBadge role={s.role as Role} outline={false} className="self-start text-caption" />
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </Panel>
-          <div className="flex min-w-0 flex-col gap-4 @page-xl:sticky @page-xl:top-4">
-            {structured.checks && structured.checks.length > 0 && (
-              <Panel title={w.checks} icon={ListChecks} id="draft-checks">
-                <ul className="flex min-w-0 flex-wrap gap-1.5">
-                  {structured.checks.map((c) => (
-                    <li key={c} className="min-w-0">
-                      <code
-                        dir="ltr"
-                        translate="no"
-                        className="key inline-block max-w-full truncate rounded-md border border-border bg-muted/50 px-1.5 py-0.5 font-mono text-caption text-foreground"
-                      >
-                        {c}
-                      </code>
-                    </li>
-                  ))}
-                </ul>
-              </Panel>
-            )}
-            {structured.risks && structured.risks.length > 0 && (
-              <Panel title={w.risks} icon={AlertTriangle} id="draft-risks">
-                <ul className="flex min-w-0 list-disc flex-col gap-1 ps-4 text-caption text-foreground marker:text-warning-strong">
-                  {structured.risks.map((r) => (
-                    <li key={r}>
-                      <Bidi>{r}</Bidi>
-                    </li>
-                  ))}
-                </ul>
-              </Panel>
-            )}
-          </div>
+          {/* The same plan the Plan Studio shows, whole: goal, roles, steps with sizes, flow, checks, risks, scope, questions, sources. */}
+          <PlanReport plan={structured} busy={writing} />
         </motion.div>
       ) : (
         <Panel

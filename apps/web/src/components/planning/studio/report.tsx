@@ -7,6 +7,7 @@
  * shows only when Claude sent it; nothing is filled in here.
  */
 import type { IdeaMatchKind, IdeaSuggestionKind, IdeaVerdict, ProposedIdea } from '@hub/contracts';
+import { useReducedMotion } from 'framer-motion';
 import {
   AlertTriangle,
   BookOpen,
@@ -31,30 +32,18 @@ import {
 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 
-import {
-  Bidi,
-  CardChip,
-  cn,
-  fmt,
-  focusRing,
-  num,
-  plural,
-  type Role,
-  RoleBadge,
-  useLocale,
-  useT,
-} from '@/components/kit';
+import { Bidi, CardChip, cn, fmt, focusRing, num, plural, useLocale, useT } from '@/components/kit';
 import { hostOf, projectPath } from '@/features/planning/studio-acts';
 
 import type { PlanningMessages } from '../messages';
 import { FlowDiagram } from './diagram';
+import { ProposedSteps } from './plan-report';
 import { Questions } from './questions';
+import { STUDIO_ANCHOR } from './shared';
 
 export { Questions };
 
 type Words = PlanningMessages['studio'];
-
-const ROLES = new Set<string>(['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa']);
 
 export function Section({
   id,
@@ -76,7 +65,8 @@ export function Section({
       id={id}
       aria-labelledby={`${id}-h`}
       className={cn(
-        'flex min-w-0 scroll-mt-20 flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-xs md:p-5',
+        'flex min-w-0 flex-col gap-4 rounded-2xl border border-border bg-card p-4 shadow-xs md:p-5',
+        STUDIO_ANCHOR,
         className,
       )}
     >
@@ -132,8 +122,7 @@ export function NoveltyRing({ idea, size = 112 }: { idea: ProposedIdea; size?: n
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-headline font-bold text-foreground tabular-nums">
-          {num(fresh, locale)}
-          <span className="text-body-sm font-semibold">%</span>
+          {fmt(w.percent, { n: num(fresh, locale) })}
         </span>
         <span className="text-caption text-muted-foreground">{w.novelty}</span>
       </div>
@@ -236,7 +225,7 @@ function Matches({ idea, w }: { idea: ProposedIdea; w: Words }) {
             </div>
             <div className="flex w-20 shrink-0 flex-col items-end gap-1.5 pt-0.5">
               <span className="text-body-sm font-semibold text-foreground tabular-nums">
-                {num(m.overlap, locale)}%
+                {fmt(w.percent, { n: num(m.overlap, locale) })}
               </span>
               <span aria-hidden className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                 <span
@@ -284,6 +273,7 @@ export function reportSections(idea: ProposedIdea) {
 /** The report's contents, kept in view while it scrolls, with the section being read marked. */
 export function ReportToc({ sections, label }: { sections: { id: string; label: string }[]; label: string }) {
   const [active, setActive] = useState<string | null>(sections[0]?.id ?? null);
+  const reduce = useReducedMotion();
   const ids = sections.map((s) => s.id).join(' ');
   useEffect(() => {
     const els = ids
@@ -316,13 +306,15 @@ export function ReportToc({ sections, label }: { sections: { id: string; label: 
           aria-current={active === s.id ? 'location' : undefined}
           onClick={(e) => {
             e.preventDefault();
-            document.getElementById(s.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            document
+              .getElementById(s.id)
+              ?.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
             setActive(s.id);
           }}
           className={cn(
             'inline-flex h-7 shrink-0 items-center rounded-full px-3 text-caption font-medium transition-colors max-md:h-9',
             active === s.id
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             focusRing,
           )}
@@ -338,11 +330,14 @@ export function IdeaReport({
   idea,
   onAsk,
   busy = false,
+  blocked = false,
 }: {
   idea: ProposedIdea;
-  /** Sends a request about the report to Claude: a suggestion to apply, answers to its questions. */
-  onAsk?: (text: string) => void;
+  /** Sends a request about the report to Claude: a suggestion to apply, answers to its questions. False when it was not taken. */
+  onAsk?: ((text: string) => boolean | Promise<boolean>) | undefined;
   busy?: boolean;
+  /** A request already waits for Claude: Apply and Send hold back, and say why. */
+  blocked?: boolean;
 }) {
   const w = useT<PlanningMessages>('planning').studio;
   const locale = useLocale();
@@ -383,7 +378,7 @@ export function IdeaReport({
       </Section>
 
       {(idea.problem || idea.value) && (
-        <div id="idea-problem" className="grid scroll-mt-20 gap-4 @page-lg:grid-cols-2">
+        <div id="idea-problem" className={cn('grid gap-4 @page-lg:grid-cols-2', STUDIO_ANCHOR)}>
           {idea.problem && (
             <Section id="idea-problem-p" title={w.sections.problem} icon={Target}>
               <p className="text-body text-pretty text-foreground">
@@ -405,7 +400,7 @@ export function IdeaReport({
         <Section id="idea-diagram" title={idea.diagram.title || w.sections.diagram} icon={Network}>
           <FlowDiagram
             diagram={idea.diagram}
-            words={{ shapes: w.shapes, listLabel: w.diagramList, to: w.to }}
+            words={{ shapes: w.shapes, listLabel: w.diagramList, to: w.to, sep: w.listSep }}
           />
         </Section>
       )}
@@ -469,17 +464,21 @@ export function IdeaReport({
                       <Bidi>{s.detail}</Bidi>
                     </p>
                     {onAsk && (
-                      <button
-                        type="button"
-                        onClick={() => onAsk(fmt(w.applyPrompt, { title: s.title }))}
-                        className={cn(
-                          'mt-1 inline-flex h-7 items-center gap-1 self-start rounded-lg px-2 text-caption font-medium text-primary transition-colors hover:bg-primary/10 max-md:h-9',
-                          focusRing,
-                        )}
-                      >
-                        <Wand2 aria-hidden className="size-3.5" strokeWidth={1.75} />
-                        {busy ? w.applyLater : w.apply}
-                      </button>
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <button
+                          type="button"
+                          disabled={blocked}
+                          onClick={() => void onAsk(fmt(w.applyPrompt, { title: s.title }))}
+                          className={cn(
+                            'inline-flex h-7 items-center gap-1 self-start rounded-lg px-2 text-caption font-medium text-primary transition-colors hover:bg-primary/10 disabled:pointer-events-none disabled:text-muted-foreground max-md:h-11',
+                            focusRing,
+                          )}
+                        >
+                          <Wand2 aria-hidden className="size-3.5" strokeWidth={1.75} />
+                          {busy ? w.applyLater : w.apply}
+                        </button>
+                        {blocked && <span className="text-caption text-muted-foreground">{w.queueFull}</span>}
+                      </span>
                     )}
                   </div>
                 </li>
@@ -500,34 +499,7 @@ export function IdeaReport({
             </span>
           }
         >
-          <ol className="flex min-w-0 flex-col">
-            {idea.steps.map((s, i) => (
-              <li key={`${i}-${s.title}`} className="relative flex min-w-0 gap-3 pb-4 last:pb-0">
-                {i < idea.steps.length - 1 && (
-                  <span aria-hidden className="absolute start-3.5 top-8 bottom-1 w-px bg-border" />
-                )}
-                <span
-                  aria-hidden
-                  className="relative flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card text-caption font-semibold text-muted-foreground tabular-nums"
-                >
-                  {num(i + 1, locale)}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col gap-1 px-1 pt-0.5">
-                  <span className="text-body-sm font-medium text-pretty text-foreground">
-                    <Bidi>{s.title}</Bidi>
-                  </span>
-                  {s.why && (
-                    <span className="text-caption text-muted-foreground">
-                      <Bidi>{s.why}</Bidi>
-                    </span>
-                  )}
-                  {s.role && ROLES.has(s.role) && (
-                    <RoleBadge role={s.role as Role} outline={false} className="self-start text-caption" />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <ProposedSteps steps={idea.steps} />
           <p className="text-caption text-muted-foreground">{w.stepsHint}</p>
         </Section>
       )}
@@ -546,7 +518,13 @@ export function IdeaReport({
 
       {idea.questions.length > 0 && (
         <Section id="idea-questions" title={w.sections.questions} icon={CircleHelp}>
-          <Questions questions={idea.questions} onAsk={onAsk} busy={busy} />
+          <Questions
+            questions={idea.questions}
+            onAsk={onAsk}
+            busy={busy}
+            blocked={blocked}
+            label={w.sections.questions}
+          />
         </Section>
       )}
 
@@ -557,7 +535,7 @@ export function IdeaReport({
               <li
                 key={`${s.url}-${i}`}
                 id={`idea-source-${i + 1}`}
-                className="flex min-w-0 scroll-mt-20 items-start gap-2.5"
+                className={cn('flex min-w-0 items-start gap-2.5', STUDIO_ANCHOR)}
               >
                 <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-caption font-bold text-muted-foreground tabular-nums">
                   {num(i + 1, locale)}

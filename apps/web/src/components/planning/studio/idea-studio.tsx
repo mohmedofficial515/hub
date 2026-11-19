@@ -24,6 +24,7 @@ import {
   type LucideIcon,
   MessageCircleQuestion,
   MessagesSquare,
+  PenLine,
   Plus,
   Quote,
   RefreshCw,
@@ -44,6 +45,7 @@ import {
   fmt,
   focusRing,
   kitMessages,
+  matchKey,
   num,
   PageContainer,
   plural,
@@ -62,7 +64,6 @@ import {
   activeChatId,
   chatIsBusy,
   engineBlocks,
-  openChat,
   type PanelChat,
   send,
   useMaybeWb,
@@ -88,16 +89,23 @@ import { isHubError } from '@/lib/api/errors';
 
 import { LivePill } from '../detail-parts';
 import type { PlanningMessages } from '../messages';
+import { NewIdeaDialog } from '../new-cards';
 import { nowLine, ReportNote, signed, StudioConversation, type StudioKind } from './conversation';
 import { IdeaReport, NoveltyRing, VerdictChip } from './report';
 import {
+  ManualWay,
+  STUDIO_ANCHOR,
+  STUDIO_PANELS,
   StudioBack,
   StudioFrame,
   StudioMark,
+  StudioMissing,
   type StudioTab,
   StudioTabs,
   useConversationWidth,
+  useStudioChat,
   useStudioSend,
+  wantsAutoFocus,
 } from './shared';
 
 type Words = PlanningMessages['studio'];
@@ -150,7 +158,7 @@ function useIdeaKind(): StudioKind {
       return (
         <ReportNote
           updated={!!prev}
-          badge={`${w.verdict[idea.verdict]} · ${num(100 - idea.overlap, locale)}% ${w.novelty}`}
+          badge={`${w.verdict[idea.verdict]} · ${fmt(w.percent, { n: num(100 - idea.overlap, locale) })} ${w.novelty}`}
           badgeTone={VERDICT_BADGE[idea.verdict]}
           title={idea.title}
           changes={changes}
@@ -169,21 +177,29 @@ export function IdeaStudio() {
   const chatId = query.get('chat');
   const wb = useMaybeWb();
   const w = useT<PlanningMessages>('planning').studio;
-
-  useEffect(() => {
-    if (wb && chatId && wb.activeId !== chatId) openChat(chatId);
-  }, [wb?.activeId, chatId]);
+  const { chat, missing } = useStudioChat(wb, chatId);
+  const [manual, setManual] = useState(false);
 
   if (!wb) {
     return (
       <PageContainer>
         <StudioBack label={w.back} />
-        <EmptyState icon={Lightbulb} title={w.noPanel} />
+        <EmptyState
+          icon={Lightbulb}
+          title={w.noPanel}
+          action={
+            <Button variant="primary" onClick={() => setManual(true)}>
+              <PenLine aria-hidden className="size-4" strokeWidth={1.75} />
+              {w.manual}
+            </Button>
+          }
+        />
+        <NewIdeaDialog open={manual} onOpenChange={setManual} />
       </PageContainer>
     );
   }
   if (!chatId) return <StudioStart wb={wb} />;
-  const chat = wb.chat?.id === chatId ? wb.chat : null;
+  if (missing) return <StudioMissing icon={Lightbulb} back={w.back} words={w.missing} />;
   if (!chat) {
     return (
       <PageContainer className="gap-4">
@@ -204,6 +220,7 @@ function StudioStart({ wb }: { wb: Wb }) {
   const reduce = useReducedMotion();
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [manual, setManual] = useState(false);
   const box = useRef<HTMLTextAreaElement>(null);
   const off = offOf(wb);
   const secret = detectSecret(text);
@@ -213,7 +230,10 @@ function StudioStart({ wb }: { wb: Wb }) {
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, 6);
 
-  useEffect(() => box.current?.focus(), []);
+  // On a touch screen, focusing the box at once would raise the keyboard over the page before the owner asked for it.
+  useEffect(() => {
+    if (wantsAutoFocus()) box.current?.focus();
+  }, []);
 
   const start = async () => {
     const words = text.trim();
@@ -226,11 +246,12 @@ function StudioStart({ wb }: { wb: Wb }) {
   };
 
   const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
+    if (matchKey(e, 'Enter') && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) {
       e.preventDefault();
       void start();
     }
   };
+  const manualWay = <ManualWay hint={w.manualHint} label={w.manual} onOpen={() => setManual(true)} />;
 
   const how: { icon: LucideIcon; title: string; body: string }[] = [
     { icon: Quote, ...w.how.describe },
@@ -253,7 +274,7 @@ function StudioStart({ wb }: { wb: Wb }) {
           <p className="max-w-xl text-body-lg text-pretty text-muted-foreground">{w.subtitle}</p>
         </header>
 
-        <div className="flex flex-col rounded-3xl border border-border bg-card shadow-md transition-shadow focus-within:border-primary/50 focus-within:shadow-lg focus-within:ring-4 focus-within:ring-primary/10">
+        <div className="flex flex-col rounded-3xl border border-border bg-card shadow-sm transition-shadow focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10">
           <label htmlFor="idea-studio-text" className="sr-only">
             {w.label}
           </label>
@@ -291,6 +312,8 @@ function StudioStart({ wb }: { wb: Wb }) {
         </div>
         {secret && <SecretFilterError pattern={secret} />}
         {!wb.ready && <p className="text-center text-caption text-muted-foreground">{w.noDevice}</p>}
+        {/* With no Claude to research, writing the idea down is the way on, so it sits right here. */}
+        {!ready && manualWay}
 
         <div className="flex flex-col gap-2.5">
           <span className="text-caption font-medium text-muted-foreground">{w.examplesLabel}</span>
@@ -343,10 +366,13 @@ function StudioStart({ wb }: { wb: Wb }) {
           </ol>
         </section>
 
+        {ready && manualWay}
+
         {recent.length > 0 && (
           <RecentSessions chats={recent} title={w.recent} untitled={w.untitled} words={ideaWords} />
         )}
       </motion.div>
+      <NewIdeaDialog open={manual} onOpenChange={setManual} />
     </PageContainer>
   );
 }
@@ -425,7 +451,7 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const ended = !busy && !found;
   const [width, setWidth] = useConversationWidth();
   const [tab, setTab] = useState<StudioTab>('report');
-  const { queued, sending, onSend, cancelQueued } = useStudioSend(chat, busy);
+  const { queued, sending, onSend, cancelQueued, blocked } = useStudioSend(chat, busy);
   // The research board shows until there is a report to read; a refinement after that runs above the report as one quiet line.
   const researching = busy && !found;
   const refining = busy && !!found && !reportedNow;
@@ -455,10 +481,11 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
       0,
     );
   };
-  /** A request from the report itself: a suggestion to apply, answers to its questions. It goes now, or waits in line. */
-  const ask = (text: string) => {
-    void onSend(text);
-    setTab('chat');
+  /** A request from the report itself: a suggestion to apply, answers to its questions. It goes now, or waits in line; a full line refuses it. */
+  const ask = async (text: string) => {
+    const taken = await onSend(text);
+    if (taken) setTab('chat');
+    return taken;
   };
 
   const report = (
@@ -501,7 +528,7 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
         >
           {refining && <RefiningLine chat={chat} words={w} onAnswer={answer} />}
           <ReportHead found={found} chatId={chat.id} asked={asked} busy={busy} onDevelop={develop} />
-          <IdeaReport idea={found.idea} onAsk={ask} busy={busy} />
+          <IdeaReport idea={found.idea} onAsk={ask} busy={busy} blocked={blocked} />
         </motion.div>
       )}
     </>
@@ -540,6 +567,7 @@ function StudioSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             onSend={onSend}
             onCancelQueued={cancelQueued}
             className={className}
+            id={STUDIO_PANELS.chat}
           />
         )}
       />
@@ -804,9 +832,16 @@ function FoundColumn({
       {items.length > 0 ? (
         <div className="flex min-w-0 flex-wrap gap-1.5">{children}</div>
       ) : (
-        <span className="flex flex-col gap-1.5" aria-label={empty}>
-          <span className="h-2.5 w-3/4 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
-          <span className="h-2.5 w-1/2 animate-pulse rounded-full bg-muted motion-reduce:animate-none" />
+        <span className="flex flex-col gap-1.5">
+          <span className="sr-only">{empty}</span>
+          <span
+            aria-hidden
+            className="h-2.5 w-3/4 animate-pulse rounded-full bg-muted motion-reduce:animate-none"
+          />
+          <span
+            aria-hidden
+            className="h-2.5 w-1/2 animate-pulse rounded-full bg-muted motion-reduce:animate-none"
+          />
         </span>
       )}
     </div>
@@ -857,7 +892,10 @@ function ReportHead({
   return (
     <header
       id="studio-report-head"
-      className="flex scroll-mt-20 flex-col gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6"
+      className={cn(
+        'flex flex-col gap-5 rounded-2xl border border-border bg-card p-4 shadow-sm md:p-6',
+        STUDIO_ANCHOR,
+      )}
     >
       <p className="flex min-w-0 items-start gap-2 text-caption text-muted-foreground">
         <Quote aria-hidden className="mt-0.5 size-3.5 shrink-0" strokeWidth={1.75} />

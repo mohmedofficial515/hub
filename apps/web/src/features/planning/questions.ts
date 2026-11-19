@@ -51,8 +51,8 @@ export function withRecommended(
   return { ...emptyAnswer(), picks: [...q.recommended].sort((x, y) => x - y) };
 }
 
-/** An answer in one line: each pick with its note, then Other's words. */
-export function answerLine(q: ReportQuestion, a: QuestionAnswer, otherWord: string): string {
+/** An answer in one line: each pick with its note, then Other's words, apart by the reader's own separator. */
+export function answerLine(q: ReportQuestion, a: QuestionAnswer, otherWord: string, sep = '; '): string {
   const parts = a.picks
     .filter((i) => q.options[i])
     .map((i) => {
@@ -61,7 +61,7 @@ export function answerLine(q: ReportQuestion, a: QuestionAnswer, otherWord: stri
     });
   const own = a.other ? oneLine(a.otherText) : '';
   if (own) parts.push(q.options.length ? `${otherWord}: ${own}` : own);
-  return parts.join('؛ ');
+  return parts.join(sep);
 }
 
 /** Every answered question, in the order the report asked them, under the studio's own request. */
@@ -70,11 +70,12 @@ export function answersMessage(
   questions: readonly ReportQuestion[],
   answers: Readonly<Record<number, QuestionAnswer>>,
   otherWord: string,
+  sep?: string,
 ): string | null {
   const lines = questions.flatMap((q, i) => {
     const a = answers[i];
     if (!isAnswered(a)) return [];
-    return [`- ${oneLine(q.text)}\n  → ${answerLine(q, a!, otherWord)}`];
+    return [`- ${oneLine(q.text)}\n  → ${answerLine(q, a!, otherWord, sep)}`];
   });
   return lines.length ? `${prompt}\n${lines.join('\n')}` : null;
 }

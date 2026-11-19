@@ -15,7 +15,8 @@ import { qk } from '../cards/keys';
 import { type CardFullDto, toHubCard } from '../cards/map';
 import { fetchDetailRows } from '../cards/rows';
 import { writeCard } from '../cards/store';
-import type { HubCard, IdeaCard, PlanCard, PlanStep } from '../cards/types';
+import type { HubCard, IdeaCard, PlanCard } from '../cards/types';
+import { mergeSteps } from './model';
 
 export function useIdeasQuery() {
   const { ws } = useRoute();
@@ -89,7 +90,7 @@ export function savePlan(key: string, input: UpdatePlanInput) {
       },
       card: (card) =>
         card.type === 'plan' && steps
-          ? { ...card, plan: { ...card.plan, steps: steps.filter((s) => s.id) as PlanStep[] } }
+          ? { ...card, plan: { ...card.plan, steps: mergeSteps(card.plan.steps, steps) } }
           : card,
     },
     () => patch(`workspaces/${ws}/plans/${key}`, input),

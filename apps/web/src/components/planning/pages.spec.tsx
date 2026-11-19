@@ -67,6 +67,11 @@ function answer(lists: Record<string, unknown[] | 'fail'>) {
 const show = (ui: ReactNode) => renderWithApp(<Tooltip.Provider>{ui}</Tooltip.Provider>);
 const filled = () =>
   screen.queryAllByRole('button').filter((button) => button.className.includes('bg-primary'));
+/** Filled controls of any kind: Planning's New idea and New plan are links, since they go to a place. */
+const filledControls = () =>
+  [...screen.queryAllByRole('button'), ...screen.queryAllByRole('link')].filter((el) =>
+    el.className.split(/\s+/).includes('bg-primary'),
+  );
 
 beforeEach(() => {
   vi.unstubAllGlobals();
@@ -218,7 +223,9 @@ describe('PlanningPage', () => {
     stubFetch(answer({ '/ideas': [], '/plans': [] }));
     show(<PlanningPage />);
     expect(await screen.findByText('Nothing is being thought about yet')).toBeTruthy();
-    expect(filled().map((b) => b.textContent)).toEqual(['New idea']);
+    expect(filledControls().map((b) => b.textContent)).toEqual(['New idea']);
+    expect(screen.getByRole('link', { name: 'New idea' }).getAttribute('href')).toContain('studio=idea');
+    expect(screen.getByRole('link', { name: 'New plan' }).getAttribute('href')).toContain('studio=plan');
   });
 
   it('says so when a list fails', async () => {
@@ -243,7 +250,7 @@ describe('PlanningPage', () => {
     );
     show(<PlanningPage />);
     await waitFor(() => expect(screen.getAllByText('Title P-1')).toHaveLength(1));
-    expect(filled().map((b) => b.textContent)).toEqual(['Approve']);
+    expect(filledControls().map((b) => b.textContent)).toEqual(['Approve']);
     expect(screen.getByText('1 of 2 steps done')).toBeTruthy();
     expect(screen.getByText('What we are thinking about')).toBeTruthy();
     expect(screen.getByText('What is planned next')).toBeTruthy();
@@ -273,7 +280,7 @@ describe('PlanningPage', () => {
     expect(screen.getByText('Write it')).toBeTruthy();
     expect(screen.getByText('The approach')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Planning' })).toBeTruthy();
-    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('In review');
+    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('Waiting for approval');
   });
 
   it('draws no coloured edge on any card', async () => {

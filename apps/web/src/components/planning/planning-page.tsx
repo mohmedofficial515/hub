@@ -9,6 +9,7 @@ import { CheckCheck, Hourglass, Lightbulb, Loader, Route, SearchX, Sparkles } fr
 import { useEffect, useRef } from 'react';
 
 import {
+  AppLink,
   Button,
   type CardAction,
   CopyButton,
@@ -40,8 +41,10 @@ import {
   ACTIVE_PLANS,
   CLOSED_IDEAS,
   CLOSED_PLANS,
+  ideaIdOfPlan,
   isMineHere,
   pickFocal,
+  planIdOfIdea,
   progressOf,
 } from '@/features/planning/model';
 import { useIdeasQuery, usePlansQuery } from '@/features/planning/queries';
@@ -51,11 +54,25 @@ import { PlanningDetail } from './detail';
 import { PlanningDraft } from './draft';
 import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
-import { DraftBanner, FocalCard, IdeaRow, Lane, type LaneGroup, PlanRow, StatsStrip } from './parts';
+import {
+  DraftBanner,
+  FocalCard,
+  IdeaRow,
+  Lane,
+  type LaneGroup,
+  linkButton,
+  PlanRow,
+  StatsStrip,
+} from './parts';
 import { IdeaStudio } from './studio/idea-studio';
 import { PlanStudio } from './studio/plan-studio';
 
 type Scope = 'active' | 'closed';
+
+const TABS: readonly SheetTab[] = ['details', 'comments', 'history', 'links'];
+/** A tab from the address, or the details when it names none this page has. */
+const tabOf = (value: string | null): SheetTab =>
+  value && (TABS as readonly string[]).includes(value) ? (value as SheetTab) : 'details';
 
 const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
 const byWeight = (a: IdeaCard | PlanCard, b: IdeaCard | PlanCard) =>
@@ -97,7 +114,7 @@ export function PlanningPage() {
         key={plan}
         cardKey={plan}
         action={(query.get('action') || null) as CardAction | null}
-        tab={(query.get('tab') as SheetTab | null) ?? 'details'}
+        tab={tabOf(query.get('tab'))}
       />
     );
   }
@@ -161,21 +178,40 @@ function PlanningLists() {
     { done: 0, total: 0 },
   );
 
+  // Places, so they are links: each opens in a new tab too. Filled only on an empty page, where creating is the next thing.
   const newButtons = (fillFirst = false) => (
     <>
-      <Button
-        variant={fillFirst ? 'primary' : 'outline'}
-        onClick={() => setQuery({ studio: 'idea', chat: null }, { replace: false })}
+      <AppLink
+        view="planning"
+        query={{ studio: 'idea', chat: null }}
+        className={linkButton(fillFirst ? 'primary' : 'outline')}
       >
         <Sparkles aria-hidden className="size-4" strokeWidth={1.75} />
         {t.newIdea}
-      </Button>
-      <Button onClick={() => setQuery({ studio: 'plan', chat: null }, { replace: false })}>
+      </AppLink>
+      <AppLink view="planning" query={{ studio: 'plan', chat: null }} className={linkButton('outline')}>
         <Route aria-hidden className="size-4" strokeWidth={1.75} />
         {t.newPlan}
-      </Button>
+      </AppLink>
     </>
   );
+  const plansById = new Map(plans.map((c) => [c.id, c]));
+  const ideasById = new Map(ideas.map((c) => [c.id, c]));
+  const planOf = (card: IdeaCard) => {
+    const id = planIdOfIdea(card);
+    return id ? plansById.get(id) : undefined;
+  };
+  const ideaOf = (card: PlanCard) => {
+    const id = ideaIdOfPlan(card);
+    return id ? ideasById.get(id) : undefined;
+  };
+  /** Where a number on the strip jumps: its group of plans, or the focal card when that plan is the one on top. */
+  const jump = (status: string) =>
+    planGroups.some((g) => g.status === status)
+      ? `#lane-plans-${status}`
+      : focal?.card.type === 'plan' && focal.card.status === status
+        ? '#planning-focal'
+        : '#lane-plans';
 
   const failed = ideasQuery.isError ? ideasQuery : plansQuery.isError ? plansQuery : null;
   if (failed) {
@@ -239,7 +275,7 @@ function PlanningLists() {
           </span>
         </EmptyState>
         <div className="flex justify-center">
-          <DeletedLink type="idea" />
+          <DeletedLink />
         </div>
       </PageContainer>
     );
@@ -256,13 +292,33 @@ function PlanningLists() {
       <StatsStrip
         label={t.stats.label}
         items={[
-          { label: t.stats.waiting, value: num(waiting, locale), icon: Hourglass },
-          { label: t.stats.moving, value: num(inProgress, locale), icon: Loader },
-          { label: t.stats.ideas, value: num(openIdeas, locale), icon: Lightbulb },
+          {
+            label: t.stats.waiting,
+            value: num(waiting, locale),
+            icon: Hourglass,
+            href: jump('in_review'),
+            empty: waiting === 0 || scope !== 'active',
+          },
+          {
+            label: t.stats.moving,
+            value: num(inProgress, locale),
+            icon: Loader,
+            href: jump('in_progress'),
+            empty: inProgress === 0 || scope !== 'active',
+          },
+          {
+            label: t.stats.ideas,
+            value: num(openIdeas, locale),
+            icon: Lightbulb,
+            href: '#lane-ideas',
+            empty: openIdeas === 0 || scope !== 'active',
+          },
           {
             label: t.stats.steps,
             value: `${num(steps.done, locale)} / ${num(steps.total, locale)}`,
             icon: CheckCheck,
+            href: '#lane-plans',
+            empty: steps.total === 0 || scope !== 'active',
           },
         ]}
       />
@@ -281,7 +337,7 @@ function PlanningLists() {
           mine={{ page: 'planning', param: 'mine', value: '1' }}
           searchParam="q"
           searchPlaceholder={t.filters.search}
-          extra={<DeletedLink type="plan" />}
+          extra={<DeletedLink />}
         />
       </div>
 
@@ -316,7 +372,7 @@ function PlanningLists() {
                   {t.empty.ideasBody}
                 </EmptyState>
               }
-              renderRow={(card) => <IdeaRow card={card} rowProps={list.rowProps} />}
+              renderRow={(card) => <IdeaRow card={card} rowProps={list.rowProps} plan={planOf(card)} />}
             />
             <Lane<PlanCard>
               id="lane-plans"
@@ -329,7 +385,7 @@ function PlanningLists() {
                   {t.empty.plansBody}
                 </EmptyState>
               }
-              renderRow={(card) => <PlanRow card={card} rowProps={list.rowProps} />}
+              renderRow={(card) => <PlanRow card={card} rowProps={list.rowProps} idea={ideaOf(card)} />}
             />
           </div>
         </>

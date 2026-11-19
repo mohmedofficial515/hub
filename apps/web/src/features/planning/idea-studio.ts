@@ -21,6 +21,7 @@ import type { PlanningMessages } from '@/components/planning/messages';
 import { kitMessages, useT } from '@/lib/i18n';
 
 import { createCard } from '../cards/store';
+import { isGone } from './plan-studio';
 import { saveIdea } from './queries';
 import { projectPath } from './studio-acts';
 
@@ -139,9 +140,6 @@ export function researchProgress(
   return out;
 }
 
-/** The web pages the research opened or searched, for the live feed's count. */
-export const webCount = (acts: readonly ResearchAct[]) => acts.filter((a) => a.stage === 'web').length;
-
 // ── Accepted reports: which chat became which idea, kept across reloads in this browser ──────────────
 
 const STORE_KEY = 'hub:idea-studio:accepted';
@@ -169,6 +167,28 @@ function remember(entries: Record<string, string>) {
   for (const [id, key] of Object.entries(entries)) memory.set(id, key);
   version += 1;
   for (const fn of listeners) fn();
+}
+
+/** Forgets an idea that is gone: every record that points at it, so the next Accept makes a new one. */
+function forget(key: string) {
+  const all = readAll();
+  for (const [id, value] of Object.entries(all)) if (value === key) delete all[id];
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(all));
+  } catch {
+    // Blocked storage: memory is what the page reads anyway.
+  }
+  for (const [id, value] of [...memory]) if (value === key) memory.delete(id);
+  version += 1;
+  for (const fn of listeners) fn();
+}
+
+/** The studio chat an idea came from, if this browser accepted it: the way back to its full report. */
+export function studioChatOfIdea(key: string): string | null {
+  for (const [id, value] of memory) if (value === key && id.startsWith('chat:')) return id.slice(5);
+  for (const [id, value] of Object.entries(readAll()))
+    if (value === key && id.startsWith('chat:')) return id.slice(5);
+  return null;
 }
 
 export interface AcceptedIdea {
@@ -256,14 +276,20 @@ export async function acceptIdea(
   const { title, body, detail } = cardFields(idea, words);
   const existing = recall(`chat:${chatId}`);
   if (existing) {
-    await saveIdea(existing, {
-      title,
-      body,
-      ...(detail.problem ? { problem: detail.problem } : {}),
-      ...(detail.notes ? { notes: detail.notes } : {}),
-    });
-    remember({ [messageId]: existing });
-    return { key: existing, updated: true };
+    try {
+      await saveIdea(existing, {
+        title,
+        body,
+        ...(detail.problem ? { problem: detail.problem } : {}),
+        ...(detail.notes ? { notes: detail.notes } : {}),
+      });
+      remember({ [messageId]: existing });
+      return { key: existing, updated: true };
+    } catch (error) {
+      // The accepted idea was deleted since: this report becomes a new idea rather than failing every time.
+      if (!isGone(error)) throw error;
+      forget(existing);
+    }
   }
   const base = { type: 'idea' as const, title, body, detail };
   const links = ideaCardKeys(idea, CARD_KEY_PATTERN).map((key) => ({ kind: 'relates' as const, key }));

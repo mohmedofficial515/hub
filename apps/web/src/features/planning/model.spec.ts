@@ -5,7 +5,17 @@
 import { describe, expect, it } from 'vitest';
 
 import type { IdeaCard, PlanCard, Role } from '../cards/types';
-import { excerptOf, isMineHere, pickFocal, progressOf } from './model';
+import {
+  excerptOf,
+  guideOf,
+  ideaIdOfPlan,
+  isMineHere,
+  mergeSteps,
+  pickFocal,
+  planFacts,
+  planIdOfIdea,
+  progressOf,
+} from './model';
 
 const owner: Role[] = ['owner'];
 const backend: Role[] = ['backend'];
@@ -111,5 +121,109 @@ describe('excerptOf', () => {
   it('skips headings and drops Markdown marks', () => {
     expect(excerptOf('# Title\n\nUse **two** [steps](http://x).\n\nMore.')).toBe('Use two steps.');
     expect(excerptOf(undefined)).toBe('');
+  });
+});
+
+describe('mergeSteps', () => {
+  const before = [
+    step('a', { taskKey: 'T-1', done: true, title: 'Build' }),
+    step('b', { done: true, title: 'Talk to the supplier' }),
+  ];
+
+  it('keeps a step’s task, and its task’s done, whatever the form sent', () => {
+    const out = mergeSteps(before, [{ id: 'a', title: 'Build it', done: false }]);
+    expect(out).toEqual([{ id: 'a', title: 'Build it', taskKey: 'T-1', done: true }]);
+  });
+
+  it('takes the done it was sent for a step with no task, so a step done through Claude stays done', () => {
+    expect(mergeSteps(before, [{ id: 'b', title: 'Talk', done: true }])[0]).toMatchObject({
+      id: 'b',
+      done: true,
+    });
+    expect(mergeSteps(before, [{ id: 'b', title: 'Talk', done: false }])[0]).toMatchObject({ done: false });
+  });
+
+  it('keeps a new step with an id for now, in the order sent', () => {
+    const out = mergeSteps(before, [
+      { title: 'New one', role: 'qa' },
+      { id: 'a', title: 'Build' },
+    ]);
+    expect(out.map((s) => s.id)).toEqual(['tmp-0', 'a']);
+    expect(out[0]).toEqual({ id: 'tmp-0', title: 'New one', role: 'qa', done: false });
+  });
+});
+
+describe('guideOf', () => {
+  it('asks for steps on a draft with none, and for review on one with steps', () => {
+    expect(guideOf(plan('D', 'draft'), owner, 'me')).toEqual({ kind: 'noSteps' });
+    expect(guideOf(plan('D', 'draft', {}, [step('a')]), owner, 'me')).toEqual({ kind: 'review' });
+  });
+
+  it('asks the one who may approve to approve, and tells anyone else who it waits for', () => {
+    expect(guideOf(plan('R', 'in_review', {}, [step('a')]), owner, 'me')).toEqual({ kind: 'approve' });
+    expect(guideOf(plan('R', 'in_review', {}, [step('a')]), backend, 'me')).toEqual({ kind: 'waitApproval' });
+  });
+
+  it('asks for tasks on an approved plan with steps that have none, else to start', () => {
+    expect(
+      guideOf(plan('A', 'approved', {}, [step('a'), step('b', { taskKey: 'T-2' })]), owner, 'me'),
+    ).toEqual({
+      kind: 'createTasks',
+      n: 1,
+    });
+    expect(guideOf(plan('A', 'approved', {}, [step('a', { taskKey: 'T-1' })]), owner, 'me')).toEqual({
+      kind: 'start',
+    });
+  });
+
+  it('names the next step of a moving plan and its task, or says it has none, or that all are done', () => {
+    const moving = plan('M', 'in_progress', {}, [
+      step('a', { taskKey: 'T-1', done: true }),
+      step('Ship it', { taskKey: 'T-2' }),
+    ]);
+    expect(guideOf(moving, owner, 'me')).toEqual({
+      kind: 'step',
+      index: 1,
+      total: 2,
+      title: 'Ship it',
+      taskKey: 'T-2',
+    });
+    expect(guideOf(plan('M', 'in_progress', {}, [step('a')]), owner, 'me')).toEqual({
+      kind: 'stepNoTask',
+      index: 0,
+      total: 1,
+    });
+    expect(
+      guideOf(plan('M', 'in_progress', {}, [step('a', { done: true, taskKey: 'T-1' })]), owner, 'me'),
+    ).toEqual({
+      kind: 'finish',
+    });
+  });
+
+  it('leaves an idea, and an ended plan, to their status', () => {
+    expect(guideOf(idea('I', 'open'), owner, 'me')).toEqual({ kind: 'status' });
+    expect(guideOf(plan('X', 'done'), owner, 'me')).toEqual({ kind: 'status' });
+  });
+});
+
+describe('planFacts, planIdOfIdea, ideaIdOfPlan', () => {
+  it('reads what the API keeps on the detail, and nothing that is not there', () => {
+    const p = plan('P', 'approved', {
+      plan: {
+        body: '',
+        steps: [],
+        approvedById: 'u1',
+        approvedAt: '2026-11-02T00:00:00.000Z',
+        revision: 3,
+        sourceIdeaId: 'i1',
+      },
+    } as unknown as Partial<PlanCard>);
+    expect(planFacts(p)).toEqual({ approvedById: 'u1', approvedAt: '2026-11-02T00:00:00.000Z', revision: 3 });
+    expect(ideaIdOfPlan(p)).toBe('i1');
+    expect(planFacts(plan('Q', 'draft'))).toEqual({});
+    expect(
+      planIdOfIdea(idea('I', 'accepted', { idea: { planCardId: 'p1' } } as unknown as Partial<IdeaCard>)),
+    ).toBe('p1');
+    expect(planIdOfIdea(idea('J', 'open'))).toBeUndefined();
   });
 });

@@ -83,6 +83,8 @@ interface StepDraft {
   title: string;
   role: string;
   taskKey?: string | undefined;
+  /** Kept as it is: a step done through Claude (update_plan) stays done when the form saves. */
+  done: boolean;
 }
 
 function StepsEditor({
@@ -181,7 +183,7 @@ function StepsEditor({
         className="self-start"
         onClick={() => {
           nextUid.current += 1;
-          onChange([...steps, { uid: `new-${nextUid.current}`, title: '', role: '' }]);
+          onChange([...steps, { uid: `new-${nextUid.current}`, title: '', role: '', done: false }]);
         }}
       >
         <Plus aria-hidden className="size-3.5" strokeWidth={1.75} />
@@ -208,6 +210,7 @@ function PlanEditForm({ card }: { card: PlanCard }) {
       title: step.title,
       role: step.role ?? '',
       taskKey: step.taskKey,
+      done: step.done,
     })),
   );
   const [tried, setTried] = useState(false);
@@ -238,7 +241,8 @@ function PlanEditForm({ card }: { card: PlanCard }) {
           ...(step.id ? { id: step.id } : {}),
           title: step.title.trim(),
           ...(step.role ? { role: step.role as Role } : {}),
-          done: false,
+          ...(step.taskKey ? { taskKey: step.taskKey } : {}),
+          done: step.done,
         })),
       }),
     );

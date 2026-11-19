@@ -5,13 +5,79 @@
  * @description What the Idea Studio and the Plan Studio share: the way back, the session's frame (the report beside the conversation, or tabs where there is
  * no room for both), the conversation's remembered width, and sending a request that waits in line while Claude is still working.
  */
-import { ArrowLeft, ArrowRight, ListOrdered, type LucideIcon, MessagesSquare } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  ListOrdered,
+  type LucideIcon,
+  MessagesSquare,
+  PenLine,
+  Plus,
+} from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
-import { AppLink, cn, focusRing, setQuery, useLocale } from '@/components/kit';
-import { activeChatId, type PanelChat, send } from '@/components/workbench/store';
+import {
+  AppLink,
+  Button,
+  cn,
+  EmptyState,
+  focusRing,
+  PageContainer,
+  setQuery,
+  useLocale,
+  useRoving,
+} from '@/components/kit';
+import { activeChatId, openChat, type PanelChat, send, type Wb } from '@/components/workbench/store';
 
 import type { ConversationWidth } from './conversation';
+
+/**
+ * Where a jump inside a studio's report lands: below the app's header, the studio's tabs and the report's contents, which all stay in view. Narrower
+ * pages stack more of them, so the room is larger there.
+ */
+export const STUDIO_ANCHOR = 'scroll-mt-28 @max-page-xl:scroll-mt-44';
+
+/** How many times the studio opens the chat in its address before it says the chat is not there. */
+const OPEN_TRIES = 2;
+
+/**
+ * The chat a studio's address names, opened in the panel's store. A chat that is not there (deleted, another member's, another browser's) is tried at
+ * most twice, then reads as missing, so a stale link never loops on the API. While the chat is open and the owner opens another one in the panel, the
+ * studio brings its own back, as it always did.
+ */
+export function useStudioChat(
+  wb: Pick<Wb, 'activeId' | 'chat' | 'chats'> | null | undefined,
+  chatId: string | null,
+): { chat: PanelChat | null; missing: boolean } {
+  const tries = useRef<{ id: string | null; n: number }>({ id: null, n: 0 });
+  const [missing, setMissing] = useState<string | null>(null);
+  const activeId = wb?.activeId ?? null;
+  const loaded = !!chatId && wb?.chat?.id === chatId;
+  const listed = !!chatId && !!wb?.chats.some((c) => c.id === chatId);
+  const present = !!wb;
+
+  useEffect(() => {
+    if (!present || !chatId) return;
+    if (tries.current.id !== chatId) tries.current = { id: chatId, n: 0 };
+    const t = tries.current;
+    // Once the chat has opened, a later switch in the panel is the owner's, and the studio may bring its chat back again.
+    if (loaded) {
+      t.n = 0;
+      return;
+    }
+    if (missing === chatId || activeId === chatId) return;
+    // The store opened the chat and gave up on it (the API did not find it), or it was tried enough.
+    if ((activeId === null && t.n > 0 && !listed) || t.n >= OPEN_TRIES) {
+      setMissing(chatId);
+      return;
+    }
+    t.n += 1;
+    openChat(chatId);
+  }, [present, chatId, activeId, loaded, listed, missing]);
+
+  const chat = loaded ? (wb?.chat ?? null) : null;
+  return { chat, missing: !!chatId && missing === chatId && !loaded };
+}
 
 export function StudioBack({ label }: { label: string }) {
   const locale = useLocale();
@@ -29,6 +95,58 @@ export function StudioBack({ label }: { label: string }) {
       {label}
     </AppLink>
   );
+}
+
+/** A chat the address names that is not there: said plainly, with the way to a new session. */
+export function StudioMissing({
+  icon,
+  back,
+  words,
+}: {
+  icon: LucideIcon;
+  back: string;
+  words: { title: string; body: string; new: string };
+}) {
+  return (
+    <PageContainer>
+      <StudioBack label={back} />
+      <EmptyState
+        icon={icon}
+        title={words.title}
+        size="page"
+        action={
+          <Button variant="primary" onClick={() => setQuery({ chat: null }, { replace: true })}>
+            <Plus aria-hidden className="size-4" strokeWidth={1.75} />
+            {words.new}
+          </Button>
+        }
+      >
+        {words.body}
+      </EmptyState>
+    </PageContainer>
+  );
+}
+
+/** The way round the research: writing the card by hand, offered as one quiet line. */
+export function ManualWay({ hint, label, onOpen }: { hint: string; label: string; onOpen: () => void }) {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-dashed border-border px-4 py-3 text-center">
+      <span className="text-body-sm text-muted-foreground">{hint}</span>
+      <Button variant="ghost" size="sm" onClick={onOpen}>
+        <PenLine aria-hidden className="size-4" strokeWidth={1.75} />
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+/** Focus a box on arrival only with a fine pointer: on a touch screen it would raise the keyboard before the owner asked. */
+export function wantsAutoFocus() {
+  try {
+    return window.matchMedia('(pointer: fine)').matches;
+  } catch {
+    return true;
+  }
 }
 
 /** A studio's mark: one tile in its card type's colour. */
@@ -104,7 +222,10 @@ export function StudioFrame({
           : '@page-xl:grid-cols-[minmax(0,1fr)_24rem]',
       )}
     >
-      <div className={cn('flex min-w-0 flex-col gap-4', tab === 'chat' && '@max-page-xl:hidden')}>
+      <div
+        id={STUDIO_PANELS.report}
+        className={cn('flex min-w-0 flex-col gap-4', tab === 'chat' && '@max-page-xl:hidden')}
+      >
         {report}
       </div>
       {conversation(
@@ -135,24 +256,27 @@ export function StudioTabs({
     { id: 'report', label: words.tabReport, icon: ListOrdered },
     { id: 'chat', label: words.tabChat, icon: MessagesSquare },
   ];
+  // One Tab stop for the pair, the arrows move between them in the reading direction (kit: useRoving).
+  const { root, groupProps, itemProps } = useRoving(tabs.findIndex((t) => t.id === tab));
   return (
     <div
-      role="tablist"
+      ref={root}
+      role="toolbar"
       aria-label={label}
+      {...groupProps}
       className="sticky top-16 z-10 grid grid-cols-2 gap-1 rounded-xl border border-border bg-card/90 p-1 shadow-sm backdrop-blur @page-xl:hidden"
     >
-      {tabs.map(({ id, label: name, icon: Icon }) => (
+      {tabs.map(({ id, label: name, icon: Icon }, i) => (
         <button
           key={id}
           type="button"
-          role="tab"
-          aria-selected={tab === id}
+          {...itemProps(i)}
+          aria-pressed={tab === id}
+          aria-controls={STUDIO_PANELS[id]}
           onClick={() => onTab(id)}
           className={cn(
-            'relative inline-flex h-10 items-center justify-center gap-1.5 rounded-lg text-body-sm font-medium transition-colors',
-            tab === id
-              ? 'bg-primary text-primary-foreground shadow-sm'
-              : 'text-muted-foreground hover:bg-accent',
+            'relative inline-flex h-10 items-center justify-center gap-1.5 rounded-lg text-body-sm font-medium transition-colors max-md:h-11',
+            tab === id ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-accent',
             focusRing,
           )}
         >
@@ -169,6 +293,12 @@ export function StudioTabs({
     </div>
   );
 }
+
+/** The two halves the tabs switch between, by id, so each button names what it shows. */
+export const STUDIO_PANELS: Record<StudioTab, string> = {
+  report: 'studio-panel-report',
+  chat: 'studio-panel-chat',
+};
 
 // ── Sending, with a line for one request ────────────────────────────────────────────────────────
 
@@ -210,15 +340,17 @@ export function useStudioSend(chat: PanelChat, busy: boolean) {
     [chatId],
   );
 
+  /** Sends now, or puts the request in line. The line holds one request: a second one while it waits is refused (false), never swapped in silently. */
   const onSend = useCallback(
     async (text: string) => {
       if (busy) {
+        if (lines.has(chatId)) return false;
         setQueued(text);
         return true;
       }
       return sendNow(text);
     },
-    [busy, sendNow, setQueued],
+    [busy, chatId, sendNow, setQueued],
   );
 
   useEffect(() => {
@@ -234,5 +366,12 @@ export function useStudioSend(chat: PanelChat, busy: boolean) {
   // Another chat has its own line.
   useEffect(() => setQueuedState(lines.get(chatId) ?? null), [chatId]);
 
-  return { queued, sending, onSend, cancelQueued: () => setQueued(null) };
+  return {
+    queued,
+    sending,
+    onSend,
+    cancelQueued: () => setQueued(null),
+    /** A request already waits: the report's own buttons hold back until it goes or is cancelled. */
+    blocked: busy && !!queued,
+  };
 }

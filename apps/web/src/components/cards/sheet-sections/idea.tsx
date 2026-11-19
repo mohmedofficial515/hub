@@ -7,16 +7,19 @@
 import { useId, useState } from 'react';
 
 import { CardChip } from '@/components/cards/card-key';
+import { focusRing } from '@/components/cards/meta';
 import { MarkdownView } from '@/components/common/markdown';
 import { fill, Ltr } from '@/components/common/text';
 import { showToast } from '@/components/common/toast';
-import { openCard, setQuery } from '@/components/shell/router';
+import { AppLink, openCard, setQuery } from '@/components/shell/router';
 import { detectSecret, Field, SecretFilterError, Select, TextInput } from '@/components/ui/form';
 import type { Priority, Role } from '@/features/cards/types';
 import { excerptOf } from '@/features/planning/model';
 import { linkedOfType, saveIdea, turnIntoPlan } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
+import { useUnsavedGuard } from '@/lib/hooks';
 import { kitMessages, useT } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
 
 import {
   ChangedElsewhere,
@@ -45,6 +48,7 @@ interface IdeaWords {
     planBody: string;
     toPlanSave: string;
     turned: string;
+    toPlanStudio: string;
   };
 }
 
@@ -67,6 +71,15 @@ function IdeaEditForm({ card }: { card: IdeaProps['card'] }) {
   const [priority, setPriority] = useState(card.priority);
   const [tags, setTags] = useState(card.tags.join(', '));
   const [tried, setTried] = useState(false);
+  useUnsavedGuard(
+    title !== card.title ||
+      body !== (card.body ?? '') ||
+      problem !== (base.problem ?? '') ||
+      notes !== (base.notes ?? '') ||
+      role !== (d.role ?? '') ||
+      priority !== card.priority ||
+      tags !== card.tags.join(', '),
+  );
 
   const noTitle = !title.trim();
   const secret = [title, body, problem, notes, tags].map(detectSecret).find(Boolean) ?? null;
@@ -106,7 +119,7 @@ function IdeaEditForm({ card }: { card: IdeaProps['card'] }) {
       </Field>
       <MarkdownField label={s.problem} rows={5} value={problem} onChange={setProblem} />
       <MarkdownField label={s.notes} rows={6} value={notes} onChange={setNotes} />
-      <MarkdownField label={words.body} rows={3} value={body} onChange={setBody} />
+      <MarkdownField label={words.body} rows={8} value={body} onChange={setBody} />
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id={`${id}-role`} label={words.role}>
           <Select id={`${id}-role`} value={role} onChange={(e) => setRole(e.target.value)}>
@@ -180,6 +193,16 @@ function ToPlanForm({ card, onCancel }: { card: IdeaProps['card']; onCancel: () 
     <ActionPanel onSubmit={submit}>
       <SubHeading>{words.toPlanTitle}</SubHeading>
       <p className="text-body-sm text-muted-foreground">{words.toPlanHint}</p>
+      <AppLink
+        view="planning"
+        query={{ studio: 'plan', idea: card.key, plan: null, action: null, chat: null, tab: null }}
+        className={cn(
+          'hit-44 self-start rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
+          focusRing,
+        )}
+      >
+        {words.toPlanStudio}
+      </AppLink>
       <Field
         id={`${id}-title`}
         label={words.planTitle}

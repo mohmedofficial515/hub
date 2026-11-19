@@ -5,8 +5,9 @@
  * @description The Planning page's pieces: the numbers at a glance, the live draft's banner, the focal card, a lane, an idea row, a plan row and the step meter.
  * Every card opens its own page, not the sheet. Why they look this way: NOTES.md beside this file.
  */
-import { ArrowUpRight, Check, Circle, type LucideIcon, Sparkles } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import { ArrowUpRight, Check, Circle, type LucideIcon, Sparkles, X } from 'lucide-react';
+import { type ReactNode, useState } from 'react';
 
 import {
   actionName,
@@ -15,8 +16,10 @@ import {
   Button,
   CardChip,
   cn,
+  fill,
   fmt,
   focusRing,
+  IconButton,
   type IdeaCard,
   kitMessages,
   Ltr,
@@ -26,9 +29,9 @@ import {
   type PlanCard,
   plural,
   PriorityBadge,
+  RelativeTime,
   RoleBadge,
   RowAction,
-  StatusBadge,
   stretchedFocus,
   TypeBadge,
   typeClass,
@@ -40,10 +43,17 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
-import { excerptOf, type Focal, isMineHere, nextActionOf, progressOf } from '@/features/planning/model';
+import {
+  excerptOf,
+  type Focal,
+  isMineHere,
+  nextActionOf,
+  nextStepOf,
+  progressOf,
+} from '@/features/planning/model';
 import { useSavedProposal } from '@/features/planning/proposal';
 
-import { LivePill, ProgressMeter } from './detail-parts';
+import { LivePill, ProgressMeter, StagePill } from './detail-parts';
 import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
 
@@ -66,17 +76,31 @@ export function StepMeter({ done, total, className }: { done: number; total: num
   );
 }
 
-/** Four numbers the page already has, so the owner reads its state before its rows. Nothing here is estimated. */
+/** A link styled as the kit's Button, for a control that goes somewhere (README: AppLink for any place), so it opens in a new tab too. */
+export const linkButton = (variant: 'primary' | 'outline') =>
+  cn(
+    'inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 text-body font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] duration-150 ease-out md:h-9',
+    variant === 'primary'
+      ? 'btn-sheen bg-primary text-primary-foreground shadow-sm shadow-primary/30 hover:bg-primary-hover'
+      : 'border border-border bg-card text-foreground shadow-xs hover:border-primary/30 hover:bg-accent',
+    focusRing,
+  );
+
+/**
+ * Four numbers the page already has, so the owner reads its state before its rows. Nothing here is estimated. A number with rows behind it is a link to
+ * them; a zero stays a plain number.
+ */
 export function StatsStrip({
   items,
   label,
 }: {
-  items: { label: string; value: ReactNode; icon: LucideIcon }[];
+  items: { label: string; value: ReactNode; icon: LucideIcon; href?: string | undefined; empty?: boolean }[];
   label: string;
 }) {
+  const reduce = useReducedMotion();
   return (
     <dl aria-label={label} className="grid grid-cols-2 gap-2 @page-md:grid-cols-4">
-      {items.map(({ label: name, value, icon: Icon }) => (
+      {items.map(({ label: name, value, icon: Icon, href, empty }) => (
         <div
           key={name}
           className="flex min-w-0 flex-col gap-1 rounded-xl border border-border bg-card px-3 py-2.5 shadow-xs"
@@ -85,19 +109,55 @@ export function StatsStrip({
             <Icon aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
             <span className="truncate">{name}</span>
           </dt>
-          <dd className="text-title-sm font-semibold text-foreground tabular-nums">{value}</dd>
+          <dd className="text-title-sm font-semibold text-foreground tabular-nums">
+            {href && !empty ? (
+              <a
+                href={href}
+                onClick={(e) => {
+                  const target = document.getElementById(href.slice(1));
+                  if (!target) return;
+                  e.preventDefault();
+                  target.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+                }}
+                className={cn('hit-44 rounded-sm underline-offset-4 hover:underline', focusRing)}
+              >
+                {value}
+              </a>
+            ) : (
+              value
+            )}
+          </dd>
         </div>
       ))}
     </dl>
   );
 }
 
+const DISMISSED = 'hub:planning:draft-dismissed';
+const dismissedDraft = () => {
+  try {
+    return window.sessionStorage.getItem(DISMISSED);
+  } catch {
+    return null;
+  }
+};
+
 /** The plan a chat is drafting, or just proposed, with the way to watch it as a page. Gone once that proposal is saved. */
 export function DraftBanner() {
   const w = useT<PlanningMessages>('planning');
   const draft = useLiveDraft();
   const saved = useSavedProposal(draft?.proposal?.id);
-  if (!draft || saved) return null;
+  const [dismissed, setDismissed] = useState(dismissedDraft);
+  if (!draft || saved || (draft.messageId && dismissed === draft.messageId)) return null;
+  const dismiss = () => {
+    if (!draft.messageId) return;
+    setDismissed(draft.messageId);
+    try {
+      window.sessionStorage.setItem(DISMISSED, draft.messageId);
+    } catch {
+      // Blocked storage: hidden until the page reloads.
+    }
+  };
   const title = draft.proposal?.structured?.title;
   return (
     <div
@@ -132,6 +192,11 @@ export function DraftBanner() {
         {w.liveBanner.open}
         <ArrowUpRight aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
       </AppLink>
+      {!draft.writing && draft.messageId && (
+        <IconButton label={w.liveBanner.dismiss} onClick={dismiss}>
+          <X aria-hidden className="size-4" strokeWidth={1.75} />
+        </IconButton>
+      )}
     </div>
   );
 }
@@ -165,8 +230,9 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
   return (
     <article
       {...rowProps(card.key)}
+      id="planning-focal"
       aria-labelledby={titleId}
-      className="grid gap-x-6 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
+      className="grid scroll-mt-20 gap-x-6 gap-y-4 rounded-2xl border border-border bg-card p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5 @page-lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"
     >
       <div className="flex min-w-0 flex-col gap-2.5">
         <div className="flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
@@ -176,13 +242,13 @@ export function FocalCard({ focal, rowProps }: { focal: Focal; rowProps: RowProp
               action ? 'bg-primary/10 text-primary' : 'bg-muted text-foreground',
             )}
           >
-            {action ? t.focal.label : t.focal.moving}
+            {action ? t.focal.label : card.status === 'in_review' ? t.focal.waiting : t.focal.moving}
           </span>
           <TypeBadge type={card.type} />
           <Ltr mono className="text-caption">
             {card.key}
           </Ltr>
-          <StatusBadge status={card.status} />
+          <StagePill card={card} />
           {(card.priority === 'P0' || card.priority === 'P1') && <PriorityBadge priority={card.priority} />}
           {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
         </div>
@@ -328,6 +394,7 @@ function PlanningRow({
             {(card.priority === 'P0' || card.priority === 'P1') && <PriorityBadge priority={card.priority} />}
             {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
             {meta}
+            <RelativeTime iso={card.lastEventAt} className="text-caption" />
           </div>
         </div>
         {wide && button && <div className="relative z-10 shrink-0">{button}</div>}
@@ -338,7 +405,15 @@ function PlanningRow({
   );
 }
 
-export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps }) {
+export function IdeaRow({
+  card,
+  rowProps,
+  plan,
+}: {
+  card: IdeaCard;
+  rowProps: RowProps;
+  plan?: PlanCard | undefined;
+}) {
   const t = useT<PlanningMessages>('planning');
   const { me, roles } = useSession();
   const next = nextActionOf(card, roles, me.id);
@@ -347,7 +422,17 @@ export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps
     <PlanningRow
       card={card}
       rowProps={rowProps}
-      meta={card.idea.role && <RoleBadge role={card.idea.role} outline={false} className="text-caption" />}
+      meta={
+        <>
+          {card.idea.role && <RoleBadge role={card.idea.role} outline={false} className="text-caption" />}
+          {/* The plan it became: above the row's own link, so it opens that plan. */}
+          {plan && (
+            <span className="relative z-10">
+              <CardChip k={plan.key} type="plan" card={plan} showStatus />
+            </span>
+          )}
+        </>
+      }
       below={
         <p className="line-clamp-2 text-caption text-muted-foreground">
           <Bidi>{text || t.row.noText}</Bidi>
@@ -360,19 +445,59 @@ export function IdeaRow({ card, rowProps }: { card: IdeaCard; rowProps: RowProps
   );
 }
 
-export function PlanRow({ card, rowProps }: { card: PlanCard; rowProps: RowProps }) {
+export function PlanRow({
+  card,
+  rowProps,
+  idea,
+}: {
+  card: PlanCard;
+  rowProps: RowProps;
+  idea?: IdeaCard | undefined;
+}) {
   const t = useT<PlanningMessages>('planning');
+  const locale = useLocale();
   const { me, roles } = useSession();
   const next = nextActionOf(card, roles, me.id);
-  const { done, total } = progressOf(card);
+  const { done, total, withoutTask } = progressOf(card);
+  const step = nextStepOf(card);
   return (
     <PlanningRow
       card={card}
       rowProps={rowProps}
-      below={
-        <div className="text-caption text-muted-foreground">
+      meta={
+        <>
           {total > 0 ? <StepMeter done={done} total={total} /> : <span>{t.row.noSteps}</span>}
-        </div>
+          {total > 0 && withoutTask > 0 && <span>{fmt(t.row.noTask, { n: num(withoutTask, locale) })}</span>}
+          {idea && (
+            <span className="relative z-10">
+              <CardChip k={idea.key} type="idea" card={idea} />
+            </span>
+          )}
+        </>
+      }
+      below={
+        total > 0 && (
+          <p className="flex min-w-0 items-center gap-1.5 text-caption text-foreground">
+            {step ? (
+              <>
+                <span className="line-clamp-1 min-w-0">
+                  {fill(t.row.next, {
+                    n: num(step.index + 1, locale),
+                    title: <Bidi>{step.step.title}</Bidi>,
+                  })}
+                </span>
+                {step.step.role && (
+                  <RoleBadge role={step.step.role} outline={false} className="shrink-0 text-caption" />
+                )}
+              </>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <Check aria-hidden className="size-3.5" strokeWidth={2} />
+                {t.row.allDone}
+              </span>
+            )}
+          </p>
+        )
       }
       button={
         next && <RowAction card={card} action={next.action} size="sm" aria-describedby={`row-${card.key}`} />

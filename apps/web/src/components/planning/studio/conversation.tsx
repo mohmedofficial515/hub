@@ -21,14 +21,12 @@ import {
   FileText,
   Globe,
   Layers,
-  Lightbulb,
   ListOrdered,
   Loader2,
   type LucideIcon,
   Maximize2,
   MessageSquareReply,
   Minimize2,
-  Route,
   Search,
   Sparkles,
   Square,
@@ -47,6 +45,7 @@ import {
   focusRing,
   IconButton,
   MarkdownView,
+  matchKey,
   num,
   plural,
   SecretFilterError,
@@ -143,6 +142,7 @@ export function StudioConversation({
   onSend,
   onCancelQueued,
   className,
+  id,
 }: {
   wb: Wb;
   chat: PanelChat;
@@ -159,6 +159,8 @@ export function StudioConversation({
   onSend: (text: string) => Promise<boolean>;
   onCancelQueued: () => void;
   className?: string | undefined;
+  /** The element's id, which the studio's tabs name. */
+  id?: string | undefined;
 }) {
   const w = useT<PlanningMessages>('planning').studio;
   const c = w.chat;
@@ -166,6 +168,7 @@ export function StudioConversation({
 
   return (
     <aside
+      id={id}
       aria-labelledby="studio-conversation"
       className={cn(
         'flex min-w-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm',
@@ -597,14 +600,14 @@ export function appliedOf(text: string, template?: string): string | null {
 function AnswersBubble({ answers, label }: { answers: { q: string; a: string }[]; label: string }) {
   return (
     <div className="animate-rise ms-auto flex max-w-[92%] flex-col gap-2 rounded-2xl rounded-se-md bg-primary px-3 py-2.5 text-body-sm text-primary-foreground shadow-sm">
-      <span className="flex items-center gap-1.5 text-caption font-semibold opacity-90">
+      <span className="flex items-center gap-1.5 text-caption font-semibold">
         <MessageSquareReply aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
         {label}
       </span>
       <dl className="flex flex-col gap-1.5">
         {answers.map(({ q, a }) => (
           <div key={q} className="flex flex-col gap-0.5 rounded-lg bg-primary-foreground/10 px-2 py-1.5">
-            <dt className="text-caption opacity-80">
+            <dt className="text-caption">
               <Bidi>{q}</Bidi>
             </dt>
             <dd className="font-medium">
@@ -861,7 +864,7 @@ export function ReportNote({
     <div
       className={cn(
         'flex min-w-0 flex-col gap-2 rounded-xl border p-3',
-        latest ? 'border-primary/30 bg-primary/5' : 'border-border bg-background opacity-80',
+        latest ? 'border-primary/30 bg-primary/5' : 'border-border bg-muted/40',
       )}
     >
       <div className="flex min-w-0 items-center gap-2">
@@ -915,8 +918,6 @@ export function signed(a: number, b: number, locale: 'ar' | 'en') {
   return `⁦${b > a ? '+' : '−'}${num(Math.abs(b - a), locale)}⁩`;
 }
 
-export const STUDIO_ICONS = { idea: Lightbulb, plan: Route } as const;
-
 function TurnRule({
   meta,
   steps,
@@ -937,8 +938,8 @@ function TurnRule({
   });
   return (
     <div className="flex flex-col gap-1.5 py-1">
-      <div className="flex items-center gap-2 text-caption text-muted-foreground" role="separator">
-        <span className="h-px flex-1 bg-border" />
+      <div className="flex items-center gap-2 text-caption text-muted-foreground">
+        <span aria-hidden className="h-px flex-1 bg-border" />
         {ok ? (
           <CheckCircle2 aria-hidden className="size-3.5 text-success" strokeWidth={2} />
         ) : (
@@ -949,7 +950,7 @@ function TurnRule({
           />
         )}
         <span className="tabular-nums">{line}</span>
-        <span className="h-px flex-1 bg-border" />
+        <span aria-hidden className="h-px flex-1 bg-border" />
       </div>
       {!ok && (reason || meta.failureMessage) && (
         <p className="mx-auto max-w-[90%] rounded-lg bg-destructive-soft/60 px-2.5 py-1.5 text-center text-caption text-destructive-soft-foreground">
@@ -1051,7 +1052,7 @@ function Composer({
               <span dir="auto" className="min-w-0 flex-1 truncate text-foreground" title={queued}>
                 {quickLabel ?? queued}
               </span>
-              <IconButton label={c.cancelQueued} onClick={onCancelQueued} className="size-7 md:size-7">
+              <IconButton label={c.cancelQueued} onClick={onCancelQueued} className="md:size-7">
                 <X aria-hidden className="size-3.5" strokeWidth={2} />
               </IconButton>
             </div>
@@ -1092,11 +1093,11 @@ function Composer({
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            if (matchKey(e, 'Enter') && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               void submit();
             }
-            if (e.key === 'Escape' && busy) {
+            if (matchKey(e, 'Escape') && busy) {
               e.preventDefault();
               stopTurn(chat.id);
             }

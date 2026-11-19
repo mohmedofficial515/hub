@@ -166,7 +166,7 @@ export function FlowDiagram({
   words,
 }: {
   diagram: Diagram;
-  words: { shapes: Record<Shape, string>; listLabel: string; to: string };
+  words: { shapes: Record<Shape, string>; listLabel: string; to: string; sep?: string | undefined };
 }) {
   const locale = useLocale();
   const rtl = locale === 'ar';
@@ -368,7 +368,9 @@ export function FlowDiagram({
       </div>
       <figcaption className="sr-only" id={`${uid}-list`}>
         {words.listLabel}:{' '}
-        {diagram.edges.map((e) => `${label.get(e.from)} ${words.to} ${label.get(e.to)}`).join('، ')}
+        {diagram.edges
+          .map((e) => `${label.get(e.from)} ${words.to} ${label.get(e.to)}`)
+          .join(words.sep ?? ', ')}
       </figcaption>
       {diagram.nodes.some((n) => n.note) && (
         <ol className="grid gap-2 @page-lg:grid-cols-2">

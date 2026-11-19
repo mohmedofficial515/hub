@@ -20,6 +20,7 @@ import {
   ListTree,
   MessageCircleQuestion,
   MoreHorizontal,
+  PenLine,
   Play,
   Route as RouteIcon,
   Sparkles,
@@ -27,7 +28,7 @@ import {
   Tags,
 } from 'lucide-react';
 import { DropdownMenu, Tabs } from 'radix-ui';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ActionBar, CommentsTab, Evidence, HistoryTab, LinksTab } from '@/components/cards/card-sheet';
 import { EditButton } from '@/components/cards/sheet-sections/edit-bits';
@@ -44,9 +45,11 @@ import {
   copyText,
   EmptyState,
   ErrorState,
+  fill,
   fmt,
   focusRing,
   focusRingInset,
+  getCard,
   headingsOf,
   type HubCard,
   IconButton,
@@ -71,7 +74,6 @@ import {
   showToast,
   Skeleton,
   SkeletonRows,
-  StatusBadge,
   tabTriggerClass,
   Tip,
   TypeBadge,
@@ -80,6 +82,7 @@ import {
   useCardEvents,
   useCardQuery,
   useLocale,
+  usePageTitleFocus,
   usePerformAction,
   useSession,
   useT,
@@ -87,7 +90,10 @@ import {
 import { CardRuns } from '@/components/queue/run-entry';
 import { engineBlocks, fillComposer, useMaybeWb } from '@/components/workbench/store';
 import type { ChatMessages } from '@/components/workbench/words';
-import { isMineHere, nextStepOf, progressOf } from '@/features/planning/model';
+import { studioChatOfIdea } from '@/features/planning/idea-studio';
+import { guideOf, isMineHere, nextStepOf, planFacts, progressOf } from '@/features/planning/model';
+import { studioChatOfPlan } from '@/features/planning/plan-studio';
+import { sectionCount, splitPlanText } from '@/features/planning/plan-text';
 import { linkedOfType } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 
@@ -96,9 +102,12 @@ import {
   LivePill,
   Outline,
   Panel,
+  PathStrip,
   ProgressMeter,
+  StagePill,
   StageTrack,
   StepsTimeline,
+  type StepTask,
   useChangeGlow,
 } from './detail-parts';
 import { sendAndShow, useClaudeOn, workOn } from './live';
@@ -294,9 +303,44 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
   const { me, roles } = useSession();
   const live = useClaudeOn(card.key);
   const glow = useChangeGlow(card.title);
+  const locale = useLocale();
   const Icon = card.type === 'plan' ? RouteIcon : Lightbulb;
-  const nextWords = (d.next[card.type] as Record<string, string>)[card.status];
+  const guide = guideOf(card, roles, me.id);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Takes the focus a view change asked for, so no heading drawn later steals it.
+  usePageTitleFocus(titleRef);
+  const g = d.guide;
+  const nextWords: ReactNode = (() => {
+    switch (guide.kind) {
+      case 'status':
+        return (d.next[card.type] as Record<string, string | undefined>)[card.status] ?? null;
+      case 'createTasks':
+        return fmt(g.createTasks, { n: num(guide.n, locale) });
+      case 'step':
+        return (
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="min-w-0">
+              {fill(g.step, {
+                n: num(guide.index + 1, locale),
+                total: num(guide.total, locale),
+                title: <Bidi>{guide.title}</Bidi>,
+              })}
+            </span>
+            <CardChip
+              k={guide.taskKey}
+              type="task"
+              showStatus
+              card={card.links.find((l) => l.key === guide.taskKey)?.card}
+            />
+          </span>
+        );
+      default:
+        return g[guide.kind];
+    }
+  })();
+  const idea = card.type === 'plan' ? linkedOfType(card, 'idea') : undefined;
+  const plan = card.type === 'idea' ? linkedOfType(card, 'plan') : undefined;
+  const progress = card.type === 'plan' ? progressOf(card) : undefined;
 
   // A page reached by the owner takes focus on its title, so a screen reader starts here. A typing owner, or Follow the chat, keeps theirs.
   useEffect(() => {
@@ -324,7 +368,7 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
             <Ltr mono className="text-caption whitespace-nowrap text-muted-foreground">
               {card.key}
             </Ltr>
-            <StatusBadge status={card.status} className="whitespace-nowrap" />
+            <StagePill card={card} className="whitespace-nowrap" />
             <PriorityBadge priority={card.priority} className="whitespace-nowrap" />
             {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
             {live && (
@@ -359,12 +403,13 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
       </div>
 
       <StageTrack card={card} />
+      <PathStrip card={card} idea={idea} plan={plan} tasks={progress} />
 
       {nextWords && (
-        <p className="flex items-start gap-2 rounded-xl bg-muted/60 px-3 py-2.5 text-body-sm text-foreground">
+        <div className="flex items-start gap-2 rounded-xl bg-muted/60 px-3 py-2.5 text-body-sm text-foreground">
           <Compass aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
-          {nextWords}
-        </p>
+          <div className="min-w-0 flex-1">{nextWords}</div>
+        </div>
       )}
 
       {card.archivedAt && (
@@ -381,6 +426,23 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
   );
 }
 
+/** A plan's text with its steps' list taken out when the list is the plan's own steps: the page shows them once, on the timeline. */
+function usePlanText(card: PlanCard) {
+  const body = card.body ?? '';
+  return useMemo(() => splitPlanText(body, card.plan.steps), [body, card.plan.steps]);
+}
+
+/** Each step's task as the page knows it, without asking the API: the cache's card, or the summary on the plan's own link. */
+function useStepTasks(card: PlanCard): Map<string, StepTask> {
+  const map = new Map<string, StepTask>();
+  for (const step of card.plan.steps) {
+    if (!step.taskKey) continue;
+    const known = getCard(step.taskKey) ?? card.links.find((l) => l.key === step.taskKey)?.card;
+    if (known) map.set(step.taskKey, known);
+  }
+  return map;
+}
+
 function PlanBody({ card }: { card: PlanCard }) {
   const d = useT<PlanningMessages>('planning').detail;
   const wb = useMaybeWb();
@@ -391,6 +453,11 @@ function PlanBody({ card }: { card: PlanCard }) {
   const { done, total } = progressOf(card);
   const canEdit = !card.archivedAt && card.allowedActions.includes('plan.update');
   const canRestore = !card.archivedAt && card.allowedActions.includes('plan.restore_revision');
+  const { rest, extras } = usePlanText(card);
+  const tasks = useStepTasks(card);
+  const off = wb && engineBlocks(wb.engine);
+  const develop = () =>
+    fillComposer(fmt(d.claude.developPrompt, { key: card.key }), 'execute', { show: true });
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <Panel
@@ -398,30 +465,61 @@ function PlanBody({ card }: { card: PlanCard }) {
         title={d.steps}
         icon={ListOrdered}
         aside={
-          total > 0 && (
-            <span className="text-caption text-muted-foreground tabular-nums">
-              {fmt(d.progressLine, { done: num(done, locale), total: num(total, locale) })}
-            </span>
-          )
+          <span className="flex items-center gap-2">
+            {total > 0 && (
+              <span className="text-caption text-muted-foreground tabular-nums">
+                {fmt(d.progressLine, { done: num(done, locale), total: num(total, locale) })}
+              </span>
+            )}
+            {canEdit && <EditButton />}
+          </span>
         }
       >
         {steps.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">{d.stepsEmpty}</p>
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-body-sm text-muted-foreground">{d.stepsEmpty}</p>
+            <div className="flex flex-wrap gap-2">
+              {canEdit && (
+                <Button size="sm" variant="outline" onClick={() => setQuery({ action: 'edit' })}>
+                  <PenLine aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {d.addSteps}
+                </Button>
+              )}
+              {wb && !card.archivedAt && (
+                <Button size="sm" variant="ghost" disabled={!!off} onClick={develop}>
+                  <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {d.claude.develop}
+                </Button>
+              )}
+            </div>
+          </div>
         ) : (
-          <StepsTimeline
-            steps={steps}
-            nextIndex={next?.index ?? null}
-            run={card.archivedAt || !wb ? undefined : { cardKey: card.key }}
-          />
+          <div className="flex flex-col gap-4">
+            {/* The progress, here too: on a phone the side panel is far below. */}
+            <ProgressMeter done={done} total={total} />
+            <StepsTimeline
+              steps={steps}
+              nextIndex={next?.index ?? null}
+              run={card.archivedAt || !wb ? undefined : { cardKey: card.key }}
+              tasks={tasks}
+              extras={extras}
+              anchor={`step-${card.key}`}
+            />
+          </div>
         )}
       </Panel>
 
-      <Panel id={`approach-${card.key}`} title={d.approach} icon={FileText} aside={canEdit && <EditButton />}>
+      <Panel
+        id={`approach-${card.key}`}
+        title={sectionCount(rest) >= 2 ? d.planText : d.approach}
+        icon={FileText}
+        aside={canEdit && <EditButton />}
+      >
         <div
           className={cn('-m-2 rounded-lg p-2 transition-[box-shadow,background-color] duration-500', glow)}
         >
-          {card.body ? (
-            <MarkdownView source={card.body} dir="auto" headingOffset={2} />
+          {rest ? (
+            <MarkdownView source={rest} dir="auto" headingOffset={2} />
           ) : (
             <p className="text-body-sm text-muted-foreground">{d.approachEmpty}</p>
           )}
@@ -440,6 +538,9 @@ function IdeaBody({ card }: { card: IdeaCard }) {
   const d = t.detail;
   const glow = useChangeGlow(`${card.idea.problem}${card.idea.notes}`);
   const canEdit = !card.archivedAt && card.allowedActions.includes('idea.update');
+  const notes = card.idea.notes?.trim();
+  // An idea accepted from the studio holds its value as notes and again inside its report: it shows once, in the report.
+  const notesInBody = !!notes && !!card.body?.includes(notes);
   return (
     <div className={cn('flex min-w-0 flex-col gap-5 rounded-xl transition-shadow duration-500', glow)}>
       <Panel id={`problem-${card.key}`} title={d.problem} icon={Lightbulb} aside={canEdit && <EditButton />}>
@@ -449,15 +550,21 @@ function IdeaBody({ card }: { card: IdeaCard }) {
           <p className="text-body-sm text-muted-foreground">{d.noProblem}</p>
         )}
       </Panel>
-      <Panel id={`notes-${card.key}`} title={d.notes} icon={StickyNote}>
-        {card.idea.notes ? (
-          <MarkdownView source={card.idea.notes} dir="auto" headingOffset={2} />
-        ) : (
-          <p className="text-body-sm text-muted-foreground">{d.noNotes}</p>
-        )}
-      </Panel>
+      {!notesInBody && (
+        <Panel id={`notes-${card.key}`} title={d.notes} icon={StickyNote}>
+          {card.idea.notes ? (
+            <MarkdownView source={card.idea.notes} dir="auto" headingOffset={2} />
+          ) : (
+            <p className="text-body-sm text-muted-foreground">{d.noNotes}</p>
+          )}
+        </Panel>
+      )}
       {card.body && (
-        <Panel id={`body-${card.key}`} title={t.idea.body} icon={FileText}>
+        <Panel
+          id={`body-${card.key}`}
+          title={sectionCount(card.body) >= 2 ? d.report : t.idea.body}
+          icon={FileText}
+        >
           <MarkdownView source={card.body} dir="auto" headingOffset={2} />
         </Panel>
       )}
@@ -465,15 +572,26 @@ function IdeaBody({ card }: { card: IdeaCard }) {
   );
 }
 
-/** The side column: progress, the plan's outline, and its facts. It stays in view beside a long plan. */
-function Aside({ card }: { card: Shaped }) {
+/** The studio chat this card came from, when this browser made it and the chat is still there: the way back to the full report. */
+function useStudioChatOf(card: Shaped) {
+  const wb = useMaybeWb();
+  const id = card.type === 'idea' ? studioChatOfIdea(card.key) : studioChatOfPlan(card.key);
+  if (!id || !wb?.chats.some((c) => c.id === id && !c.deletedAt)) return null;
+  return id;
+}
+
+/** The side column: progress, the text's outline, and the facts. It stays in view beside a long plan. */
+function Aside({ card, onOutlineMissing }: { card: Shaped; onOutlineMissing: () => void }) {
   const d = useT<PlanningMessages>('planning').detail;
   const locale = useLocale();
   const { me } = useSession();
-  const outline = useMemo(() => (card.type === 'plan' ? headingsOf(card.body ?? '') : []), [card]);
+  const body = card.body ?? '';
+  const steps = card.type === 'plan' ? card.plan.steps : null;
+  // The outline is of the text the page shows: a plan's without its steps' list, which the timeline holds.
+  const outline = useMemo(() => headingsOf(steps ? splitPlanText(body, steps).rest : body), [body, steps]);
   const progress = card.type === 'plan' ? progressOf(card) : null;
-  const idea = card.type === 'plan' ? linkedOfType(card, 'idea') : null;
-  const plan = card.type === 'idea' ? linkedOfType(card, 'plan') : null;
+  const facts = card.type === 'plan' ? planFacts(card) : {};
+  const studioChat = useStudioChatOf(card);
   return (
     <aside className="flex min-w-0 flex-col gap-4 @page-xl:sticky @page-xl:top-4">
       {progress && progress.total > 0 && (
@@ -498,8 +616,19 @@ function Aside({ card }: { card: Shaped }) {
       )}
 
       {outline.length > 1 && (
-        <Panel title={d.outline} icon={ListTree} id={`outline-${card.key}`} bodyClassName="p-2">
-          <Outline headings={outline} label={d.outline} />
+        // On a narrow page this column falls below the text, where an outline of it helps nobody.
+        <Panel
+          title={card.type === 'plan' ? d.outline : d.outlineIdea}
+          icon={ListTree}
+          id={`outline-${card.key}`}
+          bodyClassName="p-2"
+          className="@max-page-xl:hidden"
+        >
+          <Outline
+            headings={outline}
+            label={card.type === 'plan' ? d.outline : d.outlineIdea}
+            onMissing={onOutlineMissing}
+          />
         </Panel>
       )}
 
@@ -529,17 +658,31 @@ function Aside({ card }: { card: Shaped }) {
               <span className="text-muted-foreground">{d.none}</span>
             )}
           </DetailRow>
-          {idea && (
-            <DetailRow label={d.fromIdea}>
-              <CardChip k={idea.key} type="idea" />
+          {facts.approvedById && (
+            <DetailRow label={d.approvedBy}>
+              <ActorChip kind="user" memberId={facts.approvedById} />
+              {facts.approvedAt && <RelativeTime iso={facts.approvedAt} className="text-muted-foreground" />}
             </DetailRow>
           )}
-          {plan && (
-            <DetailRow label={d.becamePlan}>
-              <CardChip k={plan.key} type="plan" />
+          {facts.revision && (
+            <DetailRow label={d.revisionLabel}>
+              <Ltr className="tabular-nums">{num(facts.revision, locale)}</Ltr>
             </DetailRow>
           )}
         </dl>
+        {studioChat && (
+          <AppLink
+            view="planning"
+            query={{ studio: card.type, chat: studioChat, plan: null, action: null, tab: null }}
+            className={cn(
+              'hit-44 mt-3 inline-flex items-center gap-1.5 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
+              focusRing,
+            )}
+          >
+            <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
+            {d.openStudio}
+          </AppLink>
+        )}
       </Panel>
     </aside>
   );
@@ -706,7 +849,7 @@ export function PlanningDetail({
           </Tabs.Content>
         </Tabs.Root>
 
-        <Aside card={card} />
+        <Aside card={card} onOutlineMissing={() => setQuery({ tab: null, action: null })} />
       </div>
     </PageContainer>
   );

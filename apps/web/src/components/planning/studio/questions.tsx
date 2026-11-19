@@ -18,9 +18,11 @@ import {
   fmt,
   focusRing,
   IconButton,
+  matchKey,
   num,
   Tooltip,
   useLocale,
+  useRoving,
   useT,
 } from '@/components/kit';
 import {
@@ -44,13 +46,20 @@ export function Questions({
   questions: raw,
   onAsk,
   busy,
+  blocked = false,
   prompt,
+  label,
 }: {
   questions: readonly ReportQuestionInput[];
-  onAsk?: ((text: string) => void) | undefined;
+  /** Sends the answers. False means they were not taken (a request already waits), so the picks stay. */
+  onAsk?: ((text: string) => boolean | Promise<boolean>) | undefined;
   busy: boolean;
+  /** A request already waits for Claude: Send holds back and says why. */
+  blocked?: boolean | undefined;
   /** What goes before the answers: each studio asks for its own report back. */
   prompt?: string;
+  /** The deck's name for a screen reader: the section's title. */
+  label?: string | undefined;
 }) {
   const w = useT<PlanningMessages>('planning').studio;
   const d = w.deck;
@@ -61,6 +70,7 @@ export function Questions({
   const [answers, setAnswers] = useState<Record<number, QuestionAnswer>>({});
   const [at, setAt] = useState(0);
   const [heading, setHeading] = useState<1 | -1>(1);
+  const roving = useRoving(Math.min(at, Math.max(questions.length - 1, 0)));
 
   // A new set of questions (the report changed) starts fresh.
   useEffect(() => {
@@ -92,20 +102,23 @@ export function Questions({
       });
       return out;
     });
-  const send = () => {
-    const text = answersMessage(prompt ?? w.answersPrompt, questions, answers, d.other);
+  const send = async () => {
+    if (blocked) return;
+    const text = answersMessage(prompt ?? w.answersPrompt, questions, answers, d.other, w.deck.sep);
     if (!text) return;
-    onAsk(text);
+    // The answers are cleared only once Claude has them, or they wait in line: a refused send keeps every pick.
+    if (!(await onAsk(text))) return;
     setAnswers({});
     setAt(0);
   };
-  // Arrows move between questions, in the reading direction, unless the owner is typing.
+  // Arrows move between questions, in the reading direction, unless the owner is typing or is on the dots (which move focus themselves).
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('textarea, input')) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('textarea, input, [data-roving]')) return;
     const forward = locale === 'ar' ? 'ArrowLeft' : 'ArrowRight';
     const back = locale === 'ar' ? 'ArrowRight' : 'ArrowLeft';
-    if (e.key === forward) go(index + 1);
-    else if (e.key === back) go(index - 1);
+    if (matchKey(e, forward)) go(index + 1);
+    else if (matchKey(e, back)) go(index - 1);
     else return;
     e.preventDefault();
   };
@@ -117,7 +130,7 @@ export function Questions({
     <div
       role="group"
       aria-roledescription="carousel"
-      aria-label={fmt(d.answered, { n: num(answered, locale), total: num(total, locale) })}
+      aria-label={label ?? w.sections.questions}
       onKeyDown={onKey}
       className="flex min-w-0 flex-col gap-3"
     >
@@ -127,7 +140,7 @@ export function Questions({
           <span className="text-caption font-semibold text-foreground tabular-nums">
             {fmt(d.of, { n: num(index + 1, locale), total: num(total, locale) })}
           </span>
-          <span className="text-caption text-muted-foreground tabular-nums">
+          <span role="status" className="text-caption text-muted-foreground tabular-nums">
             · {fmt(d.answered, { n: num(answered, locale), total: num(total, locale) })}
           </span>
         </div>
@@ -136,7 +149,7 @@ export function Questions({
             label={d.prev}
             onClick={() => go(index - 1)}
             disabled={index === 0}
-            className="size-8 md:size-8"
+            className="md:size-8"
           >
             <Prev aria-hidden className="size-4" strokeWidth={2} />
           </IconButton>
@@ -144,40 +157,44 @@ export function Questions({
             label={d.next}
             onClick={() => go(index + 1)}
             disabled={index === total - 1}
-            className="size-8 md:size-8"
+            className="md:size-8"
           >
             <Next aria-hidden className="size-4" strokeWidth={2} />
           </IconButton>
         </div>
       </div>
-      <div
-        className="flex flex-wrap gap-1.5"
-        role="tablist"
-        aria-label={d.of.replace(/\{.*$/, '').trim() || d.next}
-      >
+      {/* One Tab stop; the arrows move along the dots. Each dot sits in a target big enough to hit. */}
+      <nav aria-label={d.dots} className="-mx-1 flex flex-wrap" ref={roving.root} {...roving.groupProps}>
         {questions.map((x, i) => {
           const done = isAnswered(answers[i]);
           return (
             <button
               key={`${i}-${x.text}`}
               type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={fmt(d.goTo, { n: num(i + 1, locale) })}
+              {...roving.itemProps(i)}
+              aria-current={i === index ? 'step' : undefined}
+              aria-label={fmt(done ? d.goToAnswered : d.goTo, { n: num(i + 1, locale) })}
               onClick={() => go(i)}
               className={cn(
-                'h-2 rounded-full transition-all duration-200',
-                i === index
-                  ? 'w-7 bg-primary'
-                  : done
-                    ? 'w-2.5 bg-primary/55'
-                    : 'w-2.5 bg-border hover:bg-muted-foreground/40',
+                'group flex min-h-6 min-w-6 items-center justify-center rounded-full max-md:min-h-11 max-md:min-w-11',
                 focusRing,
               )}
-            />
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  'h-2 rounded-full transition-[width,background-color] duration-200 motion-reduce:transition-none',
+                  i === index
+                    ? 'w-7 bg-foreground'
+                    : done
+                      ? 'w-2.5 bg-foreground/45'
+                      : 'w-2.5 bg-border group-hover:bg-muted-foreground/40',
+                )}
+              />
+            </button>
           );
         })}
-      </div>
+      </nav>
 
       {/* The question. */}
       <div className="relative min-w-0 overflow-hidden rounded-2xl border border-border bg-muted/30 p-3.5 md:p-4">
@@ -195,11 +212,7 @@ export function Questions({
                 <Bidi>{q.text}</Bidi>
               </p>
               {isAnswered(answer) && (
-                <IconButton
-                  label={d.clear}
-                  onClick={() => set(emptyAnswer())}
-                  className="size-7 shrink-0 md:size-7"
-                >
+                <IconButton label={d.clear} onClick={() => set(emptyAnswer())} className="shrink-0 md:size-7">
                   <X aria-hidden className="size-3.5" strokeWidth={2} />
                 </IconButton>
               )}
@@ -214,10 +227,20 @@ export function Questions({
 
       {/* Moving on, and sending. */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <Button variant={answered ? 'primary' : 'outline'} size="sm" disabled={answered === 0} onClick={send}>
+        <Button
+          variant={answered && !blocked ? 'primary' : 'outline'}
+          size="sm"
+          disabled={answered === 0 || blocked}
+          onClick={() => void send()}
+        >
           <Send aria-hidden className="size-3.5 rtl:-scale-x-100" strokeWidth={1.75} />
           {fmt(busy ? d.sendLater : d.send, { n: num(answered, locale) })}
         </Button>
+        {blocked && answered > 0 && (
+          <span role="status" className="text-caption text-muted-foreground">
+            {w.queueFull}
+          </span>
+        )}
         {withAdvice && (
           <Tooltip content={d.takeRecommendedTip}>
             <Button variant="outline" size="sm" onClick={takeRecommended}>
@@ -233,7 +256,7 @@ export function Questions({
           </Button>
         )}
         {answered === total && total > 1 && (
-          <span role="status" className="ms-auto text-caption text-success">
+          <span role="status" className="ms-auto text-caption text-muted-foreground">
             {d.allAnswered}
           </span>
         )}
@@ -306,7 +329,7 @@ function QuestionOptions({
                     <Bidi>{o.label}</Bidi>
                   </span>
                   {advised && (
-                    <span className="inline-flex h-5 items-center gap-1 rounded-full bg-success/12 px-1.5 text-caption font-semibold text-success">
+                    <span className="inline-flex h-5 items-center gap-1 rounded-full bg-success-soft px-1.5 text-caption font-semibold text-success-soft-foreground">
                       <Sparkles aria-hidden className="size-3" strokeWidth={2} />
                       {d.recommended}
                     </span>
@@ -318,7 +341,7 @@ function QuestionOptions({
                   </span>
                 )}
                 {advised && q.why && (
-                  <span className="text-caption text-pretty text-success/90">
+                  <span className="text-caption text-pretty text-success-soft-foreground">
                     <Bidi>{fmt(d.why, { why: q.why })}</Bidi>
                   </span>
                 )}
@@ -344,7 +367,7 @@ function QuestionOptions({
                   type="button"
                   onClick={() => setNoting(i)}
                   className={cn(
-                    'mx-2.5 mb-2 inline-flex h-7 items-center gap-1 self-start rounded-md px-1.5 text-caption text-primary hover:bg-primary/5',
+                    'mx-2.5 mb-2 inline-flex h-7 items-center gap-1 self-start rounded-md px-1.5 text-caption text-primary hover:bg-primary/5 max-md:h-11',
                     focusRing,
                   )}
                 >
@@ -427,7 +450,7 @@ function QuestionList({ questions, words: d }: { questions: readonly ReportQuest
                   className={cn(
                     'inline-flex h-6 items-center gap-1 rounded-full border px-2 text-caption',
                     q.recommended.includes(j)
-                      ? 'border-success/40 bg-success/10 text-success'
+                      ? 'border-success/40 bg-success-soft text-success-soft-foreground'
                       : 'border-border text-muted-foreground',
                   )}
                 >

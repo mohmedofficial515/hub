@@ -75,11 +75,16 @@ describe('the answers message', () => {
       1: { picks: [0, 1], notes: {}, other: true, otherText: 'and partners\nlater' },
       2: { ...emptyAnswer(), other: true, otherText: 'End of May' },
     };
-    const text = answersMessage('My answers:', [single!, multi!, open!], answers, 'Other');
+    const text = answersMessage('My answers:', [single!, multi!, open!], answers, 'Other', '؛ ');
     expect(text).toBe(
       'My answers:\n- Which provider?\n  → LiteAPI (sandbox first)\n- Who sees it?\n  → Staff؛ Customers؛ Other: and partners later\n- Any deadline?\n  → End of May',
     );
     expect(answersOf(text!, 'My answers:')).toHaveLength(3);
+  });
+
+  it("parts the picks with the reader's separator, and a plain semicolon by default", () => {
+    const answers = { 0: { picks: [0, 1], notes: {}, other: false, otherText: '' } };
+    expect(answersMessage('P', [multi!], answers, 'Other')).toBe('P\n- Who sees it?\n  → Staff; Customers');
   });
 
   it('is nothing when nothing is answered', () => {

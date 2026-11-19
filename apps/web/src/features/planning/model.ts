@@ -6,7 +6,7 @@
 import type { CardAction } from '@/lib/i18n';
 
 import { actionsFor } from '../cards/rules';
-import type { IdeaCard, PlanCard, Role } from '../cards/types';
+import type { IdeaCard, PlanCard, PlanStep, Role } from '../cards/types';
 
 export const ACTIVE_IDEAS = ['exploring', 'open'] as const;
 export const CLOSED_IDEAS = ['accepted', 'parked', 'rejected'] as const;
@@ -31,6 +31,36 @@ export function nextStepOf(plan: PlanCard) {
   const { steps } = plan.plan;
   const step = steps.find((s) => !s.done);
   return step ? { index: steps.indexOf(step), step } : null;
+}
+
+/**
+ * The steps a save will leave, predicted the way the API writes them (`plan-steps.ts`): a step that names a step already there keeps its task, and keeps
+ * that task's done when it has one, else takes the done it was sent; a new step gets an id for now, until the API answers with its own. In the order sent.
+ */
+export function mergeSteps(
+  existing: readonly PlanStep[],
+  input: readonly {
+    id?: string | undefined;
+    title: string;
+    role?: Role | undefined;
+    taskKey?: string | undefined;
+    done?: boolean | undefined;
+  }[],
+): PlanStep[] {
+  const byId = new Map(existing.map((s) => [s.id, s]));
+  const byTask = new Map(existing.flatMap((s) => (s.taskKey ? [[s.taskKey, s] as const] : [])));
+  return input.map((step, index) => {
+    const before =
+      (step.taskKey ? byTask.get(step.taskKey) : undefined) ?? (step.id ? byId.get(step.id) : undefined);
+    const taskKey = before?.taskKey ?? step.taskKey;
+    return {
+      id: before?.id ?? step.id ?? `tmp-${index}`,
+      title: step.title,
+      ...(step.role ? { role: step.role } : {}),
+      ...(taskKey ? { taskKey } : {}),
+      done: before?.taskKey ? before.done : (step.done ?? false),
+    };
+  });
 }
 
 export interface StepProgress {
@@ -98,6 +128,76 @@ export function pickFocal(
   const first = ranked[0];
   return first ? { card: first.card, action: first.rank === 7 ? undefined : first.action } : null;
 }
+
+/**
+ * What the page says comes next, worked out from the plan itself: which step, whose move, what is missing. An idea, and a plan that has ended, keep their
+ * status's own sentence (`status`).
+ */
+export type Guide =
+  | { kind: 'status' }
+  | { kind: 'noSteps' }
+  | { kind: 'review' }
+  | { kind: 'approve' }
+  | { kind: 'waitApproval' }
+  | { kind: 'createTasks'; n: number }
+  | { kind: 'start' }
+  | { kind: 'step'; index: number; total: number; title: string; taskKey: string }
+  | { kind: 'stepNoTask'; index: number; total: number }
+  | { kind: 'finish' };
+
+export function guideOf(card: IdeaCard | PlanCard, roles: readonly Role[], memberId: string): Guide {
+  if (card.type !== 'plan') return { kind: 'status' };
+  const { steps } = card.plan;
+  const { withoutTask } = progressOf(card);
+  switch (card.status) {
+    case 'draft':
+      return steps.length === 0 ? { kind: 'noSteps' } : { kind: 'review' };
+    case 'in_review':
+      return actionsFor(card, roles, memberId).some((a) => a.action === 'approve' && a.enabled)
+        ? { kind: 'approve' }
+        : { kind: 'waitApproval' };
+    case 'approved':
+      if (steps.length === 0) return { kind: 'noSteps' };
+      return withoutTask > 0 ? { kind: 'createTasks', n: withoutTask } : { kind: 'start' };
+    case 'in_progress': {
+      const next = nextStepOf(card);
+      if (!next) return { kind: 'finish' };
+      if (!next.step.taskKey) return { kind: 'stepNoTask', index: next.index, total: steps.length };
+      return {
+        kind: 'step',
+        index: next.index,
+        total: steps.length,
+        title: next.step.title,
+        taskKey: next.step.taskKey,
+      };
+    }
+    default:
+      return { kind: 'status' };
+  }
+}
+
+const text = (value: unknown) => (typeof value === 'string' && value ? value : undefined);
+
+/** What the API keeps on a plan beyond its steps: who approved it and when, and its text's revision. Read as it came, without widening the card's type. */
+export function planFacts(card: PlanCard): { approvedById?: string; approvedAt?: string; revision?: number } {
+  const detail = card.plan as unknown as Record<string, unknown>;
+  const approvedById = text(detail['approvedById']);
+  const approvedAt = text(detail['approvedAt']);
+  const revision = typeof detail['revision'] === 'number' ? detail['revision'] : undefined;
+  return {
+    ...(approvedById ? { approvedById } : {}),
+    ...(approvedAt ? { approvedAt } : {}),
+    ...(revision ? { revision } : {}),
+  };
+}
+
+/** The plan an idea became, by id, as a list row carries it (`planCardId`). */
+export const planIdOfIdea = (card: IdeaCard) =>
+  text((card.idea as unknown as Record<string, unknown>)['planCardId']);
+
+/** The idea a plan came from, by id, as a list row carries it (`sourceIdeaId`). */
+export const ideaIdOfPlan = (card: PlanCard) =>
+  text((card.plan as unknown as Record<string, unknown>)['sourceIdeaId']);
 
 /** Mine on this page: what I wrote, and what is routed to my roles. */
 export function isMineHere(card: IdeaCard | PlanCard, memberId: string, roles: readonly Role[]) {
