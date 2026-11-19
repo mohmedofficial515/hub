@@ -158,7 +158,7 @@ export async function init(system, options) {
   const { project } = await context(system, url, token);
   system.out(`✓ Token works. Default project: ${project ?? 'none yet'}`);
 
-  saveConfig(system, { url, token, packVersion: '0.1.0' });
+  saveConfig(system, { url, token, packVersion: '0.2.0' });
   system.out(`✓ Saved ${configPath(system)}`);
 
   setUserEnv(system, token);
@@ -258,7 +258,7 @@ export async function doctor(system, options = {}) {
           params: {
             protocolVersion: '2025-06-18',
             capabilities: {},
-            clientInfo: { name: 'hub-doctor', version: '0.1.0' },
+            clientInfo: { name: 'hub-doctor', version: '0.2.0' },
           },
         }),
         signal: AbortSignal.timeout(5000),

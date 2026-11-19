@@ -105,8 +105,9 @@ the answer is honest rather than "no such tool".
 
 ### 2.6 Prompts and skills
 
-Prompts are in `packages/contracts/src/mcp/prompts.ts`, and every text keeps the no-secrets rule, which a test enforces. Claude
-Code lists an MCP prompt as `/hub:<name> (MCP)` because the server is named `hub`, and `/mcp__hub__<name>` also runs it.
+Prompts are in `packages/contracts/src/mcp/prompts.ts`, and every text keeps the no-secrets rule, which a test enforces. Claude Code in
+VS Code and in the Hub panel offers no MCP prompt as a command (an interactive terminal may), so the commands a member types are
+skills (see below).
 
 | Prompt | Args | What |
 | --- | --- | --- |
@@ -124,6 +125,16 @@ receive only the first word of a question. The team pack ships them with the who
 `plugin/skills/ask/SKILL.md` is `/hub:ask <question>`, and `plugin/skills/plan/SKILL.md` is `/hub:plan <topic>`, which reads the
 project through Hub, drafts, asks the user, and then saves the plan (15 §4).
 
+**`start`, `next` and `done` are also skills (2026-11-16).** As prompts they never ran where members work. Claude Code as the VS
+Code extension, and as the bridge runs it for the Hub panel (`-p`), lists no MCP prompt as a command. It also reads the first
+message before the `hub` server has connected. Every use answered "no command with that name is available in this session"
+(2026-11-05 in VS Code, 2026-11-10 and 2026-11-16 in the panel). `plugin/skills/{start,next,done}/SKILL.md` carry the same steps,
+and `/hub:next <key>` takes the key from `$ARGUMENTS`. A skill is read from the plugin on the device, so it runs before `hub`
+connects, and it calls Hub's tools once they are there. The prompts above stay for other MCP clients. In an interactive terminal
+the same command may appear twice, as the skill and as the prompt, and both do the same. `packages/contracts/src/mcp/prompts.spec.ts`
+keeps each skill naming the same Hub tools as its prompt, so the two texts cannot drift. All three are in `HUB_CORE_SKILLS`, so no
+owner skill can take their names, and in `HUB_SKILLS`, the panel's slash menu.
+
 ## 3. The team pack
 
 ### 3.1 Layout: `packages/team-pack`
@@ -134,7 +145,7 @@ bin/hub.mjs                          hub-team-pack init | doctor | link <slug> |
 bin/validate-plugin.mjs              claude plugin validate --strict, when the CLI is there
 lib/commands.mjs                     the commands, with everything from outside arriving as one `system` object
 plugin/.claude-plugin/plugin.json    name: hub
-plugin/skills/{ask,plan,guide,work,doc}/SKILL.md
+plugin/skills/{ask,plan,guide,work,doc,idea,suggest,start,next,done}/SKILL.md
 plugin/hooks/hooks.json              session-start, mark-summary, session-end, session-end-send, lib
 plugin/CLAUDE.md.snippet
 ```
@@ -314,7 +325,7 @@ SessionEnd reached the API. Redis has `idem:*` keys per create, so Claude Code d
 
 1. In a new terminal after `init`, `doctor` is all green. (The test set the variable in the process, not with `setx`.)
 2. `link goteav` in `F:/Goteav/backend`. Open `claude` there: it asks to approve `hub` once.
-3. The first reply says the active project. `/hub:start` appears in the slash list as `/hub:start (MCP)`.
+3. The first reply says the active project. `/hub:start` appears in the slash list, from the team pack's skill (§2.6).
 4. With Hub open on Tasks, say "create a P1 task": it appears within a second. "Delete it": it goes. Restore it from the page.
 5. `/hub:plan <topic>`, answer its questions, then "turn the steps into tasks": the board updates.
 6. "Create a project called Test": it appears in the switcher.

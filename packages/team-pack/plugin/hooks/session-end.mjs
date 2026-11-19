@@ -10,6 +10,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  dirtyFingerprint,
+  dirtySince,
   fail,
   git,
   linkedProject,
@@ -51,7 +53,6 @@ function shortstat(cwd, startSha) {
 
 export function buildPayload(input, session) {
   const cwd = input.cwd ?? session.cwd ?? process.cwd();
-  const dirty = git(cwd, ['status', '--porcelain']);
   const ended = new Date();
   const started = session.startedAt ? new Date(session.startedAt) : null;
   return {
@@ -64,7 +65,8 @@ export function buildPayload(input, session) {
     headSha: git(cwd, ['rev-parse', 'HEAD']),
     commits: commitsSince(cwd, session.headSha),
     ...shortstat(cwd, session.headSha),
-    dirtyFiles: dirty ? dirty.split('\n').length : 0,
+    // Only files this session left new or changed; a repo that was already dirty at the start does not count.
+    dirtyFiles: dirtySince(session.dirtyAtStart ?? null, dirtyFingerprint(cwd)),
     startedAt: session.startedAt ?? null,
     endedAt: ended.toISOString(),
     durationSec: started ? Math.max(0, Math.round((ended.getTime() - started.getTime()) / 1000)) : null,
@@ -80,7 +82,12 @@ try {
   if (session) {
     const cwd = input.cwd ?? session.cwd ?? process.cwd();
     const file = join(outboxDir(), `${input.session_id.replace(/[^\w.-]/g, '_')}.json`);
-    writeJson(file, { project: linkedProject(cwd), payload: buildPayload(input, session) });
+    writeJson(file, {
+      project: linkedProject(cwd),
+      payload: buildPayload(input, session),
+      // The sender reads it, not this hook: SessionEnd has 1.5 seconds.
+      transcriptPath: input.transcript_path ?? null,
+    });
     rmSync(path, { force: true });
     spawn(process.execPath, [join(here, 'session-end-send.mjs'), file], {
       detached: true,

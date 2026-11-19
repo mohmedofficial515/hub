@@ -6,6 +6,7 @@
  */
 import {
   type CardWrittenDto,
+  findSecret,
   type HookSessionPayload,
   hookSessionPayloadSchema,
   type LogSessionInput,
@@ -32,6 +33,7 @@ import {
   isInsideFolder,
   keysInText,
   repoSlugOfRemote,
+  type SessionLocale,
   summaryBody,
   summaryTitle,
 } from '../domain/session';
@@ -115,7 +117,8 @@ export class SessionsService {
     });
     if (log.userId !== actor.userId) throw new AppException('hub.cards.not_found');
 
-    const cardId = log.cardId ?? (await this.ensureCard(actor, input, log.hookPayload));
+    const locale = await this.localeOf(actor.workspaceId);
+    const cardId = log.cardId ?? (await this.ensureCard(actor, input, log.hookPayload, locale));
     const stored = (log.summaryPayload ?? {}) as StoredSummary;
     const known = new Set(stored.createdTitles ?? []);
     const handoffs = (input.handoffs ?? []).filter((handoff) => !known.has(handoff.title));
@@ -124,6 +127,7 @@ export class SessionsService {
     const result = await this.cards.apply(actor, { cardId }, 'session.log', {
       ...input,
       mode: 'summary',
+      locale,
       handoffs,
       followUps,
       fromRole: actor.roles[0] ?? 'owner',
@@ -155,9 +159,17 @@ export class SessionsService {
   /** `POST /capture/session`. Never makes a card by itself: a summary may still come. */
   async ingestHook(
     actor: MemberActor,
-    payload: HookSessionPayload,
+    received: HookSessionPayload,
   ): Promise<{ sessionLogId: string; cardKey: string | null }> {
-    assertNoSecrets(payload);
+    // The digest is free text from a conversation, so a secret in it only drops the digest. It must not
+    // refuse the report, which the hook would then delete for good (a 4xx is never retried).
+    const { topic, outcome, ...checked } = received;
+    assertNoSecrets(checked);
+    const payload: HookSessionPayload = {
+      ...checked,
+      topic: topic && findSecret(topic) === null ? topic : null,
+      outcome: outcome && findSecret(outcome) === null ? outcome : null,
+    };
     const now = this.clock.now();
     const repo = await this.repoName(actor.workspaceId, payload.remote);
     const key = { workspaceId: actor.workspaceId, sessionId: payload.sessionId };
@@ -205,6 +217,7 @@ export class SessionsService {
     if (this.clock.now().getTime() < dueAt) return;
 
     const payload = hookSessionPayloadSchema.parse(log.hookPayload);
+    const locale = await this.localeOf(workspaceId);
     if (isIdleSession(payload)) {
       await this.txHost.tx.sessionLog.update({ where, data: { summaryPayload: { idle: true } } });
       return;
@@ -214,8 +227,8 @@ export class SessionsService {
       null,
       'change.create',
       {
-        title: factsTitle(payload),
-        body: factsBody(payload),
+        title: factsTitle(payload, locale),
+        body: factsBody(payload, locale),
         repo: log.repo,
         branch: payload.branch ?? null,
         sessionId,
@@ -256,7 +269,21 @@ export class SessionsService {
     );
   }
 
-  private async ensureCard(actor: MemberActor, input: LogSessionInput, hook: unknown): Promise<string> {
+  /** The project's language: Arabic cards for an Arabic project, so the timeline reads in one language. */
+  private async localeOf(workspaceId: string): Promise<SessionLocale> {
+    const workspace = await this.txHost.tx.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { defaultLocale: true },
+    });
+    return workspace?.defaultLocale === 'en' ? 'en' : 'ar';
+  }
+
+  private async ensureCard(
+    actor: MemberActor,
+    input: LogSessionInput,
+    hook: unknown,
+    locale: SessionLocale,
+  ): Promise<string> {
     const key = { workspaceId: actor.workspaceId, sessionId: input.sessionId };
     const existing = await this.txHost.tx.card.findFirst({
       where: { workspaceId: actor.workspaceId, externalKey: `session:${input.sessionId}` },
@@ -268,8 +295,8 @@ export class SessionsService {
       existing?.id ??
       (
         await this.cards.apply(actor, null, 'change.create', {
-          title: summaryTitle(input.changed),
-          body: summaryBody(input),
+          title: summaryTitle(input.changed, locale),
+          body: summaryBody(input, locale),
           repo: input.repo ?? null,
           branch: input.branch ?? null,
           sessionId: input.sessionId,

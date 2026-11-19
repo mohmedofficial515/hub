@@ -6,8 +6,8 @@
     {
       "name": "hub",
       "source": "./plugin",
-      "description": "Hub team pack: /hub:ask, /hub:plan, session hooks.",
-      "version": "0.1.0"
+      "description": "Hub team pack: /hub:start, /hub:next, /hub:work, /hub:done, /hub:ask, /hub:plan, session hooks.",
+      "version": "0.2.0"
     }
   ]
 }

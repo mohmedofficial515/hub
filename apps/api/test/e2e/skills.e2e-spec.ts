@@ -210,8 +210,12 @@ describe('skills', () => {
       expect(skills.hub.map((skill) => skill.name)).toEqual([
         'ask',
         'doc',
+        'done',
         'guide',
+        'idea',
+        'next',
         'plan',
+        'start',
         'suggest',
         'work',
       ]);
@@ -231,7 +235,13 @@ describe('skills', () => {
       ]);
       expect(skills.personalFolder).toBe(personal);
       expect(skills.sync).toMatchObject({ mode: 'auto', devices: [] });
-      expect(skills.sync.version).toMatch(/^0\.1\.0-sync\.[0-9a-f]{12}$/);
+      // The team pack's own version, then the hash: a version bump in the pack is not a failure here.
+      const packVersion = (
+        JSON.parse(readFileSync(join(PACK, 'package.json'), 'utf8')) as { version: string }
+      ).version;
+      expect(skills.sync.version).toMatch(
+        new RegExp(`^${packVersion.replaceAll('.', '\\.')}-sync\\.[0-9a-f]{12}$`),
+      );
     });
 
     it("a pm reads Hub's skills, never the owner's personal ones", async () => {

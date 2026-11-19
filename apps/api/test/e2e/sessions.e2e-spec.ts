@@ -73,7 +73,7 @@ describe('session capture', () => {
 
     const cards = await sessionCards(workspace.id);
     expect(cards).toHaveLength(1);
-    expect(cards[0]?.title).toBe('Session: Fixed the refund');
+    expect(cards[0]?.title).toBe('جلسة: Fixed the refund');
     expect(cards[0]?.change).toMatchObject({ commitCount: 1, filesChanged: 3, kind: 'session' });
   });
 
@@ -97,7 +97,7 @@ describe('session capture', () => {
     afterGrace();
     await sessions.reconcile({ workspaceId: workspace.id, sessionId });
     const [card] = await sessionCards(workspace.id);
-    expect(card?.title).toBe('Session on feat/refund: 1 commit, 3 files');
+    expect(card?.title).toBe('جلسة على feat/refund: fix the refund');
     expect(card?.createdByKind).toBe('system');
     expect(card?.change?.session).toMatchObject({ noSummary: true });
     const listed = await sessions.withoutSummary(actor);
@@ -106,7 +106,7 @@ describe('session capture', () => {
     await sessions.logSummary(actor, { sessionId, changed: 'Now with words' });
     const cards = await sessionCards(workspace.id);
     expect(cards).toHaveLength(1);
-    expect(cards[0]?.title).toBe('Session: Now with words');
+    expect(cards[0]?.title).toBe('جلسة: Now with words');
     expect(cards[0]?.change?.session).toMatchObject({ noSummary: false });
     expect(await sessions.withoutSummary(actor)).toEqual([]);
     const events = await db().cardEvent.findMany({

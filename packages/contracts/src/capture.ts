@@ -82,6 +82,10 @@ export const hookSessionPayloadSchema = z.object({
   endedAt: z.iso.datetime({ offset: true }),
   durationSec: z.number().int().min(0).nullable().optional(),
   hasSummary: z.boolean().default(false),
+  /** The first prompt the member typed, read from the local transcript. Gives the facts card a real title. */
+  topic: z.string().max(300).nullable().optional(),
+  /** The last thing Claude said, read from the local transcript. */
+  outcome: z.string().max(800).nullable().optional(),
   client: z.object({ os: z.string().max(40), packVersion: z.string().max(20) }).optional(),
 });
 export type HookSessionPayload = z.infer<typeof hookSessionPayloadSchema>;

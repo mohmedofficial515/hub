@@ -45,10 +45,10 @@ function homeWith(config) {
 }
 
 /** A real run of the script. Async, so the mock Hub in this process can answer it. */
-function runHook(name, input, home) {
+function runHook(name, input, home, extraEnv = {}) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [join(HOOKS, name)], {
-      env: { ...process.env, HOME: home, USERPROFILE: home, HUB_MCP_BEARER: '' },
+      env: { ...process.env, HOME: home, USERPROFILE: home, HUB_MCP_BEARER: '', ...extraEnv },
     });
     let stdout = '';
     let stderr = '';
@@ -119,6 +119,46 @@ describe('session-start', () => {
     expect(text).toContain('Hub session id: session-2');
   });
 
+  it('tells a slow Hub from one that is down, so the session is not told Hub is unreachable', async () => {
+    const slow = createServer(() => {
+      /* Never answers, as a Hub busy for longer than the wait. */
+    });
+    await new Promise((resolve) => slow.listen(0, resolve));
+    try {
+      const home = homeWith({ url: `http://127.0.0.1:${slow.address().port}`, token: TOKEN });
+      const { status: exit, stdout } = await runHook(
+        'session-start.mjs',
+        { session_id: 'session-slow', cwd: tmpdir(), source: 'startup' },
+        home,
+        { HUB_CONTEXT_TIMEOUT_MS: '300' },
+      );
+      expect(exit).toBe(0);
+      const text = JSON.parse(stdout).hookSpecificOutput.additionalContext;
+      expect(text).toContain('is up but did not send');
+      expect(text).not.toContain('cannot be reached');
+      expect(text).toContain('Hub session id: session-slow');
+    } finally {
+      slow.closeAllConnections();
+      await new Promise((resolve) => slow.close(resolve));
+    }
+  });
+
+  it("points a paired device at the bridge's own checks, not at a package that is not published", async () => {
+    const home = homeWith({ url: 'http://127.0.0.1:9', token: TOKEN });
+    const bin = join(home, '.hub', 'app', 'bridge', 'bin');
+    mkdirSync(bin, { recursive: true });
+    writeFileSync(join(bin, 'hub-bridge.mjs'), '');
+    const { stdout } = await runHook(
+      'session-start.mjs',
+      { session_id: 'session-device', cwd: tmpdir(), source: 'startup' },
+      home,
+    );
+    const text = JSON.parse(stdout).hookSpecificOutput.additionalContext;
+    expect(text).toContain('cannot be reached');
+    expect(text).toContain(`"${join(bin, 'hub-bridge.mjs')}" health`);
+    expect(text).not.toContain('npx @hub/team-pack doctor');
+  });
+
   it('says how to set up when there is no token', async () => {
     const { stdout } = await runHook(
       'session-start.mjs',
@@ -176,6 +216,61 @@ describe('session-end', () => {
     });
     expect(body.commits[0].message).toBe('add b');
     await until(() => readdirSync(join(home, '.hub', 'outbox')).length === 0);
+  });
+
+  it('does not count files that were already uncommitted when the session began', async () => {
+    const home = homeWith({ url, token: TOKEN });
+    const { cwd } = gitRepo();
+    writeFileSync(join(cwd, 'old-dirty.txt'), 'before');
+    await runHook('session-start.mjs', { session_id: 'baseline-1', cwd, source: 'startup' }, home);
+    await runHook('session-end.mjs', { session_id: 'baseline-1', cwd, reason: 'other' }, home);
+    await until(() => requests.some((request) => request.body?.sessionId === 'baseline-1'));
+    expect(requests.find((request) => request.body?.sessionId === 'baseline-1').body.dirtyFiles).toBe(0);
+  });
+
+  it('counts a file that was already uncommitted and was edited during the session', async () => {
+    const home = homeWith({ url, token: TOKEN });
+    const { cwd } = gitRepo();
+    writeFileSync(join(cwd, 'old-dirty.txt'), 'before');
+    await runHook('session-start.mjs', { session_id: 'baseline-2', cwd, source: 'startup' }, home);
+    writeFileSync(join(cwd, 'old-dirty.txt'), 'before and a longer edit');
+    await runHook('session-end.mjs', { session_id: 'baseline-2', cwd, reason: 'other' }, home);
+    await until(() => requests.some((request) => request.body?.sessionId === 'baseline-2'));
+    expect(requests.find((request) => request.body?.sessionId === 'baseline-2').body.dirtyFiles).toBe(1);
+  });
+
+  it('sends what the member asked and the last reply, read from the transcript', async () => {
+    const home = homeWith({ url, token: TOKEN });
+    const cwd = tmpdir();
+    const transcript = join(home, 'transcript.jsonl');
+    const line = (entry) => `${JSON.stringify(entry)}\n`;
+    writeFileSync(
+      transcript,
+      line({
+        type: 'user',
+        message: { role: 'user', content: '<command-message>hub:start</command-message>' },
+      }) +
+        line({ type: 'user', message: { role: 'user', content: 'Why do sessions have no summary?' } }) +
+        line({
+          type: 'assistant',
+          message: { role: 'assistant', content: [{ type: 'text', text: 'First answer' }] },
+        }) +
+        line({
+          type: 'assistant',
+          message: { role: 'assistant', content: [{ type: 'text', text: 'Because none was logged.' }] },
+        }),
+    );
+    await runHook('session-start.mjs', { session_id: 'digest-1', cwd, source: 'startup' }, home);
+    await runHook(
+      'session-end.mjs',
+      { session_id: 'digest-1', cwd, reason: 'other', transcript_path: transcript },
+      home,
+    );
+    await until(() => requests.some((request) => request.body?.sessionId === 'digest-1'));
+    expect(requests.find((request) => request.body?.sessionId === 'digest-1').body).toMatchObject({
+      topic: 'Why do sessions have no summary?',
+      outcome: 'Because none was logged.',
+    });
   });
 
   it('says a summary was written once log_session ran', async () => {

@@ -91,6 +91,8 @@ const summarySchema = logSessionSchema.extend({
   fromRole: z.string().max(40),
   /** Existing cards to link: `cardKeys` and keys named in the text, checked by the service. */
   linkKeys: z.array(z.string()).max(60),
+  /** The project's language, for the card's title and headings. */
+  locale: z.enum(['ar', 'en']).default('en'),
 });
 
 const sessionLogSchema = z.discriminatedUnion('mode', [summarySchema, factsSchema]);
@@ -170,8 +172,8 @@ export class SessionLogAction implements CardActionDefinition<SessionLogPayload>
     const hasCommits = Number(card.detail?.['commitCount'] ?? 0) > 0;
     return {
       patch: {
-        title: summaryTitle(payload.changed),
-        body: summaryBody(payload),
+        title: summaryTitle(payload.changed, payload.locale),
+        body: summaryBody(payload, payload.locale),
         ...(payload.repo ? { repo: payload.repo } : {}),
         ...(payload.branch ? { branch: payload.branch } : {}),
       },

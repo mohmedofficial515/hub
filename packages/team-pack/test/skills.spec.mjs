@@ -16,7 +16,7 @@ const TOOLS = new Set([...toolTable.matchAll(/^ {2}(\w+): \{$/gm)].map((match) =
 const frontMatter = (text) => /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? '';
 
 /** Hub's own protocols. Skills the owner adds on the Skills page live beside them and keep their own words (D64, D65). */
-const CORE = ['ask', 'doc', 'guide', 'idea', 'plan', 'suggest', 'work'];
+const CORE = ['ask', 'doc', 'done', 'guide', 'idea', 'next', 'plan', 'start', 'suggest', 'work'];
 
 describe('the skills', () => {
   const names = readdirSync(SKILLS).filter((name) => CORE.includes(name));
@@ -89,6 +89,50 @@ describe('/hub:work', () => {
 
   it('runs each check word for word, since Hub matches the command', () => {
     expect(text).toContain('word for word');
+  });
+});
+
+/** These three were MCP prompts only, and no Claude Code a member uses ever ran them (see packages/contracts/src/mcp/prompts.ts). */
+describe('/hub:start, /hub:next and /hub:done', () => {
+  it('are typed by a person', () => {
+    for (const name of ['start', 'next', 'done']) {
+      expect([name, frontMatter(skill(name))]).toEqual([
+        name,
+        expect.stringContaining('user-invocable: true'),
+      ]);
+    }
+  });
+
+  it('/hub:start reports what awaits, offers the missing summaries, and never saves the brief unasked', () => {
+    const text = skill('start');
+    for (const tool of ['get_project_brief', 'whats_new', 'list_my_sessions_without_summary']) {
+      expect(text).toContain(`hub.${tool}`);
+    }
+    expect(text).toContain('hub://brief/today');
+    expect(text).toContain('Save it only if I agree');
+    expect(text).toContain('/hub:next');
+  });
+
+  it('/hub:start does not call Hub unreachable while its server is still connecting', () => {
+    expect(skill('start')).toContain('may still be connecting');
+  });
+
+  it('/hub:next takes the key as its argument, claims before editing, and stops on a blocker', () => {
+    const text = skill('next');
+    expect(frontMatter(text)).toContain("argument-hint: '[card key]'");
+    expect(text).toContain('$ARGUMENTS');
+    expect(text.indexOf('hub.claim_task')).toBeLessThan(text.indexOf('hub.start_task'));
+    expect(text).toContain('"blocked by"');
+    expect(text).toContain('rule about asking before creating branches');
+    expect(text).toContain('/hub:done');
+  });
+
+  it('/hub:done logs the session with the id from the session context, and never skips it', () => {
+    const text = skill('done');
+    expect(text).toContain('hub.log_session');
+    expect(text).toContain('"Hub session id"');
+    expect(text).toContain('do not skip step 3');
+    expect(text.indexOf('hub.log_session')).toBeLessThan(text.indexOf('hub.submit_task'));
   });
 });
 

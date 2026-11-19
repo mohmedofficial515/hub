@@ -5,12 +5,21 @@
  * project comes from the folder's `.mcp.json`, the same place Claude Code reads it, so hooks and tools agree.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 export const TOKEN_ENV = 'HUB_MCP_BEARER';
-export const PACK_VERSION = '0.1.0';
+export const PACK_VERSION = '0.2.0';
 const GIT_TIMEOUT_MS = 500;
 
 export function hubDir() {
@@ -59,6 +68,131 @@ export function git(cwd, args, timeout = GIT_TIMEOUT_MS) {
       timeout,
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
+  } catch {
+    return null;
+  }
+}
+
+const MAX_FINGERPRINT = 500;
+const TRANSCRIPT_CHUNK = 256 * 1024;
+const TOPIC_LENGTH = 200;
+const OUTCOME_LENGTH = 600;
+
+function oneLine(text, length) {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > length ? `${flat.slice(0, length - 1)}…` : flat;
+}
+
+/**
+ * Every uncommitted file now, as `path -> status:mtime:size`. A repo that is dirty before the session starts is the
+ * normal case, so "files left uncommitted" has to mean files this session touched, not the ones already there.
+ * Returns null when Git cannot tell (not a repo, or too slow).
+ */
+export function dirtyFingerprint(cwd) {
+  let out;
+  try {
+    out = execFileSync('git', ['status', '--porcelain', '-z'], {
+      cwd,
+      encoding: 'utf8',
+      timeout: GIT_TIMEOUT_MS * 2,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
+  const parts = out.split('\0').filter(Boolean);
+  const entries = {};
+  let count = 0;
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    const status = part.slice(0, 2);
+    // A rename or copy is followed by its old path, which has no status of its own.
+    if (status.includes('R') || status.includes('C')) index += 1;
+    if (count >= MAX_FINGERPRINT) return { entries, truncated: true };
+    const path = part.slice(3);
+    let stamp = 'gone';
+    try {
+      const stat = statSync(join(cwd, path));
+      stamp = `${stat.mtimeMs}:${stat.size}`;
+    } catch {
+      // Deleted files keep the stamp `gone`.
+    }
+    entries[path] = `${status}:${stamp}`;
+    count += 1;
+  }
+  return { entries, truncated: false };
+}
+
+/** How many uncommitted files are new or changed since `start`. Without a start fingerprint, all of them count. */
+export function dirtySince(start, now) {
+  if (!now) return 0;
+  const paths = Object.keys(now.entries);
+  if (!start) return paths.length;
+  return paths.filter((path) => {
+    if (path in start.entries) return start.entries[path] !== now.entries[path];
+    // A start list cut at the cap cannot say the file was clean, so an unknown file is not counted.
+    return !start.truncated;
+  }).length;
+}
+
+function textOf(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('\n');
+}
+
+function readChunk(path, from, length) {
+  const fd = openSync(path, 'r');
+  try {
+    const buffer = Buffer.alloc(length);
+    const bytes = readSync(fd, buffer, 0, length, from);
+    return buffer.toString('utf8', 0, bytes);
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function entriesOf(chunk, dropFirst) {
+  const lines = chunk.split('\n');
+  if (dropFirst) lines.shift();
+  const entries = [];
+  for (const line of lines) {
+    try {
+      entries.push(JSON.parse(line));
+    } catch {
+      // A line cut by the chunk edge, or not JSON.
+    }
+  }
+  return entries;
+}
+
+/**
+ * What the session was about, read from Claude Code's own transcript file: the first prompt the member typed, and the
+ * last thing Claude said. No model call and no network. Hub still refuses secrets in it. Null when nothing is readable.
+ */
+export function digestTranscript(path) {
+  if (typeof path !== 'string' || path === '') return null;
+  try {
+    const size = statSync(path).size;
+    const head = entriesOf(readChunk(path, 0, Math.min(size, TRANSCRIPT_CHUNK)), false);
+    const tailStart = Math.max(0, size - TRANSCRIPT_CHUNK);
+    const tail = entriesOf(readChunk(path, tailStart, size - tailStart), tailStart > 0);
+
+    const prompt = head.find((entry) => {
+      if (entry?.type !== 'user' || entry.isMeta) return false;
+      const text = textOf(entry.message?.content).trim();
+      // Slash-command wrappers and injected reminders start with a tag; they are not what the member asked.
+      return text !== '' && !text.startsWith('<');
+    });
+    const reply = [...tail].reverse().find((entry) => {
+      return entry?.type === 'assistant' && textOf(entry.message?.content).trim() !== '';
+    });
+    const topic = prompt ? oneLine(textOf(prompt.message.content), TOPIC_LENGTH) : null;
+    const outcome = reply ? oneLine(textOf(reply.message.content), OUTCOME_LENGTH) : null;
+    return topic || outcome ? { topic, outcome } : null;
   } catch {
     return null;
   }

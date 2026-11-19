@@ -14,7 +14,7 @@ import {
   copyFromCheckout,
   uninstall,
 } from '../lib/connect.mjs';
-import { windowsTaskXml } from '../lib/login-start.mjs';
+import { isLoginStartRegistered, TASK_REPEAT, TASK_REVISION, windowsTaskXml } from '../lib/login-start.mjs';
 import { hubPaths, readJson } from '../lib/paths.mjs';
 import { CLAIMED, CREDENTIAL, exists, fakeHub, fakeSystem, HOOK_TOKEN, URL } from './helpers.mjs';
 
@@ -144,6 +144,41 @@ describe('connect', () => {
     expect(xml).toContain('<UserId>PC\\me</UserId>');
     expect(xml).toContain('--headless');
     expect(xml).toContain('me &amp; co');
+  });
+
+  it('writes a task that looks again every few minutes, so a bridge that stopped starts again', () => {
+    const xml = windowsTaskXml('PC\\me', 'C:\\node.exe', 'C:\\bridge.mjs', new Date(2026, 10, 16, 9, 5, 7));
+    // On a time trigger from the moment it is written: a logon trigger's repeat only begins at the next logon.
+    expect(xml).toContain(
+      `<TimeTrigger><Enabled>true</Enabled><StartBoundary>2026-11-16T09:05:07</StartBoundary><Repetition><Interval>${TASK_REPEAT}</Interval>`,
+    );
+    expect(xml).toMatch(/<LogonTrigger>(?:(?!<Repetition>).)*<\/LogonTrigger>/);
+    expect(xml).toContain('<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>');
+    expect(xml).toContain(TASK_REVISION);
+  });
+
+  it('replaces a task from before the repeat, and leaves a current one alone', async () => {
+    const system = fakeSystem();
+    system.taskRegistered = true;
+    system.taskXml = '<Task><Description>Connects this device to Hub (hub-bridge)</Description></Task>';
+    expect(await isLoginStartRegistered(system)).toBe(false);
+    fakeHub(system, { answers: [CLAIMED] });
+    await connect(system, { url: URL });
+    expect(system.taskXml).toContain(TASK_REVISION);
+    expect(await isLoginStartRegistered(system)).toBe(true);
+    const creates = () =>
+      system.calls.filter((call) => call.command === 'schtasks.exe' && call.args[0] === '/Create').length;
+    const before = creates();
+    await connect(system, { url: URL });
+    expect(creates()).toBe(before);
+  });
+
+  it('reads the revision in a task that schtasks prints as UTF-16', async () => {
+    const system = fakeSystem();
+    system.taskXml = Buffer.from(windowsTaskXml('PC\\me', 'C:\\node.exe', 'C:\\b.mjs'), 'utf16le').toString(
+      'latin1',
+    );
+    expect(await isLoginStartRegistered(system)).toBe(true);
   });
 
   it('skips the start at login in an isolated test, so no scheduled task is ever touched', async () => {

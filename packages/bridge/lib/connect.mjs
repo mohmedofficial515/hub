@@ -12,7 +12,7 @@ import { installMcpServer, installPlugin, pluginIsInstalled, userServerIsRight }
 import { readLinks } from './links.mjs';
 import { isLoginStartRegistered, registerLoginStart, removeLoginStart } from './login-start.mjs';
 import { hubPaths, readJson, writePrivateJson } from './paths.mjs';
-import { isAlive, stopRunningBridge } from './service.mjs';
+import { runningBridgePid, stopRunningBridge } from './service.mjs';
 
 const PACK_VERSION = '0.1.0';
 
@@ -132,16 +132,14 @@ function startBridge(system) {
 
 /** Starts the bridge unless it is already up. Answers whether it had to. */
 export function ensureBridgeRunning(system) {
-  const pid = readJson(hubPaths(system).pid)?.pid;
-  if (pid && isAlive(pid)) return false;
+  if (runningBridgePid(system)) return false;
   startBridge(system);
   return true;
 }
 
 /** For a bridge Hub does not see: ends the one running, if any, and starts a fresh one. Answers whether one was running. */
 export async function restartBridge(system) {
-  const pid = readJson(hubPaths(system).pid)?.pid;
-  const wasRunning = Boolean(pid && isAlive(pid));
+  const wasRunning = Boolean(runningBridgePid(system));
   await stopRunningBridge(system);
   startBridge(system);
   return wasRunning;
@@ -234,7 +232,9 @@ export async function connect(system, options) {
       }
       const plugin = await installPlugin(system, claude.best.path);
       if (plugin.changed)
-        say('Claude Code: installed the hub plugin at user scope (/hub:ask, /hub:plan, session hooks).');
+        say(
+          'Claude Code: installed the hub plugin at user scope (/hub:start, /hub:next, /hub:done, /hub:ask, /hub:plan, session hooks).',
+        );
     } catch (error) {
       system.out(`  ${mask(String(error.message), device)}`);
       system.out('  Settings › Devices shows this, with a Fix button.');
@@ -304,13 +304,12 @@ export async function uninstall(system) {
 export async function status(system) {
   const paths = hubPaths(system);
   const device = readJson(paths.device);
-  const pid = readJson(paths.pid)?.pid;
   const claudePath = (await resolveClaude(system)).best?.path;
   const answer = {
     paired: Boolean(device?.credential),
     url: device?.url ?? null,
     deviceId: device?.deviceId ?? null,
-    running: Boolean(pid && isAlive(pid)),
+    running: Boolean(runningBridgePid(system)),
     plugin: claudePath ? await pluginIsInstalled(system, claudePath) : false,
     mcpServer: device?.url ? userServerIsRight(system, device.url) : false,
     loginStart: await isLoginStartRegistered(system),

@@ -4,7 +4,7 @@
  */
 import { rmSync } from 'node:fs';
 
-import { fail, headersFor, loadConfig, readJson } from './lib.mjs';
+import { digestTranscript, fail, headersFor, loadConfig, readJson } from './lib.mjs';
 
 const TIMEOUT_MS = 10_000;
 const BACKOFF_MS = [0, 2000, 5000];
@@ -14,13 +14,16 @@ export async function send(file) {
   if (!entry) return false;
   const config = loadConfig();
   if (!config.token) return false;
+  // What the session was about. Skipped when a summary exists, because that is better than any digest.
+  const digest = entry.payload.hasSummary ? null : digestTranscript(entry.transcriptPath);
+  const payload = digest ? { ...entry.payload, ...digest } : entry.payload;
   for (const wait of BACKOFF_MS) {
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     try {
       const response = await fetch(`${config.url}/api/v1/capture/session`, {
         method: 'POST',
         headers: headersFor(config, entry.project),
-        body: JSON.stringify(entry.payload),
+        body: JSON.stringify(payload),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (response.ok) {

@@ -1,8 +1,14 @@
 /**
- * @file The MCP prompts (docs/05 §2.6). Claude Code shows them as `/hub:<name>` because the server is named `hub`.
+ * @file The MCP prompts (docs/05 §2.6), for an MCP client that offers prompts as commands.
  * @description `ask` and `plan` are not here: Claude Code splits prompt arguments on whitespace, so a free-text argument
  * would lose all but its first word. They are skills in the team pack (D26, docs/15 §4). Every text states the
  * no-secrets rule, and a golden test keeps it there.
+ *
+ * `/hub:start`, `/hub:next` and `/hub:done` are typed through the team pack's skills of the same names, not through these.
+ * Claude Code run as the VS Code extension or by the bridge (`-p`, the Hub panel) lists no MCP prompt as a command, and it
+ * reads the first message before the `hub` server has connected: every use of these three as prompts answered "no command
+ * with that name is available" (2026-11-05, 2026-11-10, 2026-11-16). The prompts stay for other clients, and a spec keeps
+ * each skill naming the same Hub tools as its prompt.
  */
 export interface McpPromptContext {
   readonly displayName: string;

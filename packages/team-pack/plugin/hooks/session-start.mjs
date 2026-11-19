@@ -9,10 +9,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  dirtyFingerprint,
   existsSync,
   fail,
   git,
   headersFor,
+  hubDir,
   linkedProject,
   loadConfig,
   outboxDir,
@@ -21,9 +23,24 @@ import {
   writeJson,
 } from './lib.mjs';
 
-const TIMEOUT_MS = 2500;
+/**
+ * How long the context may take. 2.5 s cut off a Hub that was up and only slow (3.8 s under load, 2026-11-16), and the session was told Hub could not
+ * be reached. A Hub that is down still answers at once, as a refused connection, so the wait only grows when Hub is slow.
+ * `HUB_CONTEXT_TIMEOUT_MS` is for tests.
+ */
+const TIMEOUT_MS = Number(process.env.HUB_CONTEXT_TIMEOUT_MS) || 6000;
 const MAX_CONTEXT = 9500;
 const here = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * What to run to see why. A paired device has the bridge's own checks; `npx @hub/team-pack` is not published, so that hint failed on every device.
+ * Settings › Devices in Hub shows the same checks.
+ */
+function checkHint() {
+  const bridge = join(hubDir(), 'app', 'bridge', 'bin', 'hub-bridge.mjs');
+  if (existsSync(bridge)) return `Run: node "${bridge}" health, or open Settings › Devices in Hub.`;
+  return 'Run: npx @hub/team-pack doctor';
+}
 
 function remember(input, cwd) {
   const path = sessionFile(input.session_id);
@@ -34,6 +51,7 @@ function remember(input, cwd) {
     branch: git(cwd, ['rev-parse', '--abbrev-ref', 'HEAD']),
     headSha: git(cwd, ['rev-parse', 'HEAD']),
     remote: git(cwd, ['remote', 'get-url', 'origin']),
+    dirtyAtStart: dirtyFingerprint(cwd),
   });
 }
 
@@ -58,12 +76,15 @@ async function fetchContext(cwd) {
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok) {
-      return `Hub at ${config.url} answered ${response.status}. Run: npx @hub/team-pack doctor`;
+      return `Hub at ${config.url} answered ${response.status}. ${checkHint()}`;
     }
     const { data } = await response.json();
     return data.text;
-  } catch {
-    return `Hub at ${config.url} cannot be reached from this machine. Call hub.whats_new when it is back. Run: npx @hub/team-pack doctor`;
+  } catch (error) {
+    if (error?.name === 'TimeoutError') {
+      return `Hub at ${config.url} is up but did not send this session's context within ${Math.round(TIMEOUT_MS / 1000)} seconds. Its tools may still work: call hub.whats_new for what you need.`;
+    }
+    return `Hub at ${config.url} cannot be reached from this machine. Call hub.whats_new when it is back. ${checkHint()}`;
   }
 }
 
