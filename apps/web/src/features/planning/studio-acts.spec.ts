@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { effortOf, fitStepTitle, planIdeaKey, planPrompt, planWords, rolesOf } from './plan-studio';
+import {
+  effortOf,
+  fitStepTitle,
+  isPlanStudioChat,
+  latestTextPlan,
+  planIdeaKey,
+  planPrompt,
+  planWords,
+  rolesOf,
+} from './plan-studio';
 import { actOf, discoveryOf, isPlumbing, projectPath } from './studio-acts';
 
 describe('actOf', () => {
@@ -123,5 +132,29 @@ describe('fitStepTitle', () => {
     const fit = fitStepTitle('word '.repeat(60));
     expect(fit.endsWith('word…')).toBe(true);
     expect(fit.length).toBeLessThanOrEqual(200);
+  });
+});
+
+describe('isPlanStudioChat', () => {
+  const msg = (role: 'user' | 'assistant', content: string, extra: Record<string, unknown> = {}) =>
+    ({ id: `${role}-${content}`, role, content, plan: null, structuredPlan: null, ...extra }) as never;
+
+  it('takes a chat that started with the planning command, or any chat whose reply proposed a plan', () => {
+    expect(isPlanStudioChat({ messages: [msg('user', '/hub:plan hotels')] })).toBe(true);
+    expect(
+      isPlanStudioChat({
+        messages: [msg('user', 'Plan hotels'), msg('assistant', '…', { plan: '# Hotels' })],
+      }),
+    ).toBe(true);
+    expect(isPlanStudioChat({ messages: [msg('user', 'Hello'), msg('assistant', 'Hi')] })).toBe(false);
+  });
+
+  it('finds the latest plan written as words, and none once a structured plan came after it', () => {
+    const words = { messages: [msg('user', 'Plan'), msg('assistant', 'a', { plan: '# One' })] };
+    expect(latestTextPlan(words)).toEqual({ text: '# One', messageId: 'assistant-a' });
+    const structured = {
+      messages: [...words.messages, msg('assistant', 'b', { structuredPlan: { title: 'Two', steps: [] } })],
+    };
+    expect(latestTextPlan(structured)).toBeNull();
   });
 });

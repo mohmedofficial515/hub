@@ -112,13 +112,31 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
 const hasOwnText = (card: HubCard) => (card.type === 'task' ? !!card.task.acceptance : card.type !== 'need');
 
-export function ActionBar({ card, action }: { card: HubCard; action: CardAction | null }) {
+/**
+ * The card's buttons, from `actionsFor`. `statusMenu` names actions that only change where the card stands (an idea's Accept, Park and Reject): they
+ * leave the row of buttons for one "Change status" menu, so the filled button is the one next step.
+ */
+export function ActionBar({
+  card,
+  action,
+  statusMenu,
+}: {
+  card: HubCard;
+  action: CardAction | null;
+  statusMenu?: readonly CardAction[] | undefined;
+}) {
   const t = useT(kitMessages);
+  const locale = useLocale();
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const pending = useRef<(() => void) | null>(null);
   // Its filled button steps down while the panel beside it owes the owner an answer, so one thing on screen is asking at a time (review M11).
   const owes = panelOwes(useMaybeWb());
   const { roles, me } = useSession();
   const perform = usePerformAction();
-  const available = actionsFor(card, roles, me.id);
+  const offered = actionsFor(card, roles, me.id);
+  const inMenu = (a: AvailableAction) => !!statusMenu?.includes(a.action);
+  const available = offered.filter((a) => !inMenu(a));
+  const menu = offered.filter(inMenu);
   const [confirm, setConfirm] = useState<AvailableAction | null>(null);
 
   const blocker = card.type === 'task' ? openBlockers(card)[0] : undefined;
@@ -171,6 +189,57 @@ export function ActionBar({ card, action }: { card: HubCard; action: CardAction 
           </Tooltip>
         );
       })}
+      {menu.length > 0 && (
+        <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+          <DropdownMenu.Trigger asChild>
+            <Button ref={menuTrigger} variant="outline" data-sheet-status-menu>
+              {t.sheet.changeStatus}
+              <ChevronDown aria-hidden className="size-4" strokeWidth={1.75} />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal container={portalRoot()}>
+            <DropdownMenu.Content
+              align="start"
+              sideOffset={4}
+              collisionPadding={12}
+              // A confirm opens after the menu has closed and focus is back on its trigger, so the dialog returns focus there.
+              onCloseAutoFocus={(e) => {
+                const later = pending.current;
+                if (!later) return;
+                pending.current = null;
+                e.preventDefault();
+                menuTrigger.current?.focus();
+                later();
+              }}
+              className="z-75 min-w-52 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+            >
+              {menu.map((a) => {
+                const why = a.enabled
+                  ? null
+                  : a.needsRole
+                    ? fmt(t.error.forbiddenRole, { role: t.roles[a.needsRole] })
+                    : null;
+                return (
+                  <DropdownMenu.Item
+                    key={a.action}
+                    disabled={!a.enabled}
+                    onSelect={() => {
+                      pending.current = () => run(a);
+                    }}
+                    className={cn(
+                      'flex min-h-11 cursor-pointer flex-col items-start justify-center gap-0.5 rounded-md px-2.5 py-1.5 text-body-sm outline-none select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-60 data-[highlighted]:bg-accent lg:min-h-9',
+                      a.destructive ? 'text-destructive-soft-foreground' : 'text-foreground',
+                    )}
+                  >
+                    {actionName(t, card.type, a.action)}
+                    {why && <span className="text-caption text-muted-foreground">{why}</span>}
+                  </DropdownMenu.Item>
+                );
+              })}
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
+      )}
       <IconButton
         label={watching ? t.sheet.unwatch : t.sheet.watch}
         aria-pressed={watching}

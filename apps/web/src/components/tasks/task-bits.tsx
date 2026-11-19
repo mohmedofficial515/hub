@@ -24,6 +24,7 @@ import {
   MineMark,
   nowMs,
   openBlockers,
+  openCard,
   Pill,
   rel,
   type TaskCard,
@@ -165,6 +166,21 @@ export function MoveButton({
   const { roles, me } = useSession();
   const move = actionsFor(card, roles, me.id).find((a) => MOVES.has(a.action));
   if (!move) return null;
+  // A task in review is not done from its row: Review opens the card, where the evidence and the acceptance sit beside Mark done and Back to work.
+  if (card.status === 'in_review' && move.action === 'complete' && move.enabled) {
+    return (
+      <Button
+        size="sm"
+        variant={primary ? 'primary' : 'outline'}
+        aria-describedby={`task-${card.key}`}
+        data-task-review
+        onClick={() => openCard(card.key)}
+        className={cn(full && 'w-full')}
+      >
+        {t.card.review}
+      </Button>
+    );
+  }
   const blocked = openBlockers(card)[0];
   const label = actionName(kit, 'task', move.action);
   const button = (

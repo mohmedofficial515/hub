@@ -3,8 +3,8 @@
 /**
  * @file plan-report.tsx
  * @description A proposed plan, whole, as `propose_plan` sent it: the goal and the approach, who does what, the ordered steps with their size and what
- * comes first, the flow, the checks, the risks and what is left out, the open questions and the sources. The Plan Studio shows it beside its conversation,
- * and the live draft page (`?draft=1`) shows the same plan the same way. Every section shows only when Claude sent it.
+ * comes first, the flow, the checks, the risks and what is left out, the open questions and the sources. The Plan Studio shows it beside its conversation.
+ * Every section shows only when Claude sent it.
  */
 import type { ProposedPlan } from '@hub/contracts';
 import {

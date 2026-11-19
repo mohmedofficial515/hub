@@ -148,7 +148,7 @@
   "liveBanner": {
     "drafting": "Claude is drafting a plan in the chat",
     "proposed": "Claude proposed a plan in the chat",
-    "open": "Watch it here",
+    "open": "Open in the Plan Studio",
     "dismiss": "Dismiss"
   },
   "detail": {
@@ -259,26 +259,15 @@
     "revisionLabel": "Revision"
   },
   "draft": {
-    "back": "Planning",
-    "label": "Live draft",
     "writing": "Claude is writing the plan",
-    "writingHint": "It appears here as the chat writes it. You can keep talking to Claude in the chat.",
-    "proposed": "Claude proposed this plan",
     "proposedHint": "Read it, then save it to Planning, develop it in the chat, or run it.",
-    "none": "No plan is being written now",
-    "noneBody": "Ask Claude for a plan in the chat in Plan mode, and it is written here as it comes.",
-    "start": "Plan with Claude",
-    "startPrompt": "Make a plan for: ",
     "save": "Save to Planning",
     "saved": "Saved as {key}",
     "savedToast": "Saved as {key}. It is a draft plan in Planning now.",
-    "develop": "Develop in the chat",
-    "developPrompt": "Develop this plan: ",
     "run": "Run this plan",
     "runTip": "Puts the plan in the chat in Execute. Nothing runs until you send it.",
     "fallbackTitle": "Plan from the chat",
-    "text": "The plan as written",
-    "reply": "What Claude is writing"
+    "text": "The plan as written"
   },
   "studio": {
     "back": "Planning",

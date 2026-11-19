@@ -142,7 +142,7 @@ const dismissedDraft = () => {
   }
 };
 
-/** The plan a chat is drafting, or just proposed, with the way to watch it as a page. Gone once that proposal is saved. */
+/** The plan a chat is drafting, or just proposed, with the way to it in the Plan Studio. Gone once that proposal is saved. */
 export function DraftBanner() {
   const w = useT<PlanningMessages>('planning');
   const draft = useLiveDraft();
@@ -183,7 +183,8 @@ export function DraftBanner() {
       {draft.writing && <LivePill label={w.draft.writing} />}
       <AppLink
         view="planning"
-        query={draft.studio ? { studio: 'plan', chat: draft.chatId } : { draft: '1' }}
+        // Every plan a chat proposes, or is writing, opens in the Plan Studio on that chat (the live draft page is gone).
+        query={{ studio: 'plan', chat: draft.chatId }}
         className={cn(
           'inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-body-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent max-md:h-11',
           focusRing,

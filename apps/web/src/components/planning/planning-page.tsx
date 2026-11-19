@@ -2,8 +2,8 @@
 
 /**
  * @file planning-page.tsx
- * @description Planning (docs/15 §4): "what are we thinking about, and what is planned next?". The lists, a plan's or an idea's own page, and the live draft a
- * chat is writing all live on this one route. The layout's reasons are in NOTES.md beside this file.
+ * @description Planning (docs/15 §4): "what are we thinking about, and what is planned next?". The lists, a plan's or an idea's own page, and the two
+ * studios all live on this one route. A plan a chat proposes opens in the Plan Studio. The layout's reasons are in NOTES.md beside this file.
  */
 import { CheckCheck, Hourglass, Lightbulb, Loader, Route, SearchX, Sparkles } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -51,7 +51,6 @@ import { useIdeasQuery, usePlansQuery } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 
 import { PlanningDetail } from './detail';
-import { PlanningDraft } from './draft';
 import { useLiveDraft } from './live';
 import type { PlanningMessages } from './messages';
 import {
@@ -84,30 +83,27 @@ function groupBy<C extends IdeaCard | PlanCard>(rows: C[], statuses: readonly st
     .filter((group) => group.rows.length > 0);
 }
 
-/** The draft a Plan-mode turn opened on its own, once per reply, so going back to the lists is not undone by the next render. */
-let autoOpened: string | null = null;
-
-/** A Plan-mode turn that starts while the lists are shown opens its live draft, so the plan is written on the page as it comes. */
-function useOpenDraftWhenWriting(onLists: boolean) {
-  const draft = useLiveDraft();
-  const writing = draft?.writing && !draft.studio ? draft.messageId : null;
+/**
+ * An old link to the live draft page (`?draft=1`), which the Plan Studio replaced: it lands on the studio, on the chat writing the plan when there is
+ * one, else on the studio's start. Replaced in history, so Back does not bounce here again.
+ */
+function DraftRedirect() {
+  const chatId = useLiveDraft()?.chatId ?? null;
   useEffect(() => {
-    if (!writing || autoOpened === writing) return;
-    autoOpened = writing;
-    if (onLists) setQuery({ draft: '1' }, { replace: false });
-  }, [writing, onLists]);
+    setQuery({ draft: null, studio: 'plan', chat: chatId });
+  }, [chatId]);
+  return null;
 }
 
 /**
- * Planning: the lists, a plan's or an idea's own page (`?plan=KEY`), or the live draft a chat is writing (`?draft=1`). They share one route, so the lists keep
- * their filters in history while a page is open.
+ * Planning: the lists, a plan's or an idea's own page (`?plan=KEY`), or a studio (`?studio=idea|plan`). They share one route, so the lists keep their
+ * filters in history while a page is open. A Plan-mode chat no longer moves the page by itself: the banner on the lists offers its studio.
  */
 export function PlanningPage() {
   const { query } = useRoute();
   const plan = query.get('plan');
   const draft = query.get('draft');
   const studio = query.get('studio');
-  useOpenDraftWhenWriting(!plan && !draft && !studio);
   if (plan) {
     return (
       <PlanningDetail
@@ -120,7 +116,7 @@ export function PlanningPage() {
   }
   if (studio === 'idea') return <IdeaStudio />;
   if (studio === 'plan') return <PlanStudio />;
-  if (draft) return <PlanningDraft />;
+  if (draft) return <DraftRedirect />;
   return <PlanningLists />;
 }
 

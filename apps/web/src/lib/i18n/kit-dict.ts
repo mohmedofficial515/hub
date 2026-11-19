@@ -86,6 +86,7 @@ export interface KitDict {
     deleted: string;
     label: string;
     actionsLabel: string;
+    changeStatus: string;
     more: string;
     watch: string;
     unwatch: string;

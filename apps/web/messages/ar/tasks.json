@@ -126,7 +126,8 @@
     "pr": "PR",
     "noRole": "هذا الإجراء يحتاج دور {role}.",
     "blockedToast": "{key} متوقفة على {blocker}",
-    "claimTask": "احجز {key}"
+    "claimTask": "احجز {key}",
+    "review": "راجِع"
   },
   "table": {
     "caption": "قائمة المهام",

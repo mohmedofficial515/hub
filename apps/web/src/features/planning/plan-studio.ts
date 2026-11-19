@@ -47,10 +47,29 @@ export const planIdeaKey = (content: string) => {
   return /^([A-Z]{2,6}-\d{1,7})\b/.exec(rest)?.[1] ?? null;
 };
 
-/** A chat the Plan Studio shows: its first message is the planning command. */
+/**
+ * A chat the Plan Studio shows: its first message is the planning command, or a reply in it proposed a plan, structured or as words (owner decision
+ * 2026-11-19: the studio replaced Planning's live draft page, so every plan a chat proposes opens there). The Idea Studio's chats are told apart by
+ * their callers, which ask `isStudioChat` first.
+ */
 export function isPlanStudioChat(chat: Pick<ChatFullDto, 'messages'> | null | undefined): boolean {
   const first = chat?.messages.find((m) => m.role === 'user');
-  return !!first && first.content.trimStart().startsWith(PLAN_COMMAND);
+  if (first?.content.trimStart().startsWith(PLAN_COMMAND)) return true;
+  return !!chat?.messages.some((m) => m.role === 'assistant' && (!!m.structuredPlan || !!m.plan?.trim()));
+}
+
+/** The latest plan a reply proposed as words only, and the message that holds it. A structured plan later in the chat wins, so this is null then. */
+export function latestTextPlan(
+  chat: Pick<ChatFullDto, 'messages'> | null | undefined,
+): { text: string; messageId: string } | null {
+  if (!chat) return null;
+  for (let i = chat.messages.length - 1; i >= 0; i -= 1) {
+    const m = chat.messages[i];
+    if (!m || m.role !== 'assistant') continue;
+    if (m.structuredPlan) return null;
+    if (m.plan?.trim()) return { text: m.plan, messageId: m.id };
+  }
+  return null;
 }
 
 export interface FoundPlan {

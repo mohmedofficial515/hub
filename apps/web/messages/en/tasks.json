@@ -104,7 +104,8 @@
     "pr": "PR",
     "noRole": "This action needs the {role} role.",
     "blockedToast": "{key} is blocked by {blocker}",
-    "claimTask": "Claim {key}"
+    "claimTask": "Claim {key}",
+    "review": "Review"
   },
   "table": {
     "caption": "Task list",

@@ -18,7 +18,6 @@ import {
 import { runningMessage } from '@/features/chat/live';
 import { followTargetOf } from '@/features/chat/thread-items';
 import { isStudioChat } from '@/features/planning/idea-studio';
-import { isPlanStudioChat } from '@/features/planning/plan-studio';
 import type { PlanProposal } from '@/features/planning/proposal';
 
 /** True while the open chat's running turn is on this card: it named it in a Hub step, made it, or was asked about it. */
@@ -40,11 +39,12 @@ export interface LiveDraft {
   proposal: PlanProposal | null;
   /** The running or last reply, to tell one draft from the next. */
   messageId: string | null;
-  /** The chat is a Plan Studio session: its page is the studio, not the draft. */
-  studio: boolean;
 }
 
-/** The plan the open chat is writing in Plan mode, or the one its last reply proposed. Null when there is neither. */
+/**
+ * The plan the open chat is writing in Plan mode, or the one its last reply proposed. Null when there is neither. Its page is the Plan Studio on that
+ * chat, which `isPlanStudioChat` (widened 2026-11-19) recognises from the proposal.
+ */
 export function useLiveDraft(): LiveDraft | null {
   const chat = useMaybeWb()?.chat;
   // The Idea Studio's chat runs in Plan too, and its page is the studio, not the plan draft.
@@ -63,7 +63,6 @@ export function useLiveDraft(): LiveDraft | null {
     text: running?.content ?? '',
     proposal,
     messageId: running?.id ?? last?.id ?? null,
-    studio: isPlanStudioChat(chat.raw),
   };
 }
 

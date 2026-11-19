@@ -202,6 +202,7 @@
   "sheet": {
     "label": "بطاقة {key}",
     "actionsLabel": "إجراءات البطاقة",
+    "changeStatus": "غيّر الحالة",
     "more": "خيارات أخرى",
     "copyCode": "انسخ الكود",
     "watch": "تابع",

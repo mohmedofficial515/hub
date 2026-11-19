@@ -47,6 +47,7 @@ import {
 } from '@/components/kit';
 import { NewCardDialog } from '@/components/shell/new-card-dialog';
 import { usePageRoom } from '@/components/workbench/page-room';
+import { useDoNext } from '@/features/next/queries';
 import {
   type Column,
   COLUMNS,
@@ -102,6 +103,8 @@ function TasksBoardOrList() {
   const route = useRoute();
   const { me, roles, isManager } = useSession();
   const query = useTasksQuery();
+  // Do next's ranking (docs/16 §11), the one Today and the panel show, orders the Focus desk. Its largest page, so a whole Ready column is ranked.
+  const nextQuery = useDoNext({ limit: 20 });
   const perform = usePerformAction();
   const [newOpen, setNewOpen] = useState(false);
   const heading = useRef<HTMLDivElement>(null);
@@ -168,7 +171,20 @@ function TasksBoardOrList() {
     actionsFor(c, roles, me.id).some((a) => a.action === 'claim' && a.enabled);
   const primaryKey = byColumn.ready.find(canClaim)?.key;
   const seesReview = roles.includes('qa') || isManager;
-  const desk = focusDeskOf(byColumn, stage, { meId: me.id, primaryKey, seesReview });
+  // The desk's next task is the first one Do next ranks that I can claim; with no answer yet, or none of its tasks here, it is the board's first.
+  const nextItems = useMemo(
+    () => (nextQuery.data?.items ?? []).filter((i) => i.type === 'task' && !i.step),
+    [nextQuery.data],
+  );
+  const ranked = nextItems.map((i) => i.key);
+  const reasons = useMemo(() => new Map(nextItems.map((i) => [i.key, i])), [nextItems]);
+  const readyByKey = new Map(byColumn.ready.map((c) => [c.key, c]));
+  const deskPrimary =
+    ranked.find((key) => {
+      const card = readyByKey.get(key);
+      return !!card && canClaim(card);
+    }) ?? primaryKey;
+  const desk = focusDeskOf(byColumn, stage, { meId: me.id, primaryKey: deskPrimary, seesReview, ranked });
 
   const ids = view === 'list' ? listRows.map((c) => c.key) : view === 'focus' ? focusDeskIds(desk) : boardIds;
 
@@ -534,9 +550,10 @@ function TasksBoardOrList() {
           rowProps={list.rowProps}
           onMove={onMove}
           canMove={canMove}
-          primaryKey={primaryKey}
+          primaryKey={deskPrimary}
           specialtyFiltered={specialties.length > 0}
           seesReview={seesReview}
+          reasons={reasons}
         />
       ) : view === 'board' ? (
         <TaskBoard

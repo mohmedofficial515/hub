@@ -28,7 +28,7 @@ import {
   Tags,
 } from 'lucide-react';
 import { DropdownMenu, Tabs } from 'radix-ui';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { ActionBar, CommentsTab, Evidence, HistoryTab, LinksTab } from '@/components/cards/card-sheet';
 import { EditButton } from '@/components/cards/sheet-sections/edit-bits';
@@ -76,6 +76,7 @@ import {
   SkeletonRows,
   tabTriggerClass,
   Tip,
+  Tooltip,
   TypeBadge,
   typeClass,
   useCardComments,
@@ -114,6 +115,8 @@ import { sendAndShow, useClaudeOn, workOn } from './live';
 import type { PlanningMessages } from './messages';
 
 type Shaped = IdeaCard | PlanCard;
+
+const IDEA_STATUS_MENU: readonly CardAction[] = ['accept', 'park', 'reject'];
 
 const isShaped = (card: HubCard | undefined): card is Shaped =>
   card?.type === 'plan' || card?.type === 'idea';
@@ -215,6 +218,7 @@ function ClaudeActions({ card }: { card: Shaped }) {
   const chat = useT<ChatMessages>('chat').panel;
   const wb = useMaybeWb();
   const locale = useLocale();
+  const labelId = useId();
   if (!wb) return null;
   const off = engineBlocks(wb.engine) ? (wb.engine as 'offline') : null;
   const device = wb.deviceName;
@@ -228,11 +232,18 @@ function ClaudeActions({ card }: { card: Shaped }) {
     card.type !== 'plan' ? null : !next ? d.claude.allDone : !nextTask ? d.claude.runNextNoTask : null;
 
   return (
-    <div role="group" aria-label={d.claude.label} className="flex flex-wrap items-center gap-1.5">
-      <span className="me-0.5 inline-flex items-center gap-1 text-caption font-medium text-muted-foreground">
-        <Sparkles aria-hidden className="size-3.5 text-primary" strokeWidth={1.75} />
-        {d.claude.label}
-      </span>
+    <div role="group" aria-labelledby={labelId} className="flex flex-wrap items-center gap-1.5">
+      {/* The group is named by its mark, so the row stays short and a screen reader still hears "With Claude". */}
+      <Tooltip content={d.claude.label}>
+        <span
+          id={labelId}
+          role="img"
+          aria-label={d.claude.label}
+          className="me-0.5 inline-flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary"
+        >
+          <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
+        </span>
+      </Tooltip>
       {card.type === 'plan' ? (
         <Tip content={{ what: d.claude.developTip }} off={off} vars={{ device }}>
           <Button
@@ -419,7 +430,12 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
       )}
 
       <div className="flex flex-col gap-3 border-t border-border pt-4 @page-md:flex-row @page-md:flex-wrap @page-md:items-center @page-md:justify-between">
-        <ActionBar card={card} action={action} />
+        {/* An idea's one filled button is its next step; Accept, Park and Reject only say where it stands, so they share one menu. */}
+        <ActionBar
+          card={card}
+          action={action}
+          statusMenu={card.type === 'idea' ? IDEA_STATUS_MENU : undefined}
+        />
         <ClaudeActions card={card} />
       </div>
     </header>

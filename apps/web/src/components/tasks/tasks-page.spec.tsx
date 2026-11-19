@@ -32,9 +32,11 @@ const row = (key: string, fields: Record<string, unknown> = {}, detail: Record<s
   detail: { specialty: 'backend', origin: 'manual', ...detail },
 });
 
-function serve(rows: unknown[], roles: string[] = ['backend']) {
+function serve(rows: unknown[], roles: string[] = ['backend'], next?: unknown[]) {
   return stubFetch((url) => {
     const p = url.pathname;
+    if (p.endsWith('/today/next'))
+      return next ? { body: { data: { items: next } } } : { status: 500, body: {} };
     if (p.endsWith('/auth/me'))
       return {
         body: {
@@ -93,6 +95,48 @@ describe('Tasks › Focus desk', () => {
     await within(next).findByText(titleOf('DMO-1'));
     await waitFor(() => expect(filled()).toHaveLength(1));
     expect(next.contains(filled()[0]!)).toBe(true);
+  });
+
+  it('takes its next task from Do next, with the reasons as pills', async () => {
+    const item = (key: string, reasons: string[], blocks = 0) => ({
+      key,
+      type: 'task',
+      title: titleOf(key),
+      reasons,
+      blocks,
+      runnable: true,
+      score: 1,
+    });
+    serve(
+      [row('DMO-12', { status: 'ready' }), row('DMO-13', { status: 'ready' })],
+      ['backend'],
+      [item('DMO-13', ['blocks', 'ready'], 1), item('DMO-12', ['ready'])],
+    );
+    show('view=focus');
+    const next = await screen.findByRole('region', { name: 'Next for you' });
+    await within(next).findByText(titleOf('DMO-13'));
+    expect(await within(next).findByText('Blocks 1 card')).toBeTruthy();
+    // Ready to start is the queue's own word, so a ranked row there shows no pill for it.
+    const queue = screen.getByRole('region', { name: /Ready tasks/ });
+    expect(within(queue).getByText(titleOf('DMO-12'))).toBeTruthy();
+    expect(queue.querySelector('[data-task-reasons]')).toBeNull();
+  });
+
+  it('keeps the board order when Do next has no answer', async () => {
+    serve([row('DMO-14', { status: 'ready' }), row('DMO-15', { status: 'ready' })]);
+    show('view=focus');
+    const next = await screen.findByRole('region', { name: 'Next for you' });
+    expect(await within(next).findByText(titleOf('DMO-14'))).toBeTruthy();
+    expect(next.querySelector('[data-task-reasons]')).toBeNull();
+  });
+
+  it('opens a task in review from its row, rather than finishing it there', async () => {
+    serve([row('DMO-16', { status: 'in_review' })], ['owner']);
+    show('view=focus&stage=in_review');
+    const review = await screen.findByRole('button', { name: 'Review' });
+    expect(screen.queryByRole('button', { name: 'Mark done' })).toBeNull();
+    fireEvent.click(review);
+    await waitFor(() => expect(params().get('card')).toBe('DMO-16'));
   });
 
   it('keeps the chosen stage in the URL', async () => {

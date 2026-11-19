@@ -29,6 +29,16 @@ describe('CardSheet: the action in the link', () => {
     expect(first?.hasAttribute('data-sheet-primary')).toBe(true);
   });
 
+  it('fills Mark done on a task in review, with Back to work beside it', async () => {
+    stubApi({ card: task({ status: 'in_review' }) });
+    renderSheet('card=DMO-1');
+    const group = await within(await waitFor(() => sheet())).findByRole('group', { name: /actions/i });
+    const done = await within(group).findByRole('button', { name: 'Mark done' });
+    expect(done.hasAttribute('data-sheet-primary')).toBe(true);
+    const buttons = within(group).getAllByRole('button');
+    expect(buttons[buttons.indexOf(done) + 1]?.textContent).toBe('Back to work');
+  });
+
   it('opens a form in Details from another tab', async () => {
     stubApi({ card: task({ status: 'in_review' }) });
     renderSheet('card=DMO-1&tab=comments');

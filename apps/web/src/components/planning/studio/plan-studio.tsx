@@ -73,6 +73,7 @@ import { ACTIVE_IDEAS } from '@/features/planning/model';
 import {
   effortOf,
   latestPlan,
+  latestTextPlan,
   PLAN_COMMAND,
   planIdeaKey,
   planPrompt,
@@ -106,6 +107,7 @@ import {
   useStudioSend,
   wantsAutoFocus,
 } from './shared';
+import { TextPlan } from './text-plan';
 
 const EASE = [0.2, 0.8, 0.2, 1] as const;
 const offOf = (wb: Wb) => (engineBlocks(wb.engine) ? (wb.engine as 'offline') : null);
@@ -451,6 +453,8 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const kind = usePlanKind();
   const { busy, running, lastAssistant, reportedNow, refines } = studioTurn(chat, (m) => m.structuredPlan);
   const found = latestPlan(chat.raw);
+  // A chat in Plan mode that proposed its plan as words only: shown as written, with the same Save (it was Planning's live draft page).
+  const text = found ? null : latestTextPlan(chat.raw);
   const first = chat.raw.messages.find((m) => m.role === 'user')?.content ?? '';
   const ideaKey = planIdeaKey(first);
   // A session started from an idea alone has no words of its own: the idea's title stands for them.
@@ -460,10 +464,10 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
   const [width, setWidth] = useConversationWidth();
   const [tab, setTab] = useState<StudioTab>('report');
   const { queued, sending, onSend, cancelQueued, blocked } = useStudioSend(chat, busy);
-  const researching = busy && !found;
+  const researching = busy && !found && !text;
   const refining = busy && !!found && !reportedNow;
-  // A turn that ended with words but no structured plan: shown as a stop, with the way to carry on.
-  const ended = !busy && !found;
+  // A turn that ended with words but no plan at all: shown as a stop, with the way to carry on.
+  const ended = !busy && !found && !text;
 
   const develop = () => {
     setTab('chat');
@@ -527,6 +531,25 @@ function PlanSession({ wb, chat }: { wb: Wb; chat: PanelChat }) {
             {p.continue}
           </Button>
         </div>
+      )}
+      {text && (
+        <motion.div
+          key={text.messageId}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE } }}
+          className="flex min-w-0 flex-col gap-4"
+        >
+          {busy && (
+            <RefiningLine chat={chat} words={{ ...t.studio, updating: p.updating }} onAnswer={answer} />
+          )}
+          <TextPlan
+            wb={wb}
+            proposal={{ id: `${text.messageId}:plan`, text: text.text, structured: null }}
+            asked={asked}
+            busy={busy}
+            onDevelop={develop}
+          />
+        </motion.div>
       )}
       {found && (
         <motion.div

@@ -5,23 +5,40 @@
  * @description The Focus view of Tasks ("Focus desk", owner pick 2026-11-09): the six stages as one strip, the task to do
  * next on top, the chosen stage's queue under it, and what is in my hands or waiting for review beside it.
  */
-import { Ban, Eye, Hand, ListTodo, Send, Sparkles } from 'lucide-react';
+import type { DoNextItem, DoNextReason } from '@hub/contracts';
+import {
+  Ban,
+  CirclePlay,
+  Eye,
+  Feather,
+  Hand,
+  Link2,
+  ListTodo,
+  type LucideIcon,
+  Route,
+  Send,
+  Sparkles,
+} from 'lucide-react';
 
 import {
   Bidi,
   Button,
   CardRow,
   cn,
+  fill,
   fmt,
   focusRing,
   Ltr,
   num,
   openBlockers,
+  Pill,
   plural,
   type TaskCard,
+  type Tone,
   useLocale,
   useT,
 } from '@/components/kit';
+import type { ChatMessages } from '@/components/workbench/words';
 import { type Column, COLUMNS } from '@/features/tasks/model';
 
 import type { TaskMessages } from './messages';
@@ -40,15 +57,42 @@ export interface FocusDeskRows {
   sent: TaskCard[];
 }
 
-/** Which task shows where, so each appears once and the keyboard list walks them in screen order. */
+/** Do next's order (docs/16 §11) on a list: the ranked tasks first, in rank, then the rest as they came. */
+export function byRank<C extends { key: string }>(
+  cards: readonly C[],
+  ranked: readonly string[] | undefined,
+): C[] {
+  if (!ranked?.length) return [...cards];
+  const at = new Map(ranked.map((key, i) => [key, i]));
+  return cards
+    .map((card, i) => ({ card, i, rank: at.get(card.key) ?? ranked.length + i }))
+    .sort((a, b) => a.rank - b.rank)
+    .map((x) => x.card);
+}
+
+/**
+ * Which task shows where, so each appears once and the keyboard list walks them in screen order. What is in my hands leads; with nothing there, the
+ * hero is `primaryKey`, the first Ready task Do next ranks that I can claim. `ranked`, Do next's keys in order, orders the stage's queue; without it the
+ * order is the board's.
+ */
 export function focusDeskOf(
   byColumn: Record<Column, TaskCard[]>,
   stage: Column,
-  { meId, primaryKey, seesReview }: { meId: string; primaryKey: string | undefined; seesReview: boolean },
+  {
+    meId,
+    primaryKey,
+    seesReview,
+    ranked,
+  }: {
+    meId: string;
+    primaryKey: string | undefined;
+    seesReview: boolean;
+    ranked?: readonly string[] | undefined;
+  },
 ): FocusDeskRows {
   const inHands = [...byColumn.in_progress, ...byColumn.claimed].filter((c) => c.assigneeId === meId);
   const hero = inHands[0] ?? byColumn.ready.find((c) => c.key === primaryKey);
-  const queue = byColumn[stage].filter((c) => c.key !== hero?.key);
+  const queue = byRank(byColumn[stage], ranked).filter((c) => c.key !== hero?.key);
   const shown = new Set([hero?.key, ...queue.map((c) => c.key)]);
   const mine = inHands.filter((c) => !shown.has(c.key));
   mine.forEach((c) => shown.add(c.key));
@@ -61,6 +105,44 @@ export const focusDeskIds = ({ hero, queue, mine, review, sent }: FocusDeskRows)
   [...(hero ? [hero] : []), ...queue, ...mine, ...review, ...sent].map((c) => c.key);
 
 const panel = 'overflow-hidden rounded-xl border border-border bg-card shadow-xs';
+
+const REASON: Record<DoNextReason, { icon: LucideIcon; tone: Tone }> = {
+  overdue: { icon: Ban, tone: 'danger' },
+  blocks: { icon: Link2, tone: 'warning' },
+  plan_next: { icon: Route, tone: 'info' },
+  small: { icon: Feather, tone: 'muted' },
+  ready: { icon: CirclePlay, tone: 'success' },
+  decision: { icon: Sparkles, tone: 'muted' },
+};
+
+/**
+ * Why Do next ranks this task where it does, as pills, in the panel's own words (`chat.json` panel.next.why). The row already says overdue with its
+ * duration, so that reason is left to it; Ready to start says something only on the hero, and only when it is the one reason.
+ */
+function NextReasons({ item, hero = false }: { item: DoNextItem | undefined; hero?: boolean }) {
+  const why = useT<ChatMessages>('chat').panel.next.why;
+  const locale = useLocale();
+  if (!item) return null;
+  const shown = item.reasons.filter(
+    (r) => r !== 'overdue' && r !== 'decision' && (r !== 'ready' || (hero && item.reasons.length === 1)),
+  );
+  if (shown.length === 0) return null;
+  const words = (reason: DoNextReason) => {
+    if (reason === 'blocks')
+      return fmt(plural(item.blocks, locale, why.blocks), { n: num(item.blocks, locale) });
+    if (reason === 'plan_next') return fill(why.planNext, { plan: <Ltr mono>{item.plan?.key ?? ''}</Ltr> });
+    return reason === 'small' ? why.small : why.ready;
+  };
+  return (
+    <span data-task-reasons className="inline-flex flex-wrap items-center gap-1.5">
+      {shown.map((reason) => (
+        <Pill key={reason} tone={REASON[reason].tone} icon={REASON[reason].icon}>
+          {words(reason)}
+        </Pill>
+      ))}
+    </span>
+  );
+}
 
 function Count({ n }: { n: number }) {
   const locale = useLocale();
@@ -105,6 +187,7 @@ function Rows({
   canMove,
   primaryKey,
   empty,
+  reasons,
 }: {
   cards: TaskCard[];
   rowProps: (id: string) => Record<string, unknown>;
@@ -112,6 +195,7 @@ function Rows({
   canMove: boolean;
   primaryKey: string | undefined;
   empty: string;
+  reasons?: ReadonlyMap<string, DoNextItem> | undefined;
 }) {
   if (cards.length === 0) {
     return (
@@ -133,7 +217,12 @@ function Rows({
             titleId={`task-${card.key}`}
             variant="flush"
             hideType
-            meta={<TaskFacts card={card} />}
+            meta={
+              <>
+                <TaskFacts card={card} />
+                <NextReasons item={reasons?.get(card.key)} />
+              </>
+            }
             action={
               canMove ? (
                 <MoveButton card={card} onMove={onMove} primary={card.key === primaryKey} />
@@ -157,6 +246,7 @@ export function FocusDesk({
   primaryKey,
   specialtyFiltered,
   seesReview,
+  reasons,
 }: {
   rows: FocusDeskRows;
   byColumn: Record<Column, TaskCard[]>;
@@ -169,6 +259,8 @@ export function FocusDesk({
   primaryKey: string | undefined;
   specialtyFiltered: boolean;
   seesReview: boolean;
+  /** Do next's answer by task key: why each ranked task leads. Absent while it loads or when it failed, and the desk keeps the board's order. */
+  reasons?: ReadonlyMap<string, DoNextItem> | undefined;
 }) {
   const t = useT<TaskMessages>('tasks');
   const locale = useLocale();
@@ -252,7 +344,12 @@ export function FocusDesk({
                 lead
                 hideType
                 className="bg-transparent pt-2 pb-4 sm:px-4"
-                meta={<TaskFacts card={hero} />}
+                meta={
+                  <>
+                    <TaskFacts card={hero} />
+                    <NextReasons item={reasons?.get(hero.key)} hero />
+                  </>
+                }
                 action={canMove ? <MoveButton card={hero} onMove={onMove} primary /> : undefined}
               />
             ) : (
@@ -273,6 +370,7 @@ export function FocusDesk({
               canMove={canMove}
               primaryKey={rowsPrimary}
               empty={queueEmpty}
+              reasons={reasons}
             />
           </section>
         </div>

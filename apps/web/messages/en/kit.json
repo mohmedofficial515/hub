@@ -202,6 +202,7 @@
   "sheet": {
     "label": "Card {key}",
     "actionsLabel": "Card actions",
+    "changeStatus": "Change status",
     "more": "More options",
     "copyCode": "Copy code",
     "watch": "Watch",

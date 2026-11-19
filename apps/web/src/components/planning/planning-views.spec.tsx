@@ -220,6 +220,20 @@ describe('an idea’s page', () => {
     expect(href).toContain('idea=I-3');
   });
 
+  it('fills one button, its next step, and keeps Accept, Park and Reject in a Change status menu', async () => {
+    search = 'plan=I-4';
+    api({ 'I-4': row('I-4', 'idea', 'open', { problem: 'A problem' }) });
+    show(<PlanningPage />);
+    const bar = await screen.findByRole('group', { name: 'Card actions' });
+    const filled = [...bar.querySelectorAll('[data-sheet-primary]')];
+    expect(filled.map((b) => b.textContent)).toEqual(['Start exploring']);
+    for (const name of ['Accept', 'Park', 'Reject'])
+      expect(screen.queryByRole('button', { name })).toBeNull();
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Change status' }), { key: 'ArrowDown' });
+    for (const name of ['Accept', 'Park', 'Reject'])
+      expect(await screen.findByRole('menuitem', { name })).toBeTruthy();
+  });
+
   it('links a plan to the idea it came from, by its title, in the head', async () => {
     search = 'plan=P-5';
     const idea = { ...row('I-9', 'idea', 'accepted'), title: 'Faster refunds' };
@@ -266,6 +280,17 @@ describe('the lists', () => {
     await screen.findAllByText('Title P-1');
     expect(screen.getByText('Waiting for approval', { selector: 'span' })).toBeTruthy();
     expect(screen.queryByText('Moving now')).toBeNull();
+  });
+});
+
+describe('an old link to the live draft', () => {
+  it('lands on the Plan Studio, replacing the address', async () => {
+    search = 'draft=1';
+    window.history.replaceState(null, '', '/en/demo/planning?draft=1');
+    api({});
+    show(<PlanningPage />);
+    await waitFor(() => expect(new URLSearchParams(window.location.search).get('studio')).toBe('plan'));
+    expect(new URLSearchParams(window.location.search).get('draft')).toBeNull();
   });
 });
 
