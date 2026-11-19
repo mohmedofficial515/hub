@@ -21,3 +21,6 @@ test-results
 
 # The lab: design versions as they were made, and their bytes matter to the scanner.
 apps/lab
+
+# AM Stylo's local designer state and hook cache: generated and git-ignored.
+.page-companion

@@ -35,6 +35,8 @@ export default tseslint.config(
       'patches/**',
       // Design versions, copied as they were made. docs/16 §6.
       'apps/lab/**',
+      // AM Stylo's local designer state and hook cache: generated, git-ignored, never ours to lint.
+      '.page-companion/**',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,

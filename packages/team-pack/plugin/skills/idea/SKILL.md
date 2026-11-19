@@ -26,6 +26,7 @@ The page shows each of your steps as you take them and the whole report beside t
 8. **Report.** Call `hub.propose_idea` once with the whole report. A match's `ref` is a card key, a doc path, or a file path from the repository's own folder (`web/src/…`, `backend/src/…`), never a drive letter. Then reply in at most three short lines: the verdict and overlap, the one thing that matters most, and that you wait for my decision. No lists of what is in the report.
 
 **When I come back:**
+
 - A change, a suggestion to apply, or answers to your questions: work them into the report, keep every part I did not ask about as it was, move answered questions out of `questions` and into the report where they belong, and call `hub.propose_idea` again with the whole new report. Then say in one or two lines what changed.
 - A question about the report: answer it in a few lines, and change the report only if I ask.
 
