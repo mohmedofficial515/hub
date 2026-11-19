@@ -15,7 +15,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { dispatch } from '../lib/actions.mjs';
 import { allowedEntry } from '../lib/allowlist.mjs';
@@ -31,6 +31,10 @@ import {
 } from '../lib/worktrees.mjs';
 
 const system = realSystem();
+
+// Each test here runs 10 to 25 real Git processes against a temp repository (1.1 to 1.8 s on an idle Windows machine). Under
+// `pnpm test`, with the other packages' suites running beside it, that went past Vitest's 5 s default, so this file gets 20 s.
+vi.setConfig({ testTimeout: 20_000 });
 
 /** A repository at `<temp>/backend` with one commit, an ignored `node_modules` beside its `package.json`, and a nested app with its own. */
 function aRepository() {
