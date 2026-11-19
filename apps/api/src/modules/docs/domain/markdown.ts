@@ -88,6 +88,9 @@ export function langOf(path: string, body: string): 'ar' | 'en' {
   return letters > 0 && arabic / letters >= 0.3 ? 'ar' : 'en';
 }
 
+/** What no source ever indexes or serves, whatever its own `exclude` says. */
+export const ALWAYS_EXCLUDED: readonly string[] = ['**/node_modules/**', 'node_modules/**', '.git/**', '**/.git/**'];
+
 /** `**` any depth, `*` within a folder, `?` one character. Paths use `/`. */
 export function matchesGlob(path: string, glob: string): boolean {
   let pattern = '';

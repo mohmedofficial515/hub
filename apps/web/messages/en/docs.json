@@ -57,5 +57,33 @@
   "markedRead": "Marked read: {title}",
   "backToPath": "Back to your path",
   "nextStep": "Next: {title}",
-  "pathDone": "That was the last step of your path."
+  "pathDone": "That was the last step of your path.",
+  "diagram": {
+    "label": "{type} diagram",
+    "plain": "Diagram",
+    "alt": "{type} diagram. Show its source to read it as text.",
+    "titled": "{title}. Show its source to read it as text.",
+    "showSource": "Show source",
+    "showDiagram": "Show diagram",
+    "drawing": "Drawing the diagram…",
+    "failed": "This diagram could not be drawn, so its source is shown instead.",
+    "types": {
+      "flowchart": "flowchart",
+      "sequence": "sequence",
+      "class": "class",
+      "classdiagram": "class",
+      "state": "state",
+      "statediagram": "state",
+      "er": "entity relationship",
+      "gantt": "Gantt",
+      "pie": "pie",
+      "mindmap": "mind map",
+      "timeline": "timeline",
+      "journey": "user journey"
+    }
+  },
+  "images": {
+    "open": "Open {name} larger",
+    "missing": "Not in this document’s folder: {name}"
+  }
 }

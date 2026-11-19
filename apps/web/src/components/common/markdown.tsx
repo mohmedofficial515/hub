@@ -21,6 +21,7 @@ import { Fragment, type ReactNode, useMemo, useState } from 'react';
 
 import { focusRing } from '@/components/cards/meta';
 import { CopyButton } from '@/components/common/copy-button';
+import { MermaidDiagram } from '@/components/common/mermaid-diagram';
 import { AppLink, currentRoute } from '@/components/shell/router';
 import { qk } from '@/features/cards/keys';
 import type { Me } from '@/features/session/session';
@@ -100,7 +101,19 @@ export interface MarkdownViewProps {
   headingOffset?: number | undefined;
   /** Text for a code block's copy button. */
   copyCodeLabel?: string | undefined;
+  /**
+   * Draw an image the text names, e.g. from the doc's own folder through the API (decision 13b). Return nothing to keep the framed
+   * stand-in. `inLink` says the image sits inside a link, so what it returns must not be interactive itself.
+   */
+  renderImage?: ((image: MarkdownImage, inLink: boolean) => ReactNode) | undefined;
   className?: string | undefined;
+}
+
+/** An image as the text writes it. */
+export interface MarkdownImage {
+  src: string;
+  alt: string;
+  title: string | null;
 }
 
 type Words = KitSections['doc'];
@@ -174,7 +187,10 @@ const linkClass = `hit-44 rounded-sm text-primary underline underline-offset-4 $
 
 const isAbsoluteWeb = (href: string) => /^https?:\/\//i.test(href.trim()) && isSafeHref(href);
 
-/** 09 §11: images come from GitHub raw and need the internet, so a framed stand-in says one is here, with its alt text and a link out. */
+/**
+ * 09 §11: an image the page does not draw itself (`renderImage`) is a framed stand-in with its alt text, and a link out when it is a web
+ * address. Nothing is fetched: a remote image never makes a request leave Hub.
+ */
 function ImageStandIn({ image, ctx }: { image: Tokens.Image; ctx: Flow }) {
   return (
     <span className="inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-dashed border-border px-2 py-0.5 align-middle text-body-sm text-muted-foreground">
@@ -250,8 +266,15 @@ function Inline({ tokens, ctx }: { tokens?: Token[] | undefined; ctx: Flow }): R
           </a>
         );
       }
-      case 'image':
-        return <ImageStandIn key={i} image={token as Tokens.Image} ctx={ctx} />;
+      case 'image': {
+        const image = token as Tokens.Image;
+        const custom = ctx.renderImage?.(
+          { src: image.href, alt: decode(image.text), title: image.title ?? null },
+          !!ctx.inLink,
+        );
+        if (custom) return <Fragment key={i}>{custom}</Fragment>;
+        return <ImageStandIn key={i} image={image} ctx={ctx} />;
+      }
       case 'checkbox':
         return null;
       default:
@@ -449,8 +472,14 @@ function Blocks({ tokens, ctx, around }: { tokens: Token[]; ctx: Ctx; around: Ar
       }
       case 'hr':
         return <hr key={i} className="border-border" />;
-      case 'code':
-        return <CodeBlock key={i} code={token as Tokens.Code} ctx={ctx} />;
+      case 'code': {
+        const code = token as Tokens.Code;
+        const block = () => <CodeBlock code={code} ctx={ctx} />;
+        if (code.lang?.trim().split(/\s+/)[0]?.toLowerCase() === 'mermaid' && code.text.trim()) {
+          return <MermaidDiagram key={i} code={code.text} renderCode={block} />;
+        }
+        return <Fragment key={i}>{block()}</Fragment>;
+      }
       case 'list': {
         const list = token as Tokens.List;
         const L = list.ordered ? 'ol' : 'ul';
@@ -571,7 +600,9 @@ function useKeyPrefix(): string | undefined {
  * Markdown as the app's own elements (08 §5.4 `DocViewer`): anchored headings, tables that scroll inside their own
  * frame, code with copy, read-only task lists, GitHub's callouts, and card keys that open their card. Nothing goes through
  * `dangerouslySetInnerHTML`, so a doc cannot inject markup, raw HTML is dropped or shown as text, and a `javascript:` link stays as its words.
- * Mermaid is not rendered; a Mermaid block shows as code, labelled as a diagram.
+ * The one exception is a Mermaid block: `MermaidDiagram` loads Mermaid only when such a block is on the page and inserts the SVG it draws
+ * under `securityLevel: 'strict'`; a block it cannot parse stays code with a note (decision 13a). Images stay stand-ins unless the page
+ * passes `renderImage`.
  */
 export function MarkdownView(props: MarkdownViewProps) {
   const { source, dir, className } = props;

@@ -2,9 +2,10 @@
  * @file `MarkdownView` on imported text: it draws the app's elements, and nothing in the source can inject markup or run (review B2).
  */
 import { QueryClient } from '@tanstack/react-query';
-import { fireEvent } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { setTheme } from '@/lib/theme';
 import { renderWithApp } from '@/test/render';
 
 vi.mock('next/navigation', () => ({
@@ -12,6 +13,19 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => window.location.pathname,
 }));
+
+// Mermaid needs a real layout engine; the view's contract with it is initialize, parse and render (decision 13a).
+const mermaid = vi.hoisted(() => ({
+  initialize: vi.fn((_config: unknown) => undefined),
+  parse: vi.fn(async (code: string) => {
+    if (code.includes('broken')) throw new Error('Parse error on line 1');
+    return { diagramType: 'flowchart-v2' };
+  }),
+  render: vi.fn(async (id: string) => ({
+    svg: `<svg id="${id}" data-drawn="yes"><g><text>A</text></g></svg>`,
+  })),
+}));
+vi.mock('mermaid', () => ({ default: mermaid }));
 
 import { createSlugger, headingsOf, MarkdownView, slugify } from './markdown';
 
@@ -153,9 +167,12 @@ describe('code blocks (knowledge-06)', () => {
     expect(container.querySelector('pre')?.className).toContain('whitespace-pre-wrap');
   });
 
-  it('calls a Mermaid block a diagram', () => {
-    const { container } = renderWithApp(<MarkdownView source={'```mermaid\ngraph TD\n```'} />);
-    expect(container.textContent).toContain('Mermaid diagram');
+  it('leaves a code block that is not Mermaid as code, and never loads Mermaid for it', () => {
+    mermaid.initialize.mockClear();
+    const { container } = renderWithApp(<MarkdownView source={'```ts\nconst a = 1;\n```'} />);
+    expect(container.querySelector('pre')).not.toBeNull();
+    expect(container.querySelector('[data-mermaid]')).toBeNull();
+    expect(mermaid.initialize).not.toHaveBeenCalled();
   });
 
   it('starts an ordered list where the text does', () => {
@@ -191,6 +208,119 @@ describe('callouts and images (knowledge-07)', () => {
     expect(link?.textContent).toBe('Open the image');
     const { container: local } = renderWithApp(<MarkdownView source={'![local](./a.png)'} />);
     expect(local.querySelector('a')).toBeNull();
+  });
+
+  it('lets the page draw an image, and keeps the stand-in where it declines', () => {
+    const renderImage = vi.fn((image: { src: string; alt: string }, inLink: boolean) =>
+      image.src.startsWith('http') ? undefined : (
+        <img src={`/served/${image.src}`} alt={image.alt} data-in-link={String(inLink)} />
+      ),
+    );
+    const { container } = renderWithApp(
+      <MarkdownView
+        source={'![here](img/a.png) ![there](https://x.test/b.png) [![badge](c.svg)](https://x.test)'}
+        renderImage={renderImage}
+      />,
+    );
+    const drawn = [...container.querySelectorAll('img')];
+    expect(drawn.map((img) => img.getAttribute('src'))).toEqual(['/served/img/a.png', '/served/c.svg']);
+    expect(drawn[0]?.getAttribute('data-in-link')).toBe('false');
+    expect(drawn[1]?.getAttribute('data-in-link')).toBe('true');
+    expect(container.textContent).toContain('there');
+  });
+});
+
+describe('Mermaid (decision 13a)', () => {
+  it('draws a diagram, strict, focusable with a text alternative, and shows its source on request', async () => {
+    mermaid.initialize.mockClear();
+    const { container } = renderWithApp(<MarkdownView source={'```mermaid\ngraph TD\n  A-->B\n```'} />);
+    expect(screen.getByRole('status').textContent).toBe('Drawing the diagram…');
+    const diagram = await screen.findByRole('img', {
+      name: 'flowchart diagram. Show its source to read it as text.',
+    });
+    expect(diagram.getAttribute('tabindex')).toBe('0');
+    expect(diagram.querySelector('svg[data-drawn]')).not.toBeNull();
+    expect(container.querySelector('pre')).toBeNull();
+    expect(mermaid.initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ startOnLoad: false, securityLevel: 'strict', theme: 'base' }),
+    );
+    const toggle = screen.getByRole('button', { name: 'Show source' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(toggle);
+    expect(container.querySelector('pre')?.textContent).toContain('A-->B');
+    expect(screen.queryByRole('img')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show diagram' }));
+    expect(await screen.findByRole('img')).toBeInTheDocument();
+  });
+
+  it('uses the block’s own accTitle and accDescr as its label', async () => {
+    renderWithApp(
+      <MarkdownView
+        source={'```mermaid\nflowchart LR\n  accTitle: Payments\n  accDescr: Card to wallet\n  A-->B\n```'}
+      />,
+    );
+    expect(
+      await screen.findByRole('img', {
+        name: 'Payments. Card to wallet. Show its source to read it as text.',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a block it cannot parse as code with a short note, in Arabic too', async () => {
+    const { container } = renderWithApp(<MarkdownView source={'```mermaid\nbroken -->\n```'} />, {
+      locale: 'ar',
+    });
+    expect(await screen.findByRole('note')).toHaveTextContent('تعذّر رسم هذا المخطط، فيظهر مصدره بدلًا منه.');
+    expect(container.querySelector('pre')?.textContent).toContain('broken -->');
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('keeps a block from overriding the theme or its CSS, and strips anything that would load from outside', async () => {
+    mermaid.initialize.mockClear();
+    const hostile =
+      '<svg id="x"><style>@import url(https://x.test/a.css);#x .n{fill:url(#grad);background:url("https://x.test/b.png")}</style>' +
+      '<g style="background-image:url(https://x.test/c.png)" marker-end="url(#arrow)"><image href="https://x.test/d.png"></image>' +
+      '<image href="data:image/png;base64,AAAA"></image><foreignObject><img src="https://x.test/e.png"></foreignObject>' +
+      '<rect fill="url(https://x.test/f.svg#p)"></rect><text>A</text></g></svg>';
+    mermaid.render.mockImplementationOnce(async () => ({ svg: hostile }));
+    renderWithApp(
+      <MarkdownView
+        source={
+          '```mermaid\n%%{init: {"themeCSS": "@import url(https://x.test/a.css);"}}%%\ngraph TD\n  A-->B\n```'
+        }
+      />,
+    );
+    const diagram = await screen.findByRole('img', { name: /flowchart diagram/ });
+    const config = mermaid.initialize.mock.calls.at(-1)?.[0] as { secure?: string[] } | undefined;
+    expect(config?.secure).toEqual(
+      expect.arrayContaining([
+        'secure',
+        'securityLevel',
+        'theme',
+        'themeVariables',
+        'themeCSS',
+        'fontFamily',
+      ]),
+    );
+    expect(diagram.innerHTML).not.toContain('x.test');
+    expect(diagram.innerHTML).not.toContain('@import');
+    expect(diagram.innerHTML).toContain('url(#grad)');
+    expect(diagram.querySelector('[marker-end]')?.getAttribute('marker-end')).toBe('url(#arrow)');
+    expect(diagram.innerHTML).toContain('data:image/png;base64,AAAA');
+  });
+
+  it('draws again in the other theme', async () => {
+    act(() => setTheme('light'));
+    renderWithApp(<MarkdownView source={'```mermaid\ngraph TD\n  A-->B\n```'} />);
+    await screen.findByRole('img');
+    mermaid.initialize.mockClear();
+    act(() => setTheme('dark'));
+    await waitFor(() => {
+      const config = mermaid.initialize.mock.calls.at(-1)?.[0] as
+        { themeVariables?: { darkMode?: boolean } } | undefined;
+      expect(config?.themeVariables?.darkMode).toBe(true);
+    });
+    act(() => setTheme('light'));
   });
 });
 

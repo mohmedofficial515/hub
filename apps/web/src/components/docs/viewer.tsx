@@ -50,6 +50,7 @@ import {
 } from '@/components/kit';
 import { DocBar } from '@/components/workbench/doc-bar';
 import type { DocCard } from '@/features/cards/types';
+import { localImagesOf } from '@/features/docs/images';
 import type { DocWithContent } from '@/features/docs/queries';
 import { docTwin, fileName, folderTrail, neighbours, resolveDocLink } from '@/features/docs/tree';
 import { setStepDone, useOnboarding } from '@/features/onboarding/queries';
@@ -63,6 +64,7 @@ import {
 } from '@/features/onboarding/steps';
 import { isHubError } from '@/lib/api/errors';
 
+import { useDocImages } from './doc-image';
 import type { DocsMessages } from './messages';
 
 const metaLink = `inline-flex items-center gap-1 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline hit-44 ${focusRing}`;
@@ -102,7 +104,11 @@ function Breadcrumb({ card }: { card: DocCard }) {
   const d = card.doc;
   const parts = [...folderTrail(d.path), fileName(d.path)];
   const separator = (
-    <ChevronRight aria-hidden className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100" strokeWidth={1.75} />
+    <ChevronRight
+      aria-hidden
+      className="size-3.5 shrink-0 text-muted-foreground rtl:-scale-x-100"
+      strokeWidth={1.75}
+    />
   );
   return (
     <nav aria-label={t.breadcrumb} className="min-w-0">
@@ -314,7 +320,7 @@ export function DocViewer({
   const t = useT<DocsMessages>('docs');
   const kit = useT(kitMessages);
   const locale = useLocale();
-  const { query } = useRoute();
+  const { query, ws } = useRoute();
   const showOutline = usePageWide(1280);
   // Below 1024 the page has no header of its own here, so the doc's title is the page's one h1 (live tour).
   const pageHasTitle = usePageWide(1024);
@@ -322,6 +328,9 @@ export function DocViewer({
   const source = card.content ?? '';
   const dir = d.lang === 'ar' ? 'rtl' : 'ltr';
   const outline = useMemo(() => headingsOf(source), [source]);
+  // Images from the doc's own folder come through the API and open in the Lightbox; a remote one stays a stand-in (decision 13b).
+  const localImages = useMemo(() => localImagesOf(source), [source]);
+  const images = useDocImages(ws, card.key, localImages);
   const anchors = useMemo(() => outline.map((h) => h.anchor), [outline]);
   const [active, setActive] = useActiveHeading(anchors);
   const ownTitle = useMemo(() => /^# \S/m.test(source.replace(/```[\s\S]*?```/g, '')), [source]);
@@ -474,7 +483,9 @@ export function DocViewer({
 
       <DocBar doc={card} />
 
-      <div className={cn('grid grid-cols-[minmax(0,1fr)] gap-8', wide && 'grid-cols-[minmax(0,1fr)_11.5rem]')}>
+      <div
+        className={cn('grid grid-cols-[minmax(0,1fr)] gap-8', wide && 'grid-cols-[minmax(0,1fr)_11.5rem]')}
+      >
         <div className="flex min-w-0 flex-col gap-8">
           {!wide && outline.length > 1 && card.content !== null && (
             // Below 1280 the outline folds above the text, closed until asked for (knowledge-03).
@@ -509,6 +520,7 @@ export function DocViewer({
               headingOffset={pageHasTitle ? 1 : 0}
               copyCodeLabel={t.copyCode}
               renderLink={renderLink}
+              renderImage={images.render}
               renderHeadingAction={(id, text) => (
                 <AppLink
                   view="docs"
@@ -543,6 +555,7 @@ export function DocViewer({
             )}
           </section>
           <Pager prev={prev} next={next} />
+          {images.lightbox}
         </div>
         {wide && (
           <nav

@@ -19,6 +19,7 @@ import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
 
 import {
+  ALWAYS_EXCLUDED,
   type Chunk,
   chunksOf,
   headingsOf,
@@ -30,7 +31,6 @@ import {
   wordCountOf,
 } from '../domain/markdown';
 
-const ALWAYS_EXCLUDED = ['**/node_modules/**', 'node_modules/**', '.git/**', '**/.git/**'];
 const MAX_FILE_BYTES = 2_000_000;
 const DOC_KINDS_ALLOWED = new Set(['doc', 'adr', 'status', 'readme', 'other']);
 

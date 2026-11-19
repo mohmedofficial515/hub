@@ -55,7 +55,11 @@ const tree = [
         {
           name: 'docs',
           path: 'docs',
-          docs: [doc('GTV-1', 'docs/21-safety.md'), doc('GTV-2', 'docs/21-safety.ar.md'), doc('GTV-3', 'docs/old.md', 'stale')],
+          docs: [
+            doc('GTV-1', 'docs/21-safety.md'),
+            doc('GTV-2', 'docs/21-safety.ar.md'),
+            doc('GTV-3', 'docs/old.md', 'stale'),
+          ],
           folders: [],
         },
       ],
@@ -92,7 +96,10 @@ describe('DocsPage', () => {
   });
 
   it('shows a skeleton while it loads', () => {
-    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => undefined)),
+    );
     renderWithApp(page);
     expect(screen.getByRole('status', { name: 'Loading the docs' })).toBeInTheDocument();
   });
@@ -125,18 +132,22 @@ describe('DocsPage', () => {
 
   it('reads a doc in its own direction, with who mentions it', async () => {
     search.value = 'doc=GTV-2';
-    api(['qa'], { body: { data: tree } }, {
-      body: {
-        data: {
-          ...doc('GTV-2', 'docs/21-safety.ar.md'),
-          content: '# أمان\n\n## القسم\n\nنص',
-          unavailable: null,
-          docSource: { id: 's1', name: 'backend-docs' },
-          toc: [],
-          mentionedBy: [{ ...doc('GTV-9', 'x'), type: 'decision', title: 'A decision' }],
+    api(
+      ['qa'],
+      { body: { data: tree } },
+      {
+        body: {
+          data: {
+            ...doc('GTV-2', 'docs/21-safety.ar.md'),
+            content: '# أمان\n\n## القسم\n\nنص',
+            unavailable: null,
+            docSource: { id: 's1', name: 'backend-docs' },
+            toc: [],
+            mentionedBy: [{ ...doc('GTV-9', 'x'), type: 'decision', title: 'A decision' }],
+          },
         },
       },
-    });
+    );
     renderWithApp(page);
     expect(await screen.findByRole('heading', { name: /القسم/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /القسم/ }).closest('[dir]')).toHaveAttribute('dir', 'rtl');
@@ -146,32 +157,44 @@ describe('DocsPage', () => {
 
   it('says why a file cannot be shown, and never shows it', async () => {
     search.value = 'doc=GTV-1';
-    api(['qa'], { body: { data: tree } }, {
-      body: {
-        data: {
-          ...doc('GTV-1', 'docs/21-safety.md'),
-          content: null,
-          unavailable: 'secret',
-          docSource: { id: 's1', name: 'backend-docs' },
-          toc: [],
-          mentionedBy: [],
+    api(
+      ['qa'],
+      { body: { data: tree } },
+      {
+        body: {
+          data: {
+            ...doc('GTV-1', 'docs/21-safety.md'),
+            content: null,
+            unavailable: 'secret',
+            docSource: { id: 's1', name: 'backend-docs' },
+            toc: [],
+            mentionedBy: [],
+          },
         },
       },
-    });
+    );
     renderWithApp(page);
     expect(await screen.findByText(/holds something like a secret/)).toBeInTheDocument();
   });
 
   it('says a doc does not exist', async () => {
     search.value = 'doc=GTV-404';
-    api(['qa'], { body: { data: tree } }, { status: 404, body: { error: { code: 'hub.docs.not_found', message: 'No' } } });
+    api(
+      ['qa'],
+      { body: { data: tree } },
+      { status: 404, body: { error: { code: 'hub.docs.not_found', message: 'No' } } },
+    );
     renderWithApp(page);
     expect(await screen.findByText('This doc does not exist')).toBeInTheDocument();
   });
 
   it('says a failed read as a failure, with a retry, and never as a missing doc (knowledge-02)', async () => {
     search.value = 'doc=GTV-1';
-    api(['qa'], { body: { data: tree } }, { status: 500, body: { error: { code: 'hub.common.internal', message: 'Boom' } } });
+    api(
+      ['qa'],
+      { body: { data: tree } },
+      { status: 500, body: { error: { code: 'hub.common.internal', message: 'Boom' } } },
+    );
     renderWithApp(page);
     expect(await screen.findByRole('button', { name: /Retry/ })).toBeInTheDocument();
     expect(screen.queryByText('This doc does not exist')).not.toBeInTheDocument();
@@ -206,6 +229,37 @@ describe('DocsPage', () => {
     },
   });
 
+  it('draws the doc’s own images through the API and opens them in the Lightbox; a remote one stays a stand-in (decision 13b)', async () => {
+    search.value = 'doc=GTV-1';
+    const text = [
+      '# Safety',
+      '',
+      '![The flow](img/flow.png)',
+      '',
+      '![Remote](https://x.test/r.png)',
+      '',
+      '![Gone](gone.png)',
+    ].join('\n');
+    api(['qa'], { body: { data: tree } }, content('GTV-1', 'docs/21-safety.md', text));
+    renderWithApp(page);
+    const open = await screen.findByRole('button', { name: 'Open The flow larger' });
+    const img = within(open).getByRole('img', { name: 'The flow' });
+    expect(img.getAttribute('src')).toBe('/api/v1/workspaces/goteav/docs/GTV-1/image?src=img%2Fflow.png');
+    expect(screen.queryByRole('img', { name: 'Remote' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the image' })).toHaveAttribute(
+      'href',
+      'https://x.test/r.png',
+    );
+    fireEvent.error(screen.getByRole('img', { name: 'Gone' }));
+    expect(await screen.findByText(/Not in this document’s folder: gone\.png/)).toBeInTheDocument();
+    fireEvent.click(open);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('img', { name: 'The flow' })).toHaveAttribute(
+      'src',
+      '/api/v1/workspaces/goteav/docs/GTV-1/image?src=img%2Fflow.png',
+    );
+  });
+
   it('shows where the doc lives and the next one in reading order (knowledge-05)', async () => {
     search.value = 'doc=GTV-1';
     api(['qa'], { body: { data: tree } }, content('GTV-1', 'docs/21-safety.md', SAFETY));
@@ -219,20 +273,15 @@ describe('DocsPage', () => {
 
   it('says which onboarding step a doc is, and marks it read (knowledge-12)', async () => {
     search.value = 'doc=GTV-1';
-    const { calls } = api(
-      ['qa'],
-      { body: { data: tree } },
-      content('GTV-1', 'docs/21-safety.md', SAFETY),
-      [
-        {
-          role: 'qa',
-          items: [
-            { id: 'read-safety', kind: 'doc', title: 'Safety', ref: 'docs/21-safety.md' },
-            { id: 'first', kind: 'action', title: 'Claim a task', ref: 'first_claim' },
-          ],
-        },
-      ],
-    );
+    const { calls } = api(['qa'], { body: { data: tree } }, content('GTV-1', 'docs/21-safety.md', SAFETY), [
+      {
+        role: 'qa',
+        items: [
+          { id: 'read-safety', kind: 'doc', title: 'Safety', ref: 'docs/21-safety.md' },
+          { id: 'first', kind: 'action', title: 'Claim a task', ref: 'first_claim' },
+        ],
+      },
+    ]);
     // The tick writes to the app's own client, as the sheet's writes do.
     const client = getQueryClient();
     client.clear();
@@ -240,7 +289,9 @@ describe('DocsPage', () => {
     expect(await screen.findByText('Step 1 of your path')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Mark it read' }));
     expect(await screen.findByText('Next: Claim a task')).toBeInTheDocument();
-    expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/onboarding/read-safety/done'))).toBe(true);
+    expect(calls.some((c) => c.method === 'POST' && c.path.endsWith('/onboarding/read-safety/done'))).toBe(
+      true,
+    );
     client.clear();
   });
 
