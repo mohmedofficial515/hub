@@ -10,6 +10,7 @@ import type { PluginDevice, SkillSource, SkillSummary } from '@hub/contracts';
 import { isAllowed } from '@hub/contracts';
 import {
   AlertTriangle,
+  BookOpen,
   CheckCircle2,
   CircleDashed,
   Copy,
@@ -54,7 +55,7 @@ import { isHubError } from '@/lib/api/errors';
 import { MoveDialog } from './move-dialog';
 import { SkillEditor } from './skill-editor';
 import { SkillView } from './skill-view';
-import type { SkillsMessages } from './words';
+import { describeSkill, type SkillsMessages } from './words';
 
 /** Names joined the way the language joins them: «أ، ب و ج», "a, b and c". */
 const listOf = (names: string[], locale: 'ar' | 'en') =>
@@ -162,8 +163,10 @@ function HubSkillRow({
   /** Its full text is on the way for the editor. */
   busy?: boolean | undefined;
 }) {
-  const t = useT<SkillsMessages>('skills').hub;
+  const words = useT<SkillsMessages>('skills');
+  const t = words.hub;
   const locale = useLocale();
+  const description = describeSkill(skill, words.builtIn);
   const synced = skill.devices.filter((device) => device.synced);
   const total = skill.devices.length;
   const reach =
@@ -179,7 +182,7 @@ function HubSkillRow({
     <li
       data-skill={skill.name}
       data-skill-core={skill.core || undefined}
-      className="flex h-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4"
+      className="flex h-full min-w-0 flex-col rounded-lg border border-border bg-card p-4"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         {skill.core ? (
@@ -191,7 +194,7 @@ function HubSkillRow({
         ) : (
           <Sparkles aria-hidden className="mt-0.5 size-5 shrink-0 text-primary" strokeWidth={1.75} />
         )}
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col self-stretch">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-body font-medium text-foreground">
               <Ltr mono>{skill.name}</Ltr>
@@ -204,53 +207,60 @@ function HubSkillRow({
               </Tip>
             )}
           </div>
-          <p dir="auto" className="mt-0.5 line-clamp-3 text-body-sm text-foreground">
-            {skill.description}
+          <p
+            dir="auto"
+            data-skill-description={description.translated ? 'translated' : 'own'}
+            className="mt-0.5 line-clamp-3 text-body-sm text-foreground"
+          >
+            {description.text}
           </p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
-            <span>
-              {skill.userInvocable ? fill(t.typed, { command: <Ltr mono>{command}</Ltr> }) : t.background}
-            </span>
-            <Tip
-              content={{
-                what: reach,
-                ...(synced.length > 0
-                  ? {
-                      detail: fmt(t.onTip, {
-                        names: listOf(
-                          synced.map((d) => d.name),
-                          locale,
-                        ),
-                      }),
-                    }
-                  : {}),
-              }}
-              align="start"
-            >
-              <span
-                tabIndex={0}
-                data-skill-reach={`${synced.length}/${total}`}
-                className="inline-flex items-center gap-1 rounded-sm"
-              >
-                <Laptop aria-hidden className="size-3.5" strokeWidth={1.75} />
-                {reach}
+          <div className="mt-auto flex min-w-0 pt-2 flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="flex min-w-0 flex-1 basis-40 flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              <span>
+                {skill.userInvocable ? fill(t.typed, { command: <Ltr mono>{command}</Ltr> }) : t.background}
               </span>
-            </Tip>
-            {skill.files > 1 && <span>{counted(skill.files, locale, t.files)}</span>}
-            {skill.updatedAt && <RelativeTime iso={skill.updatedAt} />}
-          </p>
+              <Tip
+                content={{
+                  what: reach,
+                  ...(synced.length > 0
+                    ? {
+                        detail: fmt(t.onTip, {
+                          names: listOf(
+                            synced.map((d) => d.name),
+                            locale,
+                          ),
+                        }),
+                      }
+                    : {}),
+                }}
+                align="start"
+              >
+                <span
+                  tabIndex={0}
+                  data-skill-reach={`${synced.length}/${total}`}
+                  className="inline-flex items-center gap-1 rounded-sm"
+                >
+                  <Laptop aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {reach}
+                </span>
+              </Tip>
+              {skill.files > 1 && <span>{counted(skill.files, locale, t.files)}</span>}
+              {skill.updatedAt && <RelativeTime iso={skill.updatedAt} />}
+            </p>
+            <div className="-my-1 ms-auto flex max-w-full flex-wrap gap-1">
+              <Button size="sm" variant="ghost" data-skill-read onClick={onRead}>
+                <BookOpen aria-hidden className="size-3.5" strokeWidth={1.75} />
+                {t.view}
+              </Button>
+              {owner && !skill.core && (
+                <Button size="sm" variant="ghost" busy={busy} data-skill-edit onClick={onEdit}>
+                  <Pencil aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {t.edit}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-1.5 border-t border-border pt-3">
-        <Button size="sm" variant="ghost" data-skill-read onClick={onRead}>
-          {t.view}
-        </Button>
-        {owner && !skill.core && (
-          <Button size="sm" variant="ghost" busy={busy} data-skill-edit onClick={onEdit}>
-            <Pencil aria-hidden className="size-3.5" strokeWidth={1.75} />
-            {t.edit}
-          </Button>
-        )}
       </div>
     </li>
   );
@@ -271,11 +281,11 @@ function PersonalSkillRow({
   return (
     <li
       data-personal-skill={skill.name}
-      className="flex h-full min-w-0 flex-col gap-3 rounded-lg border border-border bg-card p-4"
+      className="flex h-full min-w-0 flex-col rounded-lg border border-border bg-card p-4"
     >
       <div className="flex min-w-0 flex-1 items-start gap-2.5">
         <FolderLock aria-hidden className="mt-0.5 size-5 shrink-0 text-muted-foreground" strokeWidth={1.75} />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col self-stretch">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className="text-body font-medium text-foreground">
               <Ltr mono>{skill.name}</Ltr>
@@ -287,24 +297,27 @@ function PersonalSkillRow({
               {skill.description}
             </p>
           )}
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-body-sm text-muted-foreground">
-            {skill.declaredName && (
-              <span>{fill(t.declared, { name: <Ltr mono>{skill.declaredName}</Ltr> })}</span>
-            )}
-            {skill.files > 1 && <span>{counted(skill.files, locale, hub.files)}</span>}
-          </p>
+          <div className="mt-auto flex min-w-0 pt-2 flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="flex min-w-0 flex-1 basis-40 flex-wrap items-center gap-x-3 gap-y-0.5 text-body-sm text-muted-foreground">
+              {skill.declaredName && (
+                <span>{fill(t.declared, { name: <Ltr mono>{skill.declaredName}</Ltr> })}</span>
+              )}
+              {skill.files > 1 && <span>{counted(skill.files, locale, hub.files)}</span>}
+            </p>
+            <div className="-my-1 ms-auto flex max-w-full flex-wrap gap-1">
+              <Button size="sm" variant="ghost" data-personal-read onClick={onRead}>
+                <BookOpen aria-hidden className="size-3.5" strokeWidth={1.75} />
+                {hub.view}
+              </Button>
+              <Tip content={{ what: t.moveTip }} label={t.move}>
+                <Button size="sm" data-skill-move onClick={onMove}>
+                  <Copy aria-hidden className="size-3.5" strokeWidth={1.75} />
+                  {t.move}
+                </Button>
+              </Tip>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-wrap gap-1.5 border-t border-border pt-3">
-        <Button size="sm" variant="ghost" data-personal-read onClick={onRead}>
-          {hub.view}
-        </Button>
-        <Tip content={{ what: t.moveTip }} label={t.move}>
-          <Button size="sm" data-skill-move onClick={onMove}>
-            <Copy aria-hidden className="size-3.5" strokeWidth={1.75} />
-            {t.move}
-          </Button>
-        </Tip>
       </div>
     </li>
   );
@@ -429,7 +442,7 @@ export function SkillsPage() {
             {data.hub.length === 0 ? (
               <p className="text-body-sm text-muted-foreground">{t.hub.empty}</p>
             ) : (
-              <ul className="grid gap-3 sm:grid-cols-2">
+              <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3">
                 {[...ownMade, ...core].map((skill) => (
                   <HubSkillRow
                     key={skill.name}
@@ -466,7 +479,7 @@ export function SkillsPage() {
                   {t.personal.empty}
                 </EmptyState>
               ) : (
-                <ul className="grid gap-3 sm:grid-cols-2">
+                <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3">
                   {data.personal.map((skill) => (
                     <PersonalSkillRow
                       key={skill.name}

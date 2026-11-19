@@ -28,7 +28,7 @@ import {
 import { useRestoreSkill, useSkill, useSkillRevision, useSkillRevisions } from '@/features/skills/queries';
 import { isHubError } from '@/lib/api/errors';
 
-import type { SkillsMessages } from './words';
+import { describeSkill, type SkillsMessages } from './words';
 
 function Revision({
   name,
@@ -128,6 +128,7 @@ export function SkillView({
   const query = useSkill(source, name);
   const skill = query.data;
   const revisions = useSkillRevisions(source === 'hub' ? name : null);
+  const description = skill ? describeSkill(skill, t.builtIn) : null;
   const command = skill ? (source === 'hub' ? `/hub:${skill.name}` : `/${skill.name}`) : '';
   return (
     <Modal
@@ -150,9 +151,30 @@ export function SkillView({
         <div data-skill-view={skill.name} className="flex min-w-0 flex-col gap-4">
           <section className="flex flex-col gap-1">
             <h3 className="text-body-sm font-medium text-muted-foreground">{v.description}</h3>
-            <p dir="auto" className="text-body text-foreground">
-              {skill.description}
+            <p dir="auto" data-skill-description className="text-body text-foreground">
+              {description?.text}
             </p>
+            {/* Hub's own skill, described in the UI's language: the words Claude actually reads stay one look away (knowledge-05). */}
+            {description?.translated && (
+              <details data-skill-claude-reads className="group mt-1 text-body-sm text-muted-foreground">
+                <summary
+                  className={cn(
+                    'inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-sm hover:text-foreground md:min-h-0 [&::-webkit-details-marker]:hidden',
+                    focusRing,
+                  )}
+                >
+                  <ChevronDown
+                    aria-hidden
+                    className="size-3.5 shrink-0 motion-safe:transition-transform group-open:rotate-180"
+                    strokeWidth={1.75}
+                  />
+                  {v.claudeReads}
+                </summary>
+                <p dir="auto" className="mt-1">
+                  {skill.description}
+                </p>
+              </details>
+            )}
           </section>
           <section className="flex min-w-0 flex-col gap-1">
             <h3 className="text-body-sm font-medium text-muted-foreground">{v.body}</h3>

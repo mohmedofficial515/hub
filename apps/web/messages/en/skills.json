@@ -58,6 +58,18 @@
     "edit": "Edit",
     "history": "Earlier texts"
   },
+  "builtIn": {
+    "ask": "",
+    "doc": "",
+    "done": "",
+    "guide": "",
+    "idea": "",
+    "next": "",
+    "plan": "",
+    "start": "",
+    "suggest": "",
+    "work": ""
+  },
   "personal": {
     "title": "Your personal skills",
     "hint": "Read only, from {folder} on the main machine. Hub never changes this folder. Move to Hub copies a skill so it reaches every device.",
@@ -109,7 +121,8 @@
     "restore": "Bring this back",
     "restored": "Brought back the text of {when}.",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "claudeReads": "What Claude reads"
   },
   "move": {
     "title": "Move {name} to Hub?",

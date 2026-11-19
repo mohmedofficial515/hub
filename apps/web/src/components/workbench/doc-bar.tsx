@@ -73,22 +73,25 @@ function Bar({ doc }: { doc?: DocCard | undefined }) {
           </Button>
         </Tip>
       )}
-      <Tip
-        k="doc:document"
-        off={engineOff ?? (isTask ? null : 'notTask')}
-        vars={{ device }}
-        label={d.document}
-        facts={isTask ? [[f.card, open.key, true]] : undefined}
-      >
-        <Button
-          size="sm"
-          data-wb-doc-document
-          disabled={!!engineOff || !isTask}
-          onClick={() => open && void startSkill(`/hub:doc document ${open.key}`, { card: open.key })}
+      {/* Only beside an open task: a way in that cannot apply is left out, not shown disabled (knowledge-04). */}
+      {isTask && (
+        <Tip
+          k="doc:document"
+          off={engineOff}
+          vars={{ device }}
+          label={d.document}
+          facts={[[f.card, open.key, true]]}
         >
-          {d.document}
-        </Button>
-      </Tip>
+          <Button
+            size="sm"
+            data-wb-doc-document
+            disabled={!!engineOff}
+            onClick={() => void startSkill(`/hub:doc document ${open.key}`, { card: open.key })}
+          >
+            {d.document}
+          </Button>
+        </Tip>
+      )}
       <Tip k="doc:gaps" off={engineOff} vars={{ device }} label={d.gaps}>
         <Button
           size="sm"

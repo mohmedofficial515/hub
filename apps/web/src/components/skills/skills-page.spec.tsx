@@ -2,6 +2,7 @@
  * @file The Skills page (docs/16 §11, D64 to D66) in its states, on the API's real shapes: Hub's skills with their reach and Hub's protocols read only, the owner's personal ones
  * with Move to Hub (asked first, and renamed when Hub has the name), a pm who sees no personal skill and no write, the editor, and the two catalogs key for key.
  */
+import { HUB_CORE_SKILLS } from '@hub/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tooltip } from 'radix-ui';
@@ -80,11 +81,17 @@ const SKILLS = {
   },
 };
 
-function mount(roles: string[], skills: unknown = SKILLS, detail?: { status?: number; body?: unknown }) {
+function mount(
+  roles: string[],
+  skills: unknown = SKILLS,
+  detail?: { status?: number; body?: unknown },
+  locale: 'ar' | 'en' = 'en',
+) {
   const fetched = stubFetch((url, init, request) => {
     const path = url.pathname;
     const method = request?.method ?? init?.method ?? 'GET';
-    if (detail && path.includes('/skills/hub/')) return detail;
+    if (detail && path.includes('/skills/hub/'))
+      return path.endsWith('/revisions') ? { body: { data: [] } } : detail;
     if (path.endsWith('/me')) return { body: { data: meAs(roles) } };
     if (path.endsWith('/workspaces/demo'))
       return { body: { data: { slug: 'demo', name: 'Demo', myRoles: roles } } };
@@ -117,6 +124,7 @@ function mount(roles: string[], skills: unknown = SKILLS, detail?: { status?: nu
         <SkillsPage />
       </div>
     </Tooltip.Provider>,
+    { locale },
   );
   return fetched;
 }
@@ -253,6 +261,83 @@ describe('SkillsPage, editing (knowledge-13)', () => {
     await waitFor(() => expect(edit).not.toBeDisabled());
     expect(edit.querySelector('.animate-spin, [class*="animate-spin"]')).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('SkillsPage, descriptions in the UI’s language (knowledge-05)', () => {
+  const workDetail = {
+    body: { data: { ...hubSkill('work', { core: true }), body: 'Steps', otherFiles: [] } },
+  };
+
+  it('in Arabic, Hub’s own skill reads in Arabic, and a skill the owner made or a personal one keeps its own text', async () => {
+    mount(['owner'], SKILLS, undefined, 'ar');
+    await waitFor(() => expect(document.querySelector('[data-skill="work"]')).toBeTruthy());
+    const core = document.querySelector<HTMLElement>('[data-skill="work"] [data-skill-description]')!;
+    expect(core.getAttribute('data-skill-description')).toBe('translated');
+    expect(core.textContent).toBe(arSkills.builtIn.work);
+    const own = document.querySelector<HTMLElement>('[data-skill="tidy-repo"] [data-skill-description]')!;
+    expect(own.getAttribute('data-skill-description')).toBe('own');
+    expect(own.textContent).toBe('When to use tidy-repo');
+    // A personal skill named like one of Hub's keeps its own words.
+    expect(document.querySelector('[data-personal-skill="suggest"]')?.textContent).toContain(
+      'When to use suggest',
+    );
+  });
+
+  it('in English, Hub’s own skill shows its own description', async () => {
+    mount(['owner']);
+    await waitFor(() => expect(document.querySelector('[data-skill="work"]')).toBeTruthy());
+    const core = document.querySelector<HTMLElement>('[data-skill="work"] [data-skill-description]')!;
+    expect(core.getAttribute('data-skill-description')).toBe('own');
+    expect(core.textContent).toBe('When to use work');
+  });
+
+  it('names every one of Hub’s own skills, and nothing else', () => {
+    expect(Object.keys(arSkills.builtIn).sort()).toEqual([...HUB_CORE_SKILLS].sort());
+  });
+
+  it('every built-in entry has Arabic text, and every English one is empty so the skill’s own text shows', () => {
+    expect(Object.values(arSkills.builtIn).every((text) => text.trim().length > 0)).toBe(true);
+    expect(Object.values(enSkills.builtIn).every((text) => text === '')).toBe(true);
+  });
+
+  it('Read and Edit sit in the card’s meta line, with no footer row', async () => {
+    mount(['owner']);
+    await waitFor(() => expect(document.querySelector('[data-skill="tidy-repo"]')).toBeTruthy());
+    const card = document.querySelector<HTMLElement>('[data-skill="tidy-repo"]')!;
+    const read = card.querySelector('[data-skill-read]')!;
+    const reach = card.querySelector('[data-skill-reach]')!;
+    // The reach and the buttons share one line's container.
+    expect(read.parentElement?.parentElement).toBe(reach.closest('p')?.parentElement);
+    expect(card.querySelector('[data-skill-edit]')?.parentElement).toBe(read.parentElement);
+    expect(card.querySelector(':scope > .border-t')).toBeNull();
+    const personal = document.querySelector<HTMLElement>('[data-personal-skill="daily-notes"]')!;
+    expect(personal.querySelector(':scope > .border-t')).toBeNull();
+    expect(personal.querySelector('[data-skill-move]')).toBeTruthy();
+  });
+
+  it('the skill’s page in Arabic shows the Arabic description, with the words Claude reads one click away', async () => {
+    const user = userEvent.setup();
+    mount(['owner'], SKILLS, workDetail, 'ar');
+    await waitFor(() => expect(document.querySelector('[data-skill="work"]')).toBeTruthy());
+    await user.click(document.querySelector<HTMLButtonElement>('[data-skill="work"] [data-skill-read]')!);
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(dialog.querySelector('[data-skill-view="work"]')).toBeTruthy());
+    expect(dialog.querySelector('[data-skill-description]')?.textContent).toBe(arSkills.builtIn.work);
+    const reads = dialog.querySelector<HTMLDetailsElement>('[data-skill-claude-reads]')!;
+    expect(reads.textContent).toContain(arSkills.view.claudeReads);
+    expect(reads.textContent).toContain('When to use work');
+  });
+
+  it('the skill’s page in English shows no second copy of the description', async () => {
+    const user = userEvent.setup();
+    mount(['owner'], SKILLS, workDetail);
+    await waitFor(() => expect(document.querySelector('[data-skill="work"]')).toBeTruthy());
+    await user.click(document.querySelector<HTMLButtonElement>('[data-skill="work"] [data-skill-read]')!);
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(dialog.querySelector('[data-skill-view="work"]')).toBeTruthy());
+    expect(dialog.querySelector('[data-skill-description]')?.textContent).toBe('When to use work');
+    expect(dialog.querySelector('[data-skill-claude-reads]')).toBeNull();
   });
 });
 
