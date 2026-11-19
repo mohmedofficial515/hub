@@ -56,6 +56,7 @@ Phone: identical, full-width card, keyboard-safe.
 - No self sign-up link (invites only). Locale switch persists in cookie before login.
 - Acceptance: wrong password shows inline error and keeps the email; 10 failures → locked message;
   successful login with TOTP enabled lands on `/totp`; `Enter` submits.
+- After a password reset the page opens with `?reset=1` and confirms it in a `role="status"` line above the form.
 
 ### 1.2 `/totp`
 
@@ -67,6 +68,7 @@ Purpose: second factor for roles in `security.totp_required_roles` (and anyone w
   `POST /api/v1/auth/totp/setup` → `{otpauthUrl, secret}` rendered as QR (`qrcode.react`) +
   manual secret (mono, copy); `POST …/totp/confirm {code}` → shows 8 recovery codes once with
   download/copy; "I saved them" continues.
+- A failed `totp/setup` shows the error with "Try again"; `totp_already_enabled` continues to the member's destination. Locked and disabled accounts read their own sentence on the verify step.
 - Acceptance: wrong code → `auth.errors.totp_invalid`; setup flow cannot be skipped for a role the project requires it of (`security.totp_required_roles` defaults to none, D34).
 
 ### 1.3 `/invite/[token]`
@@ -139,6 +141,8 @@ Purpose: pick or create a workspace. Who: members of ≥ 2 workspaces, or users 
   pill instead of refetching while the user is scrolled), `['inbox']`, `['counters']`.
 - 403 on the workspace → `ErrorState` "You are not a member of this workspace" with a link to
   `/workspaces`.
+- A failed background refetch of `auth/me` keeps the page; `ErrorState` shows only when the first load fails with no data, and a 401 with no data goes to `sign-in?next=`.
+- Breadcrumb: project name (link to Today) › page › the plan key from `?plan=` or the doc key from `?doc=` (mono); the page link returns to the list with its filters. "All projects" in the switcher and "Switch project" in the palette are hidden for a member of one project.
 - Acceptance: switching workspace changes counters and URL; SSE reconnects with backoff
   (1 s → 30 s) and shows the "Reconnecting…" indicator after 5 s.
 
@@ -184,18 +188,19 @@ sessions, since last visit (first 5 + "see all").
   member's locale); if today's brief is not generated yet (before `digest.morning_time`) the API
   computes it on the fly and marks `generatedNow: true` (no "brief" card is created).
 - Narrative block: shown only when `narrative` exists; header "Written by your agent at {time}"
-  (`today.narrative.by`); "Open in Claude" renders a copyable `/hub:start` hint.
+  (`today.narrative.by`); "Open in Claude" renders a copyable `/hub:start` hint. It renders headings, lists, bold, code and safe links (a path inside Hub opens in place, a link with a scheme in a new tab); folded on a phone it is one `markdownExcerpt` paragraph clamped to three lines.
 - Awaiting me: cards with `ownerRole ∈ myRoles` and actionable status (decision `open`, need
   `requested|in_progress`, handoff `pending`, task `in_review` where I am a `qa`/`pm`, redesign
   `review` for owner). Each row is a `TimelineItem` compact with the inline action; max 10 then
-  "See all (n)" → `/inbox?awaiting=me`.
+  "See all (n)" expands the list in place ("Show less" folds it back).
+- Rows of Awaiting me and Ready come from their lists once those answer, and from `awaitingMe` / `readyTasks` of `/today` until then or when they fail. Refresh refetches `/today`, both lists, the counters and the inbox count.
 - Ready for my roles: tasks `status=ready` whose `specialty` maps to one of my roles
   (`backend→backend`, `frontend→frontend`, `design→designer`, `qa→qa`, `ops|docs→pm|backend`),
   sorted P0→P3 then oldest; `[Claim]` → `POST /cards/{key}/actions/claim` → optimistic status
   `claimed`, toast "Claimed GTV-248 — paste `/hub:next GTV-248` in Claude Code" with copy.
 - Deadlines: decisions/needs/tasks with `dueAt` in the next 72 h routed to my roles or assigned to
   me; overdue first (`destructive-soft`), `< 24 h` warning.
-- Sessions without summary: `session_logs` of mine with `hookReceivedAt` and no
+- Sessions without summary (drawn only when there is one; an empty Deadlines block is a plain line, not an `EmptyState`): `session_logs` of mine with `hookReceivedAt` and no
   `summaryReceivedAt` in the last 7 days; row shows branch, commits, time, and the hint
   "Run `/hub:start` in Claude Code to write the summary" (`CopyButton`).
 - Since last visit: events after `lastSeenAt`, excluding my own. Reading changes nothing: `POST /today/seen`
@@ -295,7 +300,8 @@ updated) with column sort; same filters.
 
 - Data: `GET /api/v1/workspaces/{ws}/cards?type=task&status[]&specialty[]&priority[]&module&assignee=me&q&sort=priority|updated|due&cursor`.
   Board columns load the first 50 per status and page per column.
-- URL: `view=board|list&specialty[]&status[]&priority[]&module&mine=1&q&sort`.
+- URL: `view=board|list|focus&specialty[]&status[]&priority[]&module&assignee=none|<memberId>&mine=1&q&sort&order`, plus the focus desk's `stage` and open `rails`. A third click on a column header returns to the default order. Under 80rem of main width the list hides "Branch or PR" and "Updated".
+- Focus desk: the only filled button is on the "Next for you" card. A member who does not review sees "Sent and waiting for review" in place of the review rail.
 - Column moves by button only (no drag in v1; drag-and-drop is a later improvement — `@dnd-kit` is
   allowed but must keep the button path). Transitions: `backlog→ready` (owner/pm/creator),
   `ready→claimed` (`claim`, any member whose roles include the specialty's role, or pm), `claimed→
@@ -308,7 +314,7 @@ updated) with column sort; same filters.
   `CopyButton`. Acceptance checklist, branch binding (`PATCH /cards/{key}` with `branch` — also set
   automatically when a session log names the task key).
 - Blocked badge when `blocked_by` links to open cards; column header shows "n blocked".
-- `+ New task` dialog: title, specialty, effort, priority, module, body, acceptance (markdown
+- `+ New task` dialog: title, specialty (required; prefilled only from a role that has one, never derived as `backend`), effort, priority, module, body, acceptance (markdown
   checklist), prompt (optional; pm can "Generate skeleton" → `POST /cards/{key}/actions/render_prompt`
   which fills the template from title/body/acceptance/linked docs), links, due.
 - Empty: Ready column "No ready tasks for this specialty."; whole page "No tasks yet. Import the
@@ -512,7 +518,7 @@ Sheet (RedesignSection): status · score · summary · touches-components · scr
   (served from `/lab/<path>/review.md` through the API `GET /redesign/{key}/review`).
 - Empty: "No lab pages yet. Create a page brief in `apps/lab` (see the redesign-workflow skill)."
 - Role differences: non-owners see approve/reject disabled with tooltip "Owner decides"; owner sees
-  a "Versions in review (n)" filter preselected.
+  a "Versions in review (n)" filter preselected, only once the lab has loaded and a version is in review. An empty review filter shows "No versions waiting for you" with "Show all versions".
 - Acceptance: approving a `review` version changes its badge to `approved`, creates a task whose
   prompt contains the version path and the touches-components list, and the lab README on disk has
   `status: approved` (e2e with a temp lab fixture); reject requires a note; compare dialog loads two
@@ -545,10 +551,11 @@ Phone: tree as a list page; viewer full screen.
   kind, lang, updatedAt}`); `GET /api/v1/workspaces/{ws}/docs/{key}` → doc card + `content`
   (markdown, read from the clone at `lastCommitSha`) + `referencedBy`.
 - Route for a doc: `/docs/[key]` (card key), also reachable as `/cards/[key]`.
-- Search box → `/ask?scope=docs&q=`.
+- Search box → `/ask?scope=docs&q=`. Above the tree a local filter by name or path keeps the matching docs with their folders open; `Esc` clears it.
 - Viewer: `DocViewer` (§08 5.4); relative links between docs resolve to Hub doc routes when the
-  target is indexed, otherwise to GitHub; images resolve to GitHub raw URLs (internet needed → show
-  alt text when offline).
+  target is indexed, otherwise to GitHub. Images are not loaded: an inline placeholder (dashed frame, icon, alt text) with "Open the image" for an `https` source.
+- A 404 (or a code ending in `not_found`) shows "No such document"; any other error is an `ErrorState` with Retry.
+- A doc that is a step of the member's onboarding path shows "Step N of your path" with "Mark as read", then the next step.
 - `.ar.md` twins: a language toggle on the viewer when both exist (`path` without suffix matched).
 - Stale badge when the source commit moved but indexing has not run yet (`doc.status=stale`).
 - Empty: "No docs indexed. Add a docs folder source in Settings." (owner/pm).
@@ -582,6 +589,7 @@ the member's own Claude Code. Who: everyone.
 - URL: `q&scope`. Enter searches; results group as above; clicking a doc hit opens the viewer at
   the anchor; a card hit opens the sheet.
 - The Claude hint renders `/hub:ask <question>` with `CopyButton` (`ask.claudeHint`).
+- Excerpts are plain text (no Markdown marks) around the `<mark>`; a doc hit takes its direction from the doc's language. A one-letter query says "Type at least two letters"; a search error shows in the results column and keeps the form. Under `lg`, with a query, the Claude panel comes after the results.
 - Empty query: recent searches (local) and "Try: refund, TOTP, Duffel balance". No results: "Nothing
   matched. Try fewer words or Arabic/English spelling." (trigram fallback already applied server-side).
 - Acceptance: searching an Arabic phrase present in a doc returns the doc with a marked excerpt; a
@@ -628,12 +636,14 @@ watchers + counts), `GET …/cards/{key}/events?cursor`, `GET/POST …/cards/{ke
 `POST/DELETE …/cards/{key}/links`, `POST …/cards/{key}/actions/{action}`,
 `PATCH …/cards/{key}`.
 
-- Unknown key → 404 `ErrorState` "No card GTV-999 in this workspace".
+- As built, `/[ws]/cards/[key]` (the link the API writes, e.g. in an ADR) redirects to `today?card=KEY` (upper case) and the sheet opens there; an invalid key is a 404 inside the shell.
+- Unknown key → 404 `ErrorState` (neutral `notFound` kind) "No card GTV-999 in this workspace".
 - Deleted card → banner "Deleted by {actor} {time}" + Restore (owner, pm or its creator, D28).
 - Comments: markdown composer with `@` member autocomplete (`GET /members?q=`) and `GTV-`
   autocomplete (`GET /search?scope=cards&q=`); mention creates a `mention` inbox item; `Ctrl+Enter`
   sends; a comment by an agent token is labelled "(agent)".
-- History tab: every event with `data` rendered as "field: from → to" rows.
+- History tab: every event with `data` rendered as "field: from → to" rows (from `data.changes`; long text reads "edited", a member id reads as the name). History and comments read up to 1000 items.
+- Links tab: any key may be added and the API refuses a wrong one; each link has a remove button, except `child` (removed from the parent card).
 - Acceptance: direct navigation renders the card server-side (title in `<title>`); adding a
   `blocks` link to another card shows "blocked by" on the other card; archive hides the card from
   lists and shows the banner here.
@@ -659,7 +669,7 @@ everyone; phone-first.
   grouped by `groupKey` within 30 min (`moreCount`); `POST /inbox/{id}/read`, `POST /inbox/read-all`,
   `POST /inbox/{id}/archive`.
 - URL: `show=all` (Unread is the default, review M9), `kind` (one of six families of kinds), `awaiting=me`, `archived=1`.
-- Opening an item marks it read and opens the card sheet on the quick action.
+- Opening an item marks it read and opens the card sheet on the quick action. An item with no card names the page it opens ("Open Settings", "Open Today").
 - Live: SSE `inbox.new` prepends with a fade; the sidebar badge updates.
 - Empty: unread → "You're all caught up." ; all → "Notifications appear here when something is
   routed to your roles, you are mentioned, or a card you watch changes."
@@ -675,7 +685,7 @@ Purpose: planned and shipped releases with per-audience notes. Who: pm/owner (wr
 
 - List: `GET /cards?type=release&sort=released_desc`; rows: version, repo/tag, status, included
   count, released date.
-- New release (pm/owner): version, repo, tag (optional), include cards (picker filtered to `done`
+- New release (pm/owner): version, repo (free text with suggestions from the project's own repos; not sent when empty), tag (optional), include cards (picker filtered to `done`
   tasks, `applied` handoffs, `decided` decisions, `ported` redesigns since the last release) →
   `POST /cards {type: release, …}`; "Regenerate skeleton" → `POST /cards/{key}/actions/render_notes`
   (digest template per audience); "Mark released" → `release {releasedAt, tag?}`.
@@ -721,6 +731,8 @@ Purpose: who is in the workspace, their roles, GitHub identity, invitations. Who
 ## 18. Settings (`/[ws]/settings/*`) — owner/pm only (403 page otherwise)
 
 Tabs across the top: General · Sources · Roles · Notifications · Tokens · System · Audit.
+
+As built, the tabs come in three labelled groups: Mine (Appearance, Notifications, Tokens, Devices, Queue), Project (General, Sources, Roles, Audit) and This server (System, Backups); a group with no visible tab is not drawn. A member who is not owner/pm lands on Appearance, as does "Go to my settings". The drafts of General and Backups live for the visit across tab and page changes: a dot marks the tab and a toast says the edits are kept, in place of a confirm dialog. The token commands and the palette's MCP command take the URL from the API. Roles shows a skeleton while members load, a retry line if they fail, and a link to Members.
 
 ### 18.1 `general`
 
@@ -820,7 +832,7 @@ actor (chip), via, action, target (card chip when applicable), summary. Filters 
 
 | Dialog | Where | Fields / behaviour |
 | --- | --- | --- |
-| `NewCardDialog` | `+ New` everywhere, `n` shortcuts | type tabs (task / decision / need / handoff); fields per §6–§9; "Create and open" (default) / "Create". Creator becomes watcher. |
+| `NewCardDialog` | `+ New` everywhere, `n` shortcuts | type tabs (task / decision / need / handoff); fields per §6–§9; "Create and open" (default) / "Create" (its toast carries "Open it"). Creator becomes watcher. A press outside a dialog with typed text does not close it (`Modal dirty`); `Esc`, × and Cancel still do. |
 | `CardPicker` | links, blocks, include lists | search by key/title (`/search?scope=cards`), type filter, multi-select chips. |
 | `DocPicker` | related docs, onboarding paths | tree + search; returns doc card keys. |
 | `ConfirmDialog` | destructive/irreversible actions (reject, cancel, revoke, delete, dismiss, withdraw) | reason field when required; destructive button style. |
