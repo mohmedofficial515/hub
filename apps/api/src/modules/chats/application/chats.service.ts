@@ -55,7 +55,7 @@ import { ProjectsService } from '@/modules/workspaces';
 import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
 
-import { folderIsRegistered, titleFrom } from '../domain/folders';
+import { folderIsRegistered, sameFolder, titleFrom } from '../domain/folders';
 import { DocDraftsService } from './doc-drafts.service';
 import { ChatTurnEvents } from './turn-events';
 import { TurnRecorder } from './turn-recorder';
@@ -70,11 +70,13 @@ const LIST_LIMIT = 50;
 const MESSAGE_LIMIT = 500;
 const AUDIT_SUMMARY_CHARS = 1_000;
 
-/** What a queued run adds to its turn (docs/16 D58 to D60). */
+/** What a queued run adds to its turn (docs/16 D58 to D60, §9.2). */
 export interface QueueTurn {
   readonly mode: 'approval' | 'automatic';
   readonly extraFolders: readonly string[];
   readonly roles: readonly PromptRole[];
+  /** It works in Hub's own copy of its repository, where an automatic run may commit to its own branch. The bridge checks the folder itself. */
+  readonly isolated?: boolean;
 }
 
 interface ChatRow {
@@ -448,7 +450,7 @@ export class ChatsService implements OnApplicationBootstrap {
   async retry(
     actor: MemberActor,
     id: string,
-    options: Pick<SendChatMessageInput, 'mode' | 'model' | 'effort'>,
+    options: Pick<SendChatMessageInput, 'mode' | 'model' | 'effort' | 'force'>,
   ): Promise<ChatTurnStarted> {
     const last = await this.txHost.tx.chatMessage.findFirst({
       where: { workspaceId: actor.workspaceId, chatId: id, role: 'user' },
@@ -505,11 +507,13 @@ export class ChatsService implements OnApplicationBootstrap {
     id: string,
     text: string,
     context: SendChatMessageInput['context'] | null,
-    options: Pick<SendChatMessageInput, 'mode' | 'model' | 'effort'>,
+    options: Pick<SendChatMessageInput, 'mode' | 'model' | 'effort' | 'force'>,
     run?: QueueTurn,
   ): Promise<ChatTurnStarted> {
     const chat = await this.usable(actor, id);
     if (!this.hub.isOnline(chat.deviceId)) throw new AppException('hub.devices.offline');
+    // A queued run was already held back by the queue's own folder rule. A person's send is warned here, and may go anyway.
+    if (!run && !options.force) await this.refuseBusyFolder(chat);
     const project = await this.projects.get(actor);
     const addDirs = run?.extraFolders ?? [];
     const platform =
@@ -572,6 +576,7 @@ export class ChatsService implements OnApplicationBootstrap {
       folder: chat.folder,
       ...(addDirs.length > 0 ? { addDirs } : {}),
       ...(run ? { runMode: run.mode, ...(run.mode === 'approval' ? { untimed: true } : {}) } : {}),
+      ...(run?.isolated ? { isolated: true } : {}),
       prompt,
       mode,
       ...(model ? { model } : {}),
@@ -580,6 +585,19 @@ export class ChatsService implements OnApplicationBootstrap {
     });
     await this.changed(actor, id, 'turn');
     return { chatId: id, userMessageId: ids.user, messageId: ids.assistant };
+  }
+
+  /**
+   * docs/16 §9.2: another chat's turn working in this checkout on this device, a queued run's or a person's. Two turns in one folder edit the same files,
+   * and each then fixes what the other broke. Refused with that chat's title, so the panel can offer to send anyway.
+   */
+  private async refuseBusyFolder(chat: ChatRow): Promise<void> {
+    const running = await this.txHost.tx.$queryRaw<{ title: string; folder: string }[]>`
+      SELECT c.title, c.folder
+      FROM chat_messages m JOIN chats c ON c.id = m.chat_id
+      WHERE m.status = 'running' AND c.device_id = ${chat.deviceId}::uuid AND c.id <> ${chat.id}::uuid AND c.deleted_at IS NULL`;
+    const other = running.find((row) => sameFolder(row.folder, chat.folder));
+    if (other) throw new AppException('hub.chats.folder_busy', { params: { title: other.title || '…' } });
   }
 
   /** The turn outlives the request that started it. `onEvent` is called in order; the answer arrives when it ends. */
@@ -614,7 +632,9 @@ export class ChatsService implements OnApplicationBootstrap {
       })
       .then(() => recorder.finish('interrupted', 'unknown'))
       .catch((error: unknown) => this.turnRefused(recorder, error))
-      .finally(() => this.turns.release(chat.id, recorder));
+      .finally(() => this.turns.release(chat.id, recorder))
+      // Nobody awaits this chain. When the database is away, recording the end fails twice over, and that must not end the API.
+      .catch((error: unknown) => this.logger.warn(`A chat turn's end was not recorded: ${String(error)}`));
   }
 
   private turnRefused(recorder: TurnRecorder, error: unknown): Promise<void> {

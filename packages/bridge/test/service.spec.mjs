@@ -3,15 +3,25 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { hubPaths } from '../lib/paths.mjs';
 import { BRIDGE_CLOSE, BRIDGE_PROTOCOL_VERSION } from '../lib/protocol.mjs';
-import { createBridge, socketUrl } from '../lib/service.mjs';
+import {
+  createBridge,
+  guardProcess,
+  PID_STALE_MS,
+  runningBridgePid,
+  socketUrl,
+  stopRunningBridge,
+} from '../lib/service.mjs';
+import { realSystem } from '../lib/system.mjs';
 import { aFolder, CREDENTIAL, fakeSystem, URL } from './helpers.mjs';
 
 class FakeSocket {
@@ -256,5 +266,81 @@ describe('hub-mcp-headers', () => {
     const answer = run(helperAt(content));
     expect(answer.status).toBe(0);
     expect(JSON.parse(answer.stdout)).toEqual({});
+  });
+});
+
+describe('staying up', () => {
+  it('says hello with the last status when looking up Claude Code fails, rather than dying on it', async () => {
+    FakeSocket.opened = [];
+    const system = fakeSystem({
+      WebSocket: FakeSocket,
+      run: async () => {
+        throw new Error('spawn EINVAL');
+      },
+    });
+    const bridge = createBridge(system, { url: URL, credential: CREDENTIAL });
+    void bridge.start();
+    FakeSocket.opened[0].fire('open');
+    await flush();
+    expect(FakeSocket.opened[0].sent[0]).toMatchObject({ type: 'hello', status: { bridgeVersion: '0.1.0' } });
+    expect(FakeSocket.opened[0].sent[0].status.claudeVersion).toBeUndefined();
+    expect(readFileSync(hubPaths(system).log, 'utf8')).toContain('kept the last status');
+    bridge.stop();
+  });
+
+  it('writes a rejection nobody caught to its log and stays up, and a thrown error to its log before it exits', () => {
+    const lines = [];
+    const exits = [];
+    const target = new EventEmitter();
+    const unguard = guardProcess(
+      (line) => lines.push(line),
+      (code) => exits.push(code),
+      target,
+    );
+    target.emit('unhandledRejection', new Error('Connection terminated unexpectedly'));
+    expect(lines.at(-1)).toContain('stays up');
+    expect(lines.at(-1)).toContain('Connection terminated unexpectedly');
+    expect(exits).toEqual([]);
+    target.emit('uncaughtException', new TypeError('not a function'));
+    expect(lines.at(-1)).toContain('TypeError: not a function');
+    expect(lines.at(-1)).toMatch(/\(at /);
+    expect(exits).toEqual([1]);
+    unguard();
+    expect(target.listenerCount('uncaughtException')).toBe(0);
+  });
+
+  it('runs no program it cannot spawn, and answers 127 rather than rejecting', async () => {
+    // A NUL byte makes `spawn` throw on the spot, as some Windows failures do.
+    await expect(realSystem().run(process.execPath, ['a\0b'])).resolves.toMatchObject({ status: 127 });
+  });
+});
+
+describe('the pid mark', () => {
+  function markWith(system, mark) {
+    const file = hubPaths(system).pid;
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, JSON.stringify(mark));
+  }
+
+  it('believes a fresh mark, and not the old one a stopped bridge left behind', () => {
+    const system = fakeSystem();
+    markWith(system, { pid: process.pid, beat: Date.now() });
+    expect(runningBridgePid(system)).toBe(process.pid);
+    // A dead bridge's pid, now held by another process: believing it would keep the bridge from starting.
+    markWith(system, { pid: process.pid, beat: Date.now() - PID_STALE_MS - 1_000 });
+    expect(runningBridgePid(system)).toBeNull();
+  });
+
+  it('believes a live pid with no mark, as an older bridge wrote it', () => {
+    const system = fakeSystem();
+    markWith(system, { pid: process.pid });
+    expect(runningBridgePid(system)).toBe(process.pid);
+  });
+
+  it('ends nothing on a stop when the mark is old', async () => {
+    const system = fakeSystem();
+    markWith(system, { pid: process.pid + 1_000_000, beat: Date.now() - PID_STALE_MS - 1_000 });
+    await stopRunningBridge(system);
+    expect(system.calls.some((call) => call.command === 'taskkill.exe')).toBe(false);
   });
 });

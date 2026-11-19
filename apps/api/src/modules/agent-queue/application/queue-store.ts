@@ -9,6 +9,7 @@ import {
   inQuietHours,
   isTimezone,
   QUEUE_DEFAULTS,
+  type QueueIsolation,
   type QueueStateDto,
   type QuietHours,
   type Role,
@@ -61,6 +62,12 @@ export interface RunRow {
   startedAt: Date | null;
   endedAt: Date | null;
   createdAt: Date;
+  worktreeFolder: string | null;
+  worktreeBranch: string | null;
+  worktreeBase: string | null;
+  worktreeRemovedAt: Date | null;
+  dirtyFiles: number | null;
+  allowDirty: boolean;
 }
 
 export interface QueueLimits {
@@ -71,6 +78,7 @@ export interface QueueLimits {
   readonly timezoneSource: 'setting' | 'machine';
   readonly pausedReason: 'owner' | 'usage_limit' | null;
   readonly resumesAt: Date | null;
+  readonly isolation: QueueIsolation;
 }
 
 export const machineTimezone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -83,6 +91,8 @@ export class AgentQueueStore {
   readonly signedOut = new Map<string, number>();
   /** Devices whose engine cannot run: missing, or older than the minimum. */
   readonly engineUnavailable = new Set<string>();
+  /** §9.2: folders, by `folderKey`, whose bridge said they are no repository's top, so their runs work in the folder itself. Forgotten on a restart, which costs one more look. */
+  readonly notRepository = new Set<string>();
 
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
@@ -110,7 +120,15 @@ export class AgentQueueStore {
       timezoneSource: setting ? 'setting' : 'machine',
       pausedReason: row?.pausedAt ? (row.pausedReason === 'usage_limit' ? 'usage_limit' : 'owner') : null,
       resumesAt: row?.pausedAt ? (row.resumesAt ?? null) : null,
+      isolation: row?.isolation === 'folder' ? 'folder' : QUEUE_DEFAULTS.isolation,
     };
+  }
+
+  /** §9.2: whether a run on this device and folder can get its own copy now. */
+  canIsolate(deviceId: string, folder: string): boolean {
+    return (
+      this.hub.supports(deviceId, 'worktree.prepare') && !this.notRepository.has(folderKey(deviceId, folder))
+    );
   }
 
   /** Folders with a turn running, for one member, across projects: runs that are starting, and every running chat turn. */
@@ -121,7 +139,7 @@ export class AgentQueueStore {
       WHERE m.status = 'running' AND c.user_id = ${userId}::uuid`;
     const runs = await this.tx.agentRun.findMany({
       where: { userId, state: 'running' },
-      select: { deviceId: true, folder: true, extraFolders: true },
+      select: { deviceId: true, folder: true, worktreeFolder: true, extraFolders: true },
     });
     // D59: a running run holds every one of its folders.
     return new Set([
@@ -150,6 +168,8 @@ export class AgentQueueStore {
       running,
       maxConcurrent: known.maxConcurrent,
       busyFolders,
+      isolation: known.isolation,
+      canIsolate: (deviceId, folder) => this.canIsolate(deviceId, folder),
       online: (deviceId) => this.hub.isOnline(deviceId),
       signedOut: (deviceId) => this.signedOut.has(deviceId),
       engineUnavailable: (deviceId) => this.engineUnavailable.has(deviceId),
@@ -169,6 +189,7 @@ export class AgentQueueStore {
       inQuietHours: inQuietHours(gate.now, limits.quietHours, limits.timezone),
       timezone: limits.timezone,
       timezoneSource: limits.timezoneSource,
+      isolation: limits.isolation,
       machineTimezone: machineTimezone(),
     };
   }
@@ -255,6 +276,16 @@ export class AgentQueueStore {
         state: viewStateOf(row, gate.now, Boolean(wait)),
         stored: row.state as RunState,
         hold: isDue(row, gate.now) ? holdFor(row, gate) : null,
+        worktree: row.worktreeFolder
+          ? {
+              folder: row.worktreeFolder,
+              branch: row.worktreeBranch ?? '',
+              base: row.worktreeBase ?? '',
+              removed: row.worktreeRemovedAt !== null,
+            }
+          : null,
+        dirtyFiles: row.dirtyFiles,
+        allowDirty: row.allowDirty,
         runAt: iso(row.runAt),
         repeat:
           row.repeatDay && row.repeatTime

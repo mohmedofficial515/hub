@@ -26,7 +26,9 @@ import {
   Check,
   CircleSlash,
   Clock,
+  FolderMinus,
   FolderOpen,
+  GitBranch,
   Hand,
   ListChecks,
   Loader2,
@@ -118,7 +120,7 @@ export function useRunLine() {
   const locale = useLocale();
   return (run: AgentRunDto): { text: string; command?: string | undefined } => {
     if (run.state === 'waiting' && run.waitingOn) return { text: t.pausedOn, command: run.waitingOn.command };
-    if (run.hold) return { text: fmt(t.holds[run.hold], { device: run.deviceName }) };
+    if (run.hold) return { text: fmt(t.holds[run.hold], { device: run.deviceName, n: run.dirtyFiles ?? 0 }) };
     if (run.state === 'scheduled' && run.repeat) return { text: weeklyText(t, run.repeat) };
     if (run.state === 'scheduled' && run.runAt)
       return { text: fmt(t.when.at, { when: whenText(run.runAt, locale) }) };
@@ -216,7 +218,11 @@ export function useRunActions() {
                   ? t.toasts.paused
                   : action === 'resume'
                     ? t.toasts.resumed
-                    : t.toasts.cancelled,
+                    : action === 'allow-dirty'
+                      ? t.toasts.allowedDirty
+                      : action === 'worktree/remove'
+                        ? fmt(t.toasts.worktreeRemoved, { branch: run.worktree?.branch ?? '' })
+                        : t.toasts.cancelled,
             }),
           onError: fail,
         },
@@ -252,6 +258,10 @@ export function runMenuItems(
     ...(run.paused ? [{ label: t.actions.resume, icon: Play, onSelect: () => act(run, 'resume') }] : []),
     ...(open
       ? [{ label: t.actions.cancel, icon: X, destructive: true, onSelect: () => act(run, 'cancel') }]
+      : []),
+    // docs/16 §9.2: an ended run's own copy. Hub refuses while it holds changes not committed, and its branch stays.
+    ...(!open && run.worktree && !run.worktree.removed
+      ? [{ label: t.actions.removeWorktree, icon: FolderMinus, onSelect: () => act(run, 'worktree/remove') }]
       : []),
   ];
 }
@@ -370,6 +380,7 @@ export function RunRow({
   const t = useQueueWords();
   const locale = useLocale();
   const line = useRunLine()(run);
+  const allow = useRunActions();
   const folderName = folderNameOf(run.folder);
   const ended = run.state === 'done' || run.state === 'failed' || run.state === 'stopped';
   return (
@@ -415,6 +426,18 @@ export function RunRow({
               )}
             </span>
             {run.deviceName && <span>{run.deviceName}</span>}
+            {run.worktree && (
+              <span
+                data-run-worktree={run.worktree.removed ? 'removed' : 'kept'}
+                className="inline-flex min-w-0 items-center gap-1"
+                title={run.worktree.folder}
+              >
+                <GitBranch aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
+                {fmt(run.worktree.removed ? t.meta.worktreeRemoved : t.meta.branch, {
+                  branch: run.worktree.branch,
+                })}
+              </span>
+            )}
             {run.mode === 'automatic' && (
               <span data-run-mode="automatic" className="inline-flex items-center gap-1">
                 <Bot aria-hidden className="size-3.5" strokeWidth={1.75} />
@@ -456,6 +479,16 @@ export function RunRow({
             onClick={() => revealChat(run.chatId!)}
           >
             {t.actions.openChat}
+          </Button>
+        )}
+        {run.hold === 'folder_dirty' && (
+          <Button
+            size="sm"
+            variant="outline"
+            data-queue-allow-dirty
+            onClick={() => allow(run, 'allow-dirty')}
+          >
+            {t.actions.allowDirty}
           </Button>
         )}
         {run.state === 'interrupted' && onRunAgain && (

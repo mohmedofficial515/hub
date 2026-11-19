@@ -25,6 +25,24 @@ const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 /** A connection still not open by now is given up and tried again, so a socket that never answers cannot stall the loop. */
 const CONNECT_TIMEOUT_MS = 20_000;
+/** How often a running bridge marks its pid file, and how old a mark may be before the pid in it is no longer believed. */
+export const PID_BEAT_MS = 30_000;
+export const PID_STALE_MS = 3 * 60_000;
+
+/**
+ * One line for the log: the error's name, its message cut short, and where it was thrown. Never the frame or the arguments that led to it,
+ * because those can hold anything a chat holds.
+ */
+export function describeError(error) {
+  if (!(error instanceof Error)) return String(error).slice(0, 200);
+  const where = (error.stack ?? '')
+    .split('\n')
+    .filter((line) => line.trimStart().startsWith('at '))
+    .slice(0, 6)
+    .map((line) => line.trim())
+    .join(' | ');
+  return `${error.name}: ${error.message.slice(0, 200)}${where ? ` (${where})` : ''}`;
+}
 
 export function socketUrl(url) {
   return `${url.replace(/^http/, 'ws')}${BRIDGE_SOCKET_PATH}`;
@@ -48,15 +66,20 @@ export function createBridge(system, device) {
 
   const context = { system, url: device.url, folders: () => folders, docRoots: () => docRoots };
 
+  /** Never rejects: it runs inside the heartbeat, where a rejection nobody catches would end the bridge. A failed look keeps the last status. */
   async function refreshStatus() {
     if (Date.now() - statusAt < STATUS_REFRESH_MS) return status;
     statusAt = Date.now();
-    const [claude, vscode] = await Promise.all([resolveClaude(system), resolveVsCode(system)]);
-    status = {
-      bridgeVersion: BRIDGE_VERSION,
-      claudeVersion: claude.best?.version ?? null,
-      vscodeFound: vscode.found,
-    };
+    try {
+      const [claude, vscode] = await Promise.all([resolveClaude(system), resolveVsCode(system)]);
+      status = {
+        bridgeVersion: BRIDGE_VERSION,
+        claudeVersion: claude.best?.version ?? null,
+        vscodeFound: vscode.found,
+      };
+    } catch (error) {
+      log(`Could not look up Claude Code and VS Code, kept the last status: ${describeError(error)}`);
+    }
     return status;
   }
 
@@ -186,6 +209,28 @@ export function createBridge(system, device) {
   };
 }
 
+/**
+ * Whatever goes wrong outside a handler is written to the bridge's own log before anything else happens. Started at login through `conhost --headless`,
+ * the bridge has no console, so until this a crash left no trace at all (2026-11-15: connected at 13:14, gone before 14:37, nothing written).
+ * A rejection nobody caught is logged and the bridge stays up. A thrown exception is logged and the bridge exits with 1, because its state may be broken,
+ * and the start at login starts it again within minutes (login-start.mjs).
+ */
+export function guardProcess(log, exit = (code) => process.exit(code), target = process) {
+  const onRejection = (reason) => {
+    log(`A failure nobody caught, the bridge stays up: ${describeError(reason)}`);
+  };
+  const onException = (error) => {
+    log(`The bridge stopped on an unexpected error: ${describeError(error)}`);
+    exit(1);
+  };
+  target.on('unhandledRejection', onRejection);
+  target.on('uncaughtException', onException);
+  return () => {
+    target.off('unhandledRejection', onRejection);
+    target.off('uncaughtException', onException);
+  };
+}
+
 /** `hub-bridge run`. One bridge per device: a second start leaves the first alone. */
 export async function runBridge(system) {
   const paths = hubPaths(system);
@@ -194,17 +239,29 @@ export async function runBridge(system) {
     system.out('This device is not paired. Run the connect command from Settings › Devices.');
     return 1;
   }
-  const existing = readJson(paths.pid);
-  if (existing?.pid && existing.pid !== process.pid && isAlive(existing.pid)) {
-    system.out(`The bridge is already running (process ${existing.pid}).`);
+  const existing = runningBridgePid(system);
+  if (existing && existing !== process.pid) {
+    system.out(`The bridge is already running (process ${existing}).`);
     return 0;
   }
-  writeFileSync(paths.pid, JSON.stringify({ pid: process.pid }));
+  const log = createLog(paths.log);
+  const unguard = guardProcess(log);
+  const markPid = () => {
+    try {
+      writeFileSync(paths.pid, JSON.stringify({ pid: process.pid, beat: Date.now() }));
+    } catch {
+      /* The mark is a hint for the next start, and a failed write must not stop the bridge. */
+    }
+  };
+  markPid();
   const bridge = createBridge(system, device);
-  const keepAlive = setInterval(() => {}, 60_000);
+  // The beat also keeps the process alive between connection attempts.
+  const beat = setInterval(markPid, PID_BEAT_MS);
   const code = await bridge.start();
-  clearInterval(keepAlive);
-  rmSync(paths.pid, { force: true });
+  clearInterval(beat);
+  // Only our own mark: a bridge started after this one, for the same device, has written its own.
+  if (readJson(paths.pid)?.pid === process.pid) rmSync(paths.pid, { force: true });
+  unguard();
   return code;
 }
 
@@ -217,11 +274,24 @@ export function isAlive(pid) {
   }
 }
 
+/**
+ * The pid of this device's running bridge, or null. A live pid is not enough: Windows gives a dead bridge's pid to the next process soon, and believing it
+ * would keep the bridge from starting again, or end someone else's process on a stop. A bridge marks its pid file every `PID_BEAT_MS`, so an old mark
+ * means the pid belongs to something else now. A file with no mark is from a bridge older than the mark, and its pid alone is believed.
+ */
+export function runningBridgePid(system, now = Date.now()) {
+  const mark = readJson(hubPaths(system).pid);
+  const pid = mark?.pid;
+  if (!pid || !isAlive(pid)) return null;
+  if (typeof mark.beat === 'number' && now - mark.beat > PID_STALE_MS) return null;
+  return pid;
+}
+
 /** Stops this device's bridge. On Windows a whole tree needs `taskkill`, and a bare kill would leave children (S1 Q7). */
 export async function stopRunningBridge(system) {
   const paths = hubPaths(system);
-  const pid = readJson(paths.pid)?.pid;
-  if (pid && pid !== process.pid && isAlive(pid)) {
+  const pid = runningBridgePid(system);
+  if (pid && pid !== process.pid) {
     if (system.platform === 'win32') {
       await system.run('taskkill.exe', ['/PID', String(pid), '/T', '/F']);
     } else {

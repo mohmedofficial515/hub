@@ -1,42 +1,52 @@
 /// One run in the agent queue (docs/16 §9): a panel chat turn in Execute that Hub starts at its time, within the owner's limits. The database is the truth, so a schedule survives a restart. `position` orders what has not started; it begins as the due time, so missed runs go oldest first.
 model AgentRun {
-  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  workspaceId  String    @map("workspace_id") @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  deviceId     String    @map("device_id") @db.Uuid
-  folder       String
+  id                String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId       String    @map("workspace_id") @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  deviceId          String    @map("device_id") @db.Uuid
+  folder            String
   /// More folders of the same project, passed as `--add-dir` (docs/16 D59).
-  extraFolders String[]  @default([]) @map("extra_folders")
+  extraFolders      String[]  @default([]) @map("extra_folders")
   /// approval | automatic (docs/16 D58).
-  mode         String    @default("approval")
+  mode              String    @default("approval")
   /// The roles the run works as (docs/16 D60).
-  roles        String[]  @default([])
+  roles             String[]  @default([])
   /// A pending item's id to the chat its Run it later started (D58).
-  followups    Json      @default("{}")
+  followups         Json      @default("{}")
   /// task | plan_step | prompt
-  source       String
-  cardKey      String?   @map("card_key")
-  planStep     Int?      @map("plan_step")
-  prompt       String
-  title        String
+  source            String
+  cardKey           String?   @map("card_key")
+  planStep          Int?      @map("plan_step")
+  prompt            String
+  title             String
   /// queued | running | done | failed | stopped | interrupted | cancelled
-  state        String    @default("queued")
-  position     Float
-  runAt        DateTime? @map("run_at") @db.Timestamptz(3)
+  state             String    @default("queued")
+  position          Float
+  runAt             DateTime? @map("run_at") @db.Timestamptz(3)
   /// 1 = Monday … 7 = Sunday, with `repeatTime`, for a weekly run. Each start leaves the next week's copy.
-  repeatDay    Int?      @map("repeat_day")
-  repeatTime   String?   @map("repeat_time")
-  pausedAt     DateTime? @map("paused_at") @db.Timestamptz(3)
-  chatId       String?   @map("chat_id") @db.Uuid
-  messageId    String?   @map("message_id") @db.Uuid
-  failure      String?
-  summary      String?
-  changedFiles Json      @default("[]") @map("changed_files")
-  moved        Boolean?
-  startedAt    DateTime? @map("started_at") @db.Timestamptz(3)
-  endedAt      DateTime? @map("ended_at") @db.Timestamptz(3)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  repeatDay         Int?      @map("repeat_day")
+  repeatTime        String?   @map("repeat_time")
+  pausedAt          DateTime? @map("paused_at") @db.Timestamptz(3)
+  chatId            String?   @map("chat_id") @db.Uuid
+  messageId         String?   @map("message_id") @db.Uuid
+  failure           String?
+  summary           String?
+  changedFiles      Json      @default("[]") @map("changed_files")
+  /// docs/16 §9.2: the run's own copy of its repository, its branch and the commit it started from. Set when the copy is made.
+  worktreeFolder    String?   @map("worktree_folder")
+  worktreeBranch    String?   @map("worktree_branch")
+  worktreeBase      String?   @map("worktree_base")
+  /// The owner removed the copy. Its branch stays.
+  worktreeRemovedAt DateTime? @map("worktree_removed_at") @db.Timestamptz(3)
+  /// Folder isolation: changed files that held it at the last look. Cleared when it starts.
+  dirtyFiles        Int?      @map("dirty_files")
+  /// The owner let it start in a folder with changes not committed.
+  allowDirty        Boolean   @default(false) @map("allow_dirty")
+  moved             Boolean?
+  startedAt         DateTime? @map("started_at") @db.Timestamptz(3)
+  endedAt           DateTime? @map("ended_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@index([userId, state])
   @@index([workspaceId, state])
@@ -57,6 +67,8 @@ model AgentQueueSettings {
   /// owner | usage_limit
   pausedReason  String?   @map("paused_reason")
   resumesAt     DateTime? @map("resumes_at") @db.Timestamptz(3)
+  /// docs/16 §9.2: worktree | folder.
+  isolation     String    @default("worktree")
   updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("agent_queue_settings")

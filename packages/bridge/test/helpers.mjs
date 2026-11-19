@@ -105,6 +105,8 @@ export function fakeSystem(overrides = {}) {
     plugins,
     registryHandler: '"C:\\nowhere\\Code.exe" --open-url -- "%1"',
     taskRegistered: false,
+    taskXml: null,
+    runKeySet: false,
     taskRefused: false,
     calls,
     lines,
@@ -131,18 +133,25 @@ export function fakeSystem(overrides = {}) {
       if (command === 'schtasks.exe' && args[0] === '/Create') {
         if (system.taskRefused) return { status: 1, stdout: '', stderr: 'Access is denied.' };
         system.taskRegistered = true;
+        // The real schtasks reads the file while it runs, and the caller removes it after.
+        system.taskXml = readFileSync(args[args.indexOf('/XML') + 1], 'utf16le');
         return { status: 0, stdout: '', stderr: '' };
       }
       if (command === 'schtasks.exe' && args[0] === '/Query') {
-        return { status: system.taskRegistered ? 0 : 1, stdout: '', stderr: '' };
+        return { status: system.taskXml ? 0 : 1, stdout: system.taskXml ?? '', stderr: '' };
       }
       if (command === 'schtasks.exe' && args[0] === '/Delete') {
         system.taskRegistered = false;
+        system.taskXml = null;
         return { status: 0, stdout: '', stderr: '' };
       }
       if (command === 'reg.exe' && args[0] === 'add') {
         system.taskRegistered = true;
+        system.runKeySet = true;
         return { status: 0, stdout: '', stderr: '' };
+      }
+      if (command === 'reg.exe' && args[0] === 'query' && args[1].startsWith('HKCU')) {
+        return { status: system.runKeySet ? 0 : 1, stdout: '', stderr: '' };
       }
       if (command === 'reg.exe') return { status: 1, stdout: '', stderr: '' };
       return { status: 0, stdout: '', stderr: '' };

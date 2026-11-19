@@ -45,6 +45,9 @@ export const BRIDGE_ACTIONS = [
   'schema.read',
   'vscode.open',
   'plugin.sync',
+  'folder.status',
+  'worktree.prepare',
+  'worktree.remove',
 ] as const;
 export type BridgeAction = (typeof BRIDGE_ACTIONS)[number];
 
@@ -59,8 +62,37 @@ export const BRIDGE_REFUSALS = [
   'turn_running',
   'vscode_missing',
   'failed',
+  'not_a_repository',
+  'worktree_dirty',
 ] as const;
 export type BridgeRefusal = (typeof BRIDGE_REFUSALS)[number];
+
+/** `folder.status`: what Git says about a folder before a queued run starts in it (docs/16 §9.2). Read only. */
+export const folderStatusSchema = z.object({
+  repository: z.boolean(),
+  /** Files with changes not committed, untracked ones included. 0 when it is not a repository. */
+  changed: z.number().int().min(0),
+  branch: z.string().nullable(),
+});
+export type FolderStatus = z.infer<typeof folderStatusSchema>;
+
+/** `worktree.prepare`: the run's own copy, made or found again. `folder` is where the run works. */
+export const worktreePreparedSchema = z.object({
+  folder: z.string(),
+  branch: z.string(),
+  /** The commit it started from, and the branch that commit was on. */
+  base: z.string(),
+  baseBranch: z.string().nullable(),
+  /** True when the copy was already there, as for a plan's next step. */
+  reused: z.boolean(),
+  /** How many `node_modules` folders of the repository it links to. */
+  linked: z.number().int().min(0),
+});
+export type WorktreePrepared = z.infer<typeof worktreePreparedSchema>;
+
+/** `worktree.remove`: the copy is gone and its branch stays, with every commit on it. */
+export const worktreeRemovedSchema = z.object({ branch: z.string().nullable() });
+export type WorktreeRemoved = z.infer<typeof worktreeRemovedSchema>;
 
 export const DEVICE_PLATFORMS = ['win32', 'darwin', 'linux'] as const;
 export const devicePlatformSchema = z.enum(DEVICE_PLATFORMS);

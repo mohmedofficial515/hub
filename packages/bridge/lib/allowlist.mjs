@@ -6,6 +6,8 @@
 import { realpathSync } from 'node:fs';
 import { isAbsolute, resolve } from 'node:path';
 
+import { isWorktreeOf } from './worktrees.mjs';
+
 function canonical(path, platform) {
   let real = resolve(path);
   try {
@@ -19,16 +21,20 @@ function canonical(path, platform) {
 
 const isUnder = (inner, outer) => inner === outer || inner.startsWith(`${outer}/`);
 
-/** The entry that allows this folder, or null. `project`, when given, must be that entry's project. */
+/**
+ * The entry that allows this folder, or null. `project`, when given, must be that entry's project.
+ * A folder in Hub's own copy of a registered repository (`<parent>/wt-<key>/<name>`, docs/16 §9.2) counts as that repository's: only that exact form does, so
+ * the owner's other folders beside it stay outside.
+ */
 export function allowedEntry(folder, entries, platform, project) {
   if (typeof folder !== 'string' || folder === '' || !isAbsolute(folder)) return null;
   if (/(^|[\\/])\.\.([\\/]|$)/.test(folder)) return null;
   const inner = canonical(folder, platform);
   return (
-    entries.find(
-      (entry) =>
-        (project === undefined || entry.project === project) &&
-        isUnder(inner, canonical(entry.path, platform)),
-    ) ?? null
+    entries.find((entry) => {
+      if (project !== undefined && entry.project !== project) return false;
+      const outer = canonical(entry.path, platform);
+      return isUnder(inner, outer) || isWorktreeOf(inner, outer, platform);
+    }) ?? null
   );
 }

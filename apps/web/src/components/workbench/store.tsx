@@ -269,6 +269,10 @@ export interface SendOptions {
   mode?: Mode | undefined;
   /** Start a new chat, keeping a busy one's turn. */
   fresh?: boolean | undefined;
+  /** docs/16 §9.2: send although another chat works in this folder, after the owner pressed Send anyway. */
+  force?: boolean | undefined;
+  /** Called when a send refused for a busy folder goes later through Send anyway, so the composer can let go of the words. */
+  onSentLater?: (() => void) | undefined;
 }
 
 const modelArg = (): { model?: string } => (local.model === 'default' ? {} : { model: local.model });
@@ -314,11 +318,27 @@ export async function send(options: SendOptions): Promise<boolean> {
       mode,
       ...modelArg(),
       ...effortArg(),
+      ...(options.force ? { force: true } : {}),
     });
     set((s) => ({ ...s, attachments: [], leaveOut: null, followOffer: null }));
     reread(id);
     return true;
   } catch (error) {
+    if (isHubError(error, 'hub.chats.folder_busy') && !options.force) {
+      // Two turns in one folder edit the same files: the owner reads which chat works there, and may still send (docs/16 §9.2).
+      showToast({
+        tone: 'error',
+        message: error.message,
+        action: {
+          label: scope.words?.panel.composer.sendAnyway ?? '',
+          onSelect: () =>
+            void send({ ...options, force: true }).then((sent) => {
+              if (sent) options.onSentLater?.();
+            }),
+        },
+      });
+      return false;
+    }
     refused(error);
     return false;
   }

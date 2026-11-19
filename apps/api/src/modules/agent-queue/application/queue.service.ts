@@ -26,7 +26,7 @@ import { z } from 'zod';
 import { AuditService } from '@/modules/audit';
 import { CardQueryService } from '@/modules/cards';
 import { ChatsService } from '@/modules/chats';
-import { DevicesService } from '@/modules/devices';
+import { BridgeHub, DevicesService } from '@/modules/devices';
 import { ProjectsService } from '@/modules/workspaces';
 import { AppException } from '@/shared/errors';
 import { assertNoSecrets } from '@/shared/security/secret-filter';
@@ -36,6 +36,8 @@ import { AgentQueueDispatcher } from './queue-dispatcher';
 import { AgentQueueStore, type RunRow } from './queue-store';
 
 const OPEN_STATES = ['queued', 'running'];
+/** Removing a copy unlinks its packages and asks Git to remove the folder. */
+const WORKTREE_REMOVE_TIMEOUT_MS = 120_000;
 const CLOSED_TASK = new Set(['done', 'cancelled']);
 
 const registered = (folder: string, repoPaths: readonly string[], platform: string): boolean => {
@@ -60,6 +62,7 @@ export class AgentQueueService {
     private readonly dispatcher: AgentQueueDispatcher,
     private readonly chats: ChatsService,
     private readonly devices: DevicesService,
+    private readonly hub: BridgeHub,
     private readonly projects: ProjectsService,
     private readonly cards: CardQueryService,
     private readonly audit: AuditService,
@@ -275,6 +278,80 @@ export class AgentQueueService {
     return started;
   }
 
+  /**
+   * docs/16 §9.2: the owner lets a run start in a folder that holds changes not committed, which the run will mix with its own. The owner's press only.
+   */
+  async allowDirty(actor: MemberActor, id: string): Promise<AgentRunDto> {
+    const run = await this.owned(actor, id);
+    if (run.state !== 'queued') throw new AppException('hub.queue.wrong_state');
+    if (!run.allowDirty) {
+      await this.patch(actor, run, { allowDirty: true, dirtyFiles: null });
+      await this.record(
+        actor,
+        run,
+        'queue.allow_dirty',
+        `Let "${run.title}" start in ${run.folder} with changes not committed`,
+      );
+    }
+    void this.dispatcher.kick(actor.userId);
+    return this.one(actor, id);
+  }
+
+  /**
+   * docs/16 §9.2: removes a run's own copy once it has ended. Its branch stays, with every commit on it. Refused while the copy holds changes not committed,
+   * and while another open run, such as a plan's next step, still works in it. Every run that shared the copy shows it removed.
+   */
+  async removeWorktree(actor: MemberActor, id: string): Promise<AgentRunDto> {
+    const run = await this.owned(actor, id);
+    if (!run.worktreeFolder || run.worktreeRemovedAt) throw new AppException('hub.queue.no_worktree');
+    if (OPEN_STATES.includes(run.state)) throw new AppException('hub.queue.wrong_state');
+    const sharing = await this.store.tx.agentRun.count({
+      where: {
+        userId: actor.userId,
+        worktreeFolder: run.worktreeFolder,
+        worktreeRemovedAt: null,
+        state: { in: OPEN_STATES },
+        id: { not: run.id },
+      },
+    });
+    if (sharing > 0) throw new AppException('hub.queue.wrong_state');
+    if (!this.hub.isOnline(run.deviceId)) throw new AppException('hub.devices.offline');
+    if (!this.hub.supports(run.deviceId, 'worktree.remove')) {
+      throw new AppException('hub.queue.worktree_failed', {
+        params: { reason: 'this device runs an older bridge. Reconnect it from Settings › Devices.' },
+      });
+    }
+    try {
+      await this.hub.request(
+        run.deviceId,
+        'worktree.remove',
+        { folder: run.worktreeFolder },
+        { timeoutMs: WORKTREE_REMOVE_TIMEOUT_MS },
+      );
+    } catch (error) {
+      const details = (error as { details?: { reason?: string; message?: string } }).details;
+      if (details?.reason === 'worktree_dirty') {
+        throw new AppException('hub.queue.worktree_dirty', { params: { folder: run.worktreeFolder } });
+      }
+      if (!details) throw error;
+      throw new AppException('hub.queue.worktree_failed', {
+        params: { reason: (details.message ?? details.reason ?? 'unknown').slice(0, 300) },
+      });
+    }
+    await this.store.tx.agentRun.updateMany({
+      where: { userId: actor.userId, worktreeFolder: run.worktreeFolder, worktreeRemovedAt: null },
+      data: { worktreeRemovedAt: this.store.now() },
+    });
+    await this.record(
+      actor,
+      run,
+      'queue.worktree_removed',
+      `Removed the copy ${run.worktreeFolder} of "${run.title}"; its branch ${run.worktreeBranch ?? ''} stays`,
+    );
+    await this.store.changed(actor.userId, run.id, actor.workspaceId);
+    return this.one(actor, id);
+  }
+
   /** Cancel ends a weekly repeat with this run. A running one is stopped first, as Stop in the panel does. */
   async cancel(actor: MemberActor, id: string): Promise<AgentRunDto> {
     const run = await this.owned(actor, id);
@@ -343,6 +420,7 @@ export class AgentQueueService {
         ? {}
         : { quietFrom: input.quietHours?.from ?? null, quietTo: input.quietHours?.to ?? null }),
       ...(input.timezone === undefined ? {} : { timezone: input.timezone }),
+      ...(input.isolation === undefined ? {} : { isolation: input.isolation }),
     };
     await this.store.tx.agentQueueSettings.upsert({
       where: { userId: actor.userId },

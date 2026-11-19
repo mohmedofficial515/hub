@@ -47,7 +47,8 @@ export function useAddRun() {
   });
 }
 
-export type RunAction = 'pause' | 'resume' | 'cancel';
+/** `allow-dirty` and `worktree/remove` are docs/16 §9.2: start in a folder with changes not committed, and remove an ended run's own copy. */
+export type RunAction = 'pause' | 'resume' | 'cancel' | 'allow-dirty' | 'worktree/remove';
 
 export function useRunAction() {
   const { base, reread } = useQueueBase();

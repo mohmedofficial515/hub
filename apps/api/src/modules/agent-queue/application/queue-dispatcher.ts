@@ -4,16 +4,23 @@
  * BullMQ is not used for this: its delayed jobs would be a second copy of the schedule, and a job could run in a worker that holds no socket. The repeating tick needs neither.
  * A run claims its slot in one statement (`queued` to `running`), so two ticks cannot start it twice. A restart marks what was running as interrupted, and nothing starts it again by itself.
  * A usage limit pauses the queue and says when it resets; it continues once at that time, and with no time it waits for the owner. There is no retry loop. Signed out puts the run back in line and the queue waits, checking the device's sign-in at most once a minute, which runs no model.
+ * §9.2: before a run is claimed, worktree isolation makes its own copy of the repository (or finds it again for a plan's next step), and the run works there. A folder
+ * that is no repository's top works in the folder itself, as does every run with folder isolation; there a run waits while the folder holds changes not committed, until the
+ * owner lets it go. Both happen before the claim, so a run that waits or fails here never counts against the day.
  */
 import {
   type EngineStatus,
   engineStatusSchema,
+  folderStatusSchema,
   type MemberActor,
   nextWeekly,
   QUEUE_LIMITS,
   type Role,
   WEEKDAYS,
   type WorkReport,
+  worktreeKeyOf,
+  type WorktreePrepared,
+  worktreePreparedSchema,
 } from '@hub/contracts';
 import {
   Inject,
@@ -39,13 +46,16 @@ import { ActorService } from '@/modules/identity';
 import { NotificationWriter } from '@/modules/notifications';
 import { SettingsService } from '@/modules/workspaces';
 
-import { holdFor, isDue } from '../domain/queue-rules';
+import { folderKey, holdFor, isDue, type QueueGate } from '../domain/queue-rules';
 import { promptRoles } from '../domain/run-context';
 import { AgentQueueStore, type RunRow } from './queue-store';
 
 const TICK_MS = 15_000;
 const ENGINE_TIMEOUT_MS = 30_000;
 const SIGN_IN_RECHECK_MS = 60_000;
+/** Making a copy is a `git worktree add` and a few links; finding one again is quicker still. */
+const WORKTREE_TIMEOUT_MS = 120_000;
+const STATUS_TIMEOUT_MS = 30_000;
 const SYSTEM_AUDIT = (workspaceId: string) =>
   ({ kind: 'system', userId: null, via: 'scheduler', workspaceId, roles: [] }) as const;
 
@@ -94,9 +104,19 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
     this.hub.onReady((_deviceId, userId) => void this.kick(userId));
     // Tests drive the tick themselves, so a timer never races them.
     if (this.config.QUEUE_MODE === 'inline') return;
-    this.timer = setInterval(() => void this.tickAll(), TICK_MS);
+    this.timer = setInterval(() => void this.timedTick(), TICK_MS);
     this.timer.unref();
-    void this.tickAll();
+    void this.timedTick();
+  }
+
+  /**
+   * The timer's tick. It runs with nobody awaiting it, so a failure is logged here: once a database that stalled for a moment failed this tick's
+   * query, the rejection reached no handler and ended the whole API, with every device's bridge connection (2026-11-15, 2026-11-16).
+   */
+  private timedTick(): Promise<void> {
+    return this.tickAll().catch((error: unknown) =>
+      this.logger.warn(`The queue tick could not look for due runs: ${String(error)}`),
+    );
   }
 
   onApplicationShutdown(): void {
@@ -153,8 +173,9 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
       if (hold === 'paused_all' || hold === 'usage_limit' || hold === 'quiet_hours') return;
       if (hold === 'daily_limit' || hold === 'concurrency') return;
       if (hold === 'folder_busy' || hold === 'device_offline' || hold === 'engine_unavailable') continue;
+      // `folder_dirty` is looked at again on each tick, so a folder the owner has since committed lets the run go by itself.
       if (!(await this.engineReady(run.deviceId))) continue;
-      await this.start(run);
+      await this.start(run, gate);
     }
   }
 
@@ -185,17 +206,19 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
     return true;
   }
 
-  private async start(run: RunRow): Promise<void> {
+  private async start(run: RunRow, gate: QueueGate): Promise<void> {
+    const place = await this.placeOf(run, gate);
+    if (place === 'wait') return;
     const now = this.store.now();
     const claimed = await this.store.tx.agentRun.updateMany({
       where: { id: run.id, userId: run.userId, state: 'queued', pausedAt: null },
-      data: { state: 'running', startedAt: now, failure: null },
+      data: { state: 'running', startedAt: now, failure: null, dirtyFiles: null },
     });
     if (claimed.count === 0) return;
     if (run.repeatDay && run.repeatTime) await this.nextOccurrence(run);
     try {
       const actor = await this.actorFor(run);
-      const turn = await this.queueTurn(run);
+      const turn = { ...(await this.queueTurn(run)), ...(place.isolated ? { isolated: true } : {}) };
       const started = run.chatId
         ? await this.chats.sendForQueue(actor, run.chatId, {
             prompt: run.prompt,
@@ -204,7 +227,7 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
           })
         : await this.chats.startForQueue(actor, {
             device: run.deviceId,
-            folder: run.folder,
+            folder: place.folder,
             title: run.title,
             prompt: run.prompt,
             ...(run.cardKey ? { card: run.cardKey } : {}),
@@ -218,7 +241,7 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
         action: 'queue.start',
         targetType: 'agent_run',
         targetId: run.id,
-        summary: `The queue started "${run.title}" in ${run.folder}`.slice(0, 1_000),
+        summary: `The queue started "${run.title}" in ${place.folder}`.slice(0, 1_000),
       });
     } catch (error) {
       const code = (error as { code?: string }).code ?? 'unknown';
@@ -237,6 +260,95 @@ export class AgentQueueDispatcher implements OnApplicationBootstrap, OnApplicati
             },
       });
     }
+    await this.store.changed(run.userId, run.id, run.workspaceId);
+  }
+
+  /**
+   * Where the run will work (§9.2), decided before it is claimed. `wait` leaves it queued: its folder holds changes not committed, or its folder turned out to be
+   * no repository's top, so the next tick holds and starts it on the folder itself. A copy that cannot be made fails the run, with Git's own words.
+   */
+  private async placeOf(
+    run: RunRow,
+    gate: QueueGate,
+  ): Promise<{ folder: string; isolated: boolean } | 'wait'> {
+    if (run.worktreeFolder && !run.worktreeRemovedAt) return { folder: run.worktreeFolder, isolated: true };
+    if (gate.isolation === 'worktree' && this.store.canIsolate(run.deviceId, run.folder)) {
+      const made = await this.prepareCopy(run);
+      if (made === 'not_a_repository') {
+        this.store.notRepository.add(folderKey(run.deviceId, run.folder));
+        await this.store.changed(run.userId, run.id, run.workspaceId);
+        return 'wait';
+      }
+      if (made instanceof Error) {
+        await this.failQueued(run, `worktree: ${made.message}`.slice(0, QUEUE_LIMITS.summaryChars));
+        return 'wait';
+      }
+      await this.store.tx.agentRun.update({
+        where: { id: run.id, userId: run.userId },
+        data: {
+          worktreeFolder: made.folder,
+          worktreeBranch: made.branch,
+          worktreeBase: made.base,
+          worktreeRemovedAt: null,
+        },
+      });
+      return { folder: made.folder, isolated: true };
+    }
+    if (!run.allowDirty) {
+      const changed = await this.changedFilesIn(run);
+      if (changed !== (run.dirtyFiles ?? 0)) {
+        await this.store.tx.agentRun.update({
+          where: { id: run.id, userId: run.userId },
+          data: { dirtyFiles: changed > 0 ? changed : null },
+        });
+        await this.store.changed(run.userId, run.id, run.workspaceId);
+      }
+      if (changed > 0) return 'wait';
+    }
+    return { folder: run.folder, isolated: false };
+  }
+
+  /** The run's copy, or why there is none: `not_a_repository` for a folder that is no repository's top, an Error for anything else. */
+  private async prepareCopy(run: RunRow): Promise<WorktreePrepared | 'not_a_repository' | Error> {
+    try {
+      const answer = await this.hub.request(
+        run.deviceId,
+        'worktree.prepare',
+        { folder: run.folder, key: worktreeKeyOf(run) },
+        { timeoutMs: WORKTREE_TIMEOUT_MS },
+      );
+      return worktreePreparedSchema.parse(answer);
+    } catch (error) {
+      const details = (error as { details?: { reason?: string; message?: string } }).details;
+      if (details?.reason === 'not_a_repository') return 'not_a_repository';
+      return new Error(details?.message ?? details?.reason ?? (error as { code?: string }).code ?? 'unknown');
+    }
+  }
+
+  /** Changed files in the run's folder, untracked ones counted. 0 when the bridge cannot say, as an older one cannot: the run then goes as it did before. */
+  private async changedFilesIn(run: RunRow): Promise<number> {
+    if (!this.hub.supports(run.deviceId, 'folder.status')) return 0;
+    try {
+      const status = folderStatusSchema.parse(
+        await this.hub.request(
+          run.deviceId,
+          'folder.status',
+          { folder: run.folder },
+          { timeoutMs: STATUS_TIMEOUT_MS },
+        ),
+      );
+      return status.changed;
+    } catch {
+      return 0;
+    }
+  }
+
+  /** A run that cannot start for a reason that will not pass by itself fails while still queued, and never counts against the day. */
+  private async failQueued(run: RunRow, summary: string): Promise<void> {
+    await this.store.tx.agentRun.updateMany({
+      where: { id: run.id, userId: run.userId, state: 'queued' },
+      data: { state: 'failed', failure: 'unknown', summary, endedAt: this.store.now() },
+    });
     await this.store.changed(run.userId, run.id, run.workspaceId);
   }
 

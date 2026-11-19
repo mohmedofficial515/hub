@@ -845,7 +845,12 @@ export function Composer({
         : ctx.doc
           ? { card: ctx.doc.key }
           : { page: ctx.pageName };
-    void send({ text: value, context }).then((sent) => {
+    void send({
+      text: value,
+      context,
+      // Sent later through Send anyway: the words given back go, unless the owner has changed them since.
+      onSentLater: () => setText((now) => (now === value ? '' : now)),
+    }).then((sent) => {
       // A refused send gives the words back, unless the owner has started new ones.
       if (!sent) setText((now) => now || value);
     });

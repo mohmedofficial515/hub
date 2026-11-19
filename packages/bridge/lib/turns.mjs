@@ -32,12 +32,14 @@ import {
   categoryOf,
   describeCall,
   executeSettings,
+  isOwnBranchCommit,
   isSensitiveCall,
   MODE_FLAGS,
   readOnlySettings,
 } from './permissions.mjs';
 import { Refusal } from './protocol.mjs';
 import { childEnv } from './system.mjs';
+import { isHubWorktree } from './worktrees.mjs';
 
 export const CHAT_MODES = ['ask', 'plan', 'execute', 'auto'];
 export const CHAT_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -231,6 +233,10 @@ function createManager(context) {
     // A command that is not sensitive runs at once in every mode that may write: the panel, a queued run With my approval, and an automatic run,
     // which must be able to run its own tests. Only a sensitive call goes on to be decided by the mode.
     if (!isSensitiveCall(toolName, input)) return reply({ behavior: 'allow', updatedInput: input ?? {} });
+    // docs/16 §9.2, the owner's choice: an automatic run in Hub's own copy commits to its own branch at once. It is recorded like any call allowed for the owner.
+    if (proc.options.runMode === 'automatic' && proc.options.isolated && isOwnBranchCommit(toolName, input)) {
+      return approveForOwner(turn, message, reply);
+    }
     if (proc.options.runMode === 'automatic') return skipForOwner(turn, message, reply);
     if (autoApprove) return approveForOwner(turn, message, reply);
     const approvalId = randomUUID();
@@ -504,6 +510,7 @@ function createManager(context) {
       (options.addDirs ?? []).join('|'),
       options.runMode ?? '',
       options.untimed ? 'untimed' : '',
+      options.isolated ? 'isolated' : '',
     ].join('\u0000');
 
   function closeIdle(proc) {
@@ -709,7 +716,8 @@ function createManager(context) {
   }
 
   function validateStart(args) {
-    const { chatId, prompt, mode, model, effort, sessionId, folder, addDirs, runMode, untimed } = args;
+    const { chatId, prompt, mode, model, effort, sessionId, folder, addDirs, runMode, untimed, isolated } =
+      args;
     const fine =
       typeof chatId === 'string' &&
       UUID.test(chatId) &&
@@ -724,7 +732,8 @@ function createManager(context) {
           addDirs.length <= MAX_ADD_DIRS &&
           addDirs.every((dir) => typeof dir === 'string' && dir !== ''))) &&
       (runMode === undefined || (RUN_MODES.includes(runMode) && mode === 'execute')) &&
-      (untimed === undefined || typeof untimed === 'boolean');
+      (untimed === undefined || typeof untimed === 'boolean') &&
+      (isolated === undefined || typeof isolated === 'boolean');
     if (!fine) throw new Refusal('bad_arguments');
     for (const dir of [folder, ...(addDirs ?? [])]) {
       if (!existsSync(dir) || !statSync(dir).isDirectory()) throw new Refusal('folder_missing');
@@ -742,6 +751,8 @@ function createManager(context) {
       ...(args.addDirs?.length ? { addDirs: [...args.addDirs] } : {}),
       ...(args.runMode ? { runMode: args.runMode } : {}),
       ...(args.untimed ? { untimed: true } : {}),
+      // docs/16 §9.2: Hub says a queued run works in its own copy, and the bridge believes it only when the folder is one.
+      ...(args.isolated === true && isHubWorktree(args.folder) ? { isolated: true } : {}),
     };
     const chatId = args.chatId;
     if (chats.get(chatId)?.turn || starting.has(chatId)) throw new Refusal('turn_running');

@@ -91,6 +91,32 @@ export class AgentQueueController {
     return this.queue.cancel(actor, id);
   }
 
+  @Post('runs/:id/allow-dirty')
+  @HttpCode(200)
+  @Permissions('queue.manage')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      'Let a run start in a folder that holds changes not committed (docs/16 §9.2). The owner press only; the run mixes them with its own',
+  })
+  @ApiOkResponse({ type: AgentRunDto })
+  allowDirty(@Actor() actor: MemberActor, @Param('id') id: string): Promise<AgentRunDto> {
+    return this.queue.allowDirty(actor, id);
+  }
+
+  @Post('runs/:id/worktree/remove')
+  @HttpCode(200)
+  @Permissions('queue.manage')
+  @SessionOnly()
+  @ApiOperation({
+    summary:
+      "Remove an ended run's own copy of its repository (docs/16 §9.2). Its branch stays; refused while the copy holds changes not committed",
+  })
+  @ApiOkResponse({ type: AgentRunDto })
+  removeWorktree(@Actor() actor: MemberActor, @Param('id') id: string): Promise<AgentRunDto> {
+    return this.queue.removeWorktree(actor, id);
+  }
+
   @Post('runs/:id/mode')
   @HttpCode(200)
   @Permissions('queue.manage')

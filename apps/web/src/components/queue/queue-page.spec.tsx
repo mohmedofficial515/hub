@@ -36,6 +36,7 @@ const state: QueueDto['state'] = {
   inQuietHours: false,
   timezone: 'Europe/Istanbul',
   timezoneSource: 'machine',
+  isolation: 'worktree',
   machineTimezone: 'Europe/Istanbul',
 };
 
@@ -56,6 +57,9 @@ const run = (over: Partial<AgentRunDto>): AgentRunDto => ({
   state: 'next',
   stored: 'queued',
   hold: null,
+  worktree: null,
+  dirtyFiles: null,
+  allowDirty: false,
   runAt: null,
   repeat: null,
   paused: false,
@@ -184,6 +188,53 @@ describe('QueuePage', () => {
     const recent = screen.getByRole('region', { name: /Ended lately/ });
     expect(within(recent).getByText('Rewrote the intro.')).toBeInTheDocument();
     expect(within(recent).getByText('1 changed file')).toBeInTheDocument();
+  });
+
+  it('says how many changes hold a run, starts it anyway on the press, and names an ended run’s own copy (docs/16 §9.2)', async () => {
+    const posted: string[] = [];
+    stubFetch((url, init, request) => {
+      if ((request?.method ?? init?.method) === 'POST') {
+        posted.push(url.pathname);
+        return { body: { data: run({ id: 'h' }) } };
+      }
+      if (url.pathname.endsWith('/queue')) {
+        return {
+          body: {
+            data: {
+              state,
+              runs: [
+                run({ id: 'h', title: 'Lint', hold: 'folder_dirty', dirtyFiles: 3 }),
+                run({
+                  id: 'd',
+                  title: 'Docs pass',
+                  state: 'done',
+                  stored: 'done',
+                  cardKey: 'GTV-7',
+                  worktree: {
+                    folder: 'F:/work/wt-GTV-7/repo',
+                    branch: 'hub/gtv-7',
+                    base: 'abc',
+                    removed: false,
+                  },
+                }),
+              ],
+            },
+          },
+        };
+      }
+      return undefined;
+    });
+    renderWithApp(<QueuePage />, { locale: 'en' });
+    const next = await screen.findByRole('region', { name: /Next/ });
+    expect(
+      within(next).getByText(
+        'Waits: its folder holds 3 changed files not committed, which it would mix with its own',
+      ),
+    ).toBeInTheDocument();
+    await userEvent.click(within(next).getByRole('button', { name: 'Start anyway' }));
+    await waitFor(() => expect(posted).toEqual([expect.stringMatching(/\/queue\/runs\/h\/allow-dirty$/)]));
+    const recent = screen.getByRole('region', { name: /Ended lately/ });
+    expect(within(recent).getByText('Its own copy on hub/gtv-7')).toBeInTheDocument();
   });
 
   it('says a usage-limit pause and when it continues', async () => {

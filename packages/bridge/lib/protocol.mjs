@@ -23,6 +23,9 @@ export const BRIDGE_ACTIONS = [
   'schema.read',
   'vscode.open',
   'plugin.sync',
+  'folder.status',
+  'worktree.prepare',
+  'worktree.remove',
 ];
 export const BRIDGE_REFUSALS = [
   'unknown_action',
@@ -34,6 +37,8 @@ export const BRIDGE_REFUSALS = [
   'turn_running',
   'vscode_missing',
   'failed',
+  'not_a_repository',
+  'worktree_dirty',
 ];
 export const VSCODE_PROMPT_CHARS = 500;
 export const VSCODE_LINK_PREFIX = 'vscode://anthropic.claude-code/open?prompt=';

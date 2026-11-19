@@ -193,6 +193,8 @@ export type InviteRowDto = {
     createdBy: string;
     expiresAt: string;
     acceptedAt: string | null;
+    revokedAt: string | null;
+    status: 'pending' | 'accepted' | 'expired' | 'revoked';
 };
 
 export type CreateInviteDto = {
@@ -206,10 +208,30 @@ export type InviteCreatedDto = {
     roles: Array<string>;
     expiresAt: string;
     url: string;
+    mail: 'real' | 'local' | 'off';
 };
 
-export type OneTimeUrlDto = {
+export type InviteLinkDto = {
     url: string;
+    expiresAt: string;
+    mail: 'real' | 'local' | 'off';
+};
+
+export type MailStatusDto = {
+    mode: 'real' | 'local' | 'off';
+    host: string | null;
+    port: number | null;
+    secure: boolean;
+    authenticated: boolean;
+    from: string | null;
+};
+
+export type MailTestResultDto = {
+    sent: boolean;
+    to: string;
+    mode: 'real' | 'local' | 'off';
+    failure: 'not_configured' | 'auth' | 'connection' | 'tls' | 'rejected' | 'unknown' | null;
+    responseCode: number | null;
 };
 
 export type AuditRowDto = {
@@ -5504,7 +5526,7 @@ export type ChatRowDto = {
     deviceRevoked: boolean;
     folder: string;
     branch: string | null;
-    mode: 'ask' | 'plan' | 'execute';
+    mode: 'ask' | 'plan' | 'execute' | 'auto';
     model: string | null;
     effort: string | null;
     sessionId: string | null;
@@ -5545,7 +5567,7 @@ export type CreateChatDto = {
     device: string;
     folder: string;
     title?: string;
-    mode?: 'ask' | 'plan' | 'execute';
+    mode?: 'ask' | 'plan' | 'execute' | 'auto';
     model?: string;
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 };
@@ -5570,7 +5592,7 @@ export type ChatFullDto = {
     deviceRevoked: boolean;
     folder: string;
     branch: string | null;
-    mode: 'ask' | 'plan' | 'execute';
+    mode: 'ask' | 'plan' | 'execute' | 'auto';
     model: string | null;
     effort: string | null;
     sessionId: string | null;
@@ -5631,13 +5653,46 @@ export type ChatFullDto = {
         plan: string | null;
         structuredPlan: {
             title: string;
+            goal?: string;
+            approach?: string;
             steps: Array<{
                 title: string;
                 role?: string;
                 why?: string;
+                size?: 'S' | 'M' | 'L';
+                after?: Array<number>;
             }>;
             checks?: Array<string>;
             risks?: Array<string>;
+            outOfScope?: Array<string>;
+            questions?: Array<string | {
+                text: string;
+                options?: Array<string | {
+                    label: string;
+                    detail?: string;
+                }>;
+                recommended?: number | string | Array<number | string>;
+                why?: string;
+                multi?: boolean;
+            }>;
+            diagram?: {
+                title?: string;
+                nodes: Array<{
+                    id: string;
+                    label: string;
+                    note?: string;
+                    shape?: 'actor' | 'step' | 'data' | 'decision';
+                }>;
+                edges: Array<{
+                    from: string;
+                    to: string;
+                    label?: string;
+                }>;
+            };
+            sources?: Array<{
+                title: string;
+                url: string;
+            }>;
         } | null;
         suggestions: {
             summary: string | null;
@@ -5675,6 +5730,66 @@ export type ChatFullDto = {
                 };
             }>;
         } | null;
+        idea: {
+            title: string;
+            summary: string;
+            problem?: string;
+            value?: string;
+            verdict: 'new' | 'partial' | 'exists';
+            overlap: number;
+            basis?: string;
+            matches?: Array<{
+                kind: 'card' | 'doc' | 'code' | 'external';
+                ref: string;
+                title: string;
+                overlap: number;
+                note?: string;
+            }>;
+            findings?: Array<{
+                title: string;
+                detail: string;
+                source?: number;
+            }>;
+            suggestions?: Array<{
+                kind: 'improve' | 'alternative' | 'addition' | 'simplify';
+                title: string;
+                detail: string;
+            }>;
+            diagram?: {
+                title?: string;
+                nodes: Array<{
+                    id: string;
+                    label: string;
+                    note?: string;
+                    shape?: 'actor' | 'step' | 'data' | 'decision';
+                }>;
+                edges: Array<{
+                    from: string;
+                    to: string;
+                    label?: string;
+                }>;
+            };
+            steps?: Array<{
+                title: string;
+                role?: string;
+                why?: string;
+            }>;
+            risks?: Array<string>;
+            questions?: Array<string | {
+                text: string;
+                options?: Array<string | {
+                    label: string;
+                    detail?: string;
+                }>;
+                recommended?: number | string | Array<number | string>;
+                why?: string;
+                multi?: boolean;
+            }>;
+            sources?: Array<{
+                title: string;
+                url: string;
+            }>;
+        } | null;
         engineFacts: {
             skills: Array<string>;
             mcpServers: Array<string>;
@@ -5709,7 +5824,7 @@ export type ChatFullDto = {
             category: 'delete' | 'move' | 'commit' | 'push' | 'deploy' | 'branch' | 'worktree' | 'docker' | 'hub_project' | 'hub_doc' | 'hub_sensitive' | 'other';
             input: unknown;
             effect: string;
-            status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped' | 'skipped';
+            status: 'pending' | 'allowed' | 'denied' | 'timed_out' | 'stopped' | 'skipped' | 'auto_allowed';
             draftId: string | null;
             expiresAt: string;
             answeredAt: string | null;
@@ -5855,7 +5970,7 @@ export type ChatFullDto = {
 export type UpdateChatDto = {
     title?: string;
     pinned?: boolean;
-    mode?: 'ask' | 'plan' | 'execute';
+    mode?: 'ask' | 'plan' | 'execute' | 'auto';
     model?: string | null;
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | null;
 };
@@ -5876,9 +5991,10 @@ export type SendChatMessageDto = {
             path: string;
         }>;
     };
-    mode?: 'ask' | 'plan' | 'execute';
+    mode?: 'ask' | 'plan' | 'execute' | 'auto';
     model?: string;
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    force?: boolean;
 };
 
 export type ChatTurnStartedDto = {
@@ -5888,9 +6004,10 @@ export type ChatTurnStartedDto = {
 };
 
 export type RetryChatDto = {
-    mode?: 'ask' | 'plan' | 'execute';
+    mode?: 'ask' | 'plan' | 'execute' | 'auto';
     model?: string;
     effort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    force?: boolean;
 };
 
 export type BranchChatDto = {
@@ -6200,6 +6317,7 @@ export type QueueDto = {
         inQuietHours: boolean;
         timezone: string;
         timezoneSource: 'setting' | 'machine';
+        isolation: 'worktree' | 'folder';
         machineTimezone: string;
     };
     runs: Array<{
@@ -6231,7 +6349,15 @@ export type QueueDto = {
         }>;
         state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
         stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
-        hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+        hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'folder_dirty' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+        worktree: {
+            folder: string;
+            branch: string;
+            base: string;
+            removed: boolean;
+        } | null;
+        dirtyFiles: number | null;
+        allowDirty: boolean;
         runAt: string | null;
         repeat: {
             day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
@@ -6315,7 +6441,15 @@ export type AgentRunDto = {
     }>;
     state: 'waiting' | 'running' | 'next' | 'scheduled' | 'paused' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
     stored: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
-    hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+    hold: 'paused_all' | 'usage_limit' | 'quiet_hours' | 'daily_limit' | 'concurrency' | 'folder_busy' | 'folder_dirty' | 'device_offline' | 'signed_out' | 'engine_unavailable' | 'folder_not_allowed' | null;
+    worktree: {
+        folder: string;
+        branch: string;
+        base: string;
+        removed: boolean;
+    } | null;
+    dirtyFiles: number | null;
+    allowDirty: boolean;
     runAt: string | null;
     repeat: {
         day: 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
@@ -6373,6 +6507,7 @@ export type QueueStateDto = {
     inQuietHours: boolean;
     timezone: string;
     timezoneSource: 'setting' | 'machine';
+    isolation: 'worktree' | 'folder';
     machineTimezone: string;
 };
 
@@ -6384,6 +6519,7 @@ export type QueueSettingsDto = {
         to: string;
     } | null;
     timezone?: string | null;
+    isolation?: 'worktree' | 'folder';
 };
 
 export type SchemaStudioDto = {
@@ -7028,7 +7164,7 @@ export type WorkspaceInvitesControllerResendData = {
 };
 
 export type WorkspaceInvitesControllerResendResponses = {
-    200: OneTimeUrlDto;
+    200: InviteLinkDto;
 };
 
 export type WorkspaceInvitesControllerResendResponse = WorkspaceInvitesControllerResendResponses[keyof WorkspaceInvitesControllerResendResponses];
@@ -7047,6 +7183,32 @@ export type WorkspaceInvitesControllerRevokeResponses = {
 };
 
 export type WorkspaceInvitesControllerRevokeResponse = WorkspaceInvitesControllerRevokeResponses[keyof WorkspaceInvitesControllerRevokeResponses];
+
+export type MailControllerStatusData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/mail';
+};
+
+export type MailControllerStatusResponses = {
+    200: MailStatusDto;
+};
+
+export type MailControllerStatusResponse = MailControllerStatusResponses[keyof MailControllerStatusResponses];
+
+export type MailControllerTestData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/mail/test';
+};
+
+export type MailControllerTestResponses = {
+    200: MailTestResultDto;
+};
+
+export type MailControllerTestResponse = MailControllerTestResponses[keyof MailControllerTestResponses];
 
 export type AuditControllerListData = {
     body?: never;
@@ -10068,6 +10230,36 @@ export type AgentQueueControllerCancelResponses = {
 };
 
 export type AgentQueueControllerCancelResponse = AgentQueueControllerCancelResponses[keyof AgentQueueControllerCancelResponses];
+
+export type AgentQueueControllerAllowDirtyData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/allow-dirty';
+};
+
+export type AgentQueueControllerAllowDirtyResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerAllowDirtyResponse = AgentQueueControllerAllowDirtyResponses[keyof AgentQueueControllerAllowDirtyResponses];
+
+export type AgentQueueControllerRemoveWorktreeData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/queue/runs/{id}/worktree/remove';
+};
+
+export type AgentQueueControllerRemoveWorktreeResponses = {
+    200: AgentRunDto;
+};
+
+export type AgentQueueControllerRemoveWorktreeResponse = AgentQueueControllerRemoveWorktreeResponses[keyof AgentQueueControllerRemoveWorktreeResponses];
 
 export type AgentQueueControllerSetModeData = {
     body: SetRunModeDto;

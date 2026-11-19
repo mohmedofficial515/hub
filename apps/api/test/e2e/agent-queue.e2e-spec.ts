@@ -4,6 +4,7 @@
  */
 import type { AddressInfo } from 'node:net';
 
+import { worktreeFolderFor } from '@hub/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { WebSocket } from 'ws';
@@ -52,7 +53,10 @@ async function until<T>(check: () => T | Promise<T>, timeoutMs = 15_000): Promis
   throw new Error('Timed out waiting');
 }
 
-/** Stands where `hub-bridge` stands. Holds each `turn.start` open until the test ends it. */
+/** An answer that refuses, as the bridge does with a `Refusal`. */
+const refuse = (code: string, message = code) => ({ refused: { code, message } });
+
+/** Stands where `hub-bridge` stands. Holds each `turn.start` open until the test ends it. An answer may be a function of the action's args. */
 class ScriptedDevice {
   readonly actions: ActionFrame[] = [];
   private seq = 0;
@@ -68,8 +72,17 @@ class ScriptedDevice {
       const frame = JSON.parse((data as Buffer).toString()) as { type: string } & ActionFrame;
       if (frame.type !== 'action') return;
       this.actions.push(frame);
-      const answer = this.answers[frame.action];
-      if (answer !== undefined) this.result(frame.id, answer);
+      const scripted = this.answers[frame.action];
+      const answer =
+        typeof scripted === 'function' ? (scripted as (args: unknown) => unknown)(frame.args) : scripted;
+      if (answer && typeof answer === 'object' && 'refused' in answer) {
+        const { code, message } = (answer as { refused: { code: string; message: string } }).refused;
+        this.socket.send(
+          JSON.stringify({ type: 'result', id: frame.id, ok: false, error: { code, message } }),
+        );
+      } else if (answer !== undefined) {
+        this.result(frame.id, answer);
+      }
     });
   }
 
@@ -94,6 +107,9 @@ class ScriptedDevice {
 interface Run {
   id: string;
   state: string;
+  worktree: { folder: string; branch: string; base: string; removed: boolean } | null;
+  dirtyFiles: number | null;
+  allowDirty: boolean;
   stored: string;
   hold: string | null;
   chatId: string | null;
@@ -154,7 +170,8 @@ describe('the agent queue', () => {
     return polled.body.data as { deviceId: string; credential: string };
   }
 
-  async function connectDevice(): Promise<ScriptedDevice> {
+  /** `actions`: what the device says it can do. None, as an older bridge, keeps every run on its folder (docs/16 §9.2). */
+  async function connectDevice(actions: string[] = []): Promise<ScriptedDevice> {
     const socket = new WebSocket(`ws://127.0.0.1:${port}/bridge`, {
       headers: { authorization: `Bearer ${credential}` },
     });
@@ -164,7 +181,7 @@ describe('the agent queue', () => {
       socket.once('open', done);
       socket.once('error', fail);
     });
-    socket.send(JSON.stringify({ type: 'hello', protocol: 1, status: {}, actions: [] }));
+    socket.send(JSON.stringify({ type: 'hello', protocol: 1, status: {}, actions }));
     const hub = app.get(BridgeHub, { strict: false });
     await until(() => hub.isOnline(deviceId));
     return scripted;
@@ -643,5 +660,138 @@ describe('the agent queue', () => {
     await until(() => device.turns().length === 2);
     expect(String(device.turns()[1]!.args['prompt'])).toContain('Role: QA (qa).');
     device.end(device.turns()[1]!.id);
+  });
+
+  describe('isolation (docs/16 §9.2)', () => {
+    const COPY_ACTIONS = ['folder.status', 'worktree.prepare', 'worktree.remove'];
+    const prepared = (args: unknown) => {
+      const { folder, key } = args as { folder: string; key: string };
+      return {
+        folder: worktreeFolderFor(folder, key),
+        branch: `hub/${key.toLowerCase()}`,
+        base: 'abc1234',
+        baseBranch: 'main',
+        reused: false,
+        linked: 1,
+      };
+    };
+
+    it('runs each task in its own copy of the repository, so two tasks on one repository run together', async () => {
+      device = await connectDevice(COPY_ACTIONS);
+      device.answers['worktree.prepare'] = prepared;
+      await settings({ maxConcurrent: 2 });
+      const [first, second] = [await aTask('One'), await aTask('Two')];
+      const one = await addRun({ source: 'task', cardKey: first });
+      const two = await addRun({ source: 'task', cardKey: second });
+      await tick();
+      await until(() => device.turns().length === 2);
+      const folders = device.turns().map((turn) => turn.args['folder']);
+      expect(folders.sort()).toEqual(
+        [worktreeFolderFor(FOLDER, first), worktreeFolderFor(FOLDER, second)].sort(),
+      );
+      expect(device.turns().every((turn) => turn.args['isolated'] === true)).toBe(true);
+      expect(
+        device.actions.filter((frame) => frame.action === 'worktree.prepare').map((frame) => frame.args),
+      ).toEqual(
+        expect.arrayContaining([
+          { folder: FOLDER, key: first },
+          { folder: FOLDER, key: second },
+        ]),
+      );
+      expect((await runOf(one.id)).worktree).toEqual({
+        folder: worktreeFolderFor(FOLDER, first),
+        branch: `hub/${first.toLowerCase()}`,
+        base: 'abc1234',
+        removed: false,
+      });
+      expect((await runOf(two.id)).state).toBe('running');
+      for (const turn of device.turns()) device.end(turn.id);
+    });
+
+    it('works in the folder itself when it is no repository top, and waits on changes not committed until the owner lets it', async () => {
+      device = await connectDevice(COPY_ACTIONS);
+      device.answers['worktree.prepare'] = refuse(
+        'not_a_repository',
+        'This folder is inside a repository, not its top folder.',
+      );
+      device.answers['folder.status'] = { repository: true, changed: 2, branch: 'main' };
+      const run = await addRun({ source: 'prompt', prompt: 'Tidy up' });
+      await tick();
+      await tick();
+      const held = await runOf(run.id);
+      expect(held).toMatchObject({
+        state: 'next',
+        hold: 'folder_dirty',
+        dirtyFiles: 2,
+        allowDirty: false,
+        worktree: null,
+      });
+      expect(device.turns()).toEqual([]);
+
+      await browser.post(`${base()}/runs/${run.id}/allow-dirty`).expect(200);
+      await tick();
+      await until(() => device.turns().length === 1);
+      const turn = device.turns()[0]!;
+      expect(turn.args['folder']).toBe(FOLDER);
+      expect(turn.args['isolated']).toBeUndefined();
+      expect(await runOf(run.id)).toMatchObject({ state: 'running', allowDirty: true, dirtyFiles: null });
+      device.end(turn.id);
+    });
+
+    it('a folder the owner commits lets a held run go by itself; folder isolation never makes a copy', async () => {
+      device = await connectDevice(COPY_ACTIONS);
+      await settings({ isolation: 'folder' });
+      device.answers['folder.status'] = { repository: true, changed: 1, branch: 'main' };
+      const run = await addRun({ source: 'prompt', prompt: 'Tidy up' });
+      await tick();
+      expect((await runOf(run.id)).hold).toBe('folder_dirty');
+      device.answers['folder.status'] = { repository: true, changed: 0, branch: 'main' };
+      await tick();
+      await until(() => device.turns().length === 1);
+      expect(device.turns()[0]!.args['folder']).toBe(FOLDER);
+      expect(device.actions.some((frame) => frame.action === 'worktree.prepare')).toBe(false);
+      expect((await read()).state).toMatchObject({ running: 1 });
+      device.end(device.turns()[0]!.id);
+    });
+
+    it("removes an ended run's copy and keeps its branch, refusing while the copy holds changes not committed", async () => {
+      device = await connectDevice(COPY_ACTIONS);
+      device.answers['worktree.prepare'] = prepared;
+      const key = await aTask();
+      const run = await addRun({ source: 'task', cardKey: key });
+      await tick();
+      await until(() => device.turns().length === 1);
+      await browser.post(`${base()}/runs/${run.id}/worktree/remove`).expect(409);
+      device.end(device.turns()[0]!.id);
+      await until(async () => ((await runOf(run.id)).state === 'done' ? true : null));
+
+      device.answers['worktree.remove'] = refuse('worktree_dirty');
+      const refused = await browser.post(`${base()}/runs/${run.id}/worktree/remove`).expect(409);
+      expect(refused.body.error.code).toBe('hub.queue.worktree_dirty');
+      expect((await runOf(run.id)).worktree?.removed).toBe(false);
+
+      device.answers['worktree.remove'] = { branch: `hub/${key.toLowerCase()}` };
+      const removed = await browser.post(`${base()}/runs/${run.id}/worktree/remove`).expect(200);
+      expect(removed.body.data.worktree).toMatchObject({ removed: true, branch: `hub/${key.toLowerCase()}` });
+      expect(device.actions.filter((frame) => frame.action === 'worktree.remove').at(-1)?.args).toEqual({
+        folder: worktreeFolderFor(FOLDER, key),
+      });
+      const again = await browser.post(`${base()}/runs/${run.id}/worktree/remove`).expect(409);
+      expect(again.body.error.code).toBe('hub.queue.no_worktree');
+    });
+
+    it('an older bridge that cannot make a copy keeps runs on their folder, as before', async () => {
+      const run = await addRun({ source: 'prompt', prompt: 'Tidy up' });
+      await tick();
+      await until(() => device.turns().length === 1);
+      expect(device.turns()[0]!.args['folder']).toBe(FOLDER);
+      expect(
+        device.actions.some(
+          (frame) => frame.action === 'worktree.prepare' || frame.action === 'folder.status',
+        ),
+      ).toBe(false);
+      expect((await runOf(run.id)).worktree).toBeNull();
+      device.end(device.turns()[0]!.id);
+    });
   });
 });

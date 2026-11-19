@@ -4,6 +4,7 @@
  * @file queue.tsx
  * @description Settings › Queue (docs/16 §9): runs at the same time, runs per day, quiet hours, the timezone, and pause all. The limits are the member's, across projects, because every run spends one plan. Words are in `queue.json` under `limits`.
  */
+import { QUEUE_ISOLATIONS, type QueueIsolation } from '@hub/contracts';
 import { ListOrdered } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 
@@ -53,6 +54,7 @@ export function QueueTab() {
   const [to, setTo] = useState('07:00');
   const [zone, setZone] = useState(MACHINE);
   const [perDayText, setPerDayText] = useState('5');
+  const [isolation, setIsolation] = useState<QueueIsolation>('worktree');
 
   const reset = () => {
     if (!state) return;
@@ -65,6 +67,7 @@ export function QueueTab() {
     }
     setZone(state.timezoneSource === 'setting' ? state.timezone : MACHINE);
     setPerDayText(String(state.perDay));
+    setIsolation(state.isolation);
   };
   useEffect(reset, [state]);
 
@@ -76,6 +79,7 @@ export function QueueTab() {
         (quietOn ? `${from}-${to}` : null) !==
           (state.quietHours ? `${state.quietHours.from}-${state.quietHours.to}` : null),
         (zone === MACHINE ? null : zone) !== (state.timezoneSource === 'setting' ? state.timezone : null),
+        isolation !== state.isolation,
       ].filter(Boolean).length
     : 0;
 
@@ -88,6 +92,7 @@ export function QueueTab() {
         perDay,
         quietHours: quietOn ? { from, to } : null,
         timezone: zone === MACHINE ? null : zone,
+        isolation,
       },
       { onSuccess: () => showToast({ message: words.toasts.saved }), onError: failed },
     );
@@ -138,6 +143,27 @@ export function QueueTab() {
                 }}
               />
             </Field>
+          </FormSection>
+          <FormSection title={t.isolation} description={t.isolationHint}>
+            <fieldset className="flex flex-col gap-1" data-settings-isolation>
+              <legend className="sr-only">{t.isolation}</legend>
+              {QUEUE_ISOLATIONS.map((value) => (
+                <label
+                  key={value}
+                  className="flex min-h-11 items-center gap-2 text-body text-foreground md:min-h-0"
+                >
+                  <input
+                    type="radio"
+                    name={`${id}-isolation`}
+                    className="size-4 accent-(--primary)"
+                    value={value}
+                    checked={isolation === value}
+                    onChange={() => setIsolation(value)}
+                  />
+                  {value === 'worktree' ? t.isolationWorktree : t.isolationFolder}
+                </label>
+              ))}
+            </fieldset>
           </FormSection>
           <FormSection title={t.quiet}>
             <label className="flex min-h-11 items-center gap-2 text-body text-foreground md:min-h-0">

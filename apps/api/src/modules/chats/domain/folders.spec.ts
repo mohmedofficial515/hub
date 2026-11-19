@@ -1,7 +1,7 @@
 /**
  * @file The folder rule, a chat's title and the JSON cap.
  */
-import { capJson, folderIsRegistered, titleFrom } from './folders';
+import { capJson, folderIsRegistered, sameFolder, titleFrom } from './folders';
 
 describe('folderIsRegistered', () => {
   it('allows the folder and what is under it, whatever the slashes and case on Windows', () => {
@@ -14,6 +14,13 @@ describe('folderIsRegistered', () => {
     expect(folderIsRegistered('C:/work/repo/../other', ['C:/work/repo'], 'win32')).toBe(false);
     expect(folderIsRegistered('C:/elsewhere', ['C:/work/repo'], 'win32')).toBe(false);
     expect(folderIsRegistered('C:/work/repo', [], 'win32')).toBe(false);
+  });
+
+  it("allows Hub's own copy of a registered repository (docs/16 §9.2), and not the owner's folders beside it", () => {
+    expect(folderIsRegistered('C:\\work\\wt-GTV-7\\repo', ['C:/work/repo'], 'win32')).toBe(true);
+    expect(folderIsRegistered('c:/work/wt-run-0a1b2c3d/repo/src', ['C:/work/repo'], 'win32')).toBe(true);
+    expect(folderIsRegistered('C:/work/wt-payments/repo', ['C:/work/repo'], 'win32')).toBe(false);
+    expect(folderIsRegistered('C:/work/wt-GTV-7/other', ['C:/work/repo'], 'win32')).toBe(false);
   });
 
   it('case counts off Windows', () => {
@@ -35,5 +42,12 @@ describe('capJson', () => {
     expect(capJson({ a: 1 }, 100)).toEqual({ a: 1 });
     expect(capJson({ a: 'x'.repeat(100) }, 20)).toMatchObject({ truncatedByHub: true });
     expect(capJson(undefined, 20)).toBeNull();
+  });
+});
+
+describe('sameFolder', () => {
+  it('is one checkout whatever the slashes, a trailing one and the case', () => {
+    expect(sameFolder('C:\\work\\repo\\', 'c:/work/repo')).toBe(true);
+    expect(sameFolder('C:/work/repo', 'C:/work/repo-two')).toBe(false);
   });
 });

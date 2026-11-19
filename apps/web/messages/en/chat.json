@@ -273,7 +273,8 @@
       "disabled": "Cannot send right now",
       "hint": "Enter to send, Shift+Enter for a new line",
       "usage": "Usage this week {n}%",
-      "waiting": "Waiting for your answer on the approval"
+      "waiting": "Waiting for your answer on the approval",
+      "sendAnyway": "Send anyway"
     },
     "slash": {
       "title": "Skills",
@@ -1099,6 +1100,9 @@
         "other": "Work routed to this role"
       },
       "skills": {
+        "/hub:start": "Start a work session: what awaits you, what is new, sessions without a summary",
+        "/hub:next": "Pick a ready task or name one, read what it links to, then claim it",
+        "/hub:done": "Finish the session: write its summary into Hub and move the task on",
         "/hub:work": "Do a task in fixed stages, with a report on the card",
         "/hub:doc": "Improve or write a doc, with a diff and flagged claims",
         "/hub:idea": "Research an idea against Hub and the code; the Idea Studio shows the report",

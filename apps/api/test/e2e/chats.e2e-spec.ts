@@ -526,6 +526,32 @@ describe('chats', () => {
       device.end(device.turn().id);
     });
 
+    it('another chat in the same folder is refused with its title, and goes when sent anyway (docs/16 §9.2)', async () => {
+      const { chatId, turn } = await aTurn('Refactor the wallet');
+      const other = await aChat();
+      const refused = await browser.post(`${base()}/${other}/messages`, { text: 'hello' }).expect(409);
+      expect(refused.body.error.code).toBe('hub.chats.folder_busy');
+      expect(refused.body.error.message).toContain('Refactor the wallet');
+      // Refused before anything is written: the chat holds no message to retry.
+      expect((await getChat(other)).messages).toEqual([]);
+
+      const before = device.of('turn.start').length;
+      await browser.post(`${base()}/${other}/messages`, { text: 'hello', force: true }).expect(202);
+      await until(() => device.of('turn.start').length > before);
+      const forced = device.turn();
+      device.end(turn.id);
+      device.end(forced.id);
+      await untilEnded(chatId);
+      await untilEnded(other);
+
+      // Nothing runs there now, so a send goes as it always did.
+      const after = device.of('turn.start').length;
+      await browser.post(`${base()}/${other}/messages`, { text: 'again' }).expect(202);
+      await until(() => device.of('turn.start').length > after);
+      device.end(device.turn().id);
+      await untilEnded(other);
+    });
+
     it('the next message resumes the session', async () => {
       const { chatId, turn } = await aTurn();
       device.say(turn.id, { kind: 'turn.session', sessionId: SESSION });

@@ -15,6 +15,7 @@ import {
 } from './chat';
 import { absolutePath } from './projects';
 import { roleSchema } from './roles';
+import { QUEUE_ISOLATIONS } from './worktrees';
 
 /** What a run starts from. A task runs `/hub:work`, so its stages and report land on the card. */
 export const RUN_SOURCES = ['task', 'plan_step', 'prompt'] as const;
@@ -72,6 +73,8 @@ export const HOLD_REASONS = [
   'daily_limit',
   'concurrency',
   'folder_busy',
+  /** Folder isolation only (docs/16 §9.2): its folder holds changes not committed, which the run would mix with its own. The owner's press starts it anyway. */
+  'folder_dirty',
   'device_offline',
   'signed_out',
   'engine_unavailable',
@@ -167,12 +170,19 @@ export const queueSettingsInputSchema = z.object({
   quietHours: quietHoursSchema.nullable().optional(),
   /** An IANA name. Null goes back to the machine's. */
   timezone: z.string().trim().min(1).max(64).nullable().optional(),
+  /** docs/16 §9.2: each run in its own copy of the repository, or in the registered folder. */
+  isolation: z.enum(QUEUE_ISOLATIONS).optional(),
 });
 export type QueueSettingsInput = z.infer<typeof queueSettingsInputSchema>;
 
 export const queuePauseSchema = z.object({ paused: z.boolean() });
 
-export const QUEUE_DEFAULTS = { maxConcurrent: 1, perDay: 5, quietHours: null } as const;
+export const QUEUE_DEFAULTS = {
+  maxConcurrent: 1,
+  perDay: 5,
+  quietHours: null,
+  isolation: 'worktree',
+} as const;
 
 // ── Answers ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -215,6 +225,16 @@ export const agentRunSchema = z.object({
   stored: z.enum(RUN_STATES),
   /** Set when a due run waits: why. */
   hold: z.enum(HOLD_REASONS).nullable(),
+  /**
+   * docs/16 §9.2: the run's own copy of its repository, once made. `removed` once the owner removed it; its branch stays.
+   */
+  worktree: z
+    .object({ folder: z.string(), branch: z.string(), base: z.string(), removed: z.boolean() })
+    .nullable(),
+  /** Folder isolation: how many changed files held it at its last look, until it starts or the owner lets it. */
+  dirtyFiles: z.number().int().nullable(),
+  /** The owner let it start in a folder with changes not committed. */
+  allowDirty: z.boolean(),
   runAt: z.string().nullable(),
   repeat: z.object({ day: z.enum(WEEKDAYS), time: z.string() }).nullable(),
   paused: z.boolean(),
@@ -255,6 +275,7 @@ export const queueStateSchema = z.object({
   inQuietHours: z.boolean(),
   timezone: z.string(),
   timezoneSource: z.enum(['setting', 'machine']),
+  isolation: z.enum(QUEUE_ISOLATIONS),
   /** The machine's own zone, for the settings' default line. */
   machineTimezone: z.string(),
 });

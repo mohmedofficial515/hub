@@ -18,8 +18,18 @@ import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
 import { schemaHandlers } from './schema-files.mjs';
 import { turnHandlers } from './turns.mjs';
 import { openInVsCode } from './vscode.mjs';
+import { folderStatus, isHubWorktree, prepareWorktree, removeWorktree } from './worktrees.mjs';
 
-const FOLDER_ACTIONS = new Set(['folder.link', 'turn.start', 'chat.diff', 'schema.read', 'vscode.open']);
+const FOLDER_ACTIONS = new Set([
+  'folder.link',
+  'turn.start',
+  'chat.diff',
+  'schema.read',
+  'vscode.open',
+  'folder.status',
+  'worktree.prepare',
+  'worktree.remove',
+]);
 
 async function linkFolder(args, context) {
   const { system, url } = context;
@@ -61,6 +71,14 @@ const handlers = {
   ...schemaHandlers,
   'vscode.open': openInVsCode,
   'plugin.sync': syncPlugin,
+  'folder.status': (args, context) => folderStatus(context.system, args.folder),
+  'worktree.prepare': (args, context) => {
+    // A copy is made of a registered repository only, never of one of Hub's copies, which would nest them.
+    if (isHubWorktree(args.folder)) throw new Refusal('bad_arguments');
+    if (typeof args.key !== 'string') throw new Refusal('bad_arguments');
+    return prepareWorktree(context.system, args.folder, args.key);
+  },
+  'worktree.remove': (args, context) => removeWorktree(context.system, args.folder),
 };
 
 /**

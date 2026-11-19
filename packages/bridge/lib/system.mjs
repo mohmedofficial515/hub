@@ -41,14 +41,24 @@ export function realSystem() {
           settled = true;
           resolve({ status, stdout, stderr });
         };
-        const child = spawn(command, args, {
-          cwd: options.cwd,
-          env: childEnv(process.env),
-          shell: false,
-          windowsHide: true,
-          windowsVerbatimArguments: options.verbatim === true,
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
+        let child;
+        try {
+          child = spawn(command, args, {
+            cwd: options.cwd,
+            env: childEnv(process.env),
+            shell: false,
+            windowsHide: true,
+            windowsVerbatimArguments: options.verbatim === true,
+            stdio: ['pipe', 'pipe', 'pipe'],
+          });
+        } catch {
+          // `spawn` throws, rather than emitting `error`, for some failures (a bad argument, a file being replaced by an update).
+          // Inside a promise that throw became a rejection, and in the heartbeat nobody caught it: the bridge died with nothing in its log.
+          finish(127);
+          return;
+        }
+        // A program that exits before reading its input breaks the pipe, and an `error` nobody listens to ends the bridge.
+        child.stdin.on('error', () => {});
         // Never wait on a pipe alone: a grandchild can hold it open long after the program has gone.
         const timer = setTimeout(() => {
           child.kill();

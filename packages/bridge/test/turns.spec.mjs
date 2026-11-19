@@ -2,8 +2,9 @@
  * @file The turn manager against a recorded child process and the real approval pipe: flags, one live process, resume, approvals, stop and failures. No Claude Code runs here; `apps/api/test/e2e/chats-real-binary.e2e-spec.ts` does that.
  */
 import { EventEmitter } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { connect } from 'node:net';
+import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -55,7 +56,8 @@ async function until(check, timeoutMs = 3000) {
   throw new Error('Timed out waiting');
 }
 
-function aTurnWorld(env = {}) {
+/** `inCopy`: the turn works in Hub's own copy of the registered folder (docs/16 §9.2), `wt-GTV-7/project` beside it, with the `.git` file a worktree has. */
+function aTurnWorld(env = {}, { inCopy = false } = {}) {
   const system = fakeSystem();
   Object.assign(system.env, env);
   const children = [];
@@ -71,8 +73,13 @@ function aTurnWorld(env = {}) {
     system.killed.push(pid);
     children.at(-1)?.emit('exit', 1);
   };
-  const folder = aFolder(system);
-  const context = { system, url: 'http://hub.test', folders: () => [{ path: folder, project: 'demo' }] };
+  const registered = aFolder(system);
+  const folder = inCopy ? join(system.home, 'wt-GTV-7', 'project') : registered;
+  if (inCopy) {
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(join(folder, '.git'), 'gitdir: elsewhere');
+  }
+  const context = { system, url: 'http://hub.test', folders: () => [{ path: registered, project: 'demo' }] };
   const events = [];
   const begin = (extra = {}) =>
     dispatch(
@@ -93,8 +100,8 @@ afterEach(async () => {
   for (const context of open.splice(0)) await turnManager(context).shutdown();
 });
 
-function aWorld(env) {
-  const world = aTurnWorld(env);
+function aWorld(env, options) {
+  const world = aTurnWorld(env, options);
   open.push(world.context);
   return world;
 }
@@ -900,6 +907,52 @@ describe('queued runs: run mode and extra folders (docs/16 D58, D59)', () => {
         category: 'push',
         toolUseId: 't1',
       }),
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it("automatic in Hub's own copy commits to its own branch at once, and records it as allowed", async () => {
+    const world = aWorld({}, { inCopy: true });
+    const { answer, child } = await started(world, { runMode: 'automatic', isolated: true });
+    child.say(toolStart('c1'));
+    const decided = await askAsShim(world, 'Bash', { command: 'git add -A && git commit -m "step 1"' }, 'c1');
+    expect(decided.behavior).toBe('allow');
+    expect(world.of('auto.decision')).toEqual([
+      expect.objectContaining({ decision: 'approved', category: 'commit', toolUseId: 'c1' }),
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it("automatic in Hub's own copy still skips a push, and a commit with anything after it", async () => {
+    const world = aWorld({}, { inCopy: true });
+    const { answer, child } = await started(world, { runMode: 'automatic', isolated: true });
+    for (const [id, command] of [
+      ['p1', 'git push origin hub/gtv-7'],
+      ['p2', 'git commit -m x && git push'],
+      ['p3', 'git merge main'],
+    ]) {
+      child.say(toolStart(id));
+      expect((await askAsShim(world, 'Bash', { command }, id)).behavior).toBe('deny');
+    }
+    expect(world.of('auto.decision').map((decision) => decision.decision)).toEqual([
+      'skipped',
+      'skipped',
+      'skipped',
+    ]);
+    child.say(RESULT);
+    await answer;
+  });
+
+  it('does not believe "isolated" for a folder that is not one of its copies: the commit is skipped', async () => {
+    const world = aWorld();
+    const { answer, child } = await started(world, { runMode: 'automatic', isolated: true });
+    child.say(toolStart('c2'));
+    const decided = await askAsShim(world, 'Bash', { command: 'git commit -m x' }, 'c2');
+    expect(decided.behavior).toBe('deny');
+    expect(world.of('auto.decision')).toEqual([
+      expect.objectContaining({ decision: 'skipped', category: 'commit' }),
     ]);
     child.say(RESULT);
     await answer;

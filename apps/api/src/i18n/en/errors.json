@@ -157,6 +157,7 @@
     "chats": {
       "not_found": "No such chat.",
       "turn_running": "This chat is already working on a turn. Wait for it, or stop it.",
+      "folder_busy": "The chat \"{title}\" is working in this folder now. Two turns in one folder edit the same files. Wait for it, or send anyway.",
       "not_running": "This chat has no turn running.",
       "folder_not_allowed": "That folder is not registered on this project. Link it first.",
       "approval_not_found": "No such approval.",
@@ -185,7 +186,10 @@
       "card_not_runnable": "This card cannot run in the queue. Only an open task, a plan step or a prompt can.",
       "plan_step_missing": "The plan has no such step.",
       "wrong_state": "The run has moved on, so this no longer applies. Reread the queue.",
-      "timezone_invalid": "That timezone is not one this machine knows."
+      "timezone_invalid": "That timezone is not one this machine knows.",
+      "no_worktree": "This run has no copy of its own to remove.",
+      "worktree_dirty": "The run's copy has changes not committed. Commit or discard them in {folder}, then remove it.",
+      "worktree_failed": "Hub could not make or remove the run's copy: {reason}"
     },
     "schema": {
       "no_source": "No schema source is set for this project yet. Set the repository folder first.",

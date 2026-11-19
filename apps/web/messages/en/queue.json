@@ -65,7 +65,8 @@
     "device_offline": "Waits: {device} is offline",
     "signed_out": "Waits: Claude is signed out on {device}",
     "engine_unavailable": "Waits: Claude Code cannot run on {device}",
-    "folder_not_allowed": "This folder is no longer on the project’s list"
+    "folder_not_allowed": "This folder is no longer on the project’s list",
+    "folder_dirty": "Waits: its folder holds {n} changed files not committed, which it would mix with its own"
   },
   "when": {
     "at": "Runs {when}",
@@ -112,7 +113,9 @@
     "openChatFor": "Open the chat of “{title}”",
     "toAutomatic": "Run automatically",
     "toApproval": "Run with my approval",
-    "stop": "Stop it"
+    "stop": "Stop it",
+    "allowDirty": "Start anyway",
+    "removeWorktree": "Remove its copy"
   },
   "toasts": {
     "started": "Run started in {folder}",
@@ -127,7 +130,9 @@
     "saved": "Limits saved",
     "modeAutomatic": "It will run automatically",
     "modeApproval": "It will run with your approval",
-    "pendingStarted": "A chat opened on {folder}. Approve the command there."
+    "pendingStarted": "A chat opened on {folder}. Approve the command there.",
+    "allowedDirty": "It starts with the changes in its folder",
+    "worktreeRemoved": "The copy is gone. Its branch {branch} stays"
   },
   "runNow": "Run now",
   "schedule": "Schedule",
@@ -188,7 +193,11 @@
     "timezoneHint": "Schedules, quiet hours and the daily count use this zone.",
     "pause": "Pause the queue",
     "pauseHint": "Runs already going finish. Nothing new starts until you resume.",
-    "save": "Save limits"
+    "save": "Save limits",
+    "isolation": "Where a run works",
+    "isolationHint": "In its own copy, two runs on one repository never touch each other’s files. The copy sits beside the repository as wt-<key> on a branch hub/<key>, and its packages link to the repository’s.",
+    "isolationWorktree": "In its own copy of the repository (recommended)",
+    "isolationFolder": "In the project folder itself, waiting while it holds changes not committed"
   },
   "off": {
     "noDevice": {
@@ -202,7 +211,9 @@
   },
   "meta": {
     "automatic": "Automatic",
-    "extra": "+{n} folders"
+    "extra": "+{n} folders",
+    "branch": "Its own copy on {branch}",
+    "worktreeRemoved": "Copy removed, branch {branch} kept"
   },
   "decisions": {
     "title": "Decided for you",

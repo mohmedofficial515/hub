@@ -52,6 +52,8 @@ interface Connection {
   readonly userId: string;
   readonly socket: BridgeSocket;
   ready: boolean;
+  /** What the bridge said it can do in its hello, so a newer action is never sent to an older bridge. */
+  actions: ReadonlySet<string>;
 }
 
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -91,6 +93,12 @@ export class BridgeHub {
     return this.connections.get(deviceId)?.ready === true;
   }
 
+  /** Whether this device's bridge, connected now, offers the action. An older bridge does not know the newer ones (docs/16 §9.2 falls back without them). */
+  supports(deviceId: string, action: BridgeAction): boolean {
+    const connection = this.connections.get(deviceId);
+    return connection?.ready === true && connection.actions.has(action);
+  }
+
   /** A device has one socket. A second one from the same device replaces the first, as after a sleep. */
   attach(deviceId: string, userId: string, socket: BridgeSocket): void {
     const old = this.connections.get(deviceId);
@@ -98,7 +106,7 @@ export class BridgeHub {
       old.socket.close(BRIDGE_CLOSE.replaced, 'replaced');
       this.failPending(deviceId);
     }
-    this.connections.set(deviceId, { deviceId, userId, socket, ready: false });
+    this.connections.set(deviceId, { deviceId, userId, socket, ready: false, actions: new Set() });
   }
 
   detach(deviceId: string, socket: BridgeSocket): void {
@@ -148,6 +156,7 @@ export class BridgeHub {
           connection.socket.close(BRIDGE_CLOSE.unsupportedProtocol, 'protocol');
           return;
         }
+        connection.actions = new Set(frame.data.actions);
         try {
           await this.writeStatus(deviceId, frame.data.status, true);
           const folders = await this.foldersFor(connection.userId);

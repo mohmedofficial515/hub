@@ -114,6 +114,7 @@ export const ERROR_CATALOGUE = {
 
   'hub.chats.not_found': 404,
   'hub.chats.turn_running': 409,
+  'hub.chats.folder_busy': 409,
   'hub.chats.not_running': 409,
   'hub.chats.folder_not_allowed': 422,
   'hub.chats.approval_not_found': 404,
@@ -145,6 +146,9 @@ export const ERROR_CATALOGUE = {
   'hub.queue.plan_step_missing': 422,
   'hub.queue.wrong_state': 409,
   'hub.queue.timezone_invalid': 422,
+  'hub.queue.no_worktree': 409,
+  'hub.queue.worktree_dirty': 409,
+  'hub.queue.worktree_failed': 502,
   'hub.docs.draft_not_found': 404,
   'hub.docs.draft_flags_open': 409,
   'hub.docs.draft_target_missing': 422,

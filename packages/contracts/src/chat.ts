@@ -686,12 +686,15 @@ export type EngineStatus = z.infer<typeof engineStatusSchema>;
  * Hub's own commands a person can type, for the slash menu. A spec holds this to the core skills of `packages/team-pack/plugin/skills` (`HUB_CORE_SKILLS`): `guide` is background reading and not listed, and a command with no skill behind it must not appear. Skills the owner adds through the Skills page reach the menu from the engine's own list.
  */
 export const HUB_SKILLS = [
+  '/hub:start',
+  '/hub:next',
+  '/hub:work',
+  '/hub:done',
   '/hub:ask',
   '/hub:doc',
   '/hub:idea',
   '/hub:plan',
   '/hub:suggest',
-  '/hub:work',
 ] as const;
 export type HubSkill = (typeof HUB_SKILLS)[number];
 
@@ -729,6 +732,11 @@ export const sendChatMessageSchema = z.object({
   text: z.string().trim().min(1).max(CHAT_LIMITS.promptChars),
   context: chatContextSchema.optional(),
   ...turnOptions,
+  /**
+   * docs/16 §9.2: another chat's turn is working in this folder, and the owner chose to send anyway. Without it, such a send is refused with
+   * `hub.chats.folder_busy`, because two turns in one checkout edit the same files.
+   */
+  force: z.boolean().optional(),
 });
 export type SendChatMessageInput = z.infer<typeof sendChatMessageSchema>;
 
@@ -751,7 +759,8 @@ export const answerApprovalSchema = z.object({
     .optional(),
 });
 export type AnswerApprovalInput = z.infer<typeof answerApprovalSchema>;
-export const retryChatSchema = z.object(turnOptions);
+/** `force`, as on Send: another chat is working in the same folder, and the owner retries anyway (docs/16 §9.2). */
+export const retryChatSchema = z.object({ ...turnOptions, force: z.boolean().optional() });
 export const updateChatSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   pinned: z.boolean().optional(),

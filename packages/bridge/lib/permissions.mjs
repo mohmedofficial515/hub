@@ -337,6 +337,24 @@ export function isSensitiveCall(toolName, input) {
 }
 
 /**
+ * A commit and nothing else, in the turn's own folder: `git commit …`, optionally after `git add …` and `&&`. No other program, no chaining past that, no `-C`, `--git-dir`
+ * or `--work-tree` to reach another repository, and no substitution. An automatic run in Hub's own copy may do this at once (docs/16 §9.2, the owner's choice), because
+ * its branch is its own; merge, rebase, reset, push and every other history change still wait on the owner.
+ */
+export function isOwnBranchCommit(toolName, input) {
+  if (toolName !== 'Bash' && toolName !== 'PowerShell') return false;
+  const command = typeof input?.command === 'string' ? input.command.trim() : '';
+  // Quoted words are a message, not shell. What is left may join commands with `&&` and nothing else.
+  const bare = command.replace(/"[^"`$]*"|'[^']*'/g, '""').replaceAll('&&', ' ');
+  if (!command || /[`$;|&<>\n\r]/.test(bare)) return false;
+  if (/\s(-C|--git-dir|--work-tree|--exec-path)\b/.test(command)) return false;
+  const parts = command.split('&&').map((part) => part.trim());
+  const commit = parts.at(-1) ?? '';
+  if (!/^git\s+commit(\s|$)/.test(commit)) return false;
+  return parts.slice(0, -1).every((part) => /^git\s+add(\s|$)/.test(part));
+}
+
+/**
  * The approval's effect line (docs/16 §7.2): one fixed sentence per D41 category, never model text. `@hub/contracts` (`APPROVAL_EFFECTS`) is the source, and a test holds the two together.
  */
 export const APPROVAL_EFFECTS = {

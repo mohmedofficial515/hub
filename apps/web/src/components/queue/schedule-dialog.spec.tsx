@@ -40,6 +40,7 @@ const state = {
   inQuietHours: false,
   timezone: 'UTC',
   timezoneSource: 'setting',
+  isolation: 'worktree',
   machineTimezone: 'UTC',
 };
 
@@ -54,6 +55,9 @@ function serve() {
             state: 'next',
             stored: 'queued',
             hold: null,
+            worktree: null,
+            dirtyFiles: null,
+            allowDirty: false,
             folder: 'F:/work/backend',
             deviceName: 'Main',
             chatId: null,
