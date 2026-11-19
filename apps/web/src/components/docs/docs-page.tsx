@@ -33,7 +33,7 @@ import {
   useT,
 } from '@/components/kit';
 import { useDoc, useDocTree } from '@/features/docs/queries';
-import { allDocs, type DocFolder, recentDocs } from '@/features/docs/tree';
+import { allDocs, type DocFolder, filterTree, readingOrder, recentDocs } from '@/features/docs/tree';
 import { isHubError } from '@/lib/api/errors';
 
 import type { DocsMessages } from './messages';
@@ -83,7 +83,14 @@ export function DocsPage() {
   const selected = useDoc(docKey);
   const card = selected.data;
 
-  const sources = useMemo(() => tree.data?.sources ?? [], [tree.data]);
+  const [filter, setFilter] = useState('');
+  const allSources = useMemo(() => tree.data?.sources ?? [], [tree.data]);
+  // The filter is the reader's own and lives here, not in the address (knowledge-04). `j` and `k` walk only what it leaves.
+  const sources = useMemo(
+    () => allSources.map((s) => ({ ...s, root: filterTree(s.root, filter) })),
+    [allSources, filter],
+  );
+  const order = useMemo(() => readingOrder(allSources), [allSources]);
   const all = useMemo(() => tree.data?.all ?? [], [tree.data]);
   const recent = useMemo(() => recentDocs(all), [all]);
   const empty = tree.isSuccess && all.length === 0;
@@ -172,7 +179,15 @@ export function DocsPage() {
     );
   }
 
-  const treeView = <DocTree sources={sources} current={docKey} rowProps={list.rowProps} />;
+  const treeView = (
+    <DocTree
+      sources={sources}
+      current={docKey}
+      rowProps={list.rowProps}
+      filter={filter}
+      onFilter={setFilter}
+    />
+  );
 
   const landing = (
     <section aria-labelledby="recent-docs" className="flex flex-col gap-3">
@@ -200,11 +215,24 @@ export function DocsPage() {
     </section>
   );
 
+  // Only a doc the API says is not there reads as gone. A network or server failure is said as one, with a way to try again (knowledge-02).
+  const error = selected.error;
+  const gone =
+    isHubError(error) && (error.status === 404 || error.code.endsWith('not_found'));
   const missing =
     docKey && selected.isError ? (
-      <EmptyState icon={FileQuestion} title={t.notFound}>
-        {t.notFoundBody}
-      </EmptyState>
+      gone ? (
+        <EmptyState icon={FileQuestion} title={t.notFound}>
+          {t.notFoundBody}
+        </EmptyState>
+      ) : (
+        <ErrorState
+          thing={t.docThing}
+          code={isHubError(error) ? error.code : 'hub.docs.unavailable'}
+          requestId={isHubError(error) ? error.requestId : undefined}
+          onRetry={() => void selected.refetch()}
+        />
+      )
     ) : null;
   const loadingDoc =
     docKey && selected.isPending ? (
@@ -214,7 +242,7 @@ export function DocsPage() {
     ) : null;
 
   const reader = card ? (
-    <DocViewer key={card.key} card={card} all={all} />
+    <DocViewer key={card.key} card={card} all={all} order={order} />
   ) : (
     (missing ?? loadingDoc ?? landing)
   );

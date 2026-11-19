@@ -6,16 +6,19 @@
  * Arabic layout, so the tree reads like the repository it mirrors. `j` and `k` walk the visible docs. Ported from the design's
  * `pages/docs/parts/tree.tsx`.
  */
-import { ChevronRight, FileText, Folder, FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronRight, FileText, Folder, FolderOpen, ListFilter } from 'lucide-react';
+import { createContext, type KeyboardEvent, useContext, useState } from 'react';
 
-import { AppLink, cn, fmt, focusRing, focusRingInset, Ltr, num, useLocale, useT } from '@/components/kit';
+import { AppLink, cn, fmt, focusRing, focusRingInset, Ltr, matchKey, num, useLocale, useT } from '@/components/kit';
 import type { DocCard } from '@/features/cards/types';
 import { type DocFolder, type DocSource, fileName, folderSize, readableName, treeContains } from '@/features/docs/tree';
 
 import type { DocsMessages } from './messages';
 
 type RowProps = (id: string) => object;
+
+/** While a filter is typed every folder on the way to a match opens. Clearing it draws the tree afresh, as it was. */
+const Filtering = createContext(false);
 
 function DocLink({
   doc,
@@ -62,11 +65,15 @@ function DocLink({
         ) : (
           <FileText aria-hidden className="size-3.5 shrink-0" strokeWidth={1.75} />
         )}
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span dir="auto" className="truncate text-body-sm">
+        {/* Both lines start where the row reads from, so the file name sits under its title in either language (live tour). */}
+        <span className="flex min-w-0 flex-1 flex-col items-start">
+          <span dir="auto" className="max-w-full truncate text-body-sm">
             {doc.title || name.words}
           </span>
-          <Ltr mono className="truncate text-caption text-muted-foreground/80">
+          <Ltr
+            mono
+            className={cn('max-w-full truncate text-caption', active ? 'text-foreground' : 'text-muted-foreground')}
+          >
             {fileName(doc.doc.path)}
           </Ltr>
         </span>
@@ -97,7 +104,8 @@ function FolderNode({
 }) {
   const t = useT<DocsMessages>('docs');
   const locale = useLocale();
-  const [open, setOpen] = useState(() => treeContains(folder, current));
+  const filtering = useContext(Filtering);
+  const [open, setOpen] = useState(() => filtering || treeContains(folder, current));
   const Icon = open ? FolderOpen : Folder;
   return (
     <li>
@@ -161,51 +169,102 @@ export function DocTree({
   current,
   rowProps,
   className,
+  filter = '',
+  onFilter,
 }: {
   sources: DocSource[];
   current: string | null;
   rowProps: RowProps;
   className?: string | undefined;
+  /** The text the tree is cut down to; `sources` are already cut. Without `onFilter` there is no field. */
+  filter?: string | undefined;
+  onFilter?: ((value: string) => void) | undefined;
 }) {
   const t = useT<DocsMessages>('docs');
   const locale = useLocale();
   const [openSources, setOpenSources] = useState<Record<string, boolean>>({});
+  const filtering = filter.trim() !== '';
+  const shown = filtering ? sources.filter((s) => folderSize(s.root) > 0) : sources;
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (matchKey(e, 'Escape') && filter) {
+      e.preventDefault();
+      e.stopPropagation();
+      onFilter?.('');
+    }
+  };
   return (
     <nav aria-label={t.treeLabel} className={cn('flex flex-col gap-4', className)}>
-      {sources.map((source, i) => {
-        const open = openSources[source.id] ?? (i === 0 || treeContains(source.root, current));
-        return (
-          <div key={source.id} className="flex flex-col gap-1">
-            <h2>
-              <button
-                type="button"
-                aria-expanded={open}
-                onClick={() => setOpenSources((all) => ({ ...all, [source.id]: !open }))}
-                className={cn(
-                  'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-body font-semibold text-foreground transition-colors duration-120 hover:bg-accent md:min-h-8',
-                  focusRing,
-                )}
-              >
-                <ChevronRight
-                  aria-hidden
-                  className={cn(
-                    'size-3.5 shrink-0 text-muted-foreground transition-transform duration-120 motion-reduce:transition-none rtl:-scale-x-100',
-                    open && 'rotate-90 rtl:-rotate-90',
-                  )}
-                  strokeWidth={1.75}
-                />
-                <span translate="no" className="min-w-0 truncate">
-                  {source.name}
-                </span>
-                <span className="ms-auto text-caption font-normal text-muted-foreground tabular-nums">
-                  <Ltr>{num(folderSize(source.root), locale)}</Ltr>
-                </span>
-              </button>
-            </h2>
-            {open && <FolderBody folder={source.root} current={current} rowProps={rowProps} depth={1} />}
-          </div>
-        );
-      })}
+      {onFilter && (
+        <label className="relative block">
+          <span className="sr-only">{t.filterLabel}</span>
+          <ListFilter
+            aria-hidden
+            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            strokeWidth={1.75}
+          />
+          <input
+            type="search"
+            dir="auto"
+            autoComplete="off"
+            spellCheck={false}
+            value={filter}
+            onChange={(e) => onFilter(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={t.filter}
+            data-doc-filter
+            className={cn(
+              'h-11 w-full rounded-md border border-input bg-card ps-9 pe-3 text-body-sm text-foreground placeholder:text-muted-foreground md:h-9',
+              focusRing,
+            )}
+          />
+        </label>
+      )}
+      {filtering && shown.length === 0 && (
+        <p role="status" className="px-2 text-body-sm text-muted-foreground">
+          {fmt(t.noMatches, { q: filter.trim() })}
+        </p>
+      )}
+      <Filtering.Provider value={filtering}>
+        {/* A new key when filtering starts or stops, so every folder takes its opening again from the filter or from the open doc. */}
+        <div key={filtering ? 'filtered' : 'tree'} className="flex flex-col gap-4">
+          {shown.map((source, i) => {
+            const open =
+              filtering || (openSources[source.id] ?? (i === 0 || treeContains(source.root, current)));
+            return (
+              <div key={source.id} className="flex flex-col gap-1">
+                <h2>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    disabled={filtering}
+                    onClick={() => setOpenSources((all) => ({ ...all, [source.id]: !open }))}
+                    className={cn(
+                      'flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-body font-semibold text-foreground transition-colors duration-120 enabled:hover:bg-accent md:min-h-8',
+                      focusRing,
+                    )}
+                  >
+                    <ChevronRight
+                      aria-hidden
+                      className={cn(
+                        'size-3.5 shrink-0 text-muted-foreground transition-transform duration-120 motion-reduce:transition-none rtl:-scale-x-100',
+                        open && 'rotate-90 rtl:-rotate-90',
+                      )}
+                      strokeWidth={1.75}
+                    />
+                    <span translate="no" className="min-w-0 truncate">
+                      {source.name}
+                    </span>
+                    <span className="ms-auto text-caption font-normal text-muted-foreground tabular-nums">
+                      <Ltr>{num(folderSize(source.root), locale)}</Ltr>
+                    </span>
+                  </button>
+                </h2>
+                {open && <FolderBody folder={source.root} current={current} rowProps={rowProps} depth={1} />}
+              </div>
+            );
+          })}
+        </div>
+      </Filtering.Provider>
     </nav>
   );
 }

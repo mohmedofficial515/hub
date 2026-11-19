@@ -56,5 +56,6 @@
   },
   "errorThing": "نتائج البحث",
   "loading": "جارٍ البحث",
-  "statusLine": "{count} عن «{q}»"
+  "statusLine": "{count} عن «{q}»",
+  "tooShort": "اكتب حرفين على الأقل لتبدأ البحث."
 }

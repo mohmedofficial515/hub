@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { isSearchable, nextRecent, type SearchDto, toResults, toSegments } from './search';
+import { isSearchable, nextRecent, readableSegments, type SearchDto, toResults, toSegments } from './search';
 
 describe('toSegments', () => {
   it('splits on mark and keeps the marked words', () => {
@@ -62,5 +62,45 @@ describe('helpers', () => {
   it('keeps recents unique, newest first, six at most', () => {
     expect(nextRecent(['a', 'b'], 'b')).toEqual(['b', 'a']);
     expect(nextRecent(['1', '2', '3', '4', '5', '6'], '7')).toHaveLength(6);
+  });
+});
+
+describe('readableSegments', () => {
+  const flat = (s: { text: string; mark: boolean }[]) =>
+    s.map((x) => (x.mark ? `<${x.text}>` : x.text)).join('');
+  it('takes the Markdown out of an excerpt and keeps the marked term', () => {
+    expect(
+      flat(
+        readableSegments(toSegments('- [ ] المحفظة و[دليل <mark>الاسترداد</mark>](guide/refunds.md) هنا')),
+      ),
+    ).toBe('المحفظة ودليل <الاسترداد> هنا');
+    expect(flat(readableSegments(toSegments('```ts\nexport async function <mark>refund</mark>()')))).toBe(
+      'export async function <refund>()',
+    );
+    expect(flat(readableSegments(toSegments('an *italic* and `save_doc` and **bold**')))).toBe(
+      'an italic and save_doc and bold',
+    );
+  });
+  it('drops the cut halves of a link at either end', () => {
+    expect(flat(readableSegments(toSegments('refunds.md) then [the <mark>guide</mark>')))).toBe(
+      'refunds.md) then the <guide>',
+    );
+    expect(flat(readableSegments(toSegments('words](guide/refunds.md) after')))).toBe('words after');
+  });
+  it('cleans what toResults returns', () => {
+    const r = toResults(
+      {
+        docs: [
+          {
+            card: summary('GTV-9'),
+            path: 'a.md',
+            chunks: [{ heading: 'H', anchor: 'h', excerpt: '* [x] <mark>z</mark>' }],
+          },
+        ],
+      },
+      'z',
+      'docs',
+    );
+    expect(r.docs[0]?.chunks[0]?.excerpt).toEqual([{ text: 'z', mark: true }]);
   });
 });

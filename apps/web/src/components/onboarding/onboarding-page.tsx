@@ -43,9 +43,9 @@ import {
 } from '@/components/kit';
 import type { DocCard } from '@/features/cards/types';
 import { useDocTree } from '@/features/docs/queries';
-import { findDocByPath } from '@/features/docs/tree';
 import { setStepDone, useOnboarding, useRolePath } from '@/features/onboarding/queries';
 import {
+  docKeyOfStep,
   nextStepOf,
   type OnboardingStep,
   type StepPhase,
@@ -295,8 +295,7 @@ function StepRow({
 const useDocKeyOf = () => {
   const tree = useDocTree();
   const all: readonly DocCard[] = tree.data?.all ?? [];
-  return (step: OnboardingStep) =>
-    step.kind === 'doc' ? (step.cardKey ?? findDocByPath(step.ref, all)?.key) : undefined;
+  return (step: OnboardingStep) => docKeyOfStep(step, all);
 };
 
 export function OnboardingPage() {

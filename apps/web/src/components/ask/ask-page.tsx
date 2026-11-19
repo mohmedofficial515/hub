@@ -6,7 +6,7 @@
  * no bubble, thread or stream, and no place where an answer could appear. Ported from the design's `pages/ask/page.tsx`.
  */
 import { BookText, FileText, History, Search, SearchX, Terminal } from 'lucide-react';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AppLink,
@@ -94,7 +94,16 @@ function Excerpt({ segments, className }: { segments: Segment[]; className?: str
  * A citation, not a reply: where the text lives comes first, the words after it. A row per document, with its best
  * sections under it, each of which opens the viewer at that heading.
  */
-function DocResult({ hit, rowProps }: { hit: DocHit; rowProps: object }) {
+function DocResult({
+  hit,
+  lang,
+  rowProps,
+}: {
+  hit: DocHit;
+  /** The doc's own language from the index: an Arabic doc need not end in `.ar.md` (knowledge-11). */
+  lang: 'ar' | 'en';
+  rowProps: object;
+}) {
   const t = useT<Messages>('ask');
   return (
     <article
@@ -102,7 +111,7 @@ function DocResult({ hit, rowProps }: { hit: DocHit; rowProps: object }) {
       className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset sm:p-4"
     >
       {/* The citation keeps the doc's own direction, as the viewer does. */}
-      <div dir={hit.lang === 'ar' ? 'rtl' : 'ltr'} className="flex min-w-0 flex-col gap-2">
+      <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="flex min-w-0 flex-col gap-2">
         <p className="flex min-w-0 items-center gap-2 text-body-sm">
           <FileText aria-hidden className="size-4 shrink-0 text-type-doc-fg" strokeWidth={1.75} />
           <Ltr mono className="min-w-0 truncate text-body-sm font-medium text-foreground">
@@ -206,6 +215,11 @@ export function AskPage() {
   const search = useAskSearch(q, scope);
   const tree = useDocTree();
 
+  const langs = useMemo(
+    () => new Map((tree.data?.all ?? []).map((d) => [d.key, d.doc.lang] as const)),
+    [tree.data],
+  );
+
   // A link from Docs or the palette carries `q`. The field follows the URL.
   useEffect(() => setText(q), [q]);
 
@@ -245,20 +259,6 @@ export function AskPage() {
 
   const header = <PageHeader title={t.title} meta={t.meta} />;
 
-  if (search.isError) {
-    const error = search.error;
-    return (
-      <PageContainer>
-        {header}
-        <ErrorState
-          thing={t.errorThing}
-          code={isHubError(error) ? error.code : 'hub.ask.unavailable'}
-          requestId={isHubError(error) ? error.requestId : undefined}
-          onRetry={() => void search.refetch()}
-        />
-      </PageContainer>
-    );
-  }
   // Nothing indexed yet: there is nothing to search. Cards alone would still answer, so a query keeps the search.
   if (!q && tree.isSuccess && tree.data.all.length === 0) {
     return (
@@ -355,12 +355,30 @@ export function AskPage() {
       />
 
       <div className="grid items-start gap-6 lg:@page-lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-8">
-        <div className="order-first lg:@page-lg:sticky lg:@page-lg:top-18 lg:@page-lg:order-last">
+        {/* With a query the results come first on a narrow screen: the reader came to search (knowledge-11). */}
+        <div
+          className={cn(
+            'lg:@page-lg:sticky lg:@page-lg:top-18 lg:@page-lg:order-last',
+            q ? 'order-last' : 'order-first',
+          )}
+        >
           <Handoff query={q} />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
-          {isSearchable(q) && search.isPending ? (
+          {search.isError ? (
+            // The field and the scope stay, so a query that failed can be changed right here (knowledge-10).
+            <ErrorState
+              thing={t.errorThing}
+              code={isHubError(search.error) ? search.error.code : 'hub.ask.unavailable'}
+              requestId={isHubError(search.error) ? search.error.requestId : undefined}
+              onRetry={() => void search.refetch()}
+            />
+          ) : q && !isSearchable(q) ? (
+            <p role="status" className="text-body text-muted-foreground">
+              {t.tooShort}
+            </p>
+          ) : isSearchable(q) && search.isPending ? (
             <LoadingRegion label={t.loading}>
               <div className="flex flex-col gap-3">
                 <Skeleton className="h-6 w-32" />
@@ -464,7 +482,11 @@ export function AskPage() {
                   <ul data-hub-list className="flex flex-col gap-2">
                     {results.docs.map((hit) => (
                       <li key={hit.key}>
-                        <DocResult hit={hit} rowProps={list.rowProps(`doc:${hit.key}`)} />
+                        <DocResult
+                          hit={hit}
+                          lang={langs.get(hit.key) ?? hit.lang}
+                          rowProps={list.rowProps(`doc:${hit.key}`)}
+                        />
                       </li>
                     ))}
                   </ul>

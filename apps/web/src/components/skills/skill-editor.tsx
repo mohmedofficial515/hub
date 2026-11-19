@@ -15,8 +15,10 @@ import {
   fill,
   fmt,
   Ltr,
+  MarkdownView,
   Modal,
   SecretFilterError,
+  Segmented,
   showToast,
   Textarea,
   TextInput,
@@ -56,6 +58,7 @@ export function SkillEditor({
   const [draft, setDraft] = useState<SkillDraft>(EMPTY);
   const [tried, setTried] = useState(false);
   const [problem, setProblem] = useState<{ name?: string; form?: string }>({});
+  const [mode, setMode] = useState<'write' | 'preview'>('write');
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +74,7 @@ export function SkillEditor({
     );
     setTried(false);
     setProblem({});
+    setMode('write');
   }, [open, skill]);
 
   const editing = !!skill;
@@ -196,17 +200,44 @@ export function SkillEditor({
           />
           <span>{fill(e.typed, { command: <Ltr mono>{command}</Ltr> })}</span>
         </label>
-        <Field id={`${id}-body`} label={e.body} hint={e.bodyHint}>
-          <Textarea
-            id={`${id}-body`}
-            dir="auto"
-            rows={12}
-            data-skill-body
-            className="key"
-            value={draft.body}
-            onChange={(event) => setDraft((d) => ({ ...d, body: event.target.value }))}
+        <div className="flex flex-col gap-2">
+          {/* The text is Markdown, so it can be read as the skill's page shows it before it is saved (knowledge-13). */}
+          <Segmented
+            label={e.bodyMode}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'write', label: e.write },
+              { value: 'preview', label: e.preview },
+            ]}
+            className="self-start"
           />
-        </Field>
+          <Field id={`${id}-body`} label={e.body} hint={e.bodyHint}>
+            {mode === 'write' ? (
+              <Textarea
+                id={`${id}-body`}
+                dir="auto"
+                rows={12}
+                data-skill-body
+                className="key"
+                value={draft.body}
+                onChange={(event) => setDraft((d) => ({ ...d, body: event.target.value }))}
+              />
+            ) : (
+              <div
+                id={`${id}-body`}
+                data-skill-preview
+                className="max-h-96 min-w-0 overflow-auto rounded-md border border-border p-3 text-body text-foreground"
+              >
+                {draft.body.trim() ? (
+                  <MarkdownView source={draft.body} dir="auto" headingOffset={3} />
+                ) : (
+                  <p className="text-body-sm text-muted-foreground">{e.previewEmpty}</p>
+                )}
+              </div>
+            )}
+          </Field>
+        </div>
         {secret && <SecretFilterError pattern={secret} />}
         {problem.form && (
           <p role="alert" className="text-body-sm text-destructive-soft-foreground">

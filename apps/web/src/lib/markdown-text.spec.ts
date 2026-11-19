@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { isSafeHref, markdownExcerpt } from './markdown-text';
+import { excerptText, inlineMarkdownText, isSafeHref, markdownExcerpt } from './markdown-text';
 
 describe('markdownExcerpt', () => {
   it('reads the first paragraph under the first heading, with no markers', () => {
@@ -61,5 +61,19 @@ describe('isSafeHref', () => {
     'file:///c:/x',
   ])('stops %j', (href) => {
     expect(isSafeHref(href)).toBe(false);
+  });
+});
+
+describe('inlineMarkdownText and excerptText', () => {
+  it('reads a heading as its words', () => {
+    expect(inlineMarkdownText('3.1 `save_doc` and [the guide](./g.md) **now**')).toBe(
+      '3.1 save_doc and the guide now',
+    );
+  });
+  it('takes list, task, heading and quote markers off each line', () => {
+    expect(excerptText('## Title\n- [ ] one\n> quoted\n1. two')).toBe('Title one quoted two');
+  });
+  it('keeps an underscore inside a word', () => {
+    expect(excerptText('_em_ and save_doc')).toBe('em and save_doc');
   });
 });

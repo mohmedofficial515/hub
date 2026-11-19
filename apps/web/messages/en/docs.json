@@ -41,5 +41,21 @@
     "missing": "This file is no longer in its folder",
     "secret": "This file now holds something like a secret, so Hub does not show it"
   },
-  "unavailableBody": "The index is out of date. It updates on the next run."
+  "unavailableBody": "The index is out of date. It updates on the next run.",
+  "filter": "Filter by name or path",
+  "filterLabel": "Filter the tree by a doc’s name or path",
+  "noMatches": "No doc’s name or path holds “{q}”. The Ask page searches the full text.",
+  "breadcrumb": "Where this doc lives",
+  "pager": "Reading order",
+  "prev": "Previous",
+  "next": "Next",
+  "docThing": "this doc",
+  "commitFull": "Copy the full commit {sha}",
+  "onboardingStep": "Step {n} of your path",
+  "onboardingHint": "When you have read it, mark it read and your path moves on.",
+  "markRead": "Mark it read",
+  "markedRead": "Marked read: {title}",
+  "backToPath": "Back to your path",
+  "nextStep": "Next: {title}",
+  "pathDone": "That was the last step of your path."
 }

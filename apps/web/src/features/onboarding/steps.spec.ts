@@ -3,7 +3,9 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { mergeGroups, nextStepOf, stepTarget } from './steps';
+import type { DocCard } from '@/features/cards/types';
+
+import { docKeyOfStep, mergeGroups, nextStepOf, stepForDoc, stepTarget } from './steps';
 
 const doc = { id: 'what', kind: 'doc', title: 'What', ref: 'docs/README.md' } as const;
 
@@ -86,5 +88,31 @@ describe('stepTarget', () => {
       kind: 'external',
       href: 'https://x.dev',
     });
+  });
+});
+
+describe('stepForDoc', () => {
+  const docCard = (key: string, path: string) => ({ key, doc: { path } }) as unknown as DocCard;
+  const all = [docCard('GTV-1', 'docs/README.md'), docCard('GTV-2', 'docs/01-architecture.md')];
+  const steps = mergeGroups([
+    {
+      role: 'frontend',
+      items: [
+        { id: 'a', kind: 'doc', title: 'Read me', ref: 'docs/README.md' },
+        { id: 'b', kind: 'doc', title: 'Architecture', ref: 'x', cardKey: 'GTV-2' },
+        { id: 'c', kind: 'action', title: 'Install', ref: 'install_pack' },
+      ],
+    },
+  ]);
+  it('finds the reading step by its path or by its card, with its place', () => {
+    expect(stepForDoc(steps, { key: 'GTV-1' }, all)).toMatchObject({ index: 0, step: { id: 'a' } });
+    expect(stepForDoc(steps, { key: 'GTV-2' }, all)).toMatchObject({ index: 1, step: { id: 'b' } });
+  });
+  it('is nothing for a doc that is not on the path', () => {
+    expect(stepForDoc(steps, { key: 'GTV-9' }, all)).toBeUndefined();
+  });
+  it('names the doc a step opens', () => {
+    expect(docKeyOfStep(steps[0]!, all)).toBe('GTV-1');
+    expect(docKeyOfStep(steps[2]!, all)).toBeUndefined();
   });
 });

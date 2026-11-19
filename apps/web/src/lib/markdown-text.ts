@@ -64,6 +64,35 @@ export function markdownExcerpt(source: string): string {
   return heading ? tidy(inlineText(heading.tokens)) : '';
 }
 
+/** One line of inline Markdown, such as a heading or a table cell, as the words a reader sees: `[x](y)` is `x`, and no `*`, `_` or backtick markers. */
+export function inlineMarkdownText(source: string): string {
+  return tidy(inlineText(marked.Lexer.lexInline(source)));
+}
+
+/**
+ * A search excerpt is a window cut out of the raw file, so it can start or end inside a link or a fence. This takes the Markdown out of it
+ * line by line, without parsing: list and task markers, heading and quote markers, a fence's language line, `[x](y)` as `x` (and the cut halves
+ * of one), and emphasis and code markers. An underscore inside a word, as in `save_doc`, stays.
+ */
+export function excerptText(text: string): string {
+  return (
+    text
+      .replace(/(^|\n)[ \t]*(```+|~~~+)[^\n]*/g, '$1')
+      .replace(/!?\[([^\]\n]*)\]\([^)\n]*\)/g, '$1')
+      .replace(/\]\([^)\s]*\)?/g, '')
+      .replace(/(^|\n)[ \t]*>[ \t]?/g, '$1')
+      .replace(/(^|\n)[ \t]*#{1,6}[ \t]+/g, '$1')
+      .replace(/(^|\n)[ \t]*(?:[-*+]|\d+[.)])[ \t]+/g, '$1')
+      .replace(/(^|\s)\[[ xX]\][ \t]+/g, '$1')
+      .replace(/\*+|`+|~~/g, '')
+      .replace(/(?<![\p{L}\p{N}])_+|_+(?![\p{L}\p{N}])/gu, '')
+      // A truncated link leaves its opening bracket behind.
+      .replace(/\[(?=[^\]]*$)/g, '')
+      .replace(/[ \t]*\n[ \t]*/g, ' ')
+      .replace(/[ \t]{2,}/g, ' ')
+  );
+}
+
 /** Web and mail links, and the app's own paths. A `javascript:` or `data:` link in an imported body stays as its words. */
 export function isSafeHref(href: string): boolean {
   // Browsers ignore tabs and newlines inside a scheme, and leading spaces, so they must not hide one here.

@@ -53,5 +53,6 @@
   },
   "errorThing": "the search results",
   "loading": "Searching",
-  "statusLine": "{count} for “{q}”"
+  "statusLine": "{count} for “{q}”",
+  "tooShort": "Type at least two characters to search."
 }

@@ -3,7 +3,8 @@
  * @description Onboarding with no React. The API answers one group per role (docs/04 §3.23); the page lists each item once, with the roles that hold
  * it (09 §13). `doc`, `card`, `url` and `action` say where a step leads. An `action` finishes itself, so a member cannot tick it.
  */
-import type { Role } from '@/features/cards/types';
+import type { DocCard, Role } from '@/features/cards/types';
+import { findDocByPath } from '@/features/docs/tree';
 
 export type StepKind = 'doc' | 'card' | 'url' | 'action';
 export type StepPhase = 'read' | 'setup' | 'work';
@@ -126,3 +127,20 @@ export function stepTarget(step: Pick<OnboardingStep, 'kind' | 'ref'>, docKey?: 
 }
 
 export const nextStepOf = (steps: readonly OnboardingStep[]) => steps.find((s) => !s.done);
+
+/** The indexed doc a reading step opens: the card the API names, else the doc at its path. */
+export const docKeyOfStep = (
+  step: Pick<OnboardingStep, 'kind' | 'ref' | 'cardKey'>,
+  all: readonly DocCard[],
+) => (step.kind === 'doc' ? (step.cardKey ?? findDocByPath(step.ref, all)?.key) : undefined);
+
+/** The reading step of the member's path that this doc is, with its place on the trail (knowledge-12). */
+export function stepForDoc(
+  steps: readonly OnboardingStep[],
+  card: { key: string },
+  all: readonly DocCard[],
+): { step: OnboardingStep; index: number } | undefined {
+  const index = steps.findIndex((s) => s.kind === 'doc' && docKeyOfStep(s, all) === card.key);
+  const step = steps[index];
+  return step ? { step, index } : undefined;
+}

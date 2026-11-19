@@ -140,4 +140,44 @@ describe('AskPage', () => {
     renderWithApp(page);
     expect(await screen.findByText('hub.common.internal')).toBeInTheDocument();
   });
+
+  it('asks for two letters instead of saying nothing matched (knowledge-10)', async () => {
+    search.value = 'q=a';
+    const { calls } = api({ body: { data: found } });
+    renderWithApp(page);
+    expect(await screen.findByText('Type at least two characters to search.')).toBeInTheDocument();
+    expect(screen.queryByText('Nothing matched')).not.toBeInTheDocument();
+    expect(calls.some((c) => c.path.endsWith('/search'))).toBe(false);
+  });
+
+  it('keeps the field and the scope when the search fails, with a retry beside them (knowledge-10)', async () => {
+    search.value = 'q=refund';
+    api({ status: 500, body: { error: { code: 'hub.common.internal', message: 'Boom' } } });
+    renderWithApp(page);
+    expect(await screen.findByRole('button', { name: /Retry/ })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search docs and cards' })).toHaveValue('refund');
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
+  });
+
+  it('reads a doc in the language the index gives it, and puts results before the hand-off (knowledge-11)', async () => {
+    search.value = 'q=refund';
+    const arabicTree = [
+      {
+        source: { id: 's', name: 'x' },
+        total: 1,
+        root: {
+          name: '',
+          path: '',
+          docs: [{ ...summary('GTV-9', 'doc', 'Safety'), detail: { path: 'docs/21-safety.md', lang: 'ar' } }],
+          folders: [],
+        },
+      },
+    ];
+    api({ body: { data: found } }, arabicTree);
+    renderWithApp(page);
+    const path = await screen.findByText('docs/21-safety.md');
+    expect(path.closest('[dir="rtl"]')).not.toBeNull();
+    const hand = screen.getByRole('complementary', { name: 'Want a written answer?' });
+    expect(hand.parentElement?.className).toContain('order-last');
+  });
 });

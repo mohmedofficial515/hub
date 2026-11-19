@@ -9,9 +9,12 @@ import {
   type DocFolder,
   docTwin,
   fileName,
+  filterTree,
   findDocByPath,
   folderSize,
+  folderTrail,
   hideTwins,
+  neighbours,
   recentDocs,
   resolveDocLink,
   resolvePath,
@@ -73,5 +76,30 @@ describe('links between docs', () => {
 describe('recentDocs', () => {
   it('is newest first without twins', () => {
     expect(recentDocs([adr, aAr, a]).map((d) => d.key)).toEqual(['A', 'C']);
+  });
+});
+
+describe('filterTree', () => {
+  it('keeps the docs whose name or path holds the text, and their folders', () => {
+    const out = filterTree(root, '21');
+    expect(out.docs.map((d) => d.key)).toEqual(['A', 'B']);
+    expect(out.folders).toEqual([]);
+    expect(filterTree(root, 'PAY').folders[0]?.docs.map((d) => d.key)).toEqual(['C']);
+  });
+  it('is the whole tree for no text, and empty for no match', () => {
+    expect(filterTree(root, '  ')).toBe(root);
+    expect(folderSize(filterTree(root, 'nothing-like-this'))).toBe(0);
+  });
+});
+
+describe('reading order', () => {
+  it('gives the docs on either side, and a twin its pair’s place', () => {
+    const order = [a, adr, lone];
+    expect(neighbours(adr, order, [a, aAr, adr, lone])).toEqual({ prev: a, next: lone });
+    expect(neighbours(a, order, []).prev).toBeUndefined();
+    expect(neighbours(aAr, order, [a, aAr]).next?.key).toBe('C');
+  });
+  it('names the folders of a path', () => {
+    expect(folderTrail('docs/adr/0005-pay.md')).toEqual(['docs', 'adr']);
   });
 });

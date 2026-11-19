@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   Button,
@@ -55,6 +55,10 @@ import { MoveDialog } from './move-dialog';
 import { SkillEditor } from './skill-editor';
 import { SkillView } from './skill-view';
 import type { SkillsMessages } from './words';
+
+/** Names joined the way the language joins them: «أ، ب و ج», "a, b and c". */
+const listOf = (names: string[], locale: 'ar' | 'en') =>
+  new Intl.ListFormat(locale, { style: 'long', type: 'conjunction' }).format(names);
 
 const counted = (n: number, locale: 'ar' | 'en', forms: Parameters<typeof plural>[2]) =>
   fmt(plural(n, locale, forms), { n });
@@ -149,11 +153,14 @@ function HubSkillRow({
   owner,
   onRead,
   onEdit,
+  busy = false,
 }: {
   skill: SkillSummary;
   owner: boolean;
   onRead: () => void;
   onEdit: () => void;
+  /** Its full text is on the way for the editor. */
+  busy?: boolean | undefined;
 }) {
   const t = useT<SkillsMessages>('skills').hub;
   const locale = useLocale();
@@ -166,7 +173,7 @@ function HubSkillRow({
         ? t.onAll
         : synced.length === 0
           ? t.onNone
-          : fmt(t.on, { n: synced.length, total });
+          : fmt(plural(total, locale, t.on), { n: synced.length, total });
   const command = `/hub:${skill.name}`;
   return (
     <li
@@ -208,7 +215,14 @@ function HubSkillRow({
               content={{
                 what: reach,
                 ...(synced.length > 0
-                  ? { detail: fmt(t.onTip, { names: synced.map((d) => d.name).join('، ') }) }
+                  ? {
+                      detail: fmt(t.onTip, {
+                        names: listOf(
+                          synced.map((d) => d.name),
+                          locale,
+                        ),
+                      }),
+                    }
                   : {}),
               }}
               align="start"
@@ -232,7 +246,7 @@ function HubSkillRow({
           {t.view}
         </Button>
         {owner && !skill.core && (
-          <Button size="sm" variant="ghost" data-skill-edit onClick={onEdit}>
+          <Button size="sm" variant="ghost" busy={busy} data-skill-edit onClick={onEdit}>
             <Pencil aria-hidden className="size-3.5" strokeWidth={1.75} />
             {t.edit}
           </Button>
@@ -298,7 +312,18 @@ function PersonalSkillRow({
 
 /** The editor for a Hub skill, once its full text is read. */
 function EditHubSkill({ name, onClose }: { name: string | null; onClose: () => void }) {
+  const t = useT<SkillsMessages>('skills');
   const detail = useSkill('hub', name);
+  // A text that cannot be read says so and lets go, so Edit never looks stuck (knowledge-13).
+  const failed = !!name && detail.isError;
+  useEffect(() => {
+    if (!failed) return;
+    showToast({
+      tone: 'error',
+      message: isHubError(detail.error) ? detail.error.message : t.errorThing,
+    });
+    onClose();
+  }, [failed, detail.error, onClose, t.errorThing]);
   return (
     <SkillEditor
       open={!!name && !!detail.data}
@@ -318,6 +343,8 @@ export function SkillsPage() {
   const sync = useSyncSkills();
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+  const editDetail = useSkill('hub', editing);
+  const stopEditing = useCallback(() => setEditing(null), []);
   const [moving, setMoving] = useState<SkillSummary | null>(null);
   const [reading, setReading] = useState<{ source: SkillSource; name: string } | null>(null);
   const data = query.data;
@@ -394,7 +421,7 @@ export function SkillsPage() {
   return (
     <PageContainer>
       {header}
-      <div className="grid min-w-0 items-start gap-5 md:gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid min-w-0 items-start gap-5 md:gap-6 lg:@page-lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <section aria-labelledby="skills-hub" data-skills-section="hub" className="flex flex-col gap-3">
             <SectionHeader id="skills-hub" icon={Sparkles} title={t.hub.title} count={data.hub.length} />
@@ -410,6 +437,7 @@ export function SkillsPage() {
                     owner={owner}
                     onRead={() => setReading({ source: 'hub', name: skill.name })}
                     onEdit={() => setEditing(skill.name)}
+                    busy={editing === skill.name && editDetail.isPending}
                   />
                 ))}
               </ul>
@@ -452,13 +480,13 @@ export function SkillsPage() {
             </section>
           )}
         </div>
-        <aside className="min-w-0 lg:sticky lg:top-4">
+        <aside className="min-w-0 lg:@page-lg:sticky lg:@page-lg:top-18">
           <DevicesCard devices={data.sync.devices} version={data.sync.version} mode={data.sync.mode} />
         </aside>
       </div>
 
       <SkillEditor open={creating} onOpenChange={setCreating} />
-      <EditHubSkill name={editing} onClose={() => setEditing(null)} />
+      <EditHubSkill name={editing} onClose={stopEditing} />
       <MoveDialog skill={moving} hubNames={hubNames} onOpenChange={(value) => !value && setMoving(null)} />
       <SkillView
         source={open?.source ?? 'hub'}

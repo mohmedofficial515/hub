@@ -80,10 +80,11 @@ const SKILLS = {
   },
 };
 
-function mount(roles: string[], skills: unknown = SKILLS) {
+function mount(roles: string[], skills: unknown = SKILLS, detail?: { status?: number; body?: unknown }) {
   const fetched = stubFetch((url, init, request) => {
     const path = url.pathname;
     const method = request?.method ?? init?.method ?? 'GET';
+    if (detail && path.includes('/skills/hub/')) return detail;
     if (path.endsWith('/me')) return { body: { data: meAs(roles) } };
     if (path.endsWith('/workspaces/demo'))
       return { body: { data: { slug: 'demo', name: 'Demo', myRoles: roles } } };
@@ -219,6 +220,39 @@ describe('SkillsPage', () => {
         },
       }),
     );
+  });
+});
+
+describe('SkillsPage, editing (knowledge-13)', () => {
+  it('previews the instructions as the skill’s page shows them', async () => {
+    const user = userEvent.setup();
+    mount(['owner']);
+    await waitFor(() => expect(document.querySelector('[data-skills-new]')).toBeTruthy());
+    await user.click(document.querySelector<HTMLButtonElement>('[data-skills-new]')!);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Preview' }));
+    expect(within(dialog).getByText(/Nothing to preview yet/)).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Write' }));
+    await user.type(within(dialog).getByLabelText(/Instructions/), '## Steps{enter}{enter}- one');
+    await user.click(within(dialog).getByRole('button', { name: 'Preview' }));
+    const preview = dialog.querySelector('[data-skill-preview]')!;
+    expect(preview.querySelector('h5')?.textContent).toBe('Steps');
+    expect(preview.querySelectorAll('li')).toHaveLength(1);
+  });
+
+  it('lets go of Edit when the text cannot be read, so it never looks stuck', async () => {
+    const user = userEvent.setup();
+    const { calls } = mount(['owner'], SKILLS, {
+      status: 500,
+      body: { error: { code: 'hub.common.internal', message: 'Boom' } },
+    });
+    await waitFor(() => expect(document.querySelector('[data-skill="tidy-repo"]')).toBeTruthy());
+    const edit = document.querySelector<HTMLButtonElement>('[data-skill="tidy-repo"] [data-skill-edit]')!;
+    await user.click(edit);
+    await waitFor(() => expect(calls.some((c) => c.path.endsWith('/skills/hub/tidy-repo'))).toBe(true));
+    await waitFor(() => expect(edit).not.toBeDisabled());
+    expect(edit.querySelector('.animate-spin, [class*="animate-spin"]')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

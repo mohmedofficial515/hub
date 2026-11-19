@@ -70,6 +70,46 @@ export function hideTwins(folder: DocFolder, all: readonly DocCard[] = allDocs(f
   };
 }
 
+/**
+ * The tree cut down to the docs whose title, readable name or path holds `q`, case ignored, and the folders on the way to them. An empty `q` is the
+ * whole tree. A file a reader knows by name is then a few letters away (knowledge-04); the full text is the Ask page's job.
+ */
+export function filterTree(folder: DocFolder, q: string): DocFolder {
+  const needle = q.trim().toLocaleLowerCase();
+  if (!needle) return folder;
+  const hit = (d: DocCard) =>
+    [d.title ?? '', readableName(d.doc.path).words, d.doc.path].some((s) =>
+      s.toLocaleLowerCase().includes(needle),
+    );
+  const cut = (f: DocFolder): DocFolder => ({
+    ...f,
+    docs: f.docs.filter(hit),
+    folders: f.folders.map(cut).filter((sub) => folderSize(sub) > 0),
+  });
+  return cut(folder);
+}
+
+/** Every doc in the order the tree reads, without twins: what comes before and after the one open (knowledge-05). */
+export const readingOrder = (sources: readonly DocSource[]): DocCard[] => sources.flatMap((s) => allDocs(s.root));
+
+/** The docs on either side of `card` in reading order. A twin stands in its pair's place. */
+export function neighbours(
+  card: DocCard,
+  order: readonly DocCard[],
+  all: readonly DocCard[],
+): { prev?: DocCard | undefined; next?: DocCard | undefined } {
+  let at = order.findIndex((d) => d.key === card.key);
+  if (at < 0) {
+    const twin = docTwin(card, all);
+    at = twin ? order.findIndex((d) => d.key === twin.key) : -1;
+  }
+  if (at < 0) return {};
+  return { prev: order[at - 1], next: order[at + 1] };
+}
+
+/** The folders a doc sits in, inside its source: `docs/adr/0005-pay.md` → ['docs', 'adr']. */
+export const folderTrail = (path: string) => path.split('/').filter(Boolean).slice(0, -1);
+
 /** How many docs a reader sees under a folder. */
 export const folderSize = (folder: DocFolder): number =>
   folder.docs.length + folder.folders.reduce((n, f) => n + folderSize(f), 0);

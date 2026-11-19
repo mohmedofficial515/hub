@@ -6,6 +6,7 @@
 import type { CardSummaryDto } from '@/features/cards/map';
 import { toListItem } from '@/features/cards/map';
 import type { CardListItem } from '@/features/cards/types';
+import { excerptText } from '@/lib/markdown-text';
 
 export type AskScope = 'all' | 'docs' | 'cards';
 
@@ -37,6 +38,31 @@ export function toSegments(excerpt: string | null | undefined): Segment[] {
     }
   }
   return segments;
+}
+
+const OPEN = '';
+const CLOSE = '';
+
+/**
+ * An excerpt is cut out of the raw Markdown, so it carries `[ ]`, `](path)`, a fence's language and `*` (live tour). They come out here, across the
+ * segments, so a link whose words hold the marked term still reads as those words, with the term still marked.
+ */
+export function readableSegments(segments: readonly Segment[]): Segment[] {
+  const joined = segments.map((s) => (s.mark ? `${OPEN}${s.text}${CLOSE}` : s.text)).join('');
+  const out: Segment[] = [];
+  let mark = false;
+  let text = '';
+  for (const ch of excerptText(joined).trim()) {
+    if (ch !== OPEN && ch !== CLOSE) {
+      text += ch;
+      continue;
+    }
+    if (text) out.push({ text, mark });
+    text = '';
+    mark = ch === OPEN;
+  }
+  if (text) out.push({ text, mark });
+  return out;
 }
 
 export interface DocChunk {
@@ -74,7 +100,10 @@ export function toResults(dto: SearchDto, q: string, scope: AskScope): AskResult
   const cards =
     scope === 'docs'
       ? []
-      : (dto.cards ?? []).map((c) => ({ ...toListItem(c), excerpt: toSegments(c.highlight) }));
+      : (dto.cards ?? []).map((c) => ({
+          ...toListItem(c),
+          excerpt: readableSegments(toSegments(c.highlight)),
+        }));
   const docs =
     scope === 'cards'
       ? []
@@ -85,7 +114,7 @@ export function toResults(dto: SearchDto, q: string, scope: AskScope): AskResult
           chunks: (hit.chunks ?? []).map((c) => ({
             heading: c.heading,
             anchor: c.anchor,
-            excerpt: toSegments(c.excerpt),
+            excerpt: readableSegments(toSegments(c.excerpt)),
           })),
         }));
   const exact = cards.find((c) => c.key.toLowerCase() === q.trim().toLowerCase());

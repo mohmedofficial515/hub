@@ -1,11 +1,19 @@
 /**
  * @file `MarkdownView` on imported text: it draws the app's elements, and nothing in the source can inject markup or run (review B2).
  */
-import { describe, expect, it } from 'vitest';
+import { QueryClient } from '@tanstack/react-query';
+import { fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp } from '@/test/render';
 
-import { MarkdownView } from './markdown';
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(window.location.search),
+  usePathname: () => window.location.pathname,
+}));
+
+import { createSlugger, headingsOf, MarkdownView, slugify } from './markdown';
 
 describe('MarkdownView', () => {
   it('draws headings and lists, not their markers', () => {
@@ -106,5 +114,131 @@ describe('MarkdownView', () => {
     expect(english?.getAttribute('dir')).toBe('ltr');
     expect(container.querySelector('ul')?.getAttribute('dir')).toBeNull();
     expect(container.querySelector('li:last-child bdi')?.getAttribute('dir')).toBe('ltr');
+  });
+});
+
+describe('anchors, as the API names them (knowledge-01)', () => {
+  it('numbers a repeated heading, keeps `_` and Arabic marks, and the outline says the same', () => {
+    const source =
+      '## Notes\n\ntext\n\n## Notes\n\n## 3.1 `save_doc`\n\n## الدَّفعُ\n\n### [Link](https://x.test) here';
+    const { container } = renderWithApp(<MarkdownView source={source} />);
+    const ids = [...container.querySelectorAll('h3, h4')].map((h) => h.id);
+    expect(ids).toEqual(['notes', 'notes-1', '31-save_doc', 'الدَّفعُ', 'linkhttpsxtest-here']);
+    const outline = headingsOf(source);
+    expect(outline.map((h) => h.anchor)).toEqual(ids);
+    expect(outline.map((h) => h.text)).toEqual(['Notes', 'Notes', '3.1 save_doc', 'الدَّفعُ', 'Link here']);
+  });
+
+  it('matches the API slugger letter for letter', () => {
+    const slug = createSlugger();
+    expect(slug('  Hello  World ')).toBe('hello--world');
+    expect(slug('Hello  World')).toBe('hello--world-1');
+    expect(slugify('`save_doc`')).toBe('save_doc');
+  });
+});
+
+describe('code blocks (knowledge-06)', () => {
+  it('names the language, wraps on request, and keeps the copy button off the code', () => {
+    const { container, getByRole } = renderWithApp(
+      <MarkdownView source={'```bash\npnpm --filter @hub/web dev\n```'} />,
+      { locale: 'ar' },
+    );
+    const frame = container.querySelector('pre')?.parentElement;
+    expect(frame?.getAttribute('dir')).toBe('ltr');
+    expect(frame?.textContent).toContain('bash');
+    const wrap = getByRole('button', { name: 'لفّ الأسطر' });
+    expect(wrap.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(wrap);
+    expect(wrap.getAttribute('aria-pressed')).toBe('true');
+    expect(container.querySelector('pre')?.className).toContain('whitespace-pre-wrap');
+  });
+
+  it('calls a Mermaid block a diagram', () => {
+    const { container } = renderWithApp(<MarkdownView source={'```mermaid\ngraph TD\n```'} />);
+    expect(container.textContent).toContain('Mermaid diagram');
+  });
+
+  it('starts an ordered list where the text does', () => {
+    const { container } = renderWithApp(<MarkdownView source={'3. third\n4. fourth'} />);
+    expect(container.querySelector('ol')?.getAttribute('start')).toBe('3');
+    const { container: one } = renderWithApp(<MarkdownView source={'1. first'} />);
+    expect(one.querySelector('ol')?.getAttribute('start')).toBeNull();
+  });
+});
+
+describe('callouts and images (knowledge-07)', () => {
+  it('draws GitHub’s warning as a titled note, without its marker', () => {
+    const { container } = renderWithApp(<MarkdownView source={'> [!WARNING]\n> نص التحذير'} />, {
+      locale: 'ar',
+    });
+    const note = container.querySelector('aside[role="note"]');
+    expect(note?.textContent).toContain('تحذير');
+    expect(note?.textContent).toContain('نص التحذير');
+    expect(container.textContent).not.toContain('[!WARNING]');
+    expect(container.querySelector('blockquote')).toBeNull();
+  });
+
+  it('keeps a plain quote a quote', () => {
+    const { container } = renderWithApp(<MarkdownView source={'> just a quote'} />);
+    expect(container.querySelector('blockquote')?.textContent).toBe('just a quote');
+  });
+
+  it('shows an image as a framed stand-in with a link out, never loading it', () => {
+    const { container } = renderWithApp(<MarkdownView source={'![the shot](https://x.test/a.png)'} />);
+    expect(container.querySelector('img')).toBeNull();
+    const link = container.querySelector('a');
+    expect(link?.getAttribute('href')).toBe('https://x.test/a.png');
+    expect(link?.textContent).toBe('Open the image');
+    const { container: local } = renderWithApp(<MarkdownView source={'![local](./a.png)'} />);
+    expect(local.querySelector('a')).toBeNull();
+  });
+});
+
+describe('card keys (knowledge-08)', () => {
+  const me = {
+    id: 'u1',
+    email: 'a@x.test',
+    displayName: 'A',
+    workspaces: [{ slug: 'goteav', name: 'Goteav', keyPrefix: 'GTV', roles: ['owner'] }],
+  };
+  const withSession = () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['me'], me);
+    return client;
+  };
+
+  it('links this project’s keys, and leaves code, links and other prefixes alone', () => {
+    window.history.replaceState(null, '', '/en/goteav/decisions');
+    const { container } = renderWithApp(
+      <MarkdownView source={'انظر GTV-12 قبل UTF-8 و `GTV-13` و [GTV-14](https://x.test) و XGTV-15.'} />,
+      { locale: 'ar', client: withSession() },
+    );
+    const links = [...container.querySelectorAll('a')];
+    expect(links.map((a) => a.textContent)).toEqual(['GTV-12', 'GTV-14']);
+    expect(links[0]?.getAttribute('href')).toContain('card=GTV-12');
+    expect(links[0]?.closest('bdi')?.getAttribute('dir')).toBe('ltr');
+    expect(container.querySelector('code')?.textContent).toBe('GTV-13');
+  });
+
+  it('shows keys as words before the session is known', () => {
+    const { container } = renderWithApp(<MarkdownView source={'See GTV-12.'} />);
+    expect(container.querySelector('a')).toBeNull();
+  });
+});
+
+describe('tables (knowledge-09)', () => {
+  it('turns an English cell in an Arabic table alone, and labels the table without Markdown', () => {
+    const { container } = renderWithApp(
+      <MarkdownView
+        dir="rtl"
+        source={
+          '| **الأداة** | الوصف |\n|---|---|\n| Sentry | Sentry captures 5xx errors. |\n| أداة | وصف عربي طويل |'
+        }
+      />,
+    );
+    const cells = [...container.querySelectorAll('td')];
+    expect(cells[1]?.getAttribute('dir')).toBe('ltr');
+    expect(cells[3]?.getAttribute('dir')).toBeNull();
+    expect(container.querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('الأداة, الوصف');
   });
 });

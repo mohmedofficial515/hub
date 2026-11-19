@@ -26,7 +26,7 @@ const linkClass = cn(
 
 export function DocSection({ card }: SectionProps<'doc'>) {
   const t = useT(kitMessages);
-  const own = useT(kitMessages).sections.doc;
+  const own = t.sections.doc;
   const locale = useLocale();
   // The source's name and who mentions it come with the doc's own read, not with the card.
   const full = useDoc(card.key).data;
@@ -55,8 +55,17 @@ export function DocSection({ card }: SectionProps<'doc'>) {
           </Fact>
         )}
         {d.lastCommitSha && (
+          // 08 §5.4: a short SHA, the full one on hover and on the clipboard.
           <Fact label={s.commit}>
-            <Ltr mono>{d.lastCommitSha}</Ltr>
+            <span className="inline-flex items-center gap-1.5" title={d.lastCommitSha}>
+              <Ltr mono>{d.lastCommitSha.slice(0, 7)}</Ltr>
+              <CopyButton
+                text={d.lastCommitSha}
+                showText={false}
+                label={fmt(own.copySha, { sha: d.lastCommitSha.slice(0, 7) })}
+                className="size-11 border-transparent bg-transparent md:size-7"
+              />
+            </span>
           </Fact>
         )}
         <Fact label={s.words}>
@@ -64,7 +73,7 @@ export function DocSection({ card }: SectionProps<'doc'>) {
         </Fact>
         <Fact label={own.lang}>{own.langs[d.lang]}</Fact>
         {d.lastIndexedAt && (
-          <Fact label={t.status.current} wide>
+          <Fact label={own.indexedLabel} wide>
             {fmt(s.indexed, { when: when(d.lastIndexedAt, locale) })}
           </Fact>
         )}
