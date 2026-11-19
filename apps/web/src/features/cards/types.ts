@@ -276,12 +276,25 @@ export interface PlanStep {
   size?: 'S' | 'M' | 'L' | undefined;
   after?: string[] | undefined;
   acceptance?: string | undefined;
+  /** One of the plan's `phases`, by id (v5-live-plan). Absent on a step outside any phase. */
+  phaseId?: string | undefined;
+  /** When the step last became done, set by Hub. */
+  doneAt?: string | undefined;
+}
+
+/** A named part of a plan's steps, in the order of `PlanDetail.phases` (v5-live-plan). */
+export interface PlanPhase {
+  id: string;
+  title: string;
+  note?: string | undefined;
 }
 
 /** docs/15 §4. */
 export interface PlanDetail {
   body: string;
   steps: PlanStep[];
+  /** In order. Empty on a plan saved before phases: its steps read as one list. */
+  phases: PlanPhase[];
   ideaKey?: string | undefined;
   /** The Plan Studio chat it was saved from, and the reply whose plan it holds (owner decision 9c). */
   sourceChatId?: string | undefined;

@@ -279,8 +279,14 @@ export const planDetailSchema = z.object({
       size: z.enum(['S', 'M', 'L']).optional(),
       after: z.array(z.string()).optional(),
       acceptance: z.string().optional(),
+      /** One of `phases` by id; absent on a step outside any phase. */
+      phaseId: z.string().optional(),
+      /** When the step last became done, set by Hub. */
+      doneAt: z.string().optional(),
     }),
   ),
+  /** The plan's phases in order (v5-live-plan). Empty on a plan saved before phases: its steps read as one list. */
+  phases: z.array(z.object({ id: z.string(), title: z.string(), note: z.string().optional() })),
   revision: z.number(),
   sourceIdeaId: z.string().nullable(),
   /** The Plan Studio chat this plan was saved from, and the reply it holds (owner decision 9c). */

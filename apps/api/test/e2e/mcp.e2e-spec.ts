@@ -285,6 +285,41 @@ describe('MCP over HTTP', () => {
       expect(inProject).toContain(`project: ${slug}`);
     });
 
+    it('Claude writes a plan’s phases with create_plan and update_plan, and get_plan reads the steps under them', async () => {
+      const { token } = await setup();
+      const hub = await connect(token);
+      const key = keyIn(
+        await hub.ok('create_plan', {
+          title: 'Phased plan',
+          body: 'Why',
+          phases: [{ id: 'p0', title: 'Setup' }],
+          steps: [{ title: 'Decide', phaseId: 'p0' }, { title: 'Loose step' }],
+        }),
+      );
+      let sheet = await hub.ok('get_plan', { key });
+      expect(sheet).toContain('### Phase 0: Setup · id p0');
+      expect(sheet).toMatch(/### No phase\n2\. \[ \] Loose step/);
+
+      await hub.ok('update_plan', {
+        key,
+        phases: [
+          { id: 'p0', title: 'Setup' },
+          { id: 'p1', title: 'Build', note: 'Frontend' },
+        ],
+        steps: [
+          { id: 's1', title: 'Decide', phaseId: 'p0' },
+          { id: 's2', title: 'Loose step', phaseId: 'p1' },
+        ],
+      });
+      sheet = await hub.ok('get_plan', { key });
+      expect(sheet).toContain('### Phase 1: Build (Frontend) · id p1');
+      expect(sheet).not.toContain('### No phase');
+
+      const refused = await hub.call('update_plan', { key, phases: [{ id: 'p0', title: 'Setup' }] });
+      expect(refused.isError).toBe(true);
+      expect(refused.content[0]?.text).toContain('Build');
+    });
+
     it('records the agent as the actor, through the same path as the web', async () => {
       const { workspace, token } = await setup();
       const hub = await connect(token);

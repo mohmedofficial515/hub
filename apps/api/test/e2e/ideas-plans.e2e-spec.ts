@@ -399,6 +399,119 @@ describe('plans', () => {
     expect(body.data).toMatchObject([{ key: plan.key, awaiting: 'approve' }]);
   });
 
+  it('phases (v5-live-plan): saved in order, each step in its phase, and a plan without them reads as before', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const phases = [
+      { id: 'p0', title: 'Setup', note: 'The owner' },
+      { id: 'p1', title: 'Build' },
+    ];
+    const plan = await created(
+      pm,
+      aPlan({
+        detail: {
+          phases,
+          steps: [
+            { title: 'Decide', phaseId: 'p0' },
+            { title: 'Build it', phaseId: 'p1' },
+            { title: 'Loose' },
+          ],
+        },
+      }),
+    );
+    const read = (await pm.get(`/cards/${plan.key}`).expect(200)).body.data.detail as {
+      phases: unknown[];
+      steps: { phaseId?: string }[];
+    };
+    expect(read.phases).toEqual(phases);
+    expect(read.steps.map((step) => step.phaseId ?? null)).toEqual(['p0', 'p1', null]);
+
+    const legacy = await created(pm, aPlan());
+    expect((await pm.get(`/cards/${legacy.key}`).expect(200)).body.data.detail.phases).toEqual([]);
+  });
+
+  it('refuses a step in a phase the plan does not have, and a phase removed while steps name it', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    await pm
+      .post(
+        '/cards',
+        aPlan({ detail: { phases: [{ id: 'p0', title: 'A' }], steps: [{ title: 'x', phaseId: 'p9' }] } }),
+      )
+      .expect(400)
+      .expect(({ body }) => expect(body.error.code).toBe('hub.plans.unknown_phase'));
+    await pm
+      .post(
+        '/cards',
+        aPlan({
+          detail: {
+            phases: [
+              { id: 'p0', title: 'A' },
+              { id: 'p0', title: 'B' },
+            ],
+            steps: [],
+          },
+        }),
+      )
+      .expect(400);
+
+    const plan = await created(
+      pm,
+      aPlan({
+        detail: {
+          phases: [
+            { id: 'p0', title: 'Setup' },
+            { id: 'p1', title: 'Build' },
+          ],
+          steps: [
+            { title: 'One', phaseId: 'p0' },
+            { title: 'Two', phaseId: 'p1' },
+          ],
+        },
+      }),
+    );
+    const removed = await pm
+      .patch(`/plans/${plan.key}`, { phases: [{ id: 'p0', title: 'Setup' }] })
+      .expect(409);
+    expect(removed.body.error.code).toBe('hub.plans.phase_in_use');
+    expect(removed.body.error.message).toContain('Build');
+
+    // Moving the steps in the same save lets the phase go, as one plan_steps_changed event.
+    const { body } = await pm
+      .patch(`/plans/${plan.key}`, {
+        phases: [{ id: 'p0', title: 'Setup' }],
+        steps: [
+          { id: 's1', title: 'One', phaseId: 'p0' },
+          { id: 's2', title: 'Two', phaseId: 'p0' },
+        ],
+      })
+      .expect(200);
+    expect(body.data.detail.phases).toEqual([{ id: 'p0', title: 'Setup' }]);
+    expect((await eventsOf(plan.id)).at(-1)).toMatchObject({ kind: 'plan_steps_changed' });
+
+    // Phases alone change too, and the same list again is no event.
+    await pm.patch(`/plans/${plan.key}`, { phases: [{ id: 'p0', title: 'Setup', note: 'Now' }] }).expect(200);
+    const before = (await eventsOf(plan.id)).length;
+    await pm.patch(`/plans/${plan.key}`, { phases: [{ id: 'p0', title: 'Setup', note: 'Now' }] }).expect(200);
+    expect(await eventsOf(plan.id)).toHaveLength(before);
+  });
+
+  it('a step done through its task is dated, for the finish estimate, and loses the date when it reopens', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const plan = await created(pm, aPlan());
+    const { body } = await pm.post(`/plans/${plan.key}/to-tasks`).expect(200);
+    const [first] = body.data.detail.steps as { taskKey: string }[];
+    const stepOne = async () =>
+      ((await pm.get(`/cards/${plan.key}`).expect(200)).body.data.detail.steps as { doneAt?: string }[])[0];
+    await pm.post(`/tasks/${first?.taskKey as string}/claim`).expect(200);
+    await pm.post(`/tasks/${first?.taskKey as string}/done`).expect(200);
+    // The test clock is fixed, so the date is checked for being one, not for being now.
+    expect(Number.isNaN(Date.parse((await stepOne())?.doneAt ?? ''))).toBe(false);
+    await pm.post(`/tasks/${first?.taskKey as string}/reopen`).expect(200);
+    expect(await stepOne()).not.toHaveProperty('doneAt');
+  });
+
   it('lists with step counts in the detail', async () => {
     const project = await aProject(app);
     const qa = await project.member(['qa']);

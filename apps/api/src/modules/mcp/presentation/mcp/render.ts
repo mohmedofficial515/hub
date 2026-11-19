@@ -161,12 +161,42 @@ function stepLines(step: StepRow, index: number): string[] {
   ];
 }
 
+interface PhaseRow {
+  readonly id: string;
+  readonly title: string;
+  readonly note?: string;
+}
+
+/**
+ * The steps, under their phases in order when the plan has phases (v5-live-plan), each keeping its number in the whole plan. Steps outside any
+ * phase come last. A plan with no phases is one list, as before.
+ */
 function planSections(detail: Readonly<Record<string, unknown>>): string[] {
-  const steps = (detail['steps'] ?? []) as readonly StepRow[];
-  return [
+  const steps = (detail['steps'] ?? []) as readonly (StepRow & { readonly phaseId?: string })[];
+  const phases = (detail['phases'] ?? []) as readonly PhaseRow[];
+  const head = [
     `Revision ${plain(detail['revision'] ?? 1)}`,
     `## Steps (${steps.filter((step) => step.done).length}/${steps.length} done)`,
-    ...steps.flatMap(stepLines),
+  ];
+  if (phases.length === 0) return [...head, ...steps.flatMap(stepLines)];
+  const known = new Set(phases.map((phase) => phase.id));
+  const numbered = steps.map((step, index) => ({ step, index }));
+  const block = (title: string, rows: typeof numbered) => [
+    `### ${title}`,
+    ...rows.flatMap(({ step, index }) => stepLines(step, index)),
+  ];
+  return [
+    ...head,
+    ...phases.flatMap((phase, n) =>
+      block(
+        `Phase ${n}: ${phase.title}${phase.note ? ` (${phase.note})` : ''} · id ${phase.id}`,
+        numbered.filter(({ step }) => step.phaseId === phase.id),
+      ),
+    ),
+    ...(() => {
+      const loose = numbered.filter(({ step }) => !step.phaseId || !known.has(step.phaseId));
+      return loose.length > 0 ? block('No phase', loose) : [];
+    })(),
   ];
 }
 

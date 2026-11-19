@@ -89,8 +89,8 @@ interface StepDraft {
   taskKey?: string | undefined;
   /** Kept as it is: a step done through Claude (update_plan) stays done when the form saves. */
   done: boolean;
-  /** Kept as they are: what the studio proposed for the step (owner decision 9a), which this form does not edit. */
-  extra: Pick<PlanStep, 'why' | 'size' | 'after' | 'acceptance'>;
+  /** Kept as they are: what the studio proposed for the step (owner decision 9a) and its phase, which this form does not edit. */
+  extra: Pick<PlanStep, 'why' | 'size' | 'after' | 'acceptance' | 'phaseId'>;
 }
 
 function StepsEditor({
@@ -225,6 +225,7 @@ function PlanEditForm({ card }: { card: PlanCard }) {
         ...(step.size ? { size: step.size } : {}),
         ...(step.after?.length ? { after: step.after } : {}),
         ...(step.acceptance ? { acceptance: step.acceptance } : {}),
+        ...(step.phaseId ? { phaseId: step.phaseId } : {}),
       },
     })),
   );

@@ -114,7 +114,9 @@
     },
     "plans": {
       "step_not_found": "That step is not on this plan.",
-      "revision_not_found": "That revision does not exist."
+      "revision_not_found": "That revision does not exist.",
+      "unknown_phase": "A step names a phase this plan does not have: {phase}. Add the phase, or leave the step without one.",
+      "phase_in_use": "Steps still belong to the phase {phase}. Move them to another phase, or leave them without one, in the same save."
     },
     "docs": {
       "not_found": "Document not found.",

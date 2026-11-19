@@ -91,6 +91,8 @@ export const ERROR_CATALOGUE = {
 
   'hub.plans.step_not_found': 404,
   'hub.plans.revision_not_found': 404,
+  'hub.plans.unknown_phase': 400,
+  'hub.plans.phase_in_use': 409,
 
   'hub.audit.export_too_large': 400,
   'hub.docs.not_found': 404,

@@ -633,14 +633,14 @@ const TOOL_TABLE = {
     readOnly: true,
   },
   get_plan: {
-    description: 'A plan: its full Markdown, ordered steps with their tasks, and its revisions.',
+    description: 'A plan: its full Markdown, its phases, ordered steps with their tasks, and its revisions.',
     input: key.extend({ includeRevisions: z.boolean().optional() }),
     actions: ['card.read'],
     readOnly: true,
   },
   create_plan: {
     description:
-      'Save a written plan: full Markdown `body` and ordered `steps`. It starts as a draft. Then plan_to_tasks creates its tasks.',
+      'Save a written plan: full Markdown `body` and ordered `steps`. Group the steps in `phases` (`{id, title, note?}` in order, at most 20) and give each step its `phaseId`; a plan without phases reads as one list. It starts as a draft. Then plan_to_tasks creates its tasks.',
     input: flatCreate(createPlanSchema),
     actions: ['plan.create'],
     routes: ['POST /workspaces/:ws/cards'],
@@ -648,7 +648,7 @@ const TOOL_TABLE = {
   },
   update_plan: {
     description:
-      'Edit a plan: body, steps, title. Each step may carry `why`, `size` (S, M, L), `after` (ids of earlier steps) and `acceptance`. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, request_changes (owner or pm, back to draft, `reason` required), start, finish, abandon.',
+      'Edit a plan: body, steps, phases, title. Each step may carry `why`, `size` (S, M, L), `after` (ids of earlier steps), `acceptance` and `phaseId` (one of the `phases` of the plan). `phases` is the whole ordered list `{id, title, note?}`: a phase that steps still name cannot be removed, so move those steps in the same call. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, request_changes (owner or pm, back to draft, `reason` required), start, finish, abandon.',
     input: key.extend({
       ...updatePlanSchema.shape,
       restoreRevision: z.number().int().min(1).optional(),

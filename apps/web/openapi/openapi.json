@@ -11295,9 +11295,42 @@
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 2000
+                        },
+                        "phaseId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
                         }
                       },
                       "required": [
+                        "title"
+                      ]
+                    }
+                  },
+                  "phases": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64
+                        },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "note": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 300
+                        }
+                      },
+                      "required": [
+                        "id",
                         "title"
                       ]
                     }
@@ -12495,12 +12528,39 @@
                         },
                         "acceptance": {
                           "type": "string"
+                        },
+                        "phaseId": {
+                          "type": "string"
+                        },
+                        "doneAt": {
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "title",
                         "done"
+                      ]
+                    }
+                  },
+                  "phases": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title"
                       ]
                     }
                   },
@@ -12543,6 +12603,7 @@
                 "required": [
                   "cardId",
                   "steps",
+                  "phases",
                   "revision",
                   "sourceIdeaId",
                   "sourceChatId",
@@ -14160,12 +14221,39 @@
                         },
                         "acceptance": {
                           "type": "string"
+                        },
+                        "phaseId": {
+                          "type": "string"
+                        },
+                        "doneAt": {
+                          "type": "string"
                         }
                       },
                       "required": [
                         "id",
                         "title",
                         "done"
+                      ]
+                    }
+                  },
+                  "phases": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title"
                       ]
                     }
                   },
@@ -14208,6 +14296,7 @@
                 "required": [
                   "cardId",
                   "steps",
+                  "phases",
                   "revision",
                   "sourceIdeaId",
                   "sourceChatId",
@@ -16138,12 +16227,39 @@
                             },
                             "acceptance": {
                               "type": "string"
+                            },
+                            "phaseId": {
+                              "type": "string"
+                            },
+                            "doneAt": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "title",
                             "done"
+                          ]
+                        }
+                      },
+                      "phases": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title"
                           ]
                         }
                       },
@@ -16186,6 +16302,7 @@
                     "required": [
                       "cardId",
                       "steps",
+                      "phases",
                       "revision",
                       "sourceIdeaId",
                       "sourceChatId",
@@ -17422,12 +17539,39 @@
                             },
                             "acceptance": {
                               "type": "string"
+                            },
+                            "phaseId": {
+                              "type": "string"
+                            },
+                            "doneAt": {
+                              "type": "string"
                             }
                           },
                           "required": [
                             "id",
                             "title",
                             "done"
+                          ]
+                        }
+                      },
+                      "phases": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "title": {
+                              "type": "string"
+                            },
+                            "note": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "title"
                           ]
                         }
                       },
@@ -17470,6 +17614,7 @@
                     "required": [
                       "cardId",
                       "steps",
+                      "phases",
                       "revision",
                       "sourceIdeaId",
                       "sourceChatId",
@@ -23202,12 +23347,39 @@
                               },
                               "acceptance": {
                                 "type": "string"
+                              },
+                              "phaseId": {
+                                "type": "string"
+                              },
+                              "doneAt": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "id",
                               "title",
                               "done"
+                            ]
+                          }
+                        },
+                        "phases": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title"
                             ]
                           }
                         },
@@ -23250,6 +23422,7 @@
                       "required": [
                         "cardId",
                         "steps",
+                        "phases",
                         "revision",
                         "sourceIdeaId",
                         "sourceChatId",
@@ -24438,12 +24611,39 @@
                               },
                               "acceptance": {
                                 "type": "string"
+                              },
+                              "phaseId": {
+                                "type": "string"
+                              },
+                              "doneAt": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "id",
                               "title",
                               "done"
+                            ]
+                          }
+                        },
+                        "phases": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title"
                             ]
                           }
                         },
@@ -24486,6 +24686,7 @@
                       "required": [
                         "cardId",
                         "steps",
+                        "phases",
                         "revision",
                         "sourceIdeaId",
                         "sourceChatId",
@@ -26007,12 +26208,39 @@
                                       },
                                       "acceptance": {
                                         "type": "string"
+                                      },
+                                      "phaseId": {
+                                        "type": "string"
+                                      },
+                                      "doneAt": {
+                                        "type": "string"
                                       }
                                     },
                                     "required": [
                                       "id",
                                       "title",
                                       "done"
+                                    ]
+                                  }
+                                },
+                                "phases": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "title": {
+                                        "type": "string"
+                                      },
+                                      "note": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "title"
                                     ]
                                   }
                                 },
@@ -26055,6 +26283,7 @@
                               "required": [
                                 "cardId",
                                 "steps",
+                                "phases",
                                 "revision",
                                 "sourceIdeaId",
                                 "sourceChatId",
@@ -30618,12 +30847,39 @@
                               },
                               "acceptance": {
                                 "type": "string"
+                              },
+                              "phaseId": {
+                                "type": "string"
+                              },
+                              "doneAt": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "id",
                               "title",
                               "done"
+                            ]
+                          }
+                        },
+                        "phases": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title"
                             ]
                           }
                         },
@@ -30666,6 +30922,7 @@
                       "required": [
                         "cardId",
                         "steps",
+                        "phases",
                         "revision",
                         "sourceIdeaId",
                         "sourceChatId",
@@ -32373,12 +32630,39 @@
                               },
                               "acceptance": {
                                 "type": "string"
+                              },
+                              "phaseId": {
+                                "type": "string"
+                              },
+                              "doneAt": {
+                                "type": "string"
                               }
                             },
                             "required": [
                               "id",
                               "title",
                               "done"
+                            ]
+                          }
+                        },
+                        "phases": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title"
                             ]
                           }
                         },
@@ -32421,6 +32705,7 @@
                       "required": [
                         "cardId",
                         "steps",
+                        "phases",
                         "revision",
                         "sourceIdeaId",
                         "sourceChatId",
@@ -33625,12 +33910,39 @@
                                 },
                                 "acceptance": {
                                   "type": "string"
+                                },
+                                "phaseId": {
+                                  "type": "string"
+                                },
+                                "doneAt": {
+                                  "type": "string"
                                 }
                               },
                               "required": [
                                 "id",
                                 "title",
                                 "done"
+                              ]
+                            }
+                          },
+                          "phases": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title"
                               ]
                             }
                           },
@@ -33673,6 +33985,7 @@
                         "required": [
                           "cardId",
                           "steps",
+                          "phases",
                           "revision",
                           "sourceIdeaId",
                           "sourceChatId",
@@ -34900,12 +35213,39 @@
                                 },
                                 "acceptance": {
                                   "type": "string"
+                                },
+                                "phaseId": {
+                                  "type": "string"
+                                },
+                                "doneAt": {
+                                  "type": "string"
                                 }
                               },
                               "required": [
                                 "id",
                                 "title",
                                 "done"
+                              ]
+                            }
+                          },
+                          "phases": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "note": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "title"
                               ]
                             }
                           },
@@ -34948,6 +35288,7 @@
                         "required": [
                           "cardId",
                           "steps",
+                          "phases",
                           "revision",
                           "sourceIdeaId",
                           "sourceChatId",
@@ -35524,9 +35865,42 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 2000
+                },
+                "phaseId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
                 }
               },
               "required": [
+                "title"
+              ]
+            }
+          },
+          "phases": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "note": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 300
+                }
+              },
+              "required": [
+                "id",
                 "title"
               ]
             }

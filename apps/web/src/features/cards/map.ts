@@ -130,7 +130,7 @@ const DETAIL_DEFAULTS: Partial<Record<CardType, Record<string, unknown>>> = {
   change: { commits: [] },
   doc: { headings: [], referencedBy: [] },
   release: { includedKeys: [], notes: { team: '', owner: '', accountant: '' } },
-  plan: { body: '', steps: [] },
+  plan: { body: '', steps: [], phases: [] },
 };
 
 /** The words of a version's concept: the lab's title, which also ends the version card's title (docs/10 §4). */

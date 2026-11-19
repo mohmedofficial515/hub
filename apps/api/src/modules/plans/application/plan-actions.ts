@@ -6,6 +6,7 @@
 import {
   type CreatePlanInput,
   createPlanSchema,
+  type PlanPhase,
   type PlanStep,
   type PlanToTasksInput,
   planToTasksSchema,
@@ -33,11 +34,32 @@ import {
 } from '@/modules/cards';
 import { AppException } from '@/shared/errors';
 
-import { normalizeSteps, specialtyOfStep } from './plan-steps';
+import { normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
 import { StudioSourceCheck } from './studio-source.check';
 
 function stepsOf(card: CardView): PlanStep[] {
   return ((card.detail?.['steps'] ?? []) as PlanStep[]).map((step) => ({ ...step }));
+}
+
+/** Each phase with its keys in one order: Postgres keeps JSONB keys in its own order, so a compare must not depend on it. */
+const canonicalPhase = (phase: PlanPhase): PlanPhase => ({
+  id: phase.id,
+  title: phase.title,
+  ...(phase.note ? { note: phase.note } : {}),
+});
+
+function phasesOf(card: CardView): PlanPhase[] {
+  return ((card.detail?.['phases'] ?? []) as PlanPhase[]).map(canonicalPhase);
+}
+
+/** Refuses steps that name a phase the plan does not have, or a phase being removed while steps still name it. */
+function assertPhases(
+  steps: readonly PlanStep[],
+  phases: readonly PlanPhase[],
+  before?: readonly PlanPhase[],
+) {
+  const problem = phaseProblem(steps, phases, before);
+  if (problem) throw new AppException(problem.code, { params: { phase: problem.phase } });
 }
 
 @Injectable()
@@ -59,10 +81,14 @@ export class PlanCreateAction implements CardActionDefinition<CreatePlanInput> {
       : null;
     if (detail.sourceIdeaKey && !idea) throw new AppException('hub.cards.not_found');
     const followUps = linkFollowUps(payload.links);
+    const steps = normalizeSteps(detail.steps);
+    const phases = detail.phases ?? [];
+    assertPhases(steps, phases);
     return {
       create: { ...baseCreateFields(payload) },
       detail: {
-        steps: normalizeSteps(detail.steps),
+        steps,
+        phases,
         sourceIdeaId: idea?.id ?? null,
         sourceChatId: detail.sourceChatId ?? null,
         sourceMessageId: detail.sourceMessageId ?? null,
@@ -80,7 +106,7 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
 
   constructor(private readonly sources: StudioSourceCheck) {}
 
-  async plan({ actor, card, payload }: CardActionContext<UpdatePlanInput>): Promise<CardActionPlan> {
+  async plan({ actor, card, payload, now }: CardActionContext<UpdatePlanInput>): Promise<CardActionPlan> {
     if (!card) throw new Error('plan.update needs a card');
     const header = card as unknown as Record<string, unknown>;
     const fields = (['title', 'priority', 'tags'] as const).filter(
@@ -90,14 +116,19 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
     );
     const bodyChanged = payload.body !== undefined && payload.body !== card.body;
     const current = stepsOf(card);
-    const steps = payload.steps ? normalizeSteps(payload.steps, current) : current;
+    const steps = payload.steps ? normalizeSteps(payload.steps, current, now) : current;
     const stepsChanged = JSON.stringify(steps) !== JSON.stringify(current);
+    const currentPhases = phasesOf(card);
+    const phases = payload.phases?.map(canonicalPhase) ?? currentPhases;
+    const phasesChanged = JSON.stringify(phases) !== JSON.stringify(currentPhases);
+    if (stepsChanged || phasesChanged) assertPhases(steps, phases, currentPhases);
     // The studio chat a save came from (owner decision 9c): only the writer's own chat, and named on the event, so the
     // history says who tied the card to a session.
     const source = (['sourceChatId', 'sourceMessageId'] as const).filter(
       (field) => payload[field] !== undefined && payload[field] !== (card.detail?.[field] ?? null),
     );
-    if (fields.length === 0 && !bodyChanged && !stepsChanged && source.length === 0) return { noop: true };
+    if (fields.length === 0 && !bodyChanged && !stepsChanged && !phasesChanged && source.length === 0)
+      return { noop: true };
     if (source.length > 0) {
       await this.sources.assertOwn(actor, {
         ...(source.includes('sourceChatId') ? { sourceChatId: payload.sourceChatId } : {}),
@@ -115,6 +146,7 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
     const revision = Number(card.detail?.['revision'] ?? 1) + 1;
     const detail: JsonObject = {
       ...(stepsChanged ? { steps } : {}),
+      ...(phasesChanged ? { phases } : {}),
       ...(bodyChanged ? { revision } : {}),
       ...Object.fromEntries(source.map((field) => [field, payload[field] ?? null])),
     };
@@ -136,10 +168,18 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
               previousBody: card.body,
               ...(changes.length > 0 ? { changes } : {}),
               ...(stepsChanged ? { steps } : {}),
+              ...(phasesChanged ? { phases } : {}),
             },
           }
-        : stepsChanged
-          ? { kind: 'plan_steps_changed', data: { steps, ...(changes.length > 0 ? { changes } : {}) } }
+        : stepsChanged || phasesChanged
+          ? {
+              kind: 'plan_steps_changed',
+              data: {
+                steps,
+                ...(phasesChanged ? { phases } : {}),
+                ...(changes.length > 0 ? { changes } : {}),
+              },
+            }
           : { kind: 'field_changed', data: { changes } },
     };
   }
@@ -235,6 +275,7 @@ export class PlanToTasksAction implements CardActionDefinition<PlanToTasksInput>
     const pending = steps.filter((step) => !step.taskKey);
     if (pending.length === 0) return { noop: true };
     const fallback = payload.defaultSpecialty ?? 'ops';
+    const phaseTitle = new Map(phasesOf(card).map((phase) => [phase.id, phase.title]));
     return {
       event: { kind: 'plan_to_tasks' },
       prepare: () =>
@@ -250,6 +291,11 @@ export class PlanToTasksAction implements CardActionDefinition<PlanToTasksInput>
               specialty: specialtyOfStep(step, fallback),
               origin: 'plan',
               prompt: `Step of plan ${card.key} (${card.title}): ${step.title}${
+                step.phaseId && phaseTitle.has(step.phaseId)
+                  ? `
+Phase: ${phaseTitle.get(step.phaseId)}`
+                  : ''
+              }${
                 step.why
                   ? `
 Why: ${step.why}`
@@ -289,12 +335,12 @@ export class PlanSyncStepAction implements CardActionDefinition<SyncInput> {
   readonly action = 'plan.sync_step';
   readonly payload = syncSchema;
 
-  plan({ card, payload }: CardActionContext<SyncInput>): CardActionPlan {
+  plan({ card, payload, now }: CardActionContext<SyncInput>): CardActionPlan {
     if (!card) throw new Error('plan.sync_step needs a card');
-    const steps = stepsOf(card);
-    const step = steps.find((item) => item.taskKey === payload.taskKey);
+    const found = stepsOf(card);
+    const step = found.find((item) => item.taskKey === payload.taskKey);
     if (!step || step.done === payload.done) return { noop: true };
-    step.done = payload.done;
+    const steps = found.map((item) => (item === step ? withDone(item, payload.done, now) : item));
     return { detail: { steps }, event: { kind: 'plan_steps_changed', data: { steps } } };
   }
 }

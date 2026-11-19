@@ -81,3 +81,25 @@ Reviewed against a real idea (a customer refund tracker) and a real plan (hotels
 - **Turn it into a plan** (Idea Studio) and **Plan it with Claude** (idea page) open the Plan Studio on that idea.
 - **Open questions** (`reportQuestionSchema`): plain words, or `{text, options, recommended, why, multi}`. The page shows one question at a time with dots, the options as cards (one pick, or several when `multi`), the recommended option and why, a note on any pick, and Other for the owner's own words. Take the recommendations fills what is left; one Send carries every answer (`answersMessage`), read back in the conversation as the owner's answers.
 - **Dev mode**: the API reads `@hub/contracts` from source but restarts only on its own files. After a contract change, restart Hub (`pnpm hub:service stop` then `start`) so the MCP tools serve the new shape.
+
+## The plan page as a journey (v5-live-plan, batch 1 of 4, 2026-11-20)
+
+The owner approved `apps/lab/hub/plan-page/v5-live-plan` (2026-11-19) and chose to port it in four batches. This is the first: phases in the data,
+and the page without its live layer. Batch 2 (a run with Claude on the page: stages over SSE, Claude's card, the approval box, the activity feed,
+the celebration), batch 3 (evidence on steps and the compare slider) and batch 4 (the Hams explainer video) are left out, not stubbed.
+
+- **Phases are data** (`plan.phases[] { id, title, note? }`, `step.phaseId`, migration `0015_plan_phases`). Claude writes them with
+  `create_plan` / `update_plan`; `get_plan` lists the steps under them. A step must name a phase of the plan, and a phase that steps still name
+  cannot be removed in a save that leaves them there (`hub.plans.unknown_phase`, `hub.plans.phase_in_use`). The sheet's form does not edit
+  phases and keeps each step's `phaseId`.
+- **A plan saved before phases** shows the head and one plain list, with no ring, map or roles chart, and a line saying how phases come.
+- **Files:** `plan-page.tsx` (the page and its head), `journey-map.tsx`, `phase-focus.tsx` (the chapter, waffle, size and lock chips),
+  `phase-list.tsx` (every phase, folding, around the existing `StepsTimeline`), `plan-charts.tsx` (ring, roles), `step-drawer.tsx`,
+  `journey.css` (`pj-` classes and the eight phase tones), `features/planning/journey.ts` (groups, effort, blockers, estimate). The idea page
+  keeps `detail.tsx`; what both pages share moved to `detail-shared.tsx`.
+- **Effort** weighs S 1, M 3, L 8 (a step with no size is M). **The finish estimate** needs three dated done steps: Hub dates a step when it
+  becomes done (`step.doneAt`, kept while it stays done, never invented for a step that arrives done), and the page falls back to the task's close
+  time. With fewer, it is hidden.
+- **Kept from the page before:** the action bar and the Claude buttons, the live mark, the idea it came from (`PathStrip`), the step's run menu,
+  task status and evidence in the list, the plan text, evidence, runs, revisions, the outline and the facts. The stage track is gone: the status
+  pill says the stage, as the version does.

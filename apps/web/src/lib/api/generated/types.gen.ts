@@ -439,6 +439,12 @@ export type CreateCardDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+        }>;
+        phases?: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         sourceIdeaKey?: string;
         sourceChatId?: string;
@@ -699,6 +705,13 @@ export type CardWrittenResponseDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+            doneAt?: string;
+        }>;
+        phases: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
@@ -1048,6 +1061,13 @@ export type CardFullResponseDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+            doneAt?: string;
+        }>;
+        phases: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
@@ -1472,6 +1492,13 @@ export type TimelineRowDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -1743,6 +1770,13 @@ export type InboxItemDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -2944,6 +2978,13 @@ export type TodayDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -3206,6 +3247,13 @@ export type TodayDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -3538,6 +3586,13 @@ export type TodayDto = {
                         size?: 'S' | 'M' | 'L';
                         after?: Array<string>;
                         acceptance?: string;
+                        phaseId?: string;
+                        doneAt?: string;
+                    }>;
+                    phases: Array<{
+                        id: string;
+                        title: string;
+                        note?: string;
                     }>;
                     revision: number;
                     sourceIdeaId: string | null;
@@ -4473,6 +4528,13 @@ export type TreeDtoSchema0 = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -4861,6 +4923,13 @@ export type LabPageDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+            }>;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -5127,6 +5196,13 @@ export type CompareDto = {
                     size?: 'S' | 'M' | 'L';
                     after?: Array<string>;
                     acceptance?: string;
+                    phaseId?: string;
+                    doneAt?: string;
+                }>;
+                phases: Array<{
+                    id: string;
+                    title: string;
+                    note?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
@@ -5398,6 +5474,13 @@ export type CompareDto = {
                     size?: 'S' | 'M' | 'L';
                     after?: Array<string>;
                     acceptance?: string;
+                    phaseId?: string;
+                    doneAt?: string;
+                }>;
+                phases: Array<{
+                    id: string;
+                    title: string;
+                    note?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
@@ -5551,6 +5634,12 @@ export type UpdateDto = {
         size?: 'S' | 'M' | 'L';
         after?: Array<string>;
         acceptance?: string;
+        phaseId?: string;
+    }>;
+    phases?: Array<{
+        id: string;
+        title: string;
+        note?: string;
     }>;
     sourceChatId?: string;
     sourceMessageId?: string;

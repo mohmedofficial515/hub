@@ -3,7 +3,7 @@
  * forms that keep what they did not change, and the studios' honest states with no panel or no chat.
  */
 import type { ProposedPlan } from '@hub/contracts';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -109,8 +109,9 @@ describe('a plan’s steps', () => {
     expect(screen.getByText('Unassigned')).toBeTruthy();
     expect(screen.getByText('No task yet')).toBeTruthy();
     expect(calls.some((c) => /\/tasks(\?|$)/.test(c.path))).toBe(false);
-    // What comes next names the step and its task.
-    expect(screen.getByText(/Step 1 of 2/)).toBeTruthy();
+    // What comes next names the step and its task, in the head's next-step callout.
+    expect(screen.getAllByText('Step 1').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Build the search').length).toBeGreaterThan(1);
   });
 
   it('reads a step’s evidence only when it is opened, once', async () => {
@@ -177,9 +178,14 @@ describe('a plan’s steps', () => {
     });
     show(<PlanningPage />);
     expect(await screen.findByText('No contract, no hotels.')).toBeTruthy();
-    expect(screen.getAllByText('Sign the supplier')).toHaveLength(1);
+    // Once in the steps (the head's next-step callout names it too), and not again in the text.
+    expect(
+      within(screen.getByRole('region', { name: 'Steps' })).getAllByText('Sign the supplier'),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByRole('region', { name: "The plan's text" })).queryByText(/Sign the supplier/),
+    ).toBeNull();
     expect(screen.getByText('Small')).toBeTruthy();
-    expect(screen.getByRole('heading', { name: "The plan's text" })).toBeTruthy();
   });
 });
 

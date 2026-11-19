@@ -331,7 +331,8 @@ function StepEvidence({ taskKey }: { taskKey: string }) {
 
 /**
  * The steps as a timeline: a numbered node each, joined by a neutral line. A step with a task says where the task stands and who has it, and opens on its
- * evidence. A step that arrives while the page is open slides in.
+ * evidence. A step that arrives while the page is open slides in. A part of a plan (one phase) passes each step's number in the whole plan as `n`, so the
+ * numbers, the anchors and the run menu stay the plan's.
  */
 export function StepsTimeline({
   steps,
@@ -340,8 +341,10 @@ export function StepsTimeline({
   tasks,
   extras,
   anchor,
+  onOpen,
 }: {
-  steps: PlanStep[];
+  steps: readonly (PlanStep & { n?: number | undefined })[];
+  /** The plan's next step, by its index in `steps`. */
   nextIndex: number | null;
   /** Each open step can be queued to run, when the panel is there. */
   run?: { cardKey: string } | undefined;
@@ -351,6 +354,8 @@ export function StepsTimeline({
   extras?: readonly StepExtra[] | null | undefined;
   /** With an anchor, each step is `<anchor>-<n>`, so "after 1, 2" can link to it. */
   anchor?: string | undefined;
+  /** Each step's title opens its details (the plan page's step drawer). */
+  onOpen?: ((id: string) => void) | undefined;
 }) {
   const d = useT<PlanningMessages>('planning').detail;
   const locale = useLocale();
@@ -376,7 +381,8 @@ export function StepsTimeline({
       {steps.map((step, i) => {
         const isNext = i === nextIndex;
         const fresh = !seen.current?.has(step.id);
-        const n = num(i + 1, locale);
+        const position = step.n ?? i + 1;
+        const n = num(position, locale);
         const task = step.taskKey ? tasks?.get(step.taskKey) : undefined;
         const extra = extras?.[i];
         const shown = open.has(step.id);
@@ -384,7 +390,7 @@ export function StepsTimeline({
         return (
           <motion.li
             key={step.id}
-            id={anchor ? `${anchor}-${i + 1}` : undefined}
+            id={anchor ? `${anchor}-${position}` : undefined}
             initial={fresh && !reduce ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0, transition: { duration: 0.28, ease: EASE } }}
             className="group relative flex min-w-0 scroll-mt-20 gap-3 pb-4 last:pb-0"
@@ -413,16 +419,32 @@ export function StepsTimeline({
             >
               <div className="flex min-w-0 items-start gap-x-2">
                 <span className="sr-only">{fmt(d.step, { n })}</span>
-                <span
-                  className={cn(
-                    'min-w-0 flex-1 pt-0.5 text-body-sm font-medium text-pretty',
-                    step.done
-                      ? 'text-muted-foreground line-through decoration-muted-foreground/40'
-                      : 'text-foreground',
-                  )}
-                >
-                  <Bidi>{step.title}</Bidi>
-                </span>
+                {onOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(step.id)}
+                    className={cn(
+                      'min-w-0 flex-1 rounded-sm pt-0.5 text-start text-body-sm font-medium text-pretty underline-offset-4 hover:underline',
+                      step.done
+                        ? 'text-muted-foreground line-through decoration-muted-foreground/40'
+                        : 'text-foreground',
+                      focusRing,
+                    )}
+                  >
+                    <Bidi>{step.title}</Bidi>
+                  </button>
+                ) : (
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 pt-0.5 text-body-sm font-medium text-pretty',
+                      step.done
+                        ? 'text-muted-foreground line-through decoration-muted-foreground/40'
+                        : 'text-foreground',
+                    )}
+                  >
+                    <Bidi>{step.title}</Bidi>
+                  </span>
+                )}
                 {isNext && (
                   <span className="mt-0.5 shrink-0 rounded-full bg-muted px-2 py-0.5 text-caption font-medium text-foreground">
                     {d.stepNext}
@@ -431,7 +453,7 @@ export function StepsTimeline({
                 {/* The step's own menu sits on its title's line, never alone on a line of its own. */}
                 {run && !step.done && (
                   <span className="-my-1 shrink-0">
-                    <StepRunMenu cardKey={run.cardKey} index={i} title={step.title} />
+                    <StepRunMenu cardKey={run.cardKey} index={position - 1} title={step.title} />
                   </span>
                 )}
               </div>

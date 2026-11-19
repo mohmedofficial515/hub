@@ -42,9 +42,33 @@ export const PLAN_STEP_SIZE_VALUES = ['S', 'M', 'L'] as const;
 const stepIdSchema = z.string().min(1).max(64);
 const stepTextSchema = z.string().trim().min(1).max(2_000);
 
+/** The most phases a plan holds: the plan page's journey map is drawn for up to 20 stops. */
+export const PLAN_PHASES_MAX = 20;
+
+/**
+ * A phase of a plan: a named part of its steps, in the order of `phases` (the plan page's journey, owner approval of v5-live-plan, 2026-11-19).
+ * A step names its phase by `phaseId`. A plan saved before phases has none, and its steps read as one unnamed list.
+ */
+export const planPhaseSchema = z.object({
+  id: stepIdSchema,
+  title: titleSchema,
+  /** One line after the title, such as who carries it or a rule for it. */
+  note: z.string().trim().min(1).max(300).optional(),
+});
+export type PlanPhase = z.infer<typeof planPhaseSchema>;
+
+/** The phases in order, each id once. */
+export const planPhasesSchema = z
+  .array(planPhaseSchema)
+  .max(PLAN_PHASES_MAX)
+  .refine((phases) => new Set(phases.map((phase) => phase.id)).size === phases.length, {
+    message: 'Each phase id is used once',
+  });
+
 /**
  * One step. `why`, `size`, `after` and `acceptance` are what the Plan Studio proposed for it (owner decision 9a, 2026-11-19), so a page reads them
- * as data. `after` names earlier steps of the same plan by id; Hub drops any that is not an earlier step.
+ * as data. `after` names earlier steps of the same plan by id; Hub drops any that is not an earlier step. `phaseId` names one of the plan's
+ * `phases`; Hub refuses an id that is not one. `doneAt` is Hub's: when the step last became done, for the plan page's finish estimate.
  */
 export const planStepSchema = z.object({
   id: stepIdSchema,
@@ -56,11 +80,15 @@ export const planStepSchema = z.object({
   size: z.enum(PLAN_STEP_SIZE_VALUES).optional(),
   after: z.array(stepIdSchema).max(50).optional(),
   acceptance: stepTextSchema.optional(),
+  phaseId: stepIdSchema.optional(),
+  doneAt: z.iso.datetime({ offset: true }).optional(),
 });
 export type PlanStep = z.infer<typeof planStepSchema>;
 
-/** A step as a client writes it: Hub gives it an id when it has none. `taskKey` and `done` follow its task. */
-export const planStepInputSchema = planStepSchema.extend({ id: planStepSchema.shape.id.optional() });
+/** A step as a client writes it: Hub gives it an id when it has none. `taskKey` and `done` follow its task, and Hub sets `doneAt`. */
+export const planStepInputSchema = planStepSchema
+  .omit({ doneAt: true })
+  .extend({ id: planStepSchema.shape.id.optional() });
 export type PlanStepInput = z.infer<typeof planStepInputSchema>;
 
 export const planBodySchema = z.string().max(CARD_LIMITS.planBody);
@@ -79,6 +107,7 @@ export const createPlanSchema = z.object({
   links: createLinksSchema.optional(),
   detail: z.object({
     steps: z.array(planStepInputSchema).max(200).default([]),
+    phases: planPhasesSchema.optional(),
     sourceIdeaKey: cardKeySchema.optional(),
     ...sourceChatFields,
   }),
@@ -91,6 +120,8 @@ export const updatePlanSchema = z.object({
   priority: prioritySchema.optional(),
   tags: tagsSchema.optional(),
   steps: z.array(planStepInputSchema).max(200).optional(),
+  /** The whole list, in order. Absent keeps the phases as they are. */
+  phases: planPhasesSchema.optional(),
   ...sourceChatFields,
 });
 export type UpdatePlanInput = z.infer<typeof updatePlanSchema>;
