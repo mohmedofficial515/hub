@@ -5,6 +5,8 @@
  * @description The timeline's own row (08 §5.2 `TimelineItem`), not `CardRow`. A `CardRow` says what a card is now. This says what happened to a card
  * at a moment: it needs a time, an actor and a verb first, an excerpt, a "+n" expander below the row and a node on the spine. It keeps `CardRow`'s
  * contract: one neutral surface and border, coloured type icon, stretched link, actions above the link, `rowProps` for the keyboard.
+ * Only an event that asks something of the reader is a full card; every other event is one line on the spine, and the events of one card that follow
+ * each other read as lines under the first, without its title again (owner decision 12, 2026-11-19).
  */
 import { ArrowLeftRight, ChevronDown, Clock, TriangleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -278,6 +280,9 @@ export function TimelineItem({
   wide,
   fresh,
   mine = false,
+  full,
+  continued = false,
+  showTime = true,
 }: {
   row: StreamRow;
   rowProps: Record<string, unknown>;
@@ -290,12 +295,18 @@ export function TimelineItem({
   fresh: boolean;
   /** This card waits on me. The Mine rule marks a row; a stream keeps its order. */
   mine?: boolean;
+  /** A full card, for an event that asks for action. Left out, the event's kind decides, as before. */
+  full?: boolean | undefined;
+  /** The same card as the row right above: a line under it, without the title. */
+  continued?: boolean;
+  /** The hour in the gutter. Off when the row above already shows the same minute. */
+  showTime?: boolean;
 }) {
   const t = useT<TimelineMessages>(NS);
   const kit = useT(kitMessages);
   const locale = useLocale();
   const { card, event, collapsed } = row;
-  const quiet = isQuiet(event.kind) && collapsed === 0;
+  const quiet = full === undefined ? isQuiet(event.kind) && collapsed === 0 : !full;
   const Icon = typeIcon[card.type];
   const danger =
     event.kind === 'escalated' ||
@@ -357,46 +368,74 @@ export function TimelineItem({
       <span
         className={cn(
           'hidden pe-0.5 text-end text-body-sm text-muted-foreground md:@page-md:block',
-          quiet ? 'pt-1.5' : 'pt-3.5',
+          quiet ? (continued ? 'pt-0.5' : 'pt-1.5') : 'pt-3.5',
         )}
       >
-        {when}
+        {showTime && when}
       </span>
       <Spine>
         <span
           className={cn(
-            'relative size-2.5 rounded-full ring-4 ring-background',
+            'relative rounded-full ring-4 ring-background',
             typeClass[card.type].dot,
-            quiet ? 'mt-3' : 'mt-5',
+            continued ? 'mt-2 size-1.5 opacity-60' : 'size-2.5',
+            !continued && (quiet ? 'mt-3' : 'mt-5'),
           )}
         />
       </Spine>
-      <div className={cn('min-w-0', quiet ? 'pb-1' : 'pb-2')}>
+      <div className={cn('min-w-0', quiet ? (continued ? 'pb-0.5' : 'pb-1') : 'pb-2')}>
         {quiet ? (
           <article
             {...rowProps}
             aria-labelledby={titleId}
-            className="relative scroll-mt-28 rounded-md px-3 py-1.5 outline-none transition-colors duration-120 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            data-tl-line={continued ? 'continued' : 'line'}
+            className={cn(
+              'relative scroll-mt-28 rounded-md px-3 outline-none transition-colors duration-120 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
+              continued ? 'py-0.5' : 'py-1.5',
+            )}
           >
             <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body-sm text-muted-foreground">
               <span className="text-muted-foreground md:@page-md:hidden">{when}</span>
               <ActorChip kind={actor.kind} memberId={actor.memberId} adapter={actor.adapter} />
               <Verb event={event} />
-              <span
-                id={titleId}
-                className="inline-flex min-w-0 items-baseline gap-1.5 font-medium text-foreground"
-              >
-                <Icon
-                  aria-hidden
-                  className={cn('size-3.5 shrink-0 translate-y-0.5', typeClass[card.type].fg)}
-                  strokeWidth={1.75}
-                />
-                {link}
-              </span>
+              {continued ? (
+                // The title is the row above's; the whole line still opens the card, and a reader of the line alone hears whose event it is.
+                <AppLink
+                  card={card.key}
+                  className={cn('outline-none after:absolute after:inset-0 after:rounded-md', stretchedFocus)}
+                >
+                  <span id={titleId} className="sr-only">
+                    <Bidi>{card.title}</Bidi>
+                  </span>
+                </AppLink>
+              ) : (
+                <span
+                  id={titleId}
+                  className="inline-flex min-w-0 items-baseline gap-1.5 font-medium text-foreground"
+                >
+                  <Icon
+                    aria-hidden
+                    className={cn('size-3.5 shrink-0 translate-y-0.5', typeClass[card.type].fg)}
+                    strokeWidth={1.75}
+                  />
+                  {link}
+                </span>
+              )}
+              {!continued && (
+                <Ltr mono className="text-caption text-muted-foreground">
+                  {card.key}
+                </Ltr>
+              )}
+              {expander}
             </p>
             {wide && (
-              <div className="mt-0.5 line-clamp-2 text-body-sm text-muted-foreground empty:hidden">
+              <div className="mt-0.5 line-clamp-1 text-body-sm text-muted-foreground empty:hidden">
                 <EventDetail card={card} event={event} />
+              </div>
+            )}
+            {expanded && (
+              <div id={moreId}>
+                <Collapsed row={row} />
               </div>
             )}
           </article>

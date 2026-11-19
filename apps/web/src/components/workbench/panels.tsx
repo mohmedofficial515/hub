@@ -30,7 +30,7 @@ import {
   Trash2,
   UserX,
 } from 'lucide-react';
-import { useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   AppLink,
@@ -301,15 +301,35 @@ export function EngineNotice({
  * Start with these: the server's ranking (`GET today/next`, the one `doNext` rule), on the panel's Runs and on Today. Each item says why it leads. A task and a plan step
  * offer Run now and Schedule, the queue's own entry points (D58 to D60 apply through them); a decision offers Explain. Ask Claude for more runs `/hub:suggest` in Ask (D66).
  */
+/** Asked of the server when a page leaves some keys out, so the list still fills after them (the API's cap). */
+const NEXT_FETCH_MAX = 20;
+
+/** What Do next shows: the ranking without the keys another list on the page already shows, cut to `limit`. */
+export const shownDoNext = (
+  items: readonly DoNextItem[],
+  exclude: ReadonlySet<string> | undefined,
+  limit: number,
+): DoNextItem[] =>
+  (exclude?.size ? items.filter((item) => !exclude.has(item.key)) : [...items]).slice(0, limit);
+
 export function DoNext({
   limit = 3,
   className,
   variant = 'panel',
+  exclude,
+  subtitle,
+  onShown,
 }: {
   limit?: number | undefined;
   className?: string | undefined;
   /** `page` is Today's: a section heading of the page's size. */
   variant?: 'panel' | 'page' | undefined;
+  /** Card keys another list on the page already shows (Today's Awaiting me), left out of this one. */
+  exclude?: ReadonlySet<string> | undefined;
+  /** A page's own short line under the heading, in place of how the ranking works. */
+  subtitle?: ReactNode | undefined;
+  /** The card keys on show, once the list has answered, so the page can leave them out of the list below it. */
+  onShown?: ((keys: readonly string[]) => void) | undefined;
 }) {
   const t = useT<ChatMessages>('chat').panel;
   const tipWords = useT<ChatMessages>('chat').tips;
@@ -319,8 +339,17 @@ export function DoNext({
   const { view } = useRoute();
   const nav = useT<{ nav: Record<string, string> }>('shell').nav;
   const off = offOf(wb.engine);
-  const query = useDoNext({ role: (wb.persona as Role | null) ?? null, limit });
-  const items = query.data?.items ?? [];
+  const query = useDoNext({
+    role: (wb.persona as Role | null) ?? null,
+    limit: exclude ? NEXT_FETCH_MAX : limit,
+  });
+  const items = shownDoNext(query.data?.items ?? [], exclude, limit);
+  const shownKeys = query.isSuccess ? items.map((item) => item.key).join(' ') : null;
+  const reportShown = useRef(onShown);
+  reportShown.current = onShown;
+  useEffect(() => {
+    if (shownKeys !== null) reportShown.current?.(shownKeys ? shownKeys.split(' ') : []);
+  }, [shownKeys]);
   // A step's own line already names its plan, so its reasons leave that out.
   const why = (item: DoNextItem) =>
     item.reasons
@@ -361,11 +390,27 @@ export function DoNext({
             {t.next.title}
           </Heading>
         </Tip>
-        <p className="min-w-0 flex-1 text-body-sm text-muted-foreground">{t.next.how}</p>
-        <Tip k="next:suggest" off={off} vars={{ device: wb.deviceName }} label={t.next.suggest}>
+        {/* Its own line under the heading in the panel and on a phone, so the heading and Suggest stay on one line (flow-01). */}
+        <p
+          data-wb-next-how
+          className={cn(
+            'min-w-0 text-body-sm text-muted-foreground',
+            page ? 'flex-1 max-md:order-last max-md:basis-full' : 'order-last basis-full',
+          )}
+        >
+          {subtitle ?? t.next.how}
+        </p>
+        <Tip
+          k="next:suggest"
+          off={off}
+          vars={{ device: wb.deviceName }}
+          label={t.next.suggest}
+          wrapClassName="ms-auto"
+        >
           <Button
             size="sm"
             variant="ghost"
+            className="ms-auto"
             data-wb-next-suggest
             disabled={!!off}
             onClick={() => void suggestWithClaude({ page: nav[view] ?? view })}
@@ -460,8 +505,29 @@ export function DoNext({
 }
 
 /** Do next on a page: there only while the panel's workbench is mounted, which is every view but the lab's own. */
-export function PageDoNext({ limit = 5, className }: { limit?: number; className?: string }) {
-  return useMaybeWb() ? <DoNext variant="page" limit={limit} className={className} /> : null;
+export function PageDoNext({
+  limit = 5,
+  className,
+  exclude,
+  subtitle,
+  onShown,
+}: {
+  limit?: number;
+  className?: string;
+  exclude?: ReadonlySet<string> | undefined;
+  subtitle?: ReactNode | undefined;
+  onShown?: ((keys: readonly string[]) => void) | undefined;
+}) {
+  return useMaybeWb() ? (
+    <DoNext
+      variant="page"
+      limit={limit}
+      className={className}
+      exclude={exclude}
+      subtitle={subtitle}
+      onShown={onShown}
+    />
+  ) : null;
 }
 
 // ── What runs today: real chats ─────────────────────────────────────────────────────────────────

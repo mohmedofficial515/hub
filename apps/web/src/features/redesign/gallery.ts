@@ -73,16 +73,22 @@ export function readGallery(
   };
 }
 
-/** The address of a state, as the query of the `gallery` view. `null` removes a parameter. */
-export function galleryQuery(state: GalleryState): Record<string, string | null> {
+/**
+ * The address of a state, as the query of the `gallery` view. `null` removes a parameter. Given Hub's own language and theme, a frame that reads
+ * the same way leaves them out of the address, so it keeps following Hub when the member switches either one (owner decision 3, 2026-11-19).
+ */
+export function galleryQuery(
+  state: GalleryState,
+  hub?: { lang: GalleryLang; theme: GalleryTheme },
+): Record<string, string | null> {
   return {
     app: state.app,
     page: state.page,
     a: state.a,
     b: state.b,
     w: String(state.width),
-    lang: state.lang,
-    theme: state.theme,
+    lang: hub && state.lang === hub.lang ? null : state.lang,
+    theme: hub && state.theme === hub.theme ? null : state.theme,
     notes: state.notes ? '1' : null,
     scenario: state.scenario === 'default' ? null : state.scenario,
   };

@@ -4,9 +4,10 @@
  * @file timeline-page.tsx
  * @description The page reads as time, so the layout is an axis: a spine with the hour beside each node, labelled pauses, your last visit as a line
  * between the rows it separates, and from 1280 px a rail with one bar per day. Live (docs/09 §5): at the top of the page a new event prepends and fades
- * in; scrolled down, the rows hold still and a pill counts what arrived.
+ * in; scrolled down, the rows hold still and a pill counts what arrived. Each hour of a day has a mark on the spine, an event that asks for action is a
+ * full card, everything else is one line, and the events of one card that follow each other read as lines under its first (owner decision 12).
  */
-import { ArrowUp, ExternalLink, GitCommitHorizontal, RefreshCw, SearchX } from 'lucide-react';
+import { ArrowUp, CalendarDays, ExternalLink, GitCommitHorizontal, RefreshCw, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -39,6 +40,7 @@ import {
   shortcutsEnabled,
   shortDate,
   Skeleton,
+  time,
   useCards,
   useFilter,
   useFilterList,
@@ -75,6 +77,11 @@ const INLINE = new Set<CardAction>([
   'apply',
   'approve',
 ]);
+
+/** The hour an event falls in, on Hub's clock: `2026-11-05 14`. */
+const hourKey = (iso: string) => `${dayKey(iso)} ${time(iso, 'en').slice(0, 2)}`;
+/** The mark's words: `14:00`, the same digits in both languages, as every time on the page. */
+const hourLabel = (iso: string) => `${time(iso, 'en').slice(0, 2)}:00`;
 
 /** The URL's filters as the API's (09 §5 names `members`, 04 §3.9 `actors`). */
 function useApiFilters(): Filters {
@@ -202,7 +209,7 @@ export function TimelinePage() {
     return () => window.removeEventListener('keydown', onKey);
   });
 
-  const days = useMemo(() => buildDays(rows, since ?? null, dayKey), [rows, since]);
+  const days = useMemo(() => buildDays(rows, since ?? null, dayKey, hourKey), [rows, since]);
   const railDays = useMemo(() => buildRail(rows, dayKey), [rows]);
   const maxDay = Math.max(1, ...railDays.map((d) => d.count));
   const todayKey = dayKey(nowMs());
@@ -407,7 +414,12 @@ export function TimelinePage() {
                   className="scroll-mt-16"
                 >
                   {/* Sticky under the app header, so the day is always on screen (09 §5). */}
-                  <div className="sticky top-14 z-20 flex items-center gap-3 bg-background py-2">
+                  <div className="sticky top-14 z-20 flex items-center gap-3 border-b border-border bg-background py-2.5">
+                    <CalendarDays
+                      aria-hidden
+                      className="size-5 shrink-0 text-muted-foreground"
+                      strokeWidth={1.75}
+                    />
                     <h2
                       ref={dayIndex === 0 ? heading : undefined}
                       id={`day-title-${day.key}`}
@@ -419,13 +431,34 @@ export function TimelinePage() {
                     {day.key === todayKey || day.key === yesterdayKey ? (
                       <span className="text-body-sm text-muted-foreground">{shortDate(day.iso, locale)}</span>
                     ) : null}
-                    <span aria-hidden className="h-px flex-1 bg-border" />
-                    <span className="text-body-sm text-muted-foreground">
+                    <span className="ms-auto text-body-sm text-muted-foreground">
                       {plural(day.count, locale, t.dayEvents)}
                     </span>
                   </div>
-                  <ol data-hub-list className="flex flex-col">
-                    {day.slots.map((slot) => {
+                  <ol data-hub-list className="flex flex-col pt-1">
+                    {day.slots.map((slot, slotIndex) => {
+                      if (slot.kind === 'hour') {
+                        return (
+                          <li
+                            key={slot.id}
+                            data-tl-hour={hourLabel(slot.iso)}
+                            className="grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-2 md:@page-md:grid-cols-[3.25rem_1.25rem_minmax(0,1fr)]"
+                          >
+                            <span className="hidden pe-0.5 pt-2 text-end text-body-sm font-semibold text-foreground md:@page-md:block">
+                              <Ltr className="tabular-nums">{hourLabel(slot.iso)}</Ltr>
+                            </span>
+                            <Spine>
+                              <span className="relative mt-3.5 h-0.5 w-3 rounded-full bg-muted-foreground/60" />
+                            </Spine>
+                            <p className="flex items-center gap-2 pt-2 pb-1">
+                              <Ltr className="text-body-sm font-semibold text-foreground tabular-nums md:@page-md:sr-only">
+                                {hourLabel(slot.iso)}
+                              </Ltr>
+                              <span aria-hidden className="h-px flex-1 bg-border/70" />
+                            </p>
+                          </li>
+                        );
+                      }
                       if (slot.kind === 'gap') {
                         return (
                           <li
@@ -472,10 +505,26 @@ export function TimelinePage() {
                             ? card.handoff.prompt
                             : undefined;
                       const closed = ['done', 'cancelled', 'applied', 'dismissed'].includes(card.status);
+                      // A full card only for an event that asks something: an action I can take here, a card waiting on me, or an alarm.
+                      const alarm =
+                        row.event.kind === 'escalated' ||
+                        (row.event.kind === 'created' &&
+                          card.type === 'handoff' &&
+                          card.handoff.severity === 'breaking');
+                      const full = (isNew && (!!action || !!card.awaiting)) || alarm;
+                      // The gutter shows a minute once: a row under one at the same minute leaves it to the row above.
+                      const above = day.slots[slotIndex - 1];
+                      const showTime = !(
+                        above?.kind === 'row' &&
+                        time(above.row.event.at, locale) === time(row.event.at, locale)
+                      );
                       return (
                         <TimelineItem
                           key={row.id}
                           row={row}
+                          full={full}
+                          continued={!!slot.continued && !full}
+                          showTime={showTime}
                           wide={wide}
                           fresh={fresh.has(row.id)}
                           rowProps={list.rowProps(row.id)}

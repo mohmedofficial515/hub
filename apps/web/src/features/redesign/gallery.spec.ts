@@ -63,6 +63,21 @@ describe('readGallery', () => {
     for (const [name, value] of Object.entries(galleryQuery(state))) if (value) query.set(name, value);
     expect(readGallery(query, fallback)).toEqual(state);
   });
+
+  it("leaves Hub's own language and theme out, so the frame follows Hub when the member switches either", () => {
+    const state = readGallery(new URLSearchParams('app=hub&page=today&a=v5'), fallback);
+    expect(galleryQuery(state, fallback)).toMatchObject({ lang: null, theme: null });
+    const query = new URLSearchParams();
+    for (const [name, value] of Object.entries(galleryQuery(state, fallback)))
+      if (value) query.set(name, value);
+    // Hub switched to English and light: the same address now opens the frame that way.
+    expect(readGallery(query, { lang: 'en', theme: 'light' })).toMatchObject({ lang: 'en', theme: 'light' });
+    // A choice made in the toolbar that differs from Hub stays in the address.
+    expect(galleryQuery({ ...state, lang: 'en', theme: 'light' }, fallback)).toMatchObject({
+      lang: 'en',
+      theme: 'light',
+    });
+  });
 });
 
 describe('frameSrc', () => {

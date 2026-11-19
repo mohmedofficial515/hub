@@ -96,16 +96,13 @@ export function LabGallery() {
   const route = useRoute();
   const query = useLabPages();
 
-  const state = useMemo(
-    () =>
-      readGallery(route.query, {
-        lang: locale === 'en' ? 'en' : 'ar',
-        theme: hubTheme === 'light' ? 'light' : 'dark',
-      }),
-    [route.query, locale, hubTheme],
+  const hub = useMemo(
+    () => ({ lang: locale === 'en' ? 'en' : 'ar', theme: hubTheme === 'light' ? 'light' : 'dark' }) as const,
+    [locale, hubTheme],
   );
+  const state = useMemo(() => readGallery(route.query, hub), [route.query, hub]);
   const go = (patch: Partial<GalleryState>) =>
-    setQuery(galleryQuery({ ...state, ...patch }), { replace: false });
+    setQuery(galleryQuery({ ...state, ...patch }, hub), { replace: false });
 
   const byKey = useMemo(
     () => new Map((query.data?.items ?? []).map((card) => [card.key, card])),
@@ -161,7 +158,7 @@ export function LabGallery() {
 
   return (
     <LabFrame className="overflow-y-auto lg:flex-row lg:overflow-hidden">
-      <Sidebar state={state} pages={pages} go={go} />
+      <Sidebar state={state} hub={hub} pages={pages} go={go} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Toolbar state={state} page={galleryPage} card={state.b ? undefined : cardOf(state.a)} go={go} />
         <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
@@ -233,10 +230,13 @@ const BackToHub = ({ className }: { className?: string }) => (
 
 function Sidebar({
   state,
+  hub,
   pages,
   go,
 }: {
   state: GalleryState;
+  /** Hub's own language and theme, which a link leaves out of the address while the frame reads the same way. */
+  hub: Pick<GalleryState, 'lang' | 'theme'>;
   pages: { page: LabPage; cards: RedesignCard[] }[];
   go: (patch: Partial<GalleryState>) => void;
 }) {
@@ -244,7 +244,7 @@ function Sidebar({
   const isActive = (app: string, page: string, version: string) =>
     state.app === app && state.page === page && state.a === version;
   const link = (app: GalleryApp, page: string, version: string) =>
-    galleryQuery({ ...state, app, page, a: version, b: null });
+    galleryQuery({ ...state, app, page, a: version, b: null }, hub);
 
   // One control on a phone, where the list would push the version off the screen.
   const value = state.app && state.page && state.a ? `${state.app}|${state.page}|${state.a}` : '';

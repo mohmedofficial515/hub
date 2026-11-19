@@ -54,7 +54,8 @@
     "emptyBody": "Decisions, needs and handoffs routed to my roles show up here first.",
     "metaHandoff": "From {role}, {rel}",
     "metaDelivered": "Delivered by {name}, awaiting a check",
-    "metaScore": "Review score {n}/100"
+    "metaScore": "Review score {n}/100",
+    "subtitle": "Cards that wait on you or your roles: act on these first."
   },
   "runway": {
     "title": "Deadlines in the next 72 hours",
@@ -92,7 +93,12 @@
     "emptyBody": "Ready tasks for my specialties appear here, highest priority first.",
     "emptyTitleProject": "No tasks ready in the project.",
     "emptyBodyProject": "Every ready task in the project appears here, highest priority first.",
-    "emptyLink": "Check the backlog"
+    "emptyLink": "Check the backlog",
+    "subtitle": {
+      "zero": "Unclaimed tasks you can take now.",
+      "one": "Unclaimed tasks you can take now. 1 more is in Start with these, above.",
+      "other": "Unclaimed tasks you can take now. # more are in Start with these, above."
+    }
   },
   "letter": {
     "title": "Morning letter",
@@ -114,7 +120,15 @@
     },
     "viaAgent": "via agent",
     "empty": "No changes since {when}.",
-    "system": "System"
+    "system": "System",
+    "more": {
+      "one": "1 more event on this card",
+      "other": "# more events on this card"
+    },
+    "eventCount": {
+      "one": "1 event",
+      "other": "# events"
+    }
   },
   "sessions": {
     "title": "Sessions without summary",
@@ -194,5 +208,8 @@
     "emptyLink": "Connect a source in Settings"
   },
   "loading": "Loading Today",
-  "errorThing": "Today"
+  "errorThing": "Today",
+  "next": {
+    "subtitle": "What to start next, ranked from real state. Cards already in Awaiting me are left out."
+  }
 }

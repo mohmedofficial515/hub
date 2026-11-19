@@ -8,6 +8,7 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { InboxPage } from '@/components/inbox/inbox-page';
+import { ReadyTasks } from '@/components/today/ready';
 import { TodayPage } from '@/components/today/today-page';
 import { renderWithApp, type Route, stubFetch } from '@/test/render';
 
@@ -330,6 +331,57 @@ describe('Today', () => {
     mount(<TodayPage />);
     expect(await screen.findByText(today.sessions.title)).toBeInTheDocument();
   });
+
+  it('gives each list a short line that says what it holds', async () => {
+    withRoutes((url) => (url.pathname.endsWith('/today') ? { body: { data: todayData() } } : undefined));
+    mount(<TodayPage />);
+    expect(await screen.findByText(today.stack.subtitle)).toBeInTheDocument();
+    expect(screen.getByText(today.ready.subtitle.zero)).toBeInTheDocument();
+  });
+
+  it('groups the events since my last visit by card', async () => {
+    const on = (id: string, key: string, kind: string) => ({
+      ...row(key, kind),
+      event: { ...row(key, kind).event, id },
+    });
+    withRoutes((url) =>
+      url.pathname.endsWith('/today')
+        ? {
+            body: {
+              data: todayData({
+                changesSince: {
+                  since: '2026-11-04T09:00:00.000Z',
+                  events: [
+                    on('e1', 'GTV-7', 'status_changed'),
+                    on('e2', 'GTV-8', 'created'),
+                    on('e3', 'GTV-7', 'commented'),
+                    on('e4', 'GTV-7', 'created'),
+                    on('e5', 'GTV-7', 'created'),
+                  ],
+                  total: 5,
+                },
+              }),
+            },
+          }
+        : undefined,
+    );
+    mount(<TodayPage />);
+    // One entry per card: the title once, its events under it, and what did not fit counted.
+    expect(await screen.findAllByText('Title of card 7')).toHaveLength(1);
+    expect(screen.getByRole('list', { name: '4 events' })).toBeInTheDocument();
+    expect(screen.getByText('1 more event on this card')).toBeInTheDocument();
+    expect(screen.getAllByText('Title of card 8')).toHaveLength(1);
+  });
+});
+
+describe('Ready on Today', () => {
+  it('counts the tasks Start with these already shows, and draws no empty state for them', async () => {
+    withRoutes(() => undefined);
+    mount(<ReadyTasks tasks={[]} inNext={2} />);
+    expect(screen.getByText(today.ready.subtitle.other.replace('#', '2'))).toBeInTheDocument();
+    expect(screen.queryByText(today.ready.emptyTitleProject)).toBeNull();
+    expect(screen.queryByText(today.ready.emptyTitle)).toBeNull();
+  });
 });
 
 describe('Inbox', () => {
@@ -449,6 +501,39 @@ describe('Timeline', () => {
     expect(screen.getByRole('button', { name: /\+3/ })).toBeInTheDocument();
     expect(screen.getAllByText('5 events in this view').length).toBeGreaterThan(0);
     await waitFor(() => expect(calls.some((c) => c.path.endsWith('/today/seen'))).toBe(true));
+  });
+
+  it('draws small events as one line, runs of one card under its first line, and marks the hour', async () => {
+    path = '/en/goteav/timeline';
+    const done = (id: string, key: string, kind: string) => {
+      const r = row(key, kind);
+      return { ...r, event: { ...r.event, id }, card: card(key, { type: 'task', status: 'done' }) };
+    };
+    withRoutes((url) => {
+      if (url.pathname.endsWith('/timeline')) {
+        return {
+          body: {
+            data: [
+              done('e3', 'GTV-4', 'commented'),
+              done('e2', 'GTV-4', 'status_changed'),
+              done('e1', 'GTV-5', 'created'),
+            ],
+            meta: {},
+          },
+        };
+      }
+      if (url.pathname.endsWith('/today')) return { body: { data: todayData() } };
+      if (url.pathname.endsWith('/today/seen')) return { status: 204 };
+      return undefined;
+    });
+    mount(<TimelinePage />);
+    await screen.findAllByText('Title of card 4');
+    const lines = [...document.querySelectorAll('[data-tl-line]')].map((el) =>
+      el.getAttribute('data-tl-line'),
+    );
+    // Nothing asks for action, so no row is a card; the second event of GTV-4 reads under the first.
+    expect(lines).toEqual(['line', 'continued', 'line']);
+    expect(document.querySelectorAll('[data-tl-hour]').length).toBeGreaterThan(0);
   });
   // The wide row and Today's "Since your last visit" both print this line; a narrow test window hides it on the row, so it renders alone.
   const mountEdited = async (data: Record<string, unknown>) => {

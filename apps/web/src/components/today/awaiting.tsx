@@ -217,6 +217,7 @@ export function AwaitingStack({
         title={t.stack.title}
         count={stack.length}
       />
+      <p className="-mt-2 text-body-sm text-muted-foreground">{t.stack.subtitle}</p>
       {stack.length === 0 ? (
         <EmptyState icon={CircleCheck} title={t.stack.emptyTitle}>
           {t.stack.emptyBody}

@@ -29,7 +29,7 @@ import {
   usePageWide,
   useT,
 } from '@/components/kit';
-import { bandOf, tableOptions } from '@/features/decisions/model';
+import { tableOptions } from '@/features/decisions/model';
 import { markdownExcerpt } from '@/lib/markdown-text';
 
 import { OpenFacts, type RowProps } from './docket';
@@ -103,7 +103,6 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
   const wide = usePageWide(768);
   const d = card.decision;
   const blocks = card.links.filter((l) => l.kind === 'blocks');
-  const danger = bandOf(card) === 'overdue';
   const titleId = `table-${card.key}`;
   // A row carries no body, so the laid-open question reads its own card.
   const body = useCardQuery(card.key).data?.body;
@@ -122,10 +121,8 @@ export function OnTheTable({ card, rowProps }: { card: DecisionCard; rowProps: R
     <article
       {...rowProps(card.key)}
       aria-labelledby={titleId}
-      className={cn(
-        'flex flex-col gap-3 rounded-lg border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5',
-        danger ? 'border-destructive/70' : 'border-border',
-      )}
+      // Overdue is told by tone, in the gutter and the band's heading, not by a red frame (owner decision 7).
+      className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:p-5"
     >
       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-body-sm text-muted-foreground">
         <Ltr mono className="text-caption">

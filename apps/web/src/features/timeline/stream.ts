@@ -85,7 +85,16 @@ export function foldedEvents(
 }
 
 export type Slot =
-  { kind: 'row'; row: StreamRow } | { kind: 'gap'; id: string; ms: number } | { kind: 'tide'; id: string };
+  | {
+      kind: 'row';
+      row: StreamRow;
+      /** The row right above is the same card, with nothing between: this one reads as a line under it, without the title (owner decision 12). */
+      continued?: true;
+    }
+  | { kind: 'gap'; id: string; ms: number }
+  | { kind: 'tide'; id: string }
+  /** The hour changes here: a mark on the spine, so a long day reads in hours. */
+  | { kind: 'hour'; id: string; iso: string };
 
 export interface StreamDay {
   key: string;
@@ -97,11 +106,15 @@ export interface StreamDay {
 /** Anything shorter reads as normal rhythm. A longer pause gets a label on the spine, so distance reads as time. */
 export const QUIET_AFTER_MS = 3 * 3_600_000;
 
-/** Days, with the pauses and the last-visit line in their place between rows. */
+/**
+ * Days, with the pauses and the last-visit line in their place between rows. Given `hourKeyOf`, each new hour of a day gets its mark, and a row of the
+ * same card as the row right above it, with nothing between, is marked `continued`.
+ */
 export function buildDays(
   rows: readonly StreamRow[],
   since: string | null,
   dayKeyOf: (iso: string) => string,
+  hourKeyOf?: (iso: string) => string,
 ): StreamDay[] {
   const sinceMs = since ? Date.parse(since) : null;
   const out: StreamDay[] = [];
@@ -124,7 +137,12 @@ export function buildDays(
       const ms = at(previous) - at(row);
       if (ms >= QUIET_AFTER_MS) day.slots.push({ kind: 'gap', id: `gap-${row.id}`, ms });
     }
-    day.slots.push({ kind: 'row', row });
+    if (hourKeyOf && (!previous || hourKeyOf(previous.event.at) !== hourKeyOf(row.event.at))) {
+      day.slots.push({ kind: 'hour', id: `hour-${row.id}`, iso: row.event.at });
+    }
+    const above = day.slots[day.slots.length - 1];
+    const continued = above?.kind === 'row' && above.row.card.key === row.card.key;
+    day.slots.push(continued ? { kind: 'row', row, continued: true } : { kind: 'row', row });
     day.count += eventsIn(row);
     previous = row;
   }

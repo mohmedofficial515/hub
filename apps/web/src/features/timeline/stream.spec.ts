@@ -97,6 +97,27 @@ describe('buildDays', () => {
     expect(days[0]?.count).toBe(5);
   });
 
+  it('marks each new hour, and runs of the same card with nothing between', () => {
+    const hourOf = (iso: string) => iso.slice(0, 13);
+    const rows = [
+      row('d', 'K-1', '2026-11-05T10:40:00.000Z'),
+      row('c', 'K-1', '2026-11-05T10:20:00.000Z'),
+      row('b', 'K-2', '2026-11-05T10:10:00.000Z'),
+      row('a', 'K-2', '2026-11-05T09:50:00.000Z'),
+    ];
+    const slots = buildDays(rows, null, dayOf, hourOf)[0]?.slots ?? [];
+    expect(slots.map((s) => (s.kind === 'row' ? `${s.row.id}${s.continued ? '+' : ''}` : s.kind))).toEqual([
+      'hour',
+      'd',
+      'c+',
+      'b',
+      'hour',
+      'a',
+    ]);
+    // Without an hour rule the page draws no marks, and the runs still join.
+    expect(buildDays(rows, null, dayOf)[0]?.slots.map((s) => s.kind)).toEqual(['row', 'row', 'row', 'row']);
+  });
+
   it('starts a new day where the date changes', () => {
     const days = buildDays([row('b', 'K', T(1)), row('a', 'K', '2026-11-04T23:00:00.000Z')], null, dayOf);
     expect(days.map((d) => d.key)).toEqual(['2026-11-05', '2026-11-04']);

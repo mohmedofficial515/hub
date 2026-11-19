@@ -3,8 +3,10 @@
 /**
  * @file docket.tsx
  * @description Ported from v5 `pages/decisions/parts/docket.tsx`. D31: the rule beside a band's heading is neutral. The icon and the words carry the urgency.
+ * Every open question shows its options as compact chips, the recommended ones first and marked, and an overdue question is told by tone (the
+ * gutter's time and dot, the band's heading), never by a red frame round the card (owner decision 7, 2026-11-19).
  */
-import { CalendarClock, Check, Clock, Link2, MessageSquare, TriangleAlert } from 'lucide-react';
+import { CalendarClock, Check, Clock, Link2, MessageSquare, Star, TriangleAlert } from 'lucide-react';
 import type { ReactNode, Ref } from 'react';
 
 import {
@@ -36,13 +38,10 @@ import {
   useT,
   when,
 } from '@/components/kit';
-import { type Band, bandOf, closedAt, routedToMe } from '@/features/decisions/model';
+import { type Band, bandOf, closedAt, routedToMe, tableOptions } from '@/features/decisions/model';
 import { textDirection } from '@/lib/direction';
 
 import type { DecisionMessages } from './messages';
-
-const orList = (items: string[], locale: 'ar' | 'en') =>
-  new Intl.ListFormat(locale, { style: 'long', type: 'disjunction' }).format(items);
 
 const bandDot: Record<Band, string> = { overdue: 'bg-destructive', soon: 'bg-warning', later: 'bg-border' };
 
@@ -187,12 +186,59 @@ export function OpenFacts({ card, gutter }: { card: DecisionCard; gutter: boolea
 
 export type RowProps = ReturnType<typeof useKeyboardList>['rowProps'];
 
-/** An open question: its options read as a sentence under the title, so the choice is visible before opening it. */
+/**
+ * A question's options at a glance: one chip each, the recommended ones first with a star, three at most and the rest counted. They only read;
+ * choosing happens in the sheet, from the row's Decide (owner decision 7).
+ */
+export function OptionChips({ card }: { card: DecisionCard }) {
+  const t = useT<DecisionMessages>('decisions');
+  const kit = useT(kitMessages);
+  const locale = useLocale();
+  const { visible, folded } = tableOptions(card.decision.options);
+  if (visible.length === 0) {
+    return <p className="basis-full text-body-sm text-muted-foreground">{t.row.noOptions}</p>;
+  }
+  return (
+    <ul
+      data-decision-options={card.key}
+      aria-label={plural(card.decision.options.length, locale, t.row.options)}
+      className="flex basis-full flex-wrap items-center gap-1.5 pt-0.5"
+    >
+      {visible.map((option) => (
+        <li
+          key={option.id}
+          data-recommended={option.recommended ? '' : undefined}
+          className={cn(
+            'inline-flex max-w-full min-w-0 items-center gap-1 rounded-md border px-2 py-0.5 text-body-sm',
+            option.recommended
+              ? 'border-info-soft-foreground/30 bg-info-soft text-info-soft-foreground'
+              : 'border-border bg-background text-foreground',
+          )}
+        >
+          {option.recommended && (
+            <>
+              <Star aria-hidden className="size-3.5 shrink-0 fill-current" strokeWidth={1.75} />
+              <span className="sr-only">{kit.sheet.decision.recommended}: </span>
+            </>
+          )}
+          <span dir={textDirection(option.title)} className="min-w-0 truncate">
+            <Bidi>{option.title}</Bidi>
+          </span>
+        </li>
+      ))}
+      {folded.length > 0 && (
+        <li className="text-body-sm text-muted-foreground">
+          {plural(folded.length, locale, t.table.moreOptions)}
+        </li>
+      )}
+    </ul>
+  );
+}
+
+/** An open question: its options as compact chips under the title, so the choice is visible before opening it. */
 export function OpenRow({ card, rowProps }: { card: DecisionCard; rowProps: RowProps }) {
   const t = useT<DecisionMessages>('decisions');
-  const locale = useLocale();
   const gutter = usePageWide(768);
-  const d = card.decision;
   return (
     <CardRow
       {...rowProps(card.key)}
@@ -200,36 +246,11 @@ export function OpenRow({ card, rowProps }: { card: DecisionCard; rowProps: RowP
       type="decision"
       title={card.title}
       priority={card.priority === 'P0' || card.priority === 'P1' ? card.priority : undefined}
-      tone={bandOf(card) === 'overdue' ? 'danger' : 'type'}
       titleId={`dec-${card.key}`}
       meta={
         <>
           <OpenFacts card={card} gutter={gutter} />
-          {/* The cut falls at the line's own end only when the line itself has the text's direction (review R5). */}
-          <p
-            dir={
-              d.options.length
-                ? textDirection(
-                    orList(
-                      d.options.map((o) => o.title),
-                      locale,
-                    ),
-                  )
-                : undefined
-            }
-            className="basis-full truncate text-start text-body-sm text-muted-foreground"
-          >
-            {d.options.length ? (
-              <Bidi>
-                {orList(
-                  d.options.map((o) => o.title),
-                  locale,
-                )}
-              </Bidi>
-            ) : (
-              t.row.noOptions
-            )}
-          </p>
+          <OptionChips card={card} />
           {!gutter && (
             <div className="relative z-10 mt-1 flex basis-full *:flex-1">
               <RowAction

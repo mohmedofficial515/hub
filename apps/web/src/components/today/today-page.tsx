@@ -8,7 +8,7 @@
 import { seesAllReadyWork } from '@hub/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Inbox, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   cn,
@@ -128,6 +128,10 @@ export function TodayPage() {
     [data?.changesSince.events],
   );
   const stackKeys = useMemo(() => new Set(stack.map((c) => c.key)), [stack]);
+  // The three lists never repeat a card (owner decision 4): Do next leaves out the stack, Ready leaves out Do next.
+  const [nextKeys, setNextKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const onNextShown = useCallback((keys: readonly string[]) => setNextKeys(new Set(keys)), []);
+  const readyRest = useMemo(() => ready.filter((task) => !nextKeys.has(task.key)), [ready, nextKeys]);
   const showReady = seesAllReadyWork(roles) || roles.some((r) => BUILDER_ROLES.includes(r));
   const overdue = stack.filter(isOverdue).length;
 
@@ -300,15 +304,21 @@ export function TodayPage() {
       {/* Phone order (09 §4): the letter first, clamped. From 768 px it sits atop the reading lane. */}
       {!wide && letter(true)}
 
-      <div className="grid gap-8 lg:@page-lg:grid-cols-12 lg:@page-lg:items-start">
+      {/* Two lanes only where the end lane gets its five columns too (`lanes`, 1024 px of page): between the CSS step and that,
+          the end lane fell to one column of twelve beside the panel, a word per line. */}
+      <div className={cn('grid gap-8', lanes && 'lg:@page-lg:grid-cols-12 lg:@page-lg:items-start')}>
         {/* Start lane, "Needs me": act on these. */}
-        <div className="flex min-w-0 flex-col gap-8 lg:@page-lg:col-span-7">
+        <div className={cn('flex min-w-0 flex-col gap-8', lanes && 'lg:@page-lg:col-span-7')}>
           <AwaitingStack stack={stack} headingRef={stackHeading} />
           <DeadlineRunway cards={deadlines} stackKeys={stackKeys} />
           {/* Do next (docs/16 §11): the panel's own list, ranked by the server, with Run now and Schedule. */}
-          <PageDoNext limit={5} />
+          <PageDoNext limit={5} exclude={stackKeys} subtitle={t.next.subtitle} onShown={onNextShown} />
           {showReady && (
-            <ReadyTasks tasks={ready} fillFirst={seesAllReadyWork(roles) && stack.length === 0} />
+            <ReadyTasks
+              tasks={readyRest}
+              inNext={ready.length - readyRest.length}
+              fillFirst={seesAllReadyWork(roles) && stack.length === 0}
+            />
           )}
         </div>
 

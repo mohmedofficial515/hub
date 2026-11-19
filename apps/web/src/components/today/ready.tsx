@@ -33,9 +33,12 @@ import { NS, type TodayMessages } from './messages';
 
 export function ReadyTasks({
   tasks,
+  inNext = 0,
   fillFirst = false,
 }: {
   tasks: (CardListItem & { task?: Partial<TaskCard['task']> | undefined })[];
+  /** Ready tasks left out because "Start with these" above already shows them (owner decision 4). They still count in the title. */
+  inNext?: number;
   /** The page's one filled button lands here when nothing above it asks for it. */
   fillFirst?: boolean;
 }) {
@@ -56,10 +59,13 @@ export function ReadyTasks({
         ref={headingRef}
         id="ready-title"
         icon={ListTodo}
-        title={seesAll ? plural(tasks.length, locale, t.ready.titleProject) : t.ready.title}
-        {...(seesAll ? {} : { count: tasks.length })}
+        title={seesAll ? plural(tasks.length + inNext, locale, t.ready.titleProject) : t.ready.title}
+        {...(seesAll ? {} : { count: tasks.length + inNext })}
       />
-      {tasks.length === 0 ? (
+      <p data-today-ready-subtitle className="-mt-2 text-body-sm text-muted-foreground">
+        {plural(inNext, locale, t.ready.subtitle)}
+      </p>
+      {tasks.length === 0 && inNext > 0 ? null : tasks.length === 0 ? (
         <EmptyState icon={ListTodo} title={seesAll ? t.ready.emptyTitleProject : t.ready.emptyTitle}>
           {seesAll ? t.ready.emptyBodyProject : t.ready.emptyBody}{' '}
           <AppLink

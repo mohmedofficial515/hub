@@ -2,8 +2,9 @@
 
 /**
  * @file since.tsx
- * @description What changed while I was away, others' events only (docs/09 §4). Grouped by repo, because the commit ticks read as a story by repo. A
- * breaking contract change is the news of the morning, so it is pinned as a before and after. The sidebar shows this same number (review M4).
+ * @description What changed while I was away, others' events only (docs/09 §4). Grouped by repo, because the commit ticks read as a story by repo, and
+ * inside a repo by card, so seven events on one card read as one entry with its events under it (owner decision 4). A breaking contract change is the
+ * news of the morning, so it is pinned as a before and after. The sidebar shows this same number (review M4).
  */
 import { Bot, Cpu, History, TriangleAlert, Waves } from 'lucide-react';
 
@@ -38,14 +39,33 @@ import { type StreamRow } from '@/features/timeline/stream';
 import { authorOf, EventDetail } from '../timeline/event-detail';
 import { NS, type TodayMessages } from './messages';
 
+/** One card's events, newest first. */
+export interface CardGroup {
+  key: string;
+  card: StreamRow['card'];
+  rows: StreamRow[];
+}
+
 interface Group {
   repo: string;
   events: StreamRow[];
+  cards: CardGroup[];
   commits: number;
 }
 
+/** Every event of a card under one entry, at the place of its newest event (the API sends events newest first). */
+export function groupByCard(rows: readonly StreamRow[]): CardGroup[] {
+  const map = new Map<string, CardGroup>();
+  for (const row of rows) {
+    const group = map.get(row.card.key) ?? { key: row.card.key, card: row.card, rows: [] };
+    group.rows.push(row);
+    map.set(row.card.key, group);
+  }
+  return [...map.values()];
+}
+
 export function groupByRepo(events: readonly StreamRow[]): Group[] {
-  const map = new Map<string, Group>();
+  const map = new Map<string, Omit<Group, 'cards'>>();
   for (const e of events) {
     const repo = e.card.repo ?? 'cards';
     const g = map.get(repo) ?? { repo, events: [], commits: 0 };
@@ -55,8 +75,11 @@ export function groupByRepo(events: readonly StreamRow[]): Group[] {
     map.set(repo, g);
   }
   // Groups keep the order of their newest event (the API sends events newest first).
-  return [...map.values()];
+  return [...map.values()].map((g) => ({ ...g, cards: groupByCard(g.events) }));
 }
+
+/** Events shown under a card before "n more events on this card". */
+const EVENTS_PER_CARD = 3;
 
 /** The rows the page pins: a handoff with a breaking contract diff in its detail. */
 const diffOf = (row: StreamRow) => {
@@ -112,13 +135,39 @@ function ContractDiff({ row }: { row: StreamRow }) {
   );
 }
 
-function EventRow({ row, rowProps }: { row: StreamRow; rowProps: Record<string, unknown> }) {
+/** Who did what, and when: one line under the card's title. */
+function EventLine({ row }: { row: StreamRow }) {
   const t = useT<TodayMessages>(NS);
   const kit = useT(kitMessages);
   const locale = useLocale();
   const { event, card } = row;
   const author = authorOf(card, event);
   const member = useMember(author.kind === 'system' ? undefined : author.memberId);
+  return (
+    <p className="flex flex-wrap items-center gap-x-1.5 text-body-sm text-muted-foreground">
+      <span className="font-medium text-foreground">{member?.name ?? t.since.system}</span>
+      {author.kind === 'agent' && (
+        <span className="inline-flex items-center gap-0.5">
+          <Bot aria-hidden className="size-3" strokeWidth={2} />
+          {t.since.viaAgent}
+        </span>
+      )}
+      <span>{eventLabel(kit, event)}</span>
+      <time dateTime={event.at}>{rel(event.at, locale)}</time>
+    </p>
+  );
+}
+
+function EventRow({ group, rowProps }: { group: CardGroup; rowProps: Record<string, unknown> }) {
+  const t = useT<TodayMessages>(NS);
+  const locale = useLocale();
+  const { card } = group;
+  const row = group.rows[0]!;
+  const { event } = row;
+  const author = authorOf(card, event);
+  const member = useMember(author.kind === 'system' ? undefined : author.memberId);
+  const lines = group.rows.slice(0, EVENTS_PER_CARD);
+  const more = group.rows.length - lines.length;
   return (
     <li
       {...rowProps}
@@ -146,17 +195,25 @@ function EventRow({ row, rowProps }: { row: StreamRow; rowProps: Record<string, 
             <Bidi>{card.title}</Bidi>
           </AppLink>
         </p>
-        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-body-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{member?.name ?? t.since.system}</span>
-          {author.kind === 'agent' && (
-            <span className="inline-flex items-center gap-0.5">
-              <Bot aria-hidden className="size-3" strokeWidth={2} />
-              {t.since.viaAgent}
-            </span>
-          )}
-          <span>{eventLabel(kit, event)}</span>
-          <time dateTime={event.at}>{rel(event.at, locale)}</time>
-        </p>
+        {lines.length === 1 ? (
+          <div className="mt-0.5">
+            <EventLine row={row} />
+          </div>
+        ) : (
+          <ul
+            aria-label={plural(group.rows.length, locale, t.since.eventCount)}
+            className="mt-1 flex flex-col gap-0.5"
+          >
+            {lines.map((line) => (
+              <li key={line.id}>
+                <EventLine row={line} />
+              </li>
+            ))}
+          </ul>
+        )}
+        {more > 0 && (
+          <p className="mt-0.5 text-body-sm text-muted-foreground">{plural(more, locale, t.since.more)}</p>
+        )}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-body-sm text-muted-foreground empty:hidden">
           <span className="line-clamp-2 min-w-0 empty:hidden">
             <EventDetail card={card} event={event} />
@@ -190,13 +247,10 @@ export function SinceLastVisit({
   const pinned = shown.filter((row) => diffOf(row).length > 0);
   const rest = shown.filter((row) => !pinned.includes(row));
   const groups = groupByRepo(rest);
-  const byId = new Map(rest.map((row) => [row.id, row]));
+  // One stop per card: Enter opens it.
   const list = useKeyboardList({
-    ids: rest.map((row) => row.id),
-    onOpen: (id) => {
-      const row = byId.get(id);
-      if (row) openCard(row.card.key);
-    },
+    ids: groups.flatMap((g) => g.cards.map((c) => c.key)),
+    onOpen: (key) => openCard(key),
   });
   const listed = shown.reduce((sum, row) => sum + 1 + row.collapsed, 0);
 
@@ -231,8 +285,8 @@ export function SinceLastVisit({
                   )}
                 </div>
                 <ul data-hub-list>
-                  {g.events.map((row) => (
-                    <EventRow key={row.id} row={row} rowProps={list.rowProps(row.id)} />
+                  {g.cards.map((group) => (
+                    <EventRow key={group.key} group={group} rowProps={list.rowProps(group.key)} />
                   ))}
                 </ul>
               </section>
