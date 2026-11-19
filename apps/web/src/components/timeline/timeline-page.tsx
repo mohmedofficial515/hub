@@ -31,6 +31,7 @@ import {
   Ltr,
   matchKey,
   nowMs,
+  num,
   openCard,
   PageContainer,
   PageHeader,
@@ -247,7 +248,7 @@ export function TimelinePage() {
         loading ? (
           <Skeleton className="mt-1.5 h-4 w-40" />
         ) : stream.isError || empty ? undefined : stream.hasOlder ? (
-          fmt(t.metaMore, { n: eventsInView })
+          fmt(t.metaMore, { n: num(eventsInView, locale) })
         ) : (
           plural(eventsInView, locale, t.meta)
         )

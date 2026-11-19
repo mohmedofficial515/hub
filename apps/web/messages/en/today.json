@@ -49,6 +49,7 @@
     "stale": "Not received for {d}",
     "breaking": "Breaking change",
     "seeAll": "See all ({total})",
+    "seeFewer": "See fewer",
     "emptyTitle": "Nothing is waiting.",
     "emptyBody": "Decisions, needs and handoffs routed to my roles show up here first.",
     "metaHandoff": "From {role}, {rel}",
@@ -127,8 +128,7 @@
     "commits": {
       "one": "1 commit",
       "other": "# commits"
-    },
-    "empty": "Every session of yours has a summary."
+    }
   },
   "team": {
     "title": "Team this week",

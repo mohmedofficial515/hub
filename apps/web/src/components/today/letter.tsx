@@ -3,8 +3,8 @@
 /**
  * @file letter.tsx
  * @description The agent's letter (08 P4): Cairo at reading size with a tall line, signed by the agent. On a phone it starts clamped to 3 lines, so
- * the first action is on the first screen (review B2). The body is what the agent saved through `hub.save_brief`: a small subset of Markdown, with
- * card keys turned into chips.
+ * the first action is on the first screen (review B2). The body is what the agent saved through `hub.save_brief`: a small subset of Markdown
+ * (headings, lists, bold, code, safe links), with card keys turned into chips.
  */
 import { Bot, ChevronDown } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
@@ -15,29 +15,79 @@ import {
   cn,
   CopyButton,
   fill,
+  focusRing,
   longDate,
   Ltr,
   time,
   useLocale,
   useT,
 } from '@/components/kit';
+import { isSafeHref, markdownExcerpt } from '@/lib/markdown-text';
 
 import { NS, type TodayMessages } from './messages';
 
-type Span = { kind: 'text' | 'bold' | 'code'; text: string };
+type Span = { kind: 'text' | 'bold' | 'code'; text: string } | { kind: 'link'; text: string; href: string };
 
-/** The agent writes **bold** and `code`. Anything else reads as the plain text it is. */
+/** The agent writes **bold**, `code` and [words](links). A link the browser could run (`javascript:`) stays as its words. */
 export function parseLetter(md: string): Span[] {
   return md
-    .split(/(\*\*[^*]+\*\*|`[^`]+`)/)
+    .split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]\n]+\]\([^)\s]+\))/)
     .filter(Boolean)
-    .map((part) =>
-      part.startsWith('**') && part.length > 4
-        ? { kind: 'bold', text: part.slice(2, -2) }
-        : part.startsWith('`') && part.length > 2
-          ? { kind: 'code', text: part.slice(1, -1) }
-          : { kind: 'text', text: part },
-    );
+    .map((part): Span => {
+      if (part.startsWith('**') && part.length > 4) return { kind: 'bold', text: part.slice(2, -2) };
+      if (part.startsWith('`') && part.length > 2) return { kind: 'code', text: part.slice(1, -1) };
+      const link = /^\[([^\]\n]+)\]\(([^)\s]+)\)$/.exec(part);
+      if (link) {
+        const [, text = '', href = ''] = link;
+        return isSafeHref(href) ? { kind: 'link', text, href } : { kind: 'text', text };
+      }
+      return { kind: 'text', text: part };
+    });
+}
+
+export type Block =
+  | { kind: 'paragraph'; text: string }
+  | { kind: 'heading'; text: string }
+  | { kind: 'bullets' | 'numbers'; items: string[] };
+
+const HEADING = /^#{1,4}\s+(.*)$/;
+const BULLET = /^[-*]\s+(.*)$/;
+const NUMBER = /^\d+[.)]\s+(.*)$/;
+
+/**
+ * The letter's lines: headings (`#` to `####`), bulleted and numbered lists, and paragraphs between blank lines. The agent writes like this,
+ * and a marker should never reach the page as text (flow-12).
+ */
+export function parseBlocks(md: string): Block[] {
+  const blocks: Block[] = [];
+  let paragraph: string[] = [];
+  const flush = () => {
+    if (paragraph.length) blocks.push({ kind: 'paragraph', text: paragraph.join('\n') });
+    paragraph = [];
+  };
+  for (const raw of md.split(/\r?\n/)) {
+    const line = raw.trim();
+    const heading = HEADING.exec(line);
+    const bullet = BULLET.exec(line);
+    const number = NUMBER.exec(line);
+    if (!line) {
+      flush();
+    } else if (heading) {
+      flush();
+      blocks.push({ kind: 'heading', text: heading[1] ?? '' });
+    } else if (bullet || number) {
+      flush();
+      const kind = bullet ? 'bullets' : 'numbers';
+      const item = (bullet ?? number)?.[1] ?? '';
+      const last = blocks.at(-1);
+      if (last && last.kind === kind) last.items.push(item);
+      else blocks.push({ kind, items: [item] });
+    } else {
+      paragraph.push(line);
+    }
+  }
+  flush();
+  return blocks;
 }
 
 const CARD_KEY = /\b([A-Z][A-Z0-9]{1,9}-\d+)\b/;
@@ -51,7 +101,7 @@ function Keyed({ text }: { text: string }) {
   );
 }
 
-function renderLetter(md: string): ReactNode[] {
+function renderInline(md: string): ReactNode[] {
   return parseLetter(md).map((span, i) =>
     span.kind === 'code' ? (
       <code
@@ -66,10 +116,56 @@ function renderLetter(md: string): ReactNode[] {
       <strong key={i} className="font-bold">
         <Keyed text={span.text} />
       </strong>
+    ) : span.kind === 'link' ? (
+      <a
+        key={i}
+        href={span.href}
+        // Only a link with a scheme leaves Hub; a path inside the app opens in place.
+        {...(/^[a-z][a-z0-9+.-]*:/i.test(span.href.trim()) ? { target: '_blank', rel: 'noreferrer' } : {})}
+        className={cn('hit-44 rounded-sm text-primary underline underline-offset-4', focusRing)}
+      >
+        <Keyed text={span.text} />
+      </a>
     ) : (
       <Keyed key={i} text={span.text} />
     ),
   );
+}
+
+function renderBlocks(md: string): ReactNode[] {
+  return parseBlocks(md).map((block, i) => {
+    switch (block.kind) {
+      case 'heading':
+        return (
+          <h3 key={i} className="text-body font-semibold text-foreground">
+            {renderInline(block.text)}
+          </h3>
+        );
+      case 'bullets':
+      case 'numbers': {
+        const List = block.kind === 'bullets' ? 'ul' : 'ol';
+        return (
+          <List
+            key={i}
+            className={cn(
+              'flex flex-col gap-1 ps-5',
+              block.kind === 'bullets' ? 'list-disc' : 'list-decimal',
+            )}
+          >
+            {block.items.map((item, j) => (
+              <li key={j}>{renderInline(item)}</li>
+            ))}
+          </List>
+        );
+      }
+      default:
+        return (
+          <p key={i} className="whitespace-pre-line">
+            {renderInline(block.text)}
+          </p>
+        );
+    }
+  });
 }
 
 export interface Narrative {
@@ -132,14 +228,15 @@ export function MorningLetter({
           {longDate(`${narrative.date}T12:00:00+03:00`, locale)}
         </time>
       </header>
-      <div
-        id="letter-body"
-        className={cn(
-          'hub-letter mt-2 text-pretty whitespace-pre-line text-foreground',
-          collapsed && 'line-clamp-3',
+      {/* `line-clamp` cannot clamp a box of lists and headings, so the folded letter is its first paragraph as one clamped line of prose. */}
+      <div id="letter-body" className="hub-letter mt-2 text-pretty text-foreground">
+        {collapsed ? (
+          <p className="line-clamp-3">
+            <Keyed text={markdownExcerpt(narrative.markdown)} />
+          </p>
+        ) : (
+          <div className="flex flex-col gap-3">{renderBlocks(narrative.markdown)}</div>
         )}
-      >
-        {renderLetter(narrative.markdown)}
       </div>
       <footer className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         {narrative.at && (

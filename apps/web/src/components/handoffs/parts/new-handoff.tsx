@@ -114,6 +114,7 @@ export function NewHandoffDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
+      dirty={Boolean(summary.trim() || prompt.trim() || files.trim())}
       title={n.title}
       footer={
         <>

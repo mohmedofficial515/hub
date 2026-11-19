@@ -5,7 +5,7 @@
  * @description Ported from the approved design, pages/handoffs. Contract: apps/web/README.md.
  */
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, Plus } from 'lucide-react';
+import { ArrowLeftRight, CircleCheck, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import {
@@ -230,7 +230,22 @@ export function HandoffsPage() {
             ]}
           />
 
-          {shown.length === 0 ? (
+          {shown.length === 0 && !anyFilter && !stage && !showAll ? (
+            // The default view holds what is moving. Empty, that is good news, with the way to what was applied (flow-08).
+            <EmptyState
+              icon={CircleCheck}
+              title={t.empty.allMovedTitle}
+              action={
+                all.some((c) => c.status === 'applied') ? (
+                  <Button size="sm" onClick={() => setQuery({ status: 'applied' })}>
+                    {t.empty.showApplied}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {t.empty.allMovedBody}
+            </EmptyState>
+          ) : shown.length === 0 ? (
             <EmptyState
               icon={ArrowLeftRight}
               title={anyFilter ? t.empty.filteredTitle : t.empty.stageTitle}

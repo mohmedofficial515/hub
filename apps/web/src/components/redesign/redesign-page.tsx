@@ -6,7 +6,16 @@
  * opens with a rail of all its versions. The lab itself is a page of its own in a new tab (`lab-gallery.tsx`). Ported from the design's
  * `pages/redesign/page.tsx`, reading the lab through the API.
  */
-import { ChevronRight, ExternalLink, GitCompareArrows, Maximize2, Palette, SearchX, X } from 'lucide-react';
+import {
+  ChevronRight,
+  CircleCheck,
+  ExternalLink,
+  GitCompareArrows,
+  Maximize2,
+  Palette,
+  SearchX,
+  X,
+} from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -109,21 +118,33 @@ function ReviewView() {
   const route = useRoute();
   const query = useLabPages();
   const app = useFilter('app');
-  const status = useFilter('status');
+  const urlStatus = useFilter('status');
   const only = useFilter('page');
 
   // 09 §10: the owner opens on what waits for him. It is a real filter he can clear, and the URL says so.
-  const preselected = useRef(false);
-  useEffect(() => {
-    if (preselected.current || sessionLoading) return;
-    preselected.current = true;
-    if (isOwner && !route.query.get('status') && !route.query.get('app')) setQuery({ status: 'review' });
-  }, [isOwner, sessionLoading, route.query]);
-
   const versions = useMemo(() => query.data?.items ?? [], [query.data]);
   const labPages = useMemo(() => query.data?.pages ?? [], [query.data]);
   const byKey = useMemo(() => new Map(versions.map((v) => [v.key, v])), [versions]);
   const inReview = versions.filter((v) => v.status === 'review').length;
+
+  // Only once the lab has answered, and only when something waits: otherwise the owner would land on an empty filter every time (flow-09).
+  // The first frame with data already reads as the filter, so the chips never flip from All to In review under the reader.
+  const [preselected, setPreselected] = useState(false);
+  const labLoaded = query.isSuccess;
+  const preselect =
+    !preselected &&
+    !sessionLoading &&
+    labLoaded &&
+    isOwner &&
+    inReview > 0 &&
+    !urlStatus &&
+    !route.query.get('app');
+  const status = preselect ? 'review' : urlStatus;
+  useEffect(() => {
+    if (preselected || sessionLoading || !labLoaded) return;
+    setPreselected(true);
+    if (preselect) setQuery({ status: 'review' });
+  }, [preselected, preselect, sessionLoading, labLoaded]);
   const pageOf = (key: string) => labPages.find((p) => p.versionKeys.includes(key));
 
   const [picked, setPicked] = useState<string[]>([]);
@@ -276,7 +297,14 @@ function ReviewView() {
         </p>
       )}
 
-      {ordered.length === 0 ? (
+      {ordered.length === 0 && status === 'review' && !app && !only ? (
+        // The last one in review was just approved: that is the job done, not a filter that missed.
+        <EmptyState
+          icon={CircleCheck}
+          title={t.reviewDoneTitle}
+          action={<Button onClick={() => setQuery({ status: null })}>{t.showAllVersions}</Button>}
+        />
+      ) : ordered.length === 0 ? (
         <EmptyState
           icon={SearchX}
           title={t.noMatchTitle}
@@ -530,6 +558,8 @@ function LeadVersion({
     <Button
       variant={primary ? 'primary' : 'outline'}
       disabled={!isOwner}
+      tabIndex={isOwner ? undefined : -1}
+      aria-hidden={isOwner ? undefined : true}
       onClick={() => openCard(card.key, { action: 'approve' })}
     >
       {kit.actions.approve}
@@ -592,6 +622,8 @@ function LeadVersion({
             <Tooltip content={t.ownerDecides}>
               <span
                 tabIndex={0}
+                role="button"
+                aria-disabled="true"
                 aria-label={`${kit.actions.approve}: ${t.ownerDecides}`}
                 className={cn('rounded-md', focusRing)}
               >

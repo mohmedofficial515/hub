@@ -22,7 +22,7 @@ import {
 import { CopyButton } from '@/components/common/copy-button';
 import { RelativeTime } from '@/components/common/relative-time';
 import { Bidi, fill, fmt } from '@/components/common/text';
-import { openCard } from '@/components/shell/router';
+import { openCard, setQuery } from '@/components/shell/router';
 import { useRoute } from '@/components/shell/router';
 import { Button } from '@/components/ui/button';
 import { detectSecret, Field, SecretFilterError, Textarea } from '@/components/ui/form';
@@ -42,11 +42,12 @@ import { EDIT, EditButton } from './edit-bits';
 /** Strings only this section needs. The card vocabulary stays in `kit/i18n.ts`. */
 const MIN_RATIONALE = 20;
 
-/** "24 h and 2 h before" / "قبل 24 ساعة وقبل ساعتين" (review M15). */
-function formatReminders(hours: number[], locale: 'ar' | 'en') {
-  if (locale === 'ar')
-    return hours.map((h) => rel(new Date(nowMs() - h * 3_600_000).toISOString(), 'ar')).join(' و');
-  return `${new Intl.ListFormat('en', { type: 'conjunction' }).format(hours.map((h) => `${h} h`))} before`;
+/** "24 h and 2 h before the deadline" / «قبل الموعد بـ 24 ساعة وساعتين»: before the deadline, never "sent 24 h ago" (review M15). */
+function formatReminders(hours: number[], locale: 'ar' | 'en', template: string) {
+  const list = new Intl.ListFormat(locale, { type: 'conjunction' }).format(
+    hours.map((h) => duration(h * 3_600_000, locale)),
+  );
+  return fmt(template, { list });
 }
 const ADR_STEPS = ['drafted', 'pr_opened', 'merged'] as const;
 
@@ -389,6 +390,26 @@ function AdrBlock({ card }: { card: DecisionCard }) {
   );
 }
 
+/** `decide` is offered on every open decision, and the API needs an option: with none, say so and lead to the edit form (or to who may add them). */
+function NoOptions({ canAdd, onCancel }: { canAdd: boolean; onCancel: () => void }) {
+  const t = useT(kitMessages);
+  const m = t.sections.decision;
+  return (
+    <div role="status" className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3">
+      <p className="text-body text-foreground">{m.noOptions}</p>
+      {!canAdd && <p className="text-body-sm text-muted-foreground">{m.noOptionsAsk}</p>}
+      <div className="flex flex-wrap gap-2">
+        {canAdd && (
+          <Button variant="primary" onClick={() => setQuery({ action: EDIT })}>
+            {m.addOptions}
+          </Button>
+        )}
+        <Button onClick={onCancel}>{t.cancel}</Button>
+      </div>
+    </div>
+  );
+}
+
 export function DecisionSection({ card, action, cancelAction, perform }: SectionProps<'decision'>) {
   const t = useT(kitMessages);
   const m = useT(kitMessages).sections.decision;
@@ -416,7 +437,12 @@ export function DecisionSection({ card, action, cancelAction, perform }: Section
         </p>
       </div>
 
-      {action === 'decide' && d.options.length > 0 ? (
+      {action === 'decide' && d.options.length === 0 ? (
+        <NoOptions
+          canAdd={editable && card.status === 'open' && card.allowedActions.includes('decision.edit_options')}
+          onCancel={cancelAction}
+        />
+      ) : action === 'decide' && d.options.length > 0 ? (
         <DecideForm card={card} onSave={perform} onCancel={cancelAction} />
       ) : (
         d.options.length > 0 && (
@@ -454,7 +480,9 @@ export function DecisionSection({ card, action, cancelAction, perform }: Section
           </Fact>
         )}
         <Fact label={s.reminders}>
-          {d.remindersSent.length ? formatReminders(d.remindersSent, locale) : s.noReminders}
+          {d.remindersSent.length
+            ? formatReminders(d.remindersSent, locale, m.remindersBefore)
+            : s.noReminders}
         </Fact>
         {d.escalatedAt && d.escalatedToRole && card.status === 'open' && (
           <Fact label={t.status.escalated}>

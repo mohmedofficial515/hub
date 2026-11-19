@@ -16,6 +16,7 @@ import kit from '../../../messages/en/kit.json';
 import shell from '../../../messages/en/shell.json';
 import timeline from '../../../messages/en/timeline.json';
 import today from '../../../messages/en/today.json';
+import { EventDetail } from './event-detail';
 import { TimelinePage } from './timeline-page';
 
 let path = '/en/goteav/today';
@@ -191,6 +192,144 @@ describe('Today', () => {
     expect(await screen.findByText(today.letter.title)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /GTV-9/ })).toBeInTheDocument();
   });
+
+  it('draws the letter’s headings and lists, never their markers', async () => {
+    withRoutes((url) =>
+      url.pathname.endsWith('/today')
+        ? {
+            body: {
+              data: todayData({
+                brief: {
+                  narrative: '## The plan\n- First GTV-9\n- Second\n\nThen **ship**.',
+                  narrativeAt: '2026-11-05T05:00:00.000Z',
+                },
+              }),
+            },
+          }
+        : undefined,
+    );
+    mount(<TodayPage />);
+    const toggle = await screen.findByRole('button', { name: new RegExp(today.letter.expand) });
+    toggle.click();
+    expect(await screen.findByRole('heading', { name: 'The plan' })).toBeInTheDocument();
+    const body = document.getElementById('letter-body');
+    expect(body?.querySelectorAll('li')).toHaveLength(2);
+    expect(body?.textContent).not.toContain('##');
+    expect(body?.textContent).not.toContain('- ');
+  });
+
+  it('keeps the stack from /today when the awaiting list fails', async () => {
+    withRoutes((url) => {
+      if (url.pathname.endsWith('/cards')) {
+        return { status: 500, body: { error: { code: 'hub.common.internal', message: 'no' } } };
+      }
+      if (url.pathname.endsWith('/today')) {
+        return { body: { data: todayData({ awaitingMe: [card('GTV-1', { awaiting: 'decide' })] }) } };
+      }
+      return undefined;
+    });
+    mount(<TodayPage />);
+    expect(await screen.findByText('Title of card 1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: kit.actions.decide })).toBeInTheDocument();
+    expect(screen.queryByText(today.stack.emptyTitle)).toBeNull();
+  });
+
+  it('keeps Ready from /today while the ready list has not answered', async () => {
+    stubFetch((url, init, request) => {
+      if (url.pathname.endsWith('/tasks/ready')) return undefined;
+      if (url.pathname.endsWith('/today')) {
+        return {
+          body: {
+            data: todayData({
+              readyTasks: [card('GTV-5', { type: 'task', status: 'ready', ownerRole: 'backend' })],
+            }),
+          },
+        };
+      }
+      return base(url, init, request);
+    });
+    const fetchNow = globalThis.fetch;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+        String(input instanceof Request ? input.url : input).includes('/tasks/ready')
+          ? new Promise(() => undefined)
+          : fetchNow(input, init),
+      ),
+    );
+    mount(<TodayPage />);
+    expect(await screen.findByText('Title of card 5')).toBeInTheDocument();
+  });
+
+  it('refreshes the lists too, not only /today', async () => {
+    const { calls } = withRoutes((url) =>
+      url.pathname.endsWith('/today') ? { body: { data: todayData() } } : undefined,
+    );
+    mount(<TodayPage />);
+    await screen.findByText(today.stack.emptyTitle);
+    await waitFor(() => expect(calls.some((c) => c.path.endsWith('/cards'))).toBe(true));
+    const before = calls.filter((c) => c.path.endsWith('/cards')).length;
+    screen.getByRole('button', { name: today.refresh }).click();
+    await waitFor(() =>
+      expect(calls.filter((c) => c.path.endsWith('/cards')).length).toBeGreaterThan(before),
+    );
+  });
+
+  it('opens the rest of a long stack in place', async () => {
+    const twelve = Array.from({ length: 12 }, (_, i) => card(`GTV-${i + 1}`, { awaiting: 'decide' }));
+    withRoutes((url) => {
+      if (url.pathname.endsWith('/cards')) return { body: { data: twelve, meta: {} } };
+      if (url.pathname.endsWith('/today')) return { body: { data: todayData() } };
+      return undefined;
+    });
+    mount(<TodayPage />);
+    const more = await screen.findByRole('button', { name: 'See all (12)' });
+    const stack = () =>
+      document.querySelectorAll('#' + CSS.escape(more.getAttribute('aria-controls') ?? '') + ' > li');
+    expect(stack()).toHaveLength(10);
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    more.click();
+    await waitFor(() => expect(stack()).toHaveLength(12));
+    expect(screen.getByRole('button', { name: today.stack.seeFewer })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    expect(document.querySelector('a[href*="awaiting=me"][href*="inbox"]')).toBeNull();
+  });
+
+  it('draws sessions without a summary only when there is one, and the runway’s empty line without a box', async () => {
+    withRoutes((url) => (url.pathname.endsWith('/today') ? { body: { data: todayData() } } : undefined));
+    const first = mount(<TodayPage />);
+    const empty = await screen.findByText(today.runway.empty);
+    expect(empty.closest('.border-dashed')).toBeNull();
+    expect(screen.queryByText(today.sessions.title)).toBeNull();
+    first.unmount();
+
+    withRoutes((url) =>
+      url.pathname.endsWith('/today')
+        ? {
+            body: {
+              data: todayData({
+                noSummarySessions: [
+                  {
+                    sessionLogId: 's1',
+                    sessionId: 'abc',
+                    repo: 'web',
+                    branch: 'main',
+                    at: '2026-11-05T08:00:00.000Z',
+                    durationMin: 30,
+                    commits: 1,
+                    files: 2,
+                  },
+                ],
+              }),
+            },
+          }
+        : undefined,
+    );
+    mount(<TodayPage />);
+    expect(await screen.findByText(today.sessions.title)).toBeInTheDocument();
+  });
 });
 
 describe('Inbox', () => {
@@ -245,6 +384,28 @@ describe('Inbox', () => {
     screen.getByRole('button', { name: inbox.row.archive }).click();
     await waitFor(() => expect(calls.some((c) => c.path.endsWith('/archive'))).toBe(true));
   });
+
+  it('names the page a link without a card goes to', async () => {
+    path = '/en/goteav/inbox';
+    const backup = item('b', {
+      kind: 'system',
+      card: null,
+      data: {
+        link: { view: 'settings', query: { tab: 'backups' } },
+        i18nKey: 'backup_failed',
+        params: { reason: 'disk' },
+      },
+    });
+    const brief = item('c', { kind: 'brief', card: null, data: {} });
+    withRoutes((url) =>
+      url.pathname.endsWith('/inbox') ? { body: { data: [backup, brief], meta: {} } } : undefined,
+    );
+    mount(<InboxPage />);
+    const settings = await screen.findByRole('link', { name: `Open ${shell.nav.settings}` });
+    expect(settings.getAttribute('href')).toMatch(/\/settings\?tab=backups$/);
+    expect(screen.getByRole('link', { name: `Open ${shell.nav.today}` })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: /^Open / })).toHaveLength(2);
+  });
 });
 
 describe('Timeline', () => {
@@ -288,5 +449,48 @@ describe('Timeline', () => {
     expect(screen.getByRole('button', { name: /\+3/ })).toBeInTheDocument();
     expect(screen.getAllByText('5 events in this view').length).toBeGreaterThan(0);
     await waitFor(() => expect(calls.some((c) => c.path.endsWith('/today/seen'))).toBe(true));
+  });
+  // The wide row and Today's "Since your last visit" both print this line; a narrow test window hides it on the row, so it renders alone.
+  const mountEdited = async (data: Record<string, unknown>) => {
+    path = '/en/goteav/timeline';
+    withRoutes(() => undefined);
+    const event = { id: 'e1', kind: 'field_changed', data, at: new Date().toISOString(), actorKind: 'user' };
+    mount(
+      <p data-testid="detail">
+        <EventDetail card={{ type: 'task', key: 'GTV-1' } as never} event={event as never} />
+      </p>,
+    );
+    await waitFor(() => expect(screen.getByTestId('detail')).toBeInTheDocument());
+  };
+
+  it('says which field changed in words, never the raw key, hash or ISO date', async () => {
+    await mountEdited({
+      changes: [
+        { field: 'body', from: 'aaa111', to: 'bbb222' },
+        { field: 'dueAt', from: null, to: '2026-11-19T15:42:00.000Z' },
+      ],
+    });
+    const text = screen.getByTestId('detail').textContent ?? '';
+    expect(text).toContain(timeline.row.fieldEdited.replace('{field}', timeline.row.fields.body));
+    for (const raw of ['aaa111', 'bbb222', 'T15:42', 'dueAt']) expect(text).not.toContain(raw);
+  });
+
+  it('writes a due date and a role as a reader says them', async () => {
+    await mountEdited({
+      changes: [
+        { field: 'dueAt', from: null, to: '2026-11-19T15:42:00.000Z' },
+        { field: 'ownerRole', from: 'backend', to: 'frontend' },
+      ],
+    });
+    const text = screen.getByTestId('detail').textContent ?? '';
+    expect(text).toContain(`${timeline.row.fields.dueAt}:`);
+    expect(text).toContain(kit.sheet.history.values.none);
+    expect(text).toMatch(/\d{2}:\d{2}/);
+    expect(text).not.toContain('T15:42');
+  });
+
+  it('draws no detail for a field it cannot name', async () => {
+    await mountEdited({ changes: [{ field: 'xyz', to: 1 }] });
+    expect(screen.getByTestId('detail')).toBeEmptyDOMElement();
   });
 });

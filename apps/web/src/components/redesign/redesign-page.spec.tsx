@@ -1,12 +1,13 @@
 /**
  * @file The Redesign page in each state, on the shapes of docs/04 §3.14.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
+import en from '../../../messages/en/redesign.json';
 import { RedesignPage } from './redesign-page';
 
 const page = (
@@ -85,7 +86,10 @@ function api(roles: string[], reply: { status?: number; body?: unknown }) {
 }
 
 describe('RedesignPage', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    search.value = 'status=';
+    vi.unstubAllGlobals();
+  });
 
   it('shows a skeleton while it loads', () => {
     stubFetch(() => undefined);
@@ -130,7 +134,47 @@ describe('RedesignPage', () => {
   it('leaves the verdict to the owner', async () => {
     api(['frontend'], { body: { data: pages } });
     renderWithApp(page);
-    expect(await screen.findByRole('button', { name: 'Approve' })).toBeDisabled();
-    expect(screen.getByLabelText('Approve: Owner decides')).toBeInTheDocument();
+    const wrapper = await screen.findByRole('button', { name: 'Approve: Owner decides' });
+    expect(wrapper).toHaveAttribute('aria-disabled', 'true');
+    expect(within(wrapper).getByText('Approve').closest('button')).toBeDisabled();
+  });
+
+  const settled = [
+    {
+      ...pages[0],
+      versions: [version('GTV-1', 'v1-baseline', 'reference'), version('GTV-2', 'v2-flight', 'approved')],
+    },
+  ];
+
+  it('opens the owner on the gallery when nothing waits for his verdict', async () => {
+    search.value = '';
+    const replace = vi.spyOn(window.history, 'replaceState');
+    api(['owner'], { body: { data: settled } });
+    renderWithApp(page);
+    expect(await screen.findByRole('heading', { name: 'Wallet' })).toBeInTheDocument();
+    expect(screen.queryByText(en.noMatchTitle)).toBeNull();
+    expect(replace.mock.calls.some(([, , href]) => String(href).includes('status=review'))).toBe(false);
+    replace.mockRestore();
+  });
+
+  it('still opens the owner on review when a version waits', async () => {
+    search.value = '';
+    const replace = vi.spyOn(window.history, 'replaceState');
+    api(['owner'], { body: { data: pages } });
+    renderWithApp(page);
+    await screen.findByRole('heading', { name: 'Wallet' });
+    await waitFor(() =>
+      expect(replace.mock.calls.some(([, , href]) => String(href).includes('status=review'))).toBe(true),
+    );
+    replace.mockRestore();
+  });
+
+  it('says the review is done when the last one was approved', async () => {
+    search.value = 'status=review';
+    api(['owner'], { body: { data: settled } });
+    renderWithApp(page);
+    expect(await screen.findByText(en.reviewDoneTitle)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: en.showAllVersions })).toBeInTheDocument();
+    expect(screen.queryByText(en.noMatchTitle)).toBeNull();
   });
 });

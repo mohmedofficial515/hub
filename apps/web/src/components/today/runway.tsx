@@ -16,7 +16,6 @@ import {
   cn,
   DAY,
   duration,
-  EmptyState,
   fmt,
   focusRing,
   focusRowWhenReady,
@@ -320,7 +319,7 @@ export function DeadlineRunway({ cards, stackKeys }: { cards: CardListItem[]; st
     <section aria-labelledby="runway-title" className="flex flex-col gap-3">
       <SectionHeader id="runway-title" icon={CalendarClock} title={t.runway.title} count={within.length} />
       {within.length === 0 ? (
-        <EmptyState icon={CalendarClock} title={t.runway.empty} />
+        <p className="text-body-sm text-muted-foreground">{t.runway.empty}</p>
       ) : (
         <div className="rounded-lg border border-border bg-card p-1.5">
           <Ribbon inStack={inStack} outside={outside} />

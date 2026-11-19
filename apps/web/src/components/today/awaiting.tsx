@@ -7,11 +7,10 @@
  */
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarClock, CircleCheck, Clock, TriangleAlert, UserRoundCheck } from 'lucide-react';
-import { type RefObject, useRef } from 'react';
+import { type RefObject, useEffect, useId, useRef, useState } from 'react';
 
 import {
   actionsFor,
-  AppLink,
   type AwaitingCard,
   type AwaitingGroup,
   Bidi,
@@ -48,6 +47,9 @@ import {
 import { handoffAgeMs } from '@/features/cards/store';
 
 import { NS, type TodayMessages } from './messages';
+
+/** Rows shown before "See all". */
+const LIMIT = 10;
 
 const ease = [0.2, 0.8, 0.2, 1] as const;
 
@@ -168,7 +170,10 @@ export function AwaitingStack({
   const { roles, me } = useSession();
   const perform = usePerformAction();
   const metaOf = useMetaOf();
-  const shown = stack.slice(0, 10);
+  // The whole list is already here (up to 100): it opens in place, never on another page whose list is not this one (flow-07).
+  const [all, setAll] = useState(false);
+  const expandedNow = useRef(false);
+  const shown = all ? stack : stack.slice(0, LIMIT);
   const rows = rowsFor(shown);
   const byKey = useRef(new Map<string, StackCard>());
   byKey.current = new Map(shown.map((c) => [c.key, c]));
@@ -194,6 +199,15 @@ export function AwaitingStack({
     actions: { d: keyAction('decide'), a: keyAction('acknowledge'), c: keyAction('claim') },
   });
 
+  const listId = useId();
+  const eleventh = stack[LIMIT]?.key;
+  useEffect(() => {
+    // After "See all", the reader goes on from where the short list ended.
+    if (!all || !expandedNow.current || !eleventh) return;
+    expandedNow.current = false;
+    list.focusRow(eleventh);
+  }, [all, eleventh, list]);
+
   return (
     <section aria-labelledby="awaiting-title" className="flex flex-col gap-3">
       <SectionHeader
@@ -208,7 +222,7 @@ export function AwaitingStack({
           {t.stack.emptyBody}
         </EmptyState>
       ) : (
-        <ul data-hub-list className="flex flex-col gap-2">
+        <ul id={listId} data-hub-list className="flex flex-col gap-2">
           <AnimatePresence mode="popLayout">
             {rows.map((row) =>
               row.kind === 'group' ? (
@@ -284,17 +298,22 @@ export function AwaitingStack({
           </AnimatePresence>
         </ul>
       )}
-      {stack.length > 10 && (
-        <AppLink
-          view="inbox"
-          query={{ awaiting: 'me' }}
+      {stack.length > LIMIT && (
+        <button
+          type="button"
+          aria-expanded={all}
+          aria-controls={listId}
+          onClick={() => {
+            expandedNow.current = !all;
+            setAll((v) => !v);
+          }}
           className={cn(
             'hit-44 self-start rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
             focusRing,
           )}
         >
-          {fmt(t.stack.seeAll, { total: stack.length })}
-        </AppLink>
+          {all ? t.stack.seeFewer : fmt(t.stack.seeAll, { total: stack.length })}
+        </button>
       )}
     </section>
   );

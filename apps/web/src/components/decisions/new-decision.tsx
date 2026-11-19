@@ -115,6 +115,11 @@ export function NewDecisionDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
+      dirty={Boolean(
+        question.trim() ||
+        context.trim() ||
+        options.some((o) => o.title.trim() || o.pros.trim() || o.cons.trim()),
+      )}
       title={n.title}
       className="md:max-w-2xl"
       footer={

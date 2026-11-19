@@ -34,14 +34,21 @@ import {
   Button,
   cn,
   EmptyState,
+  ErrorState,
   fmt,
   focusRing,
   IconButton,
+  LoadingRegion,
   Ltr,
   MarkdownView,
   num,
+  PageContainer,
+  PageHeader,
+  plural,
+  type PluralForms,
   RelativeTime,
   setQuery,
+  Skeleton,
   tabTriggerClass,
   TextInput,
   Tip,
@@ -49,12 +56,13 @@ import {
   useRoute,
   useT,
 } from '@/components/kit';
-import { fillComposer, openChat, revealChat, useMaybeWb } from '@/components/workbench/store';
+import { fillComposer, newChat, openChat, revealChat, useMaybeWb } from '@/components/workbench/store';
 import { DiffView } from '@/components/workbench/thread';
 import { runningMessage } from '@/features/chat/live';
 import { type LiveFile, liveFilesOf, shortPath } from '@/features/chat/live-files';
 import { useChat, useChatDiff, useChats, useStopTurn } from '@/features/chat/queries';
 import { parseUnifiedDiff, type ToolCall, toolCallOf } from '@/features/chat/thread-items';
+import { isHubError } from '@/lib/api/errors';
 
 interface LiveWords {
   waiting: string;
@@ -64,15 +72,19 @@ interface LiveWords {
   running: string;
   idle: string;
   noChats: string;
+  noChatsTitle: string;
+  startChat: string;
+  errorThing: string;
+  gone: { title: string; body: string; action: string };
   newWindow: string;
   follow: string;
   files: string;
-  filesCount: string;
+  filesCount: PluralForms;
   noFiles: string;
   fromGit: string;
   fromTool: string;
   tabs: { changes: string; writing: string; preview: string; activity: string };
-  edits: string;
+  edits: PluralForms;
   editN: string;
   write: string;
   againstHead: string;
@@ -193,7 +205,7 @@ function FileList({
           {w.files}
         </h2>
         <span className="text-caption text-muted-foreground tabular-nums">
-          {fmt(w.filesCount, { n: num(files.length, locale) })}
+          {plural(files.length, locale, w.filesCount)}
         </span>
       </header>
       {files.length === 0 ? (
@@ -304,7 +316,7 @@ function FileChanges({
       {file.edits.length > 0 && (
         <section className="flex flex-col gap-2">
           <h3 className="text-caption font-semibold text-muted-foreground">
-            {w.liveEdits} · {fmt(w.edits, { n: num(file.edits.length, locale) })}
+            {w.liveEdits} · {plural(file.edits.length, locale, w.edits)}
           </h3>
           {file.edits
             .slice()
@@ -429,7 +441,7 @@ function Preview() {
             rel="noreferrer"
             aria-label={w.external}
             className={cn(
-              'inline-flex size-9 items-center justify-center rounded-md border border-border hover:bg-accent',
+              'inline-flex size-11 items-center justify-center rounded-md border border-border hover:bg-accent md:size-9',
               focusRing,
             )}
           >
@@ -463,7 +475,7 @@ function Preview() {
 function ChatLive({ chat }: { chat: ChatFullDto }) {
   const w = useT<LiveWords>('live');
   const { query } = useRoute();
-  const tab = query.get('tab') ?? 'changes';
+  const tab = paneOf(query.get('pane'));
   const locale = useLocale();
   const stop = useStopTurn(chat.id);
   const running = runningMessage(chat);
@@ -516,7 +528,7 @@ function ChatLive({ chat }: { chat: ChatFullDto }) {
             )}
           </p>
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-caption text-muted-foreground">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-caption text-muted-foreground md:min-h-0">
           <input
             type="checkbox"
             className="size-4 accent-(--primary)"
@@ -557,7 +569,7 @@ function ChatLive({ chat }: { chat: ChatFullDto }) {
 
         <Tabs.Root
           value={tab}
-          onValueChange={(next) => setQuery({ tab: next === 'changes' ? null : next })}
+          onValueChange={(next) => setQuery({ pane: next === 'changes' ? null : next })}
           dir={locale === 'ar' ? 'rtl' : 'ltr'}
           className="glass flex min-h-[70vh] min-w-0 flex-col rounded-2xl"
         >
@@ -637,59 +649,130 @@ function ChatLive({ chat }: { chat: ChatFullDto }) {
   );
 }
 
+const PANES = ['changes', 'writing', 'preview', 'activity'] as const;
+type Pane = (typeof PANES)[number];
+/** The page's own tab. Not `tab`: that one belongs to the card sheet, which clears it on open and close. */
+export const paneOf = (value: string | null): Pane =>
+  PANES.includes(value as Pane) ? (value as Pane) : 'changes';
+
+function LiveSkeleton({ label, strip }: { label: string; strip: boolean }) {
+  return (
+    <LoadingRegion label={label} className="gap-4">
+      {strip && (
+        <div className="flex gap-1.5">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} className="h-9 w-40 rounded-full" />
+          ))}
+        </div>
+      )}
+      <Skeleton className="h-[60vh] w-full rounded-2xl" />
+    </LoadingRegion>
+  );
+}
+
 export function LivePage() {
   const w = useT<LiveWords>('live');
   const { query, locale, ws } = useRoute();
   const wb = useMaybeWb();
-  const chats = useChats().data ?? [];
+  const chatsQuery = useChats();
+  const chats = chatsQuery.data ?? [];
   const fromUrl = query.get('chat');
   const fallback = chats.find((c) => c.running)?.id ?? wb?.activeId ?? chats[0]?.id ?? null;
   const chatId = fromUrl ?? fallback;
   const chat = useChat(chatId);
+  const gone = chat.isError && isHubError(chat.error) && chat.error.status === 404;
+
+  const body = () => {
+    // The list decides which chat to show, so "no chats yet" waits for it: while it loads or fails, it would not be true.
+    if (!fromUrl && chatsQuery.isPending) return <LiveSkeleton label={w.title} strip />;
+    if (!fromUrl && chatsQuery.isError && !chatsQuery.data) {
+      const error = chatsQuery.error;
+      return (
+        <ErrorState
+          thing={w.errorThing}
+          code={isHubError(error) ? error.code : undefined}
+          requestId={isHubError(error) ? error.requestId : undefined}
+          onRetry={() => void chatsQuery.refetch()}
+        />
+      );
+    }
+    if (!chatId) {
+      return (
+        <EmptyState
+          icon={Radio}
+          title={w.noChatsTitle}
+          action={
+            wb ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  newChat();
+                  fillComposer('', undefined, { show: true });
+                }}
+              >
+                <MessageSquare aria-hidden className="size-4" strokeWidth={1.75} />
+                {w.startChat}
+              </Button>
+            ) : undefined
+          }
+        >
+          {w.noChats}
+        </EmptyState>
+      );
+    }
+    if (chat.data) return <ChatLive key={chat.data.id} chat={chat.data} />;
+    if (gone) {
+      return (
+        <EmptyState
+          icon={Radio}
+          title={w.gone.title}
+          action={<Button onClick={() => setQuery({ chat: null })}>{w.gone.action}</Button>}
+        >
+          {w.gone.body}
+        </EmptyState>
+      );
+    }
+    if (chat.isError) {
+      const error = chat.error;
+      return (
+        <ErrorState
+          thing={w.errorThing}
+          code={isHubError(error) ? error.code : undefined}
+          requestId={isHubError(error) ? error.requestId : undefined}
+          onRetry={() => void chat.refetch()}
+        />
+      );
+    }
+    return <LiveSkeleton label={w.title} strip={false} />;
+  };
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full min-w-0 max-w-440 flex-col gap-4 overflow-x-clip px-4 pt-4 pb-10 md:px-6 md:pt-6">
-      <header className="glass animate-rise flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 md:px-5">
-        <span
-          aria-hidden
-          className="flex size-10 shrink-0 items-center justify-center icon-tile rounded-xl text-primary-text ring-1 ring-primary/15"
-        >
-          <Radio className="size-5" strokeWidth={1.75} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h1 tabIndex={-1} className="hub-page-title text-gradient text-headline outline-none">
-            {w.title}
-          </h1>
-          <p className="mt-0.5 text-body-sm text-muted-foreground">{w.meta}</p>
-        </div>
-        <Tip content={{ what: w.newWindow }}>
-          <Button
-            variant="outline"
-            onClick={() =>
-              window.open(
-                `/${locale}/${ws}/live${chatId ? `?chat=${chatId}` : ''}`,
-                'hub-live',
-                'popup,width=1440,height=900',
-              )
-            }
-          >
-            <ExternalLink aria-hidden className="size-4" strokeWidth={1.75} />
-            {w.newWindow}
-          </Button>
-        </Tip>
-      </header>
+    <PageContainer className="max-w-440">
+      <PageHeader
+        title={w.title}
+        meta={w.meta}
+        actions={
+          <Tip content={{ what: w.newWindow }}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                window.open(
+                  `/${locale}/${ws}/live${chatId ? `?chat=${chatId}` : ''}`,
+                  'hub-live',
+                  'popup,width=1440,height=900',
+                )
+              }
+            >
+              <ExternalLink aria-hidden className="size-4" strokeWidth={1.75} />
+              {w.newWindow}
+            </Button>
+          </Tip>
+        }
+      />
 
       <ChatStrip selected={chatId} />
 
-      {!chatId ? (
-        <EmptyState icon={Radio} title={w.title}>
-          {w.noChats}
-        </EmptyState>
-      ) : chat.data ? (
-        <ChatLive key={chat.data.id} chat={chat.data} />
-      ) : (
-        <div className="glass h-[60vh] animate-pulse rounded-2xl motion-reduce:animate-none" />
-      )}
-    </div>
+      {body()}
+    </PageContainer>
   );
 }

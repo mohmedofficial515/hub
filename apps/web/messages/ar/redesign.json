@@ -78,6 +78,8 @@
   "noMatchTitle": "لا نسخ بهذه الفلاتر",
   "noMatchBody": "جرّب حالة أخرى، أو اعرض كل النسخ.",
   "clearFilters": "أزل الفلاتر",
+  "reviewDoneTitle": "لا نسخ بانتظار رأيك",
+  "showAllVersions": "اعرض كل النسخ",
   "errorThing": "صفحات المختبر",
   "loading": "جارٍ تحميل صفحات المختبر",
   "compare": {

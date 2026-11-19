@@ -65,6 +65,7 @@ import {
 import { useInboxCount } from '@/features/session/session';
 import { asCard, useRunAction } from '@/features/timeline/run-action';
 import { isHubError } from '@/lib/api/errors';
+import { messages } from '@/lib/i18n';
 
 import { type InboxMessages, NS } from './messages';
 import { InboxRow, type ItemLink, linkButtonClass, toItemLink } from './row';
@@ -72,6 +73,8 @@ import { InboxRow, type ItemLink, linkButtonClass, toItemLink } from './row';
 export function InboxPage() {
   const t = useT<InboxMessages>(NS);
   const kit = useT(kitMessages);
+  // A link out names where it goes: Settings, the Agent queue, Members, or Today for the brief (flow-04).
+  const nav = useT(messages).nav;
   const locale = useLocale();
   const { roles, me } = useSession();
   const run = useRunAction();
@@ -441,7 +444,7 @@ export function InboxPage() {
                               onClick={() => markRead(group)}
                               className={linkButtonClass}
                             >
-                              {t.row.openToday}
+                              {fmt(t.row.openView, { view: nav[link.view] ?? '' })}
                             </AppLink>
                           ) : lead.data.action && lead.card ? (
                             <StatusBadge status={lead.card.status} />

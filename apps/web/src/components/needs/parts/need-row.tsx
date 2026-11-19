@@ -27,7 +27,6 @@ import {
   RoleBadge,
   RowAction,
   StatusBadge,
-  useAwaiting,
   type useKeyboardList,
   useLocale,
   useMember,
@@ -93,12 +92,15 @@ export function NeedRow({
   showStatus = false,
   primary = false,
   stale,
+  mine = false,
 }: {
   card: NeedCard;
   rowProps: RowProps;
   showStatus?: boolean;
   primary?: boolean;
   stale: boolean;
+  /** The card waits on me now. The page reads the stack once for every row. */
+  mine?: boolean;
 }) {
   const t = useT<NeedsMessages>('needs');
   const kit = useT(kitMessages);
@@ -106,7 +108,6 @@ export function NeedRow({
   const n = card.need;
   const requester = useMember(n.requesterId ?? card.createdById);
   const titleId = `need-${card.key}`;
-  const mine = useAwaiting().some((c) => c.key === card.key);
   const open = card.status === 'requested' || card.status === 'in_progress';
 
   return (

@@ -104,8 +104,8 @@ function ContractDiff({ row }: { row: StreamRow }) {
         </span>
       </p>
       <ul className="-mx-3 mt-1">
-        {diffOf(row).map((change) => (
-          <ContractChange key={change.endpoint} change={change} />
+        {diffOf(row).map((change, i) => (
+          <ContractChange key={`${change.endpoint}:${i}`} change={change} />
         ))}
       </ul>
     </article>

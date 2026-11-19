@@ -67,10 +67,8 @@
     "openLab": "افتح في المختبر",
     "commits": {
       "one": "commit واحد",
-      "two": "commitان",
-      "few": "# commits",
-      "many": "# commit",
-      "other": "# commit"
+      "two": "2 commits",
+      "other": "# commits"
     },
     "files": {
       "one": "ملف واحد",
@@ -103,7 +101,22 @@
     "hasSummary": "بملخص",
     "route": "{from} إلى {to}",
     "takenBy": "الحجز: {name}",
-    "unclaimed": "غير محجوزة"
+    "unclaimed": "غير محجوزة",
+    "fields": {
+      "title": "العنوان",
+      "body": "النص",
+      "priority": "الأولوية",
+      "ownerRole": "الدور المسؤول",
+      "dueAt": "الموعد",
+      "assigneeId": "المكلَّف",
+      "tags": "الوسوم",
+      "module": "الوحدة",
+      "repo": "المستودع",
+      "branch": "الفرع",
+      "options": "الخيارات",
+      "content": "المحتوى"
+    },
+    "fieldEdited": "عُدّل {field}"
   },
   "empty": {
     "noMatch": "لا أحداث تطابق هذه الفلاتر",

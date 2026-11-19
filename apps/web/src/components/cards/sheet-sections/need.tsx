@@ -33,8 +33,12 @@ import { cn } from '@/lib/utils';
 
 const STEPS = ['requested', 'in_progress', 'delivered', 'verified'] as const;
 
-/** Addresses a member can start from. The last part is theirs to finish. */
-const EXAMPLES = ['1Password › Goteav › ', 'backend .env on prod, key ', 'docs/finance/'];
+/** Addresses a member can start from, in this project's name. The last part is theirs to finish. */
+const examplesFor = (project: string) => [
+  `1Password › ${project} › `,
+  'backend .env on prod, key ',
+  'docs/finance/',
+];
 
 /**
  * A long unbroken mix of cases and digits is a value, not an address, even when it matches no known token format. Names
@@ -158,6 +162,8 @@ function DeliverForm({
   const m = useT(kitMessages).sections.need;
   const s = t.sheet.need;
   const id = useId();
+  const project = useSession().workspace?.name ?? 'Hub';
+  const examples = examplesFor(project);
   const [location, setLocation] = useState('');
   const [note, setNote] = useState('');
   const [tried, setTried] = useState(false);
@@ -188,7 +194,7 @@ function DeliverForm({
           id={`${id}-loc`}
           dir="ltr"
           className="key text-start"
-          placeholder="1Password › Goteav › PayTR"
+          placeholder={`1Password › ${project} › API key`}
           autoComplete="off"
           spellCheck={false}
           value={location}
@@ -197,7 +203,7 @@ function DeliverForm({
         />
       </Field>
       <div role="group" aria-label={m.examples} className="flex flex-wrap gap-1.5">
-        {EXAMPLES.map((example) => (
+        {examples.map((example) => (
           <button
             key={example}
             type="button"

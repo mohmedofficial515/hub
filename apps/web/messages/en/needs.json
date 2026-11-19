@@ -30,7 +30,7 @@
     "byStatus": "By status",
     "byRole": "By role",
     "verifiedGroup": "Finished",
-    "showVerified": "Show verified"
+    "showVerifiedCount": "Show verified ({n})"
   },
   "stages": {
     "requested": "Requested",
@@ -55,7 +55,9 @@
     "title": "Nothing is needed from outside right now",
     "body": "When the team needs a token, an account, a contract or a value check, the request appears here.",
     "filteredTitle": "No needs match these filters",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "allDoneTitle": "No open needs right now",
+    "allDoneBody": "Everything requested was delivered and verified."
   },
   "new": {
     "button": "New need",

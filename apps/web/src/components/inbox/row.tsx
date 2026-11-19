@@ -29,9 +29,11 @@ import {
   Bidi,
   CardChip,
   cn,
+  duration,
   fill,
   focusRing,
   IconButton,
+  type Locale,
   plural,
   RelativeTime,
   stretchedFocus,
@@ -112,12 +114,21 @@ function useSwipe(onArchive: () => void) {
  * The API stores a title once, in the language the member had then, with the card's title of that moment. The page says it again from what it was rendered
  * from: the sentence in the page's language, the card's title as it is now. The stored title is the fallback, for an item older than this or a key the page does not know.
  */
-export function titleOf(item: InboxGroup['lead'], titles: InboxMessages['row']['titles']) {
+export function titleOf(
+  item: InboxGroup['lead'],
+  titles: InboxMessages['row']['titles'],
+  locale: Locale = 'en',
+) {
   const template = (titles as Record<string, string>)[item.data.i18nKey ?? item.kind];
   const params = item.data.params ?? {};
   const values: Record<string, ReactNode> = Object.fromEntries(
     Object.entries(params).map(([name, value]) => [name, <Bidi key={name}>{String(value)}</Bidi>]),
   );
+  // A count of hours reads as words with the right plural: «خلال ساعتين», never «خلال 2 ساعة».
+  const hours = params['hours'];
+  if (typeof hours === 'number' && Number.isFinite(hours) && hours > 0) {
+    values['hours'] = <span key="hours">{duration(hours * 3_600_000, locale)}</span>;
+  }
   const title = item.card?.title ?? params['title'];
   if (title !== undefined) values['title'] = <Bidi key="title">{String(title)}</Bidi>;
   const known =
@@ -166,7 +177,7 @@ export function InboxRow({
   const danger = lead.kind === 'escalation';
   const KindIcon = kindIcon[lead.kind] ?? (card ? typeIcon[card.type] : Cpu);
   const titleId = `inbox-${lead.id}`;
-  const title = titleOf(lead, t.row.titles);
+  const title = titleOf(lead, t.row.titles, locale);
   const titleClass = cn(
     'underline-offset-4 outline-none after:absolute after:inset-0 hover:underline',
     stretchedFocus,

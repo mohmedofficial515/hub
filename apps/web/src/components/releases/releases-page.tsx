@@ -152,6 +152,9 @@ function Manifest({
     <Button
       variant={primary ? 'primary' : 'outline'}
       disabled={!isManager}
+      // Disabled, it sits inside the wrapper that names why, which is the one Tab stop and the one thing a screen reader announces.
+      tabIndex={isManager ? undefined : -1}
+      aria-hidden={isManager ? undefined : true}
       onClick={() => perform(card.key, 'release')}
     >
       <Rocket aria-hidden className="size-4" strokeWidth={1.75} />
@@ -202,6 +205,8 @@ function Manifest({
             <Tooltip content={t.pmOnly}>
               <span
                 tabIndex={0}
+                role="button"
+                aria-disabled="true"
                 aria-label={`${kit.actions.release}: ${t.pmOnly}`}
                 className={cn('rounded-md', focusRing)}
               >
@@ -269,7 +274,7 @@ function Manifest({
               <Tabs.Content key={a} value={a} className="relative pt-3 pe-12 outline-none">
                 {r.notes[a] ? (
                   <>
-                    <MarkdownView source={r.notes[a]} headingOffset={3} copyCodeLabel={t.copyNote} />
+                    <MarkdownView source={r.notes[a]} headingOffset={3} copyCodeLabel={kit.sheet.copyCode} />
                     <CopyButton
                       text={r.notes[a]}
                       showText={false}
@@ -360,11 +365,18 @@ export function ReleasesPage() {
   const shipped = months.flatMap((m) => m.rows);
   const waiting = useMemo(() => eligibleForRelease(pool, all), [pool, all]);
   const repos = [...new Set(all.flatMap((c) => (c.release.repo ? [c.release.repo] : [])))];
+  // What the new release offers to type: this project's repos, never a fixed list from another project (flow-10).
+  const knownRepos = [...new Set([...repos, ...waiting.flatMap((c) => (c.repo ? [c.repo] : []))])];
 
   const list = useKeyboardList({ ids: shipped.map((c) => c.key), emptyFocusRef: shippedHeading });
 
   const newButton = (
-    <Button disabled={!isManager} onClick={() => setCreating(true)}>
+    <Button
+      disabled={!isManager}
+      tabIndex={isManager ? undefined : -1}
+      aria-hidden={isManager ? undefined : true}
+      onClick={() => setCreating(true)}
+    >
       <Plus aria-hidden className="size-4" strokeWidth={1.75} />
       {t.newRelease}
     </Button>
@@ -387,6 +399,8 @@ export function ReleasesPage() {
           <Tooltip content={t.pmOnly}>
             <span
               tabIndex={0}
+              role="button"
+              aria-disabled="true"
               aria-label={`${t.newRelease}: ${t.pmOnly}`}
               className={cn('rounded-md', focusRing)}
             >
@@ -447,6 +461,7 @@ export function ReleasesPage() {
           onOpenChange={setCreating}
           onCreated={() => undefined}
           eligible={waiting}
+          repos={knownRepos}
         />
       </PageContainer>
     );
@@ -547,6 +562,7 @@ export function ReleasesPage() {
         onOpenChange={setCreating}
         onCreated={() => setQuery({ status: null, repo: null })}
         eligible={waiting}
+        repos={knownRepos}
       />
     </PageContainer>
   );

@@ -65,6 +65,9 @@ export function HandoffRow({
   const stale = useHandoffStale()(card);
   const acknowledger = useMember(h.acknowledgedById);
   const applier = useMember(h.appliedById);
+  // A member who left, or a list not loaded yet: the line drops the name rather than print an empty one.
+  const ackName = firstName(acknowledger?.name ?? '') || undefined;
+  const applierName = firstName(applier?.name ?? '') || undefined;
   const changes = h.payload.oasdiff ?? [];
   const files = h.payload.files ?? [];
   const breaking = changes.filter((c) => c.severity === 'breaking').length;
@@ -124,18 +127,16 @@ export function HandoffRow({
               ))}
             {card.status === 'acknowledged' && h.acknowledgedAt && (
               <span>
-                {fmt(t.row.ackBy, {
-                  name: firstName(acknowledger?.name ?? '') ?? '',
-                  rel: rel(h.acknowledgedAt, locale),
-                })}
+                {ackName
+                  ? fmt(t.row.ackBy, { name: ackName, rel: rel(h.acknowledgedAt, locale) })
+                  : fmt(t.row.ackAt, { rel: rel(h.acknowledgedAt, locale) })}
               </span>
             )}
             {card.status === 'applied' && h.appliedAt && (
               <span>
-                {fmt(t.row.appliedBy, {
-                  name: firstName(applier?.name ?? '') ?? '',
-                  rel: rel(h.appliedAt, locale),
-                })}
+                {applierName
+                  ? fmt(t.row.appliedBy, { name: applierName, rel: rel(h.appliedAt, locale) })
+                  : fmt(t.row.appliedAt, { rel: rel(h.appliedAt, locale) })}
               </span>
             )}
             {h.appliedTaskKey && <CardChip k={h.appliedTaskKey} type="task" className="relative z-10" />}

@@ -14,6 +14,7 @@ import {
   ActorChip,
   AppLink,
   Bidi,
+  Button,
   cn,
   duration,
   eventLabel,
@@ -208,7 +209,21 @@ function Verb({ event }: { event: CardEvent }) {
 /** The expander: every event folded into this row, with its own time. The API sends how many; the card's history has which. */
 function Collapsed({ row }: { row: StreamRow }) {
   const locale = useLocale();
+  const kit = useT(kitMessages);
   const history = useCardEvents(row.card.key);
+  if (!history.data && history.isError) {
+    return (
+      <p
+        role="alert"
+        className="mt-2 flex flex-wrap items-center gap-2 border-t border-border pt-2 text-body-sm text-muted-foreground"
+      >
+        <span>{fmt(kit.error.title, { thing: kit.sheet.tabs.history })}</span>
+        <Button variant="ghost" size="sm" onClick={() => void history.refetch()}>
+          {kit.retry}
+        </Button>
+      </p>
+    );
+  }
   if (!history.data) return <SkeletonRow withAction={false} className="mt-2" />;
   return (
     <ol className="mt-2 flex flex-col gap-1.5 border-t border-border pt-2 text-body-sm text-muted-foreground">

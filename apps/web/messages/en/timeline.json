@@ -78,7 +78,22 @@
     "hasSummary": "With summary",
     "route": "{from} to {to}",
     "takenBy": "Claimed by {name}",
-    "unclaimed": "Not claimed"
+    "unclaimed": "Not claimed",
+    "fields": {
+      "title": "Title",
+      "body": "Text",
+      "priority": "Priority",
+      "ownerRole": "Owner role",
+      "dueAt": "Due",
+      "assigneeId": "Assignee",
+      "tags": "Tags",
+      "module": "Module",
+      "repo": "Repo",
+      "branch": "Branch",
+      "options": "Options",
+      "content": "Content"
+    },
+    "fieldEdited": "{field} edited"
   },
   "empty": {
     "noMatch": "No events match these filters",

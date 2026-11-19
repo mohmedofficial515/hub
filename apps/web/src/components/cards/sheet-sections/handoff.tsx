@@ -155,8 +155,9 @@ export function HandoffDiffList({
           {title}
         </Pill>
         <ul className="divide-y divide-border rounded-lg border border-border bg-card">
-          {list.map((c) => (
-            <ContractChange key={c.endpoint} change={c} />
+          {list.map((c, i) => (
+            // Two changes on one endpoint are usual in oasdiff, so the endpoint alone is not a key.
+            <ContractChange key={`${c.endpoint}:${i}`} change={c} />
           ))}
         </ul>
       </div>

@@ -42,7 +42,9 @@
     "route": "From {from} to {to}",
     "stale": "Not received for {d}",
     "ackBy": "Received by {name} {rel}",
+    "ackAt": "Received {rel}",
     "appliedBy": "Applied by {name} {rel}",
+    "appliedAt": "Applied {rel}",
     "dismissed": "Dismissed: {reason}",
     "showChanges": "Show changes",
     "hideChanges": "Hide changes",
@@ -66,7 +68,10 @@
     "body": "When the API contract or a shared component changes, the handoff appears here with a ready prompt.",
     "filteredTitle": "No handoffs match these filters",
     "stageTitle": "Nothing at this stage",
-    "clear": "Clear filters"
+    "clear": "Clear filters",
+    "allMovedTitle": "Everything handed off was received and applied",
+    "allMovedBody": "No handoff is waiting to be received or applied right now.",
+    "showApplied": "Show what was applied"
   },
   "new": {
     "button": "New handoff",

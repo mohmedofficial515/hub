@@ -134,7 +134,66 @@ describe('ReleasesPage', () => {
     api(['qa'], { body: { data: releases, meta: { pagination: {} } } });
     renderWithApp(page);
     await screen.findByRole('heading', { name: 'Release 2026-11-10 · Wallet' });
-    expect(screen.getByLabelText('Mark released: Needs the owner or PM role.')).toBeInTheDocument();
+    const wrapper = screen.getByLabelText('Mark released: Needs the owner or PM role.');
+    expect(wrapper).toHaveAttribute('role', 'button');
+    expect(wrapper).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByRole('button', { name: 'Rebuild skeleton' })).not.toBeInTheDocument();
+  });
+
+  it('labels a code block’s copy button in words, never with a raw {name}', async () => {
+    const withCode = [
+      {
+        ...releases[0],
+        detail: {
+          ...releases[0]!.detail,
+          notes: {
+            team: ['Run:', '', '```sh', 'pnpm build', '```'].join('\n'),
+            owner: null,
+            accountant: null,
+          },
+        },
+      },
+    ];
+    api(['pm'], { body: { data: withCode, meta: { pagination: {} } } });
+    renderWithApp(page);
+    await screen.findByRole('heading', { name: 'Release 2026-11-10 · Wallet' });
+    await screen.findByText('pnpm build');
+    const labels = [...document.querySelectorAll('[aria-label]')].map(
+      (el) => el.getAttribute('aria-label') ?? '',
+    );
+    expect(labels.some((label) => label.includes('{name}'))).toBe(false);
+  });
+
+  it('counts every finished card, past the first page', async () => {
+    const rows = Array.from({ length: 120 }, (_, i) => task(`GTV-${100 + i}`));
+    stubFetch((url) => {
+      if (url.pathname.endsWith('/auth/me')) return { body: { data: me(['pm']) } };
+      if (url.pathname.endsWith('/releases')) return { body: { data: releases, meta: { pagination: {} } } };
+      if (url.pathname.endsWith('/events')) return { body: { data: [], meta: {} } };
+      if (url.pathname.endsWith('/cards')) {
+        const second = url.searchParams.get('cursor') === 'c2';
+        return {
+          body: {
+            data: second ? rows.slice(100) : rows.slice(0, 100),
+            meta: { pagination: { nextCursor: second ? null : 'c2', limit: 100 } },
+          },
+        };
+      }
+      return undefined;
+    });
+    renderWithApp(page);
+    expect(await screen.findByText(/120 finished cards are outside any release/)).toBeInTheDocument();
+  });
+
+  it('asks for the repo as free text, with no other project’s list', async () => {
+    api(['owner'], { body: { data: [], meta: { pagination: {} } } });
+    renderWithApp(page);
+    (await screen.findByRole('button', { name: 'New release' })).click();
+    const repo = await screen
+      .findByRole('combobox', { name: 'Repo' })
+      .catch(() => screen.getByLabelText('Repo'));
+    expect(repo.tagName).toBe('INPUT');
+    expect(screen.queryByRole('option', { name: 'dashboard' })).toBeNull();
+    expect(document.querySelectorAll('datalist option')).toHaveLength(0);
   });
 });

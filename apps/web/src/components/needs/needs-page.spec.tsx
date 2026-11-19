@@ -7,11 +7,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithApp, stubFetch } from '@/test/render';
 
+import en from '../../../messages/en/needs.json';
 import { NeedsPage } from './needs-page';
 
+let search = '';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(search),
   usePathname: () => '/en/demo/needs',
 }));
 
@@ -55,7 +57,17 @@ const answer =
   };
 
 describe('NeedsPage', () => {
-  beforeEach(() => vi.unstubAllGlobals());
+  beforeEach(() => {
+    search = '';
+    vi.unstubAllGlobals();
+  });
+
+  const mount = () =>
+    renderWithApp(
+      <Tooltip.Provider>
+        <NeedsPage />
+      </Tooltip.Provider>,
+    );
 
   it('shows a skeleton first, with a status region', () => {
     stubFetch(answer([]));
@@ -120,5 +132,30 @@ describe('NeedsPage', () => {
       </Tooltip.Provider>,
     );
     expect(await screen.findByText(/hub\.common\.internal/)).toBeTruthy();
+  });
+
+  it('says the work is done when every need is verified, not that a filter missed', async () => {
+    stubFetch(answer([need('DMO-1', 'verified'), need('DMO-2', 'verified')]));
+    mount();
+    expect(await screen.findByText(en.empty.allDoneTitle)).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: en.filters.showVerifiedCount.replace('{n}', '2') }),
+    ).toBeTruthy();
+    expect(screen.queryByText(en.empty.filteredTitle)).toBeNull();
+  });
+
+  it('keeps a need for the frontend in the lanes by role', async () => {
+    search = 'lane=role';
+    stubFetch(answer([need('DMO-1', 'requested', { responsibleRole: 'frontend' })]));
+    mount();
+    expect(await screen.findByText('Need no. 1')).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: /Frontend/ })).toBeTruthy();
+  });
+
+  it('offers Frontend among the responsible roles', async () => {
+    stubFetch(answer([need('DMO-1', 'requested')]));
+    mount();
+    await screen.findByText('Need no. 1');
+    expect(screen.getAllByText('Frontend').length).toBeGreaterThan(0);
   });
 });

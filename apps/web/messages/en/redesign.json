@@ -66,6 +66,8 @@
   "noMatchTitle": "No versions match these filters",
   "noMatchBody": "Try another status, or show every version.",
   "clearFilters": "Clear filters",
+  "reviewDoneTitle": "No versions wait for your verdict",
+  "showAllVersions": "Show all versions",
   "errorThing": "lab pages",
   "loading": "Loading lab pages",
   "compare": {

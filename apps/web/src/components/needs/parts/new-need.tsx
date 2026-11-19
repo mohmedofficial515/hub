@@ -108,6 +108,7 @@ export function NewNeedDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
+      dirty={Boolean(title.trim() || body.trim())}
       title={n.title}
       footer={
         <>

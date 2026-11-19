@@ -5,8 +5,10 @@ import { screen, within } from '@testing-library/react';
 import { Tooltip } from 'radix-ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { HandoffDiffList } from '@/components/cards/sheet-sections/handoff';
 import { renderWithApp, stubFetch } from '@/test/render';
 
+import en from '../../../messages/en/handoffs.json';
 import { HandoffsPage } from './handoffs-page';
 
 vi.mock('next/navigation', () => ({
@@ -119,5 +121,50 @@ describe('HandoffsPage', () => {
       </Tooltip.Provider>,
     );
     expect(await screen.findByText(/hub\.common\.internal/)).toBeTruthy();
+  });
+
+  const mount = () =>
+    renderWithApp(
+      <Tooltip.Provider>
+        <HandoffsPage />
+      </Tooltip.Provider>,
+    );
+
+  it('says everything moved when nothing waits, with the way to what was applied', async () => {
+    stubFetch(answer([handoff('DMO-1', 'applied'), handoff('DMO-2', 'applied')]));
+    mount();
+    expect(await screen.findByText(en.empty.allMovedTitle)).toBeTruthy();
+    expect(screen.getByRole('button', { name: en.empty.showApplied })).toBeTruthy();
+    expect(screen.queryByText(en.empty.stageTitle)).toBeNull();
+  });
+
+  it('drops a name it does not know rather than print an empty one', async () => {
+    stubFetch(
+      answer([
+        handoff('DMO-1', 'acknowledged', {
+          acknowledgedBy: { id: 'gone' },
+          acknowledgedAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+        }),
+      ]),
+    );
+    mount();
+    const row = (await screen.findByText('Handoff no. 1')).closest('article') ?? document.body;
+    expect(row.textContent).toContain('Received 3 h ago');
+    expect(row.textContent).not.toContain('Received by  ');
+    expect(row.textContent).not.toMatch(/: ?[,،]/);
+  });
+
+  it('keys two changes on one endpoint apart', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    renderWithApp(
+      <HandoffDiffList
+        changes={[
+          { endpoint: 'GET /cards', severity: 'breaking', change: 'response field removed' },
+          { endpoint: 'GET /cards', severity: 'breaking', change: 'parameter made required' },
+        ]}
+      />,
+    );
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
   });
 });

@@ -4,6 +4,7 @@
  * @file needs-page.tsx
  * @description Ported from the approved design, pages/needs. Contract: apps/web/README.md.
  */
+import { ROLES } from '@hub/contracts';
 import { motion } from 'framer-motion';
 import { CircleCheck, CirclePlay, Inbox, KeyRound, type LucideIcon, Plus, Signpost } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -15,6 +16,7 @@ import {
   EmptyState,
   ErrorState,
   FilterBar,
+  fmt,
   kitMessages,
   LoadingRegion,
   Ltr,
@@ -24,7 +26,6 @@ import {
   PageHeader,
   plural,
   rememberMine,
-  type Role,
   roleIcon,
   setQuery,
   Skeleton,
@@ -46,7 +47,6 @@ import { NewNeedDialog } from './parts/new-need';
 
 const ease = [0.2, 0.8, 0.2, 1] as const;
 const PRIO = { P0: 0, P1: 1, P2: 2, P3: 3 } as const;
-const RESPONSIBLE_ROLES: Role[] = ['owner', 'accountant', 'pm', 'backend', 'designer', 'qa'];
 
 type Stage = 'requested' | 'in_progress' | 'delivered' | 'verified';
 
@@ -158,11 +158,12 @@ export function NeedsPage() {
   const cancelled = showVerified ? visible.filter((c) => c.status === 'cancelled') : [];
   const shown = stages.flatMap(({ stage }) => inStage(stage)).concat(cancelled);
 
-  const roleLanes = RESPONSIBLE_ROLES.map(
-    (role) => [role, shown.filter((c) => c.need.responsibleRole === role)] as const,
-  )
-    .filter(([, rows]) => rows.length)
+  // Lanes for the roles that hold a need here, in the contract's order with mine first: a role this page did not list never drops a need (flow-06).
+  const present = new Set(shown.map((c) => c.need.responsibleRole));
+  const roleLanes = ROLES.filter((role) => present.has(role))
+    .map((role) => [role, shown.filter((c) => c.need.responsibleRole === role)] as const)
     .sort(([a], [b]) => Number(roles.includes(b)) - Number(roles.includes(a)));
+  const anyFilter = !!responsible || !!kind || mine;
 
   const ids =
     lane === 'status' ? shown.map((c) => c.key) : roleLanes.flatMap(([, rows]) => rows).map((c) => c.key);
@@ -226,6 +227,7 @@ export function NeedsPage() {
         showStatus={showStatus}
         primary={card.key === leadKey}
         stale={isStale(card)}
+        mine={isMine(card)}
       />
     </motion.li>
   );
@@ -260,13 +262,15 @@ export function NeedsPage() {
               {
                 param: 'responsible',
                 label: t.filters.responsible,
-                options: RESPONSIBLE_ROLES.map((r) => ({ value: r, label: kit.roles[r] })),
+                options: ROLES.map((r) => ({ value: r, label: kit.roles[r] })),
               },
               {
                 param: 'verified',
                 label: t.filters.verifiedGroup,
                 multi: true,
-                options: [{ value: '1', label: `${t.filters.showVerified} ${num(verifiedCount, locale)}` }],
+                options: [
+                  { value: '1', label: fmt(t.filters.showVerifiedCount, { n: num(verifiedCount, locale) }) },
+                ],
               },
             ]}
             selects={[
@@ -279,7 +283,22 @@ export function NeedsPage() {
             ]}
           />
 
-          {shown.length === 0 ? (
+          {shown.length === 0 && !anyFilter && !showVerified ? (
+            // Nothing open and no filter: the work is done, not a search that missed.
+            <EmptyState
+              icon={CircleCheck}
+              title={t.empty.allDoneTitle}
+              action={
+                verifiedCount > 0 ? (
+                  <Button size="sm" onClick={() => setQuery({ verified: '1' })}>
+                    {fmt(t.filters.showVerifiedCount, { n: num(verifiedCount, locale) })}
+                  </Button>
+                ) : undefined
+              }
+            >
+              {t.empty.allDoneBody}
+            </EmptyState>
+          ) : shown.length === 0 ? (
             <EmptyState
               icon={KeyRound}
               title={t.empty.filteredTitle}

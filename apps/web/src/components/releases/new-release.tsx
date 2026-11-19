@@ -21,7 +21,6 @@ import {
   kitMessages,
   Ltr,
   Modal,
-  Select,
   showToast,
   TextInput,
   TypeIcon,
@@ -34,18 +33,20 @@ import { isHubError } from '@/lib/api/errors';
 import type { ReleasesMessages } from './messages';
 
 const ORDER = ['decision', 'task', 'handoff', 'redesign'] as const;
-const REPOS = ['backend', 'web', 'dashboard', 'hub'] as const;
 
 export function NewReleaseDialog({
   open,
   onOpenChange,
   onCreated,
   eligible,
+  repos = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (key: string) => void;
   eligible: CardListItem[];
+  /** The project's own repos, from its releases and the cards they would hold. `repo` is free text in the contract, so none is assumed. */
+  repos?: readonly string[];
 }) {
   const t = useT<ReleasesMessages>('releases');
   const d = t.dialog;
@@ -54,7 +55,7 @@ export function NewReleaseDialog({
   const id = useId();
   const [version, setVersion] = useState('');
   const [name, setName] = useState('');
-  const [repo, setRepo] = useState<(typeof REPOS)[number]>('backend');
+  const [repo, setRepo] = useState(repos[0] ?? '');
   const [tag, setTag] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
   const [tried, setTried] = useState(false);
@@ -76,7 +77,7 @@ export function NewReleaseDialog({
         title: fmt(d.titleFormat, { version: version.trim(), name: name.trim() }),
         detail: {
           version: version.trim(),
-          repo,
+          ...(repo.trim() ? { repo: repo.trim() } : {}),
           includedKeys: picked,
           ...(tag.trim() ? { tag: tag.trim() } : {}),
         },
@@ -105,6 +106,7 @@ export function NewReleaseDialog({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
+      dirty={Boolean(version.trim() || name.trim() || tag.trim() || picked.length)}
       title={d.title}
       description={d.description}
       className="md:max-w-xl"
@@ -141,19 +143,21 @@ export function NewReleaseDialog({
             />
           </Field>
           <Field id={`${id}-repo`} label={d.repo}>
-            <Select
+            <TextInput
               id={`${id}-repo`}
               dir="ltr"
               className="key text-start"
+              list={`${id}-repos`}
+              autoComplete="off"
+              spellCheck={false}
               value={repo}
-              onChange={(e) => setRepo(e.target.value as typeof repo)}
-            >
-              {REPOS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
+              onChange={(e) => setRepo(e.target.value)}
+            />
+            <datalist id={`${id}-repos`}>
+              {repos.map((r) => (
+                <option key={r} value={r} />
               ))}
-            </Select>
+            </datalist>
           </Field>
         </div>
         <Field

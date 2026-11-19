@@ -9,10 +9,11 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useRoute } from '@/components/shell/router';
 import { qk } from '@/features/cards/keys';
-import { type CardFullDto, toHubCard } from '@/features/cards/map';
-import { useCardsQuery, writeCard } from '@/features/cards/store';
+import { type CardFullDto, type CardSummaryDto, toHubCard, toListItem } from '@/features/cards/map';
+import { writeCard } from '@/features/cards/store';
 import type { CardListItem, ReleaseCard } from '@/features/cards/types';
-import { getPage, patch, post } from '@/lib/api/client';
+import { getPage, type Paginated, patch, post } from '@/lib/api/client';
+import { fetchAllPages } from '@/lib/api/pages';
 
 import { FINISHED, hasNotes } from './rules';
 
@@ -28,13 +29,22 @@ export function useReleases() {
   });
 }
 
-/** Finished cards, the pool a release picks from. */
+const FINISHED_TYPES = ['task', 'handoff', 'decision', 'redesign'];
+
+/**
+ * Finished cards, the pool a release picks from: every page of them, since before the first release all of it is eligible and one page of 100
+ * would stop the count there (flow-10). `type` stays in the key, so a live event on one of these types still refetches it.
+ */
 export function useFinishedCards() {
-  return useCardsQuery({
-    type: ['task', 'handoff', 'decision', 'redesign'],
-    status: Object.values(FINISHED),
-    sort: 'lastEvent',
-    limit: 100,
+  const { ws } = useRoute();
+  const filters = { type: FINISHED_TYPES, status: Object.values(FINISHED), sort: 'lastEvent' };
+  return useQuery({
+    queryKey: qk.cardList(ws, { view: 'finished', ...filters }),
+    enabled: !!ws,
+    queryFn: async (): Promise<Paginated<CardListItem>> => {
+      const rows = await fetchAllPages<CardSummaryDto>(`workspaces/${ws}/cards`, filters);
+      return { items: rows.map(toListItem), nextCursor: null, total: rows.length };
+    },
   });
 }
 

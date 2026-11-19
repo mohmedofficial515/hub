@@ -4,12 +4,16 @@
   "chats": "Chats",
   "running": "Running",
   "idle": "Idle",
-  "noChats": "No chats yet. Start one in the panel and its work shows here.",
-  "pick": "Pick a chat",
+  "noChatsTitle": "No chats yet",
+  "noChats": "Start one in the panel and its work shows here.",
+  "startChat": "Start a chat",
   "newWindow": "Open in a new window",
   "follow": "Follow the latest edit",
   "files": "Files",
-  "filesCount": "{n} files",
+  "filesCount": {
+    "one": "1 file",
+    "other": "# files"
+  },
   "noFiles": "This chat has not touched a file yet.",
   "fromGit": "Changed in Git",
   "fromTool": "Edited by Claude",
@@ -19,7 +23,10 @@
     "preview": "Preview",
     "activity": "Activity"
   },
-  "edits": "{n} edits",
+  "edits": {
+    "one": "1 edit",
+    "other": "# edits"
+  },
   "editN": "Edit {n}",
   "write": "File written",
   "againstHead": "Against HEAD now",
@@ -40,7 +47,6 @@
     "run": "Ask Claude to run the project",
     "runPrompt": "Start this project's dev server in the background and tell me the local address it serves on."
   },
-  "elapsed": "{time}",
   "stop": "Stop",
   "openChat": "Show in the panel",
   "steps": {
@@ -50,5 +56,11 @@
     "stopped": "Stopped",
     "denied": "Denied"
   },
-  "waiting": "Waiting for you"
+  "waiting": "Waiting for you",
+  "errorThing": "the chats",
+  "gone": {
+    "title": "This chat no longer exists",
+    "body": "It may have been deleted, or the link is old.",
+    "action": "Show the other chats"
+  }
 }

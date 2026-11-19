@@ -6,12 +6,14 @@
  * the sidebar does, so a number and its rows cannot disagree, and the stream keeps all of it current.
  */
 import { seesAllReadyWork } from '@hub/contracts';
+import { useQueryClient } from '@tanstack/react-query';
 import { Inbox, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   cn,
   ErrorState,
+  fill,
   firstName,
   fmt,
   IconButton,
@@ -28,16 +30,18 @@ import {
   Skeleton,
   time,
   TZ,
-  useAwaiting,
   useLocale,
   useMyCounts,
   usePageWide,
   useReadyTasks,
+  useRoute,
   useSession,
   useT,
 } from '@/components/kit';
 import { PageDoNext } from '@/components/workbench/panels';
+import { qk } from '@/features/cards/keys';
 import { type CardSummaryDto, toListItem } from '@/features/cards/map';
+import { buildAwaiting, useAwaitingQuery } from '@/features/session/session';
 import { byPriority } from '@/features/tasks/model';
 import { toStreamRow } from '@/features/timeline/use-timeline';
 import { enrich, useDetailed, useSeenOnLeave, useTodayQuery } from '@/features/today/use-today';
@@ -76,8 +80,24 @@ export function TodayPage() {
   const query = useTodayQuery();
   const data = query.data;
   const counts = useMyCounts();
-  const rows = useAwaiting();
-  const readyRows = useReadyTasks().data;
+  const { ws } = useRoute();
+  const client = useQueryClient();
+  const awaitingQuery = useAwaitingQuery();
+  const readyQuery = useReadyTasks();
+  // The lists win while they answer, since writes patch them at once; until then (or when one fails) `/today` carries the same rows.
+  const rows = useMemo(
+    () =>
+      buildAwaiting(
+        awaitingQuery.data ??
+          (data?.awaitingMe ?? []).map((dto) => toListItem(dto as unknown as CardSummaryDto)),
+      ),
+    [awaitingQuery.data, data?.awaitingMe],
+  );
+  const readyRows = useMemo(
+    () =>
+      readyQuery.data ?? (data?.readyTasks ?? []).map((dto) => toListItem(dto as unknown as CardSummaryDto)),
+    [readyQuery.data, data?.readyTasks],
+  );
   const stackHeading = useRef<HTMLHeadingElement>(null);
   useSeenOnLeave(!!data);
 
@@ -94,7 +114,7 @@ export function TodayPage() {
   const ready = useMemo(
     // The Tasks list's own order, so that the first row here is the first ready row there (review R9).
     () =>
-      (readyRows ?? [])
+      readyRows
         .map((row) => enrich(row, readyDetail))
         .sort(byPriority(me.id, roles) as (a: { key: string }, b: { key: string }) => number),
     [readyRows, readyDetail, me.id, roles],
@@ -115,7 +135,14 @@ export function TodayPage() {
   const refresh = () => {
     if (refreshing || query.isPending) return;
     setRefreshing(true);
-    void query.refetch().finally(() => {
+    // Everything the page reads, not only `/today`: the stack, Ready, the band, the inbox count and Do next (under the today key).
+    void Promise.all([
+      client.invalidateQueries({ queryKey: qk.today(ws) }),
+      client.invalidateQueries({ queryKey: qk.cardList(ws, { awaiting: 'me' }) }),
+      client.invalidateQueries({ queryKey: qk.cardList(ws, { ready: true }) }),
+      client.invalidateQueries({ queryKey: qk.counters(ws) }),
+      client.invalidateQueries({ queryKey: [...qk.inbox(ws), 'count'] }),
+    ]).finally(() => {
       setRefreshing(false);
       setRefreshed((n) => n + 1);
     });
@@ -195,10 +222,13 @@ export function TodayPage() {
             <span className="hidden flex-col items-end text-body-sm text-muted-foreground sm:@page-sm:flex">
               <time dateTime={data.date}>{longDate(data.now, locale)}</time>
               <span>
-                {fmt(t.updated, { when: '' })}
-                <Ltr className="tabular-nums">
-                  {time(new Date(query.dataUpdatedAt).toISOString(), locale)}
-                </Ltr>
+                {fill(t.updated, {
+                  when: (
+                    <Ltr className="tabular-nums">
+                      {time(new Date(query.dataUpdatedAt).toISOString(), locale)}
+                    </Ltr>
+                  ),
+                })}
               </span>
             </span>
           )}
@@ -291,9 +321,12 @@ export function TodayPage() {
           )}
         >
           {wide && letter(false)}
-          <div className={cn(wide && 'border-t border-border pt-5')}>
-            <SessionsWithoutSummary sessions={data.noSummarySessions} />
-          </div>
+          {/* Only when there is one to write: "all your sessions have a summary" asks nothing of me (flow-13). */}
+          {data.noSummarySessions.length > 0 && (
+            <div className={cn(wide && 'border-t border-border pt-5')}>
+              <SessionsWithoutSummary sessions={data.noSummarySessions} />
+            </div>
+          )}
           <div className={cn(wide && 'border-t border-border pt-5')}>
             <SinceLastVisit
               since={data.changesSince.since}

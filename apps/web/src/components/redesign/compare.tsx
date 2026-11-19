@@ -29,6 +29,7 @@ import {
   useFocusReturn,
   useLocale,
   useMedia,
+  useRoving,
   useT,
 } from '@/components/kit';
 import type { RedesignCard } from '@/features/cards/types';
@@ -41,7 +42,7 @@ const DEVICES = [390, 768, 1440, 'fill'] as const;
 type Device = (typeof DEVICES)[number];
 
 /** A segmented control: one value of a few. The chosen one is `foreground`, as everywhere else in the app. */
-function Seg<T extends string | number>({
+export function Seg<T extends string | number>({
   label,
   value,
   options,
@@ -52,15 +53,24 @@ function Seg<T extends string | number>({
   options: { value: T; label: ReactNode }[];
   onChange: (value: T) => void;
 }) {
+  // One Tab stop per group, arrows inside it, as every chip group in the kit (flow-14).
+  const { root, groupProps, itemProps } = useRoving(options.findIndex((o) => o.value === value));
   return (
-    <div role="radiogroup" aria-label={label} className="flex shrink-0 items-center gap-1.5">
+    <div className="flex shrink-0 items-center gap-1.5">
       <span aria-hidden className="text-body-sm text-muted-foreground">
         {label}
       </span>
-      <div className="flex rounded-md border border-border bg-card p-0.5">
-        {options.map((o) => (
+      <div
+        ref={root}
+        {...groupProps}
+        role="radiogroup"
+        aria-label={label}
+        className="flex rounded-md border border-border bg-card p-0.5"
+      >
+        {options.map((o, i) => (
           <button
             key={String(o.value)}
+            {...itemProps(i)}
             type="button"
             role="radio"
             aria-checked={o.value === value}
