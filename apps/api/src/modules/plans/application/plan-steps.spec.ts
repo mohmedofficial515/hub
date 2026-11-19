@@ -1,7 +1,7 @@
 /**
  * @file Plan step normalisation.
  */
-import { normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
+import { canonicalStep, normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
 
 describe('normalizeSteps', () => {
   it('gives each new step an id', () => {
@@ -196,5 +196,40 @@ describe('doneAt', () => {
     expect(done).toMatchObject({ done: true, doneAt: now.toISOString() });
     expect(withDone(done, true, later).doneAt).toBe(now.toISOString());
     expect(withDone(done, false, later)).toEqual(open);
+  });
+});
+
+describe('canonicalStep', () => {
+  it('puts a step read back from JSONB in the order normalizeSteps writes it, so the same steps compare equal', () => {
+    const [first, second] = normalizeSteps([
+      {
+        id: 's1',
+        title: 'Schema',
+        role: 'backend',
+        why: 'Read by all',
+        size: 'M',
+        acceptance: 'Runs',
+        phaseId: 'p0',
+        done: false,
+      },
+      { id: 's2', title: 'Screen', size: 'S', after: ['s1'], done: true },
+    ]);
+    // Postgres orders JSONB keys by length, then bytes.
+    const fromJsonb = [
+      {
+        id: 's1',
+        why: 'Read by all',
+        done: false,
+        role: 'backend',
+        size: 'M',
+        title: 'Schema',
+        phaseId: 'p0',
+        acceptance: 'Runs',
+      },
+      { id: 's2', done: true, size: 'S', after: ['s1'], title: 'Screen' },
+    ];
+    expect(JSON.stringify(fromJsonb.map((step) => canonicalStep(step as never)))).toBe(
+      JSON.stringify([first, second]),
+    );
   });
 });

@@ -496,6 +496,31 @@ describe('plans', () => {
     expect(await eventsOf(plan.id)).toHaveLength(before);
   });
 
+  it('saving the same steps again is no event, whatever key order Postgres keeps them in', async () => {
+    const project = await aProject(app);
+    const pm = await project.member(['pm']);
+    const steps = [
+      {
+        id: 's1',
+        title: 'Schema',
+        role: 'backend',
+        why: 'The rest reads it',
+        size: 'M',
+        acceptance: 'Migration runs',
+        phaseId: 'p0',
+        done: false,
+      },
+      { id: 's2', title: 'Screen', role: 'frontend', size: 'S', after: ['s1'], phaseId: 'p0', done: true },
+    ];
+    const plan = await created(pm, aPlan({ detail: { phases: [{ id: 'p0', title: 'Build' }], steps } }));
+    const before = (await eventsOf(plan.id)).length;
+    await pm.patch(`/plans/${plan.key}`, { steps }).expect(200);
+    // The steps as a reader got them back, sent again unchanged.
+    const read = (await pm.get(`/cards/${plan.key}`).expect(200)).body.data.detail.steps as unknown[];
+    await pm.patch(`/plans/${plan.key}`, { steps: read }).expect(200);
+    expect(await eventsOf(plan.id)).toHaveLength(before);
+  });
+
   it('a step done through its task is dated, for the finish estimate, and loses the date when it reopens', async () => {
     const project = await aProject(app);
     const pm = await project.member(['pm']);

@@ -34,11 +34,12 @@ import {
 } from '@/modules/cards';
 import { AppException } from '@/shared/errors';
 
-import { normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
+import { canonicalStep, normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
 import { StudioSourceCheck } from './studio-source.check';
 
+/** The plan's steps, each with its keys in one order (see `canonicalStep`), so a compare with normalised steps does not depend on JSONB. */
 function stepsOf(card: CardView): PlanStep[] {
-  return ((card.detail?.['steps'] ?? []) as PlanStep[]).map((step) => ({ ...step }));
+  return ((card.detail?.['steps'] ?? []) as PlanStep[]).map(canonicalStep);
 }
 
 /** Each phase with its keys in one order: Postgres keeps JSONB keys in its own order, so a compare must not depend on it. */

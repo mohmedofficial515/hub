@@ -81,6 +81,26 @@ function withAfter(inputs: readonly PlanStepInput[], steps: PlanStep[]): PlanSte
   });
 }
 
+/**
+ * A step with its keys in the order `normalizeSteps` writes them. Postgres keeps JSONB keys in its own order (by length), so a step read back from
+ * the database must be put in this order before it is compared with a step just normalised, or the same steps would always look changed.
+ */
+export function canonicalStep(step: PlanStep): PlanStep {
+  return {
+    id: step.id,
+    title: step.title,
+    ...(step.role ? { role: step.role } : {}),
+    ...(step.taskKey ? { taskKey: step.taskKey } : {}),
+    done: step.done === true,
+    ...(step.why ? { why: step.why } : {}),
+    ...(step.size ? { size: step.size } : {}),
+    ...(step.acceptance ? { acceptance: step.acceptance } : {}),
+    ...(step.phaseId ? { phaseId: step.phaseId } : {}),
+    ...(step.doneAt ? { doneAt: step.doneAt } : {}),
+    ...(step.after && step.after.length > 0 ? { after: [...step.after] } : {}),
+  };
+}
+
 /** What is wrong with the steps' phases, if anything: the first step that names a phase the plan does not have. */
 export interface PhaseProblem {
   code: Extract<ErrorCode, 'hub.plans.unknown_phase' | 'hub.plans.phase_in_use'>;
