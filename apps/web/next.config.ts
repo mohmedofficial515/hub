@@ -1,3 +1,4 @@
+import withPageCompanion from 'am-stylo/next';
 /**
  * @file Next.js config: next-intl, the API behind the web origin, so its cookies are first-party and SSE is same-origin, and the lab at `/lab` (docs/16 §6).
  */
@@ -26,4 +27,4 @@ const config: NextConfig = {
   },
 };
 
-export default withNextIntl(config);
+export default withPageCompanion(withNextIntl(config));

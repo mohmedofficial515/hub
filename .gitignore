@@ -15,3 +15,6 @@ apps/api/src/generated
 apps/api/openapi
 test-results
 playwright-report
+
+# AM Stylo (local designer state)
+.page-companion/
