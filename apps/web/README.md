@@ -19,7 +19,7 @@ apps/web/
   src/app/[locale]/(auth)/...         sign-in, totp, forgot, invite, reset
   src/app/[locale]/workspaces/        project list, New project wizard
   src/app/[locale]/[ws]/<view>/       a page
-  src/app/[locale]/[ws]/[view]/       the placeholder for a view with no folder yet
+  src/app/[locale]/[ws]/[view]/       an address that names no view: notFound() inside the shell
   src/components/kit.ts               the kit's one public import
   src/components/{ui,common,cards,shell}/
   src/features/cards/                 store.ts (queries, writes), rules.ts, map.ts, keys.ts, types.ts
@@ -37,8 +37,8 @@ apps/web/
 
 ## Add a page
 
-The view is already in the sidebar, the palette, the breadcrumb and the `g` keys (`components/shell/views.tsx`). The placeholder route
-serves it until you add the folder.
+Add the view to `components/shell/views.tsx` first: that puts it in the sidebar, the palette, the breadcrumb and the `g` keys (`nav: false`
+keeps it out of the sidebar). Every view has its own folder; an address with none is a "not found" inside the shell (`[ws]/[view]`).
 
 1. Strings: `messages/{ar,en}/<view>.json` already hold the design's `pages/<view>/i18n.ts`. Edit only your own file. Remove what you do not use.
 2. `src/app/[locale]/[ws]/<view>/page.tsx` is a server component that renders one client component. Put that in
@@ -354,7 +354,7 @@ Changed from the design:
 - The Deleted view is `tasks?view=deleted` (`components/tasks/deleted-view.tsx`). `DeletedLink` is the way in from a filter panel.
 - A list with detail: `fetchDetailRows` (`features/cards/rows.ts`). A row still has no `body`: read the card (`useCardQuery`) when you need the text.
 - `DocSection` shows the API's headings and links out only when `detail.webUrl` exists.
-- New: `LiveIndicator`, `AuthFrame` (`components/auth`), `NewProjectWizard`, `ProjectsPage` (`components/workspaces`), `ViewPlaceholder`.
+- New: `LiveIndicator`, `AuthFrame` (`components/auth`), `NewProjectWizard`, `ProjectsPage` (`components/workspaces`).
 
 ## Tests
 

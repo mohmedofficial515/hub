@@ -143,6 +143,8 @@ Purpose: pick or create a workspace. Who: members of ≥ 2 workspaces, or users 
   `/workspaces`.
 - A failed background refetch of `auth/me` keeps the page; `ErrorState` shows only when the first load fails with no data, and a 401 with no data goes to `sign-in?next=`.
 - Breadcrumb: project name (link to Today) › page › the plan key from `?plan=` or the doc key from `?doc=` (mono); the page link returns to the list with its filters. "All projects" in the switcher and "Switch project" in the palette are hidden for a member of one project.
+- Sidebar groups and the Me menu: `08-ux-and-design.md` §2. Every view has its own folder; an address that names none (`/[ws]/nope`) is "Not
+  found" inside the shell (`[ws]/[view]`), and there is no placeholder page any more.
 - Acceptance: switching workspace changes counters and URL; SSE reconnects with backoff
   (1 s → 30 s) and shows the "Reconnecting…" indicator after 5 s.
 
@@ -193,6 +195,9 @@ sessions, since last visit (first 5 + "see all").
   `requested|in_progress`, handoff `pending`, task `in_review` where I am a `qa`/`pm`, redesign
   `review` for owner). Each row is a `TimelineItem` compact with the inline action; max 10 then
   "See all (n)" expands the list in place ("Show less" folds it back).
+- No card shows twice (owner's decision, 2026-11-19): Do next leaves out what Awaiting me holds (it asks for 20 and keeps 5), and Ready
+  leaves out what Do next shows while its header still counts them all and says how many sit above. A short line under each list says
+  what it holds.
 - Rows of Awaiting me and Ready come from their lists once those answer, and from `awaitingMe` / `readyTasks` of `/today` until then or when they fail. Refresh refetches `/today`, both lists, the counters and the inbox count.
 - Ready for my roles: tasks `status=ready` whose `specialty` maps to one of my roles
   (`backend→backend`, `frontend→frontend`, `design→designer`, `qa→qa`, `ops|docs→pm|backend`),
@@ -205,7 +210,8 @@ sessions, since last visit (first 5 + "see all").
   "Run `/hub:start` in Claude Code to write the summary" (`CopyButton`).
 - Since last visit: events after `lastSeenAt`, excluding my own. Reading changes nothing: `POST /today/seen`
   moves it, which the page sends on leaving, and the Timeline on arrival (review M4), so the list and the
-  sidebar's number agree while reading; grouped per card; "See all" → timeline
+  sidebar's number agree while reading; grouped per repo, then per card: one entry and one keyboard stop per card with up to three
+  events under it, then "n more events on this card"; "See all" → timeline
   with `from=<lastSeenAt>`.
 - Actions: Claim (role), Decide/Deliver/Acknowledge open the sheet on the action, Refresh.
 - Empty states: awaiting me → "Nothing waits for you. Enjoy." (`today.empty.awaiting`); ready →
@@ -258,7 +264,10 @@ one meta line; inline actions move into the sheet.
 - URL params as above (`roles` filters `card.ownerRole`; `members` is the API's `actors`). Mine is `mine=1`,
   the API's `mine` (docs/04 §3.9 wins): events on cards I watch, own or claimed. A card waiting on me is marked on its newest row.
   `from`/`to` ISO dates in workspace timezone. Defaults: none (all).
-- Day dividers: sticky, labels `common.day.today|yesterday|date`.
+- Day dividers: sticky, labels `common.day.today|yesterday|date`, with a calendar icon and a rule; each hour gets a mark on the rail.
+- Rows: a full card only for an event that asks for action (the newest of its card with an action open to me or awaiting me, an
+  escalation, a breaking handoff); every other event is one line, and the following events of the same card hang under it with no
+  title (`08-ux-and-design.md` §5.2).
 - Live: SSE `card.event` → if the list is scrolled to top and no filter excludes the event, prepend
   immediately (fade in); otherwise increment the pill "n new events"; click → prepend + scroll to top.
   `r` triggers the same.
@@ -290,7 +299,7 @@ pm; owner for priorities.
 │ ┌ Backlog (14) ┐ ┌ Ready (6) ──┐ ┌ Claimed (3) ─┐ ┌ In progress (4) ┐ ┌ In review (2) ┐ ┌ Done (last 14 d) ┐
 │ │ P2 GTV-245   │ │ P1 GTV-248  │ │ GTV-250 👤Ali│ │ GTV-241 👤Sara  │ │ GTV-239        │ │ GTV-230 ✓        │
 │ │  backend · M │ │  frontend·S │ │  feat/x      │ │  feat/refunds   │ │  PR #112       │ │                  │
-│ │  [Ready]     │ │  [Claim]    │ │  [Start]     │ │  [Submit review]│ │  [Done] [Back] │ │                  │
+│ │  [Ready]     │ │  [Claim]    │ │  [Start]     │ │  [Submit review]│ │  [Review]      │ │                  │
 │ └──────────────┘ └─────────────┘ └──────────────┘ └─────────────────┘ └────────────────┘ └──────────────────┘
 └───────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -301,7 +310,11 @@ updated) with column sort; same filters.
 - Data: `GET /api/v1/workspaces/{ws}/cards?type=task&status[]&specialty[]&priority[]&module&assignee=me&q&sort=priority|updated|due&cursor`.
   Board columns load the first 50 per status and page per column.
 - URL: `view=board|list|focus&specialty[]&status[]&priority[]&module&assignee=none|<memberId>&mine=1&q&sort&order`, plus the focus desk's `stage` and open `rails`. A third click on a column header returns to the default order. Under 80rem of main width the list hides "Branch or PR" and "Updated".
-- Focus desk: the only filled button is on the "Next for you" card. A member who does not review sees "Sent and waiting for review" in place of the review rail.
+- In review: the row button is Review (`tasks` focus, board and list alike, when `complete` is open to me) and opens the sheet, where Mark done is
+  the filled button beside Back to work; without the grant Mark done stays disabled with the role it needs.
+- Focus desk: the only filled button is on the "Next for you" card. That card is what I hold, else the first Ready task in Do next order
+  (`GET today/next`) that I can claim, with its reasons as pills (blocks n, next step in KEY, small); the stage queue follows the same order,
+  and the board's order stands in while the answer is missing or failed. A member who does not review sees "Sent and waiting for review" in place of the review rail.
 - Column moves by button only (no drag in v1; drag-and-drop is a later improvement — `@dnd-kit` is
   allowed but must keep the button path). Transitions: `backlog→ready` (owner/pm/creator),
   `ready→claimed` (`claim`, any member whose roles include the specialty's role, or pm), `claimed→
@@ -373,6 +386,9 @@ Decide dialog:
 
 - Data: `GET /api/v1/workspaces/{ws}/cards?type=decision&status[]=open&ownerRole[]&kind&mine=1&sort=due&cursor`;
   bands computed client-side from `dueAt` and `decision.escalatedAt`.
+- Rows (owner's decision, 2026-11-19): every open decision shows its options as small read-only chips, the recommended one first with a star
+  (and "recommended" for a screen reader), three at most then "and n more". Overdue is marked by tone alone (the time, the dot on the rail and
+  the band's word); no red frame on the row or on the decision on the table.
 - URL: `status=open|decided|all&decider[]&kind&mine=1`.
 - Decide: `POST /cards/{key}/actions/decide {optionId, rationale, draftAdr: boolean,
   adrRepoSourceId?}` — role = `deciderRole` or `owner`, also through MCP (D27). Result: status `decided`,
@@ -512,6 +528,8 @@ Sheet (RedesignSection): status · score · summary · touches-components · scr
   {note}` — **owner**, through the web or MCP (D27); `mark_ported {ref}` — `frontend`/`pm`/`owner`. Each writes the lab
   front-matter (`10-lab-integration.md` §6) and emits the event; approve also creates the port task
   (specialty `lab.port_task_specialty`) and links it.
+- Gallery (`/[ws]/gallery`): the frame follows Hub's language and theme; `lang` and `theme` go into the address only when the member picks
+  values that differ from Hub's. The gallery's own chrome stays dark and in English.
 - Compare: `RedesignCompare` dialog with two version selects (default: base vs this), device/lang/
   theme toggles (lab frame URL contract `?w=&lang=&theme=&notes=`).
 - Review score from `review.md` (`reviewScore`), "Open review" opens the markdown in `DocViewer`
@@ -583,6 +601,7 @@ the member's own Claude Code. Who: everyone.
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+- Named Search («البحث») in the sidebar, the breadcrumb and the tab; the page title is "Search the project" («البحث في المشروع»).
 - Data: `GET /api/v1/workspaces/{ws}/search?q&scope=all|docs|cards&limit=20` → `{ docs:
   [{docKey, path, title, hits: [{heading, anchor, excerptHtml}]}], cards: [{card, excerptHtml}] }`;
   `excerptHtml` from `ts_headline` with `<mark>` only (sanitised).
@@ -615,6 +634,8 @@ sidebar once completed (reopenable from the profile menu).
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+- Named Getting started («دليل البدء»). The sidebar item shows only while `/counters` reports steps left, or while the member is on the page;
+  the Me menu and the palette always hold it.
 - Data: `GET /api/v1/workspaces/{ws}/onboarding` → `{ items: [{id, kind: doc|action|auto, title,
   docKey?, href?, done}], progress }`. Items come from workspace setting
   `onboarding.paths` (`{ [role]: [{ docPath | action }] }`, editable in Settings › General; **this
@@ -720,8 +741,8 @@ Purpose: who is in the workspace, their roles, GitHub identity, invitations. Who
   last `owner`; owner-role changes are owner-only); `PATCH …/members/{id} {githubLogin}` (maps
   commits to the member); `POST …/members/{id}/disable` / `enable`; "Reset password link" →
   `POST …/members/{id}/password-reset-link` (shown once); "Revoke all sessions & tokens".
-- Row `⋯` menu for the above; the current user's own row shows "Profile" (locale, display name,
-  password, TOTP) in a sheet.
+- Row `⋯` menu for the above; the current user's own row and its "My profile" item go to Settings › Account (owner's decision, 2026-11-19);
+  no dialog opens, and the old `?profile=me` redirects there on the server.
 - Acceptance: inviting shows a link that opens `/invite/[token]` with the roles; removing `owner`
   from the only owner is refused with `hub.workspaces.last_owner`; setting `githubLogin` makes the
   next GitHub capture attribute commits to the member (worker test).
@@ -732,7 +753,9 @@ Purpose: who is in the workspace, their roles, GitHub identity, invitations. Who
 
 Tabs across the top: General · Sources · Roles · Notifications · Tokens · System · Audit.
 
-As built, the tabs come in three labelled groups: Mine (Appearance, Notifications, Tokens, Devices, Queue), Project (General, Sources, Roles, Audit) and This server (System, Backups); a group with no visible tab is not drawn. A member who is not owner/pm lands on Appearance, as does "Go to my settings". The drafts of General and Backups live for the visit across tab and page changes: a dot marks the tab and a toast says the edits are kept, in place of a confirm dialog. The token commands and the palette's MCP command take the URL from the API. Roles shows a skeleton while members load, a retry line if they fail, and a link to Members.
+As built, the tabs come in three labelled groups: Mine («إعداداتي»: Account, Appearance, Tokens, Devices, Queue), Project (General, Sources, Roles, Audit) and This server (System, Backups); a group with no visible tab is not drawn. A member who is not owner/pm lands on Account, as does "Go to my settings". Account holds the profile (display name, language), the password,
+two-step sign-in and the notifications, with a bar at the foot (Undo changes, Save) once something changed. The drafts of General, Backups and
+Account's name and language live for the visit across tab and page changes: a dot marks the tab and a toast says the edits are kept, in place of a confirm dialog. The token commands and the palette's MCP command take the URL from the API. Roles shows a skeleton while members load, a retry line if they fail, and a link to Members.
 
 ### 18.1 `general`
 
@@ -777,6 +800,8 @@ Read-only catalogue of the seven roles with their labels and what each may do (m
 mapping in §6). `GET /api/v1/workspaces/{ws}/roles`.
 
 ### 18.4 `notifications` (every member, not only owner/pm — the tab is visible to all)
+
+As built, this is a section of the Account tab, not a tab of its own; `?tab=notifications` lands on Account.
 
 Per channel (in-app always on; push, Telegram, email): mode off / immediate / digest; kinds
 multi-select; quiet hours (workspace default shown, member override). Push: "Enable on this

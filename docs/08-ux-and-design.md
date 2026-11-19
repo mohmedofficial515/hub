@@ -25,23 +25,32 @@ Today                                         —
 Inbox                                         unread count
 ───────────── Work ────────────
 Planning                                      open ideas and plans (15 §4)
-Timeline                                      new events since last visit (pill, not badge)
 Tasks                                         tasks ready for my roles
 Decisions                                     open decisions routed to my roles (red if overdue)
 Needs                                         needs routed to my roles
 Handoffs                                      pending handoffs to my roles (red if stale)
+───────────── Follow ──────────
+Timeline                                      new events since last visit (pill, not badge)
+Agent queue                                   — (its "Running now" tab is the old Live page)
+───────────── Delivery ────────
 Redesign                                      versions in `review` (owner only)
 Releases                                      —
 ───────────── Knowledge ───────
 Docs                                          —
-Ask                                           —
-Onboarding                                    unfinished items (new members only; hides when done)
-───────────── Workspace ───────
+Search                                        —
+Getting started                               steps left (shown only while some are left)
+Skills                                        —
+Database                                      —
+───────────── Project ─────────
 Members                                       pending invites (owner/pm)
 Settings                                      sources with errors (owner/pm)
 ───────────────────────────
-Workspace switcher · Locale · Theme · Me (profile, tokens, sign out)
+Workspace switcher · Locale · Theme · Me (Profile → Settings › Account, Tokens, Getting started, Shortcuts, Sign out)
 ```
+
+- As built (owner's decision, 2026-11-19): there is no Admin group and no Live item. Getting started shows only while `/counters` reports steps
+  left, or while the member is on it; it stays in the Me menu and the palette. A view with `nav: false` in `components/shell/views.tsx` has no
+  sidebar item, and `to` sends its palette entry and `g` key elsewhere (Live opens `queue?show=live`).
 
 - The sidebar is per project (D30: the UI says Project, «مشروع»; routes and code keep `workspace`); switching reloads counters. The URL always carries
   `/[locale]/[workspace]/…`.
@@ -331,6 +340,11 @@ Per-type renderer rules:
 | doc | path (mono) | kind · changed headings count | `Open` |
 | release | version | included count | `Open` |
 
+As built (owner's decision, 2026-11-19): only an event that asks for action gets the full card above: the newest event of its card when an
+action is open to me or the card awaits me, an escalation, or a breaking handoff. Every other event is one line (time, actor, verb, type icon
+and title, key, `+n` that opens in place), and the events that follow on the same card hang under the first as smaller lines with no title.
+Each hour gets a mark on the rail; Copy prompt, Open PR and Open in lab sit on full cards only (and stay in the sheet).
+
 **`TimelineFilters`** — segmented chips row (roles, types), then popover filters (repo, module,
 member, date range), "awaiting me" toggle; all in URL (`09-pages.md` §Timeline). **`DayDivider`**
 sticky header "Today / Yesterday / Tuesday 4 Nov". **`NewEventsPill`** floating at top center:
@@ -377,6 +391,11 @@ Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Delet
 | `DocSection` / `DocViewer` | path breadcrumb (mono, copy), kind badge, source repo + commit (short SHA, link), "Open in GitHub"; markdown rendered (headings with anchors, tables, code with copy, task lists read-only, Mermaid rendered client-side if present), heading outline rail on ≥ 1280 px; "Referenced by" list of cards linking the doc. As built: a "source › folders › file" trail in the header and Previous / Next by tree order at the end; the doc title is the h1 under 1024 px; the outline follows the section in view, and under 1280 px it is a collapsed `details` above the text. Heading anchors match the API's slugger (keep `_` and marks, duplicates `-1`, `-2`). A code block has a header bar with its language (or "Mermaid diagram"), a wrap toggle and Copy, so nothing covers the code; GitHub alerts (`> [!NOTE]` …) render as a titled note with an icon; images are a dashed placeholder with alt text and "Open the image"; project card keys in text link to the card; each table cell takes its own direction; an ordered list keeps its start number. The doc section shows "Indexed" and a 7-character SHA with copy. |
 | `ReleaseSection` | version, repo/tag, released date, included cards list (grouped by type), notes tabs (team / owner / accountant) with `CopyButton`, "Regenerate skeleton" (pm/owner). |
 
+An idea's or plan's command bar (`ActionBar` in `cards/card-sheet.tsx`) has one filled button, the next step in its cycle (Start exploring,
+Turn into a plan); the status moves (Accept, Park, Reject) sit in a "Change status" menu (`statusMenu`), and the "With Claude" group is
+named by a Sparkles icon with an `aria-label`. On a task in review the row button is Review and opens the sheet, where Mark done is filled
+beside Back to work.
+
 ### 5.5 Inbox and palette
 
 | Component | Spec |
@@ -404,7 +423,7 @@ messages from `messages/<locale>.json` (`errors.*`), never raw Zod messages. Req
 with a dot, not an asterisk. Long text fields are markdown with a small toolbar (bold, list, code,
 link, `GTV-` reference) and a preview toggle. Every form that posts free text shows
 `SecretFilterError` on `hub.security.secret_detected`. Submit with `Ctrl+Enter`; unsaved-changes
-guard on sheets. As built: in the card sheet `Esc`, × and Back ask "Discard what you wrote?" when a form or comment has a draft, and the first `Esc` in a clean field moves focus to the title. A `Modal` with `dirty` ignores a press outside it. Settings drafts (General, Backups) survive tab changes for the visit, marked by a dot on the tab.
+guard on sheets. As built: in the card sheet `Esc`, × and Back ask "Discard what you wrote?" when a form or comment has a draft, and the first `Esc` in a clean field moves focus to the title. A `Modal` with `dirty` ignores a press outside it. Settings drafts (General, Backups, Account's name and language; never a password) survive tab changes for the visit, marked by a dot on the tab.
 
 ## 6. Accessibility checklist (CI: `axe-core` in Playwright on the five critical flows)
 
@@ -477,7 +496,7 @@ next.
 | `Ctrl/Cmd+K`, `/` | command palette |
 | `?` | shortcuts dialog |
 | `g t` / `g i` / `g l` / `g d` / `g n` / `g h` / `g k` / `g r` | go to Today / Inbox / Timeline / Decisions / Needs / Handoffs / Tasks / Redesign |
-| `g p` / `g e` / `g q` / `g v` / `g o` / `g a` / `g w` / `g c` / `g m` / `g s` / `g b` | go to Planning / Releases / Queue / Live / Docs / Ask / Onboarding / Skills / Members / Settings / Database (every page has its own letter) |
+| `g p` / `g e` / `g q` / `g v` / `g o` / `g a` / `g w` / `g c` / `g m` / `g s` / `g b` | go to Planning / Releases / Queue / Running now (`queue?show=live`) / Docs / Search / Getting started / Skills / Members / Settings / Database (every page has its own letter) |
 | `n` then `t/d/n/h` | new task / decision / need / handoff |
 | `n` then `i/p` | new idea / new plan (opens `planning?studio=idea` or `plan`) |
 | `j` / `k` | next / previous row (lists, timeline, inbox) |
