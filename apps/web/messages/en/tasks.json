@@ -27,7 +27,8 @@
     "label": "View",
     "focus": "Focus",
     "board": "Board",
-    "list": "List"
+    "list": "List",
+    "boardTight": "There is no room for the board beside the chat, so the list shows in its place. Close the chat or widen the window to get the board back."
   },
   "newTask": "New task",
   "filters": {
@@ -40,6 +41,9 @@
     "anyPriority": "All priorities",
     "module": "Module",
     "anyModule": "All modules",
+    "assignee": "Assignee",
+    "anyAssignee": "Anyone",
+    "unassigned": "Unassigned",
     "search": "Search by key or title…",
     "status": "Status",
     "anyStatus": "All statuses",
@@ -82,6 +86,8 @@
     "mineEmpty": "Nothing else in your hands.",
     "review": "Waiting for review",
     "reviewEmpty": "Nothing is waiting for review.",
+    "sent": "Sent, waiting for review",
+    "sentEmpty": "Nothing you sent is waiting for review.",
     "blocked": {
       "one": "1 task blocked by another card",
       "other": "# tasks blocked by other cards"
@@ -140,6 +146,8 @@
     "createdBy": "Created by",
     "emptyTitle": "Nothing here",
     "emptyBody": "A card you delete stays here until someone restores it.",
+    "noneOfType": "Nothing deleted of this type",
+    "showAll": "Show all types",
     "thing": "deleted cards",
     "restored": "Restored {key}"
   },

@@ -86,11 +86,14 @@ export function ActorChip({
   kind = 'user',
   memberId,
   adapter,
+  name,
   className,
 }: {
   kind?: ActorKind | undefined;
   memberId?: string | undefined;
   adapter?: string | undefined;
+  /** The name the API sent with the actor, for someone no longer among the members. */
+  name?: string | undefined;
   className?: string | undefined;
 }) {
   const t = useT(kitMessages);
@@ -104,17 +107,19 @@ export function ActorChip({
       </span>
     );
   }
-  return <MemberChip agent={kind === 'agent'} memberId={memberId} className={className} />;
+  return <MemberChip agent={kind === 'agent'} memberId={memberId} name={name} className={className} />;
 }
 
 /** Its own component, so that reading the member is not a hook behind a condition. */
 function MemberChip({
   agent,
   memberId,
+  name,
   className,
 }: {
   agent: boolean;
   memberId?: string | undefined;
+  name?: string | undefined;
   className?: string | undefined;
 }) {
   const t = useT(kitMessages);
@@ -122,7 +127,7 @@ function MemberChip({
   return (
     <span className={cn('inline-flex items-center gap-1.5 text-body-sm text-foreground', className)}>
       <Avatar member={member} size="xs" agent={agent} />
-      <span>{member?.name ?? t.actor.system}</span>
+      <span>{member?.name ?? name ?? t.actor.system}</span>
       {agent && <span className="text-muted-foreground">{t.actor.agentSuffix}</span>}
     </span>
   );

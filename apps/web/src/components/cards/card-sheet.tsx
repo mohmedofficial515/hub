@@ -23,8 +23,11 @@ import {
 } from 'lucide-react';
 import { DropdownMenu, Tabs } from 'radix-ui';
 import {
+  createContext,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
+  useCallback,
+  useContext,
   useEffect,
   useId,
   useMemo,
@@ -36,7 +39,9 @@ import { ActorChip, Avatar } from '@/components/cards/avatar';
 import { PriorityBadge, RoleBadge, StatusBadge, TypeBadge } from '@/components/cards/badges';
 import { CardChip } from '@/components/cards/card-key';
 import { focusRing, focusRingInset } from '@/components/cards/meta';
+import { RemoveLink } from '@/components/cards/remove-link';
 import { sheetSections } from '@/components/cards/sheet-sections';
+import { TaskStages } from '@/components/cards/task-stages';
 import { CopyButton, copyText } from '@/components/common/copy-button';
 import { ErrorBoundary } from '@/components/common/error-boundary';
 import { MarkdownView } from '@/components/common/markdown';
@@ -69,7 +74,7 @@ import { eventFacts } from '@/features/cards/history';
 import {
   addComment,
   addLink,
-  getCard,
+  openBlockers,
   setArchived,
   toggleWatch,
   useCardComments,
@@ -81,7 +86,7 @@ import { useWorkReports } from '@/features/chat/queries';
 import { useSession } from '@/features/session/session';
 import { useMembers } from '@/features/session/session';
 import { isHubError } from '@/lib/api/errors';
-import { plural } from '@/lib/format';
+import { plural, when } from '@/lib/format';
 import { portalRoot } from '@/lib/hooks';
 import { useLocale, useT } from '@/lib/i18n';
 import { actionName, type CardAction, eventLabel, kitMessages } from '@/lib/i18n';
@@ -94,6 +99,17 @@ const EASE = [0.2, 0.8, 0.2, 1] as const;
 
 const isCardAction = (v: string | null): v is CardAction => !!v;
 
+/** Close the sheet, asking first when a form in it holds a draft. */
+const SheetClose = createContext<() => void>(() => closeCard());
+const useRequestClose = () => useContext(SheetClose);
+
+/** A form in the sheet marks itself `data-dirty` once typed in (`ActionPanel`, the comment box). */
+const hasDraft = () => !!document.querySelector('[data-card-sheet] form[data-dirty="true"]');
+
+const TABS: readonly SheetTab[] = ['details', 'comments', 'history', 'links'];
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
 const hasOwnText = (card: HubCard) => (card.type === 'task' ? !!card.task.acceptance : card.type !== 'need');
 
 export function ActionBar({ card, action }: { card: HubCard; action: CardAction | null }) {
@@ -105,8 +121,11 @@ export function ActionBar({ card, action }: { card: HubCard; action: CardAction 
   const available = actionsFor(card, roles, me.id);
   const [confirm, setConfirm] = useState<AvailableAction | null>(null);
 
+  const blocker = card.type === 'task' ? openBlockers(card)[0] : undefined;
+
   const run = (a: AvailableAction) => {
-    if (a.mode === 'form') setQuery({ action: action === a.action ? null : a.action });
+    // A form opens in Details, so from another tab the button would seem to do nothing.
+    if (a.mode === 'form') setQuery({ action: action === a.action ? null : a.action, tab: null });
     else if (a.mode === 'confirm') setConfirm(a);
     else perform(card.key, a.action);
   };
@@ -134,10 +153,18 @@ export function ActionBar({ card, action }: { card: HubCard; action: CardAction 
             {actionName(t, card.type, a.action)}
           </Button>
         );
-        if (a.enabled || !a.needsRole) return button;
+        // A Claim held back by an open blocker says which card it waits on.
+        const why = a.enabled
+          ? null
+          : a.needsRole
+            ? fmt(t.error.forbiddenRole, { role: t.roles[a.needsRole] })
+            : a.action === 'claim' && blocker
+              ? fmt(t.sheet.task.blockedBy, { key: blocker })
+              : null;
+        if (!why) return button;
         // A disabled button cannot take focus, so the tooltip wraps a focusable span naming the role (08 §5.6).
         return (
-          <Tooltip key={a.action} content={fmt(t.error.forbiddenRole, { role: t.roles[a.needsRole] })}>
+          <Tooltip key={a.action} content={why}>
             <span tabIndex={0} className={cn('rounded-md', focusRing)}>
               {button}
             </span>
@@ -193,22 +220,24 @@ export function CommentsTab({ card }: { card: HubCard }) {
           {card.comments.map((c) => (
             <li key={c.id} className="flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2 text-body-sm">
-                <ActorChip kind={c.authorKind} memberId={c.authorId} />
+                <ActorChip kind={c.authorKind} memberId={c.authorId} name={c.authorName} />
                 <RelativeTime iso={c.at} className="text-muted-foreground" />
               </div>
-              <p className="text-body text-foreground">
-                {c.redacted ? (
+              {c.redacted ? (
+                <p className="text-body">
                   <em className="text-muted-foreground">{t.sheet.comments.redacted}</em>
-                ) : (
-                  <Bidi>{c.body}</Bidi>
-                )}
-              </p>
+                </p>
+              ) : (
+                // Agents write lists, steps and code. A card key in the text is a chip, as in a body (08 §5.3).
+                <MarkdownView source={c.body} dir="auto" headingOffset={2} copyCodeLabel={t.sheet.copyCode} />
+              )}
             </li>
           ))}
         </ul>
       )}
       <form
         className="flex flex-col gap-2 border-t border-border pt-4"
+        data-dirty={text.trim() ? 'true' : undefined}
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -242,17 +271,42 @@ export function CommentsTab({ card }: { card: HubCard }) {
 /** "field: from → to" rows (09 §14), of the fields a member can read; the arrow mirrors because it follows the reading direction. */
 function EventData({ data }: { data: Record<string, unknown> }) {
   const t = useT(kitMessages);
+  const locale = useLocale();
   const h = t.sheet.history;
   const members = useMembers().data ?? [];
-  const { change, rows } = eventFacts(data, h.fieldNames, (id) => members.find((m) => m.id === id)?.name);
-  if (!change && !rows.length) return null;
+  const names = useMemo(() => ({ ...t.sections.task.historyFields, ...h.fieldNames }), [t, h]);
+  const { change, rows, changes } = eventFacts(data, names, (id) => members.find((m) => m.id === id)?.name);
+  if (!change && !rows.length && !changes?.length) return null;
+  const specialties: Record<string, string> = t.sheet.task.specialties;
   const Value = ({ value }: { value: string | null }) => {
     if (value === null) return <span>{h.values['none']}</span>;
-    const known = t.status[value] ?? h.values[value];
+    // A due date arrives as ISO, and reads as a date.
+    if (ISO_DATE.test(value)) return <span>{when(value, locale)}</span>;
+    const known = t.status[value] ?? h.values[value] ?? specialties[value];
     return known ? <span>{known}</span> : <Bidi>{value}</Bidi>;
   };
   return (
     <dl className="mt-1 flex flex-col gap-0.5 text-body-sm text-muted-foreground">
+      {changes?.map((c) => (
+        <div key={c.key} className="flex flex-wrap items-center gap-1.5">
+          <dt className="font-medium">{c.label}:</dt>
+          <dd className="flex min-w-0 flex-wrap items-center gap-1.5 break-words">
+            {c.edited ? (
+              <span>{t.sections.task.historyEdited}</span>
+            ) : (
+              <>
+                <Value value={c.from} />
+                <span aria-hidden className="rtl:-scale-x-100">
+                  →
+                </span>
+                <span className="text-foreground">
+                  <Value value={c.to} />
+                </span>
+              </>
+            )}
+          </dd>
+        </div>
+      ))}
       {change && (
         <div className="flex flex-wrap items-center gap-1.5">
           {change.label && <dt className="font-medium">{change.label}:</dt>}
@@ -289,7 +343,7 @@ export function HistoryTab({ card }: { card: HubCard }) {
       {events.map((e) => (
         <li key={e.id} className="text-body">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <ActorChip kind={e.actorKind} memberId={e.actorId} adapter={e.adapter} />
+            <ActorChip kind={e.actorKind} memberId={e.actorId} adapter={e.adapter} name={e.actorName} />
             <span className="text-foreground">{eventLabel(t, e)}</span>
             <RelativeTime iso={e.at} className="text-body-sm text-muted-foreground" />
             {viaName(e.via) && (
@@ -311,18 +365,27 @@ export function LinksTab({ card }: { card: HubCard }) {
   const [other, setOther] = useState('');
   const [kind, setKind] = useState<LinkKind>('relates');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // `child` is a `parent` link seen from the other end: shown, and made from that card.
   const kinds: LinkKind[] = ['blocks', 'blocked_by', 'relates', 'parent', 'duplicates'];
-  const groups = kinds
+  const groups = ([...kinds, 'child'] as LinkKind[])
     .map((k) => [k, card.links.filter((l: CardLink) => l.kind === k)] as const)
     .filter(([, list]) => list.length);
+  const kindName = (k: LinkKind) => (t.sheet.links.kinds as Record<string, string>)[k];
+  const canChange = !card.archivedAt;
 
+  // The API knows every key, and the caches only what a page loaded: it is the one that says a key is wrong.
   const add = () => {
     const key = other.trim().toUpperCase();
     if (key === card.key) return setError(t.sheet.links.self);
-    if (!getCard(key)) return setError(t.sheet.links.invalid);
-    void addLink(card.key, kind, key);
-    setOther('');
-    setError(null);
+    setBusy(true);
+    addLink(card.key, kind, key)
+      .then(() => {
+        setOther('');
+        setError(null);
+      })
+      .catch((e: unknown) => setError(isHubError(e) ? e.message : t.actionFailed))
+      .finally(() => setBusy(false));
   };
 
   return (
@@ -332,11 +395,19 @@ export function LinksTab({ card }: { card: HubCard }) {
       ) : (
         groups.map(([k, list]) => (
           <div key={k} className="flex flex-col gap-1.5">
-            <h3 className="text-body font-semibold text-foreground">{t.sheet.links.kinds[k]}</h3>
+            <h3 className="text-body font-semibold text-foreground">{kindName(k)}</h3>
             <ul className="flex flex-col gap-2">
               {list.map((l) => (
-                <li key={`${l.kind}-${l.key}`}>
-                  <CardChip k={l.key} showTitle showStatus className="h-auto min-h-8 py-1" />
+                <li key={`${l.kind}-${l.key}`} className="flex min-w-0 items-center gap-1">
+                  <CardChip
+                    k={l.key}
+                    card={l.card}
+                    showTitle
+                    showStatus
+                    className="h-auto min-h-8 min-w-0 py-1"
+                  />
+                  {/* A child link belongs to the other card, and is removed there. */}
+                  {canChange && l.kind !== 'child' && <RemoveLink cardKey={card.key} link={l} />}
                 </li>
               ))}
             </ul>
@@ -355,7 +426,7 @@ export function LinksTab({ card }: { card: HubCard }) {
             id={`${id}-key`}
             dir="ltr"
             className="key text-start"
-            placeholder="GTV-123"
+            placeholder={`${card.key.split('-')[0] ?? ''}-123`}
             value={other}
             onChange={(e) => setOther(e.target.value)}
           />
@@ -369,7 +440,7 @@ export function LinksTab({ card }: { card: HubCard }) {
             ))}
           </Select>
         </Field>
-        <Button type="submit" className="sm:mt-6.5" disabled={!other.trim()}>
+        <Button type="submit" className="sm:mt-6.5" disabled={!other.trim()} busy={busy}>
           {t.sheet.links.add}
         </Button>
       </form>
@@ -519,7 +590,19 @@ function SheetBody({
     [query.data, events.data, comments.data],
   );
   const perform = usePerformAction();
-  const { me } = useSession();
+  const { me, roles } = useSession();
+  const requestClose = useRequestClose();
+  // A form shows only while the card offers its action now. A link kept after the action ran, Back, or an old link would leave a
+  // Submit form over a task already in review, with no filled button left (the bar steps down while a form is open).
+  const offered =
+    !!card &&
+    !!action &&
+    (action === ('edit' as CardAction) ||
+      actionsFor(card, roles, me.id).some((a) => a.action === action && a.enabled && a.mode === 'form'));
+  const shownAction = offered ? action : null;
+  useEffect(() => {
+    if (card && action && !offered) setQuery({ action: null });
+  }, [card, action, offered]);
   const members = useMembers().data ?? [];
   const [archive, setArchive] = useState(false);
   const cardRef = useRef(card);
@@ -576,7 +659,7 @@ function SheetBody({
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+          <IconButton label={t.close} data-sheet-close onClick={requestClose}>
             <X aria-hidden className="size-4" strokeWidth={1.75} />
           </IconButton>
         </div>
@@ -597,7 +680,7 @@ function SheetBody({
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+          <IconButton label={t.close} data-sheet-close onClick={requestClose}>
             <X aria-hidden className="size-4" strokeWidth={1.75} />
           </IconButton>
         </div>
@@ -617,14 +700,14 @@ function SheetBody({
     return (
       <>
         <div className="flex items-center justify-end p-3">
-          <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+          <IconButton label={t.close} data-sheet-close onClick={requestClose}>
             <X aria-hidden className="size-4" strokeWidth={1.75} />
           </IconButton>
         </div>
         <h2 tabIndex={-1} data-sheet-title className="sr-only">
           {fmt(t.sheet.label, { key: cardKey })}
         </h2>
-        <ErrorState title={fmt(t.sheet.notFound, { key: cardKey })} code="404" />
+        <ErrorState kind="notFound" title={fmt(t.sheet.notFound, { key: cardKey })} code="404" />
         <p className="px-6 text-center text-body text-muted-foreground">{t.sheet.notFoundBody}</p>
       </>
     );
@@ -699,13 +782,13 @@ function SheetBody({
           )}
           {stepAside && <SheetNav cardKey={card.key} />}
           {stepAside ? (
-            <Button size="sm" variant="ghost" data-sheet-close data-wb-step-back onClick={() => closeCard()}>
+            <Button size="sm" variant="ghost" data-sheet-close data-wb-step-back onClick={requestClose}>
               <ArrowRight aria-hidden className="size-4 ltr:-scale-x-100" strokeWidth={1.75} />
               {/* In a narrow sheet the way back folds to its arrow, and keeps its name for a screen reader (review M6). */}
               <span className="@max-md:sr-only">{fmt(w.pro.stepAside, { page: stepAside })}</span>
             </Button>
           ) : (
-            <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+            <IconButton label={t.close} data-sheet-close onClick={requestClose}>
               <X aria-hidden className="size-4" strokeWidth={1.75} />
             </IconButton>
           )}
@@ -749,7 +832,7 @@ function SheetBody({
             </span>
           )}
         </div>
-        <ActionBar card={card} action={action} />
+        <ActionBar card={card} action={shownAction} />
         {wb && <SheetClaudeBar cardKey={card.key} onAsk={onAsk} />}
         {card.archivedAt && (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md bg-warning-soft px-3 py-2 text-body-sm text-warning-soft-foreground">
@@ -795,10 +878,12 @@ function SheetBody({
             className={cn('wb-sheet-measure flex flex-col gap-5 p-4 md:p-6', focusRingInset)}
           >
             <Evidence cardKey={card.key} />
+            {/* The stages the agent reports while it works this task, live (`report_stage`). */}
+            {wb && card.type === 'task' && <TaskStages cardKey={card.key} />}
             {/* Inside the scrolling body, so a card with many runs keeps its tabs reachable (queue review B2). */}
             {wb && (card.type === 'task' || card.type === 'plan') && <CardRuns cardKey={card.key} />}
             {/* A plan's body is its Markdown, in its section. In a form the field holds the text. */}
-            {card.body && card.type !== 'plan' && action !== ('edit' as CardAction) ? (
+            {card.body && card.type !== 'plan' && shownAction !== ('edit' as CardAction) ? (
               // The sheet's title is an h2, so a body's `##` is an h3.
               <MarkdownView
                 source={card.body}
@@ -812,7 +897,7 @@ function SheetBody({
             )}
             <Section
               card={card}
-              action={action}
+              action={shownAction}
               cancelAction={() => setQuery({ action: null })}
               perform={(a, payload) => perform(card.key, a, payload)}
             />
@@ -857,10 +942,11 @@ function SheetBody({
 /** A card this sheet cannot draw stays in the sheet: the page behind it is fine, and Close still works. */
 function SheetCrash({ cardKey, onRetry }: { cardKey: string; onRetry: () => void }) {
   const t = useT(kitMessages);
+  const requestClose = useRequestClose();
   return (
     <>
       <div className="flex items-center justify-end p-3">
-        <IconButton label={t.close} data-sheet-close onClick={() => closeCard()}>
+        <IconButton label={t.close} data-sheet-close onClick={requestClose}>
           <X aria-hidden className="size-4" strokeWidth={1.75} />
         </IconButton>
       </div>
@@ -905,7 +991,9 @@ export function CardSheet({
   const key = route.cardKey;
   const actionParam = route.query.get('action');
   const action = isCardAction(actionParam) ? actionParam : null;
-  const tab = (route.query.get('tab') as SheetTab | null) ?? 'details';
+  const tabParam = route.query.get('tab');
+  // An unknown tab would leave the body empty.
+  const tab = TABS.find((name) => name === tabParam) ?? 'details';
   const locale = useLocale();
   const t = useT(kitMessages);
   const offset = locale === 'ar' ? -32 : 32;
@@ -933,35 +1021,59 @@ export function CardSheet({
     },
     [key, openerRef],
   );
+  // Esc, Close and the way back ask first when a form here holds text not yet saved (08 §5.7).
+  const [discard, setDiscard] = useState(false);
+  const requestClose = useCallback(() => {
+    if (hasDraft()) setDiscard(true);
+    else closeCard();
+  }, []);
   if (!key) return null;
   const onKeyDown = (e: ReactKeyboardEvent<HTMLElement>) => {
     // A menu or dialog inside the sheet handles its own Esc first, and marks it.
-    if (matchKey(e, 'Escape') && !e.defaultPrevented) {
-      e.preventDefault();
-      closeCard();
-    }
+    if (!matchKey(e, 'Escape') || e.defaultPrevented) return;
+    // A portalled dialog or menu bubbles here through React, and closes itself.
+    if (!e.currentTarget.contains(e.target as Node)) return;
+    e.preventDefault();
+    if (hasDraft()) return setDiscard(true);
+    // From a field, the first Esc leaves it for the title, and the next one closes.
+    if ((e.target as HTMLElement).closest('input, textarea, select')) return focusSheetTitle();
+    closeCard();
   };
   return (
     <motion.section
       aria-label={fmt(t.sheet.label, { key })}
       data-card-sheet
       onKeyDown={onKeyDown}
-      className={cn('glass-chrome flex flex-col text-foreground outline-none', className)}
+      // A phone's sheet covers the page, so it is opaque there: through glass the list behind it read into the card.
+      className={cn(
+        'glass-chrome flex flex-col text-foreground outline-none max-md:bg-background!',
+        className,
+      )}
       initial={{ opacity: 0, x: offset }}
       animate={{ opacity: 1, x: 0, transition: { duration: 0.2, ease: EASE } }}
     >
       {topBar}
-      <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
-        <SheetBody
-          key={key}
-          cardKey={key}
-          action={action}
-          tab={tab}
-          onAsk={onAsk}
-          stepAside={stepAside}
-          keepInSheet={followed}
-        />
-      </ErrorBoundary>
+      <SheetClose.Provider value={requestClose}>
+        <ErrorBoundary key={key} fallback={(reset) => <SheetCrash cardKey={key} onRetry={reset} />}>
+          <SheetBody
+            key={key}
+            cardKey={key}
+            action={action}
+            tab={tab}
+            onAsk={onAsk}
+            stepAside={stepAside}
+            keepInSheet={followed}
+          />
+        </ErrorBoundary>
+      </SheetClose.Provider>
+      <ConfirmDialog
+        open={discard}
+        onOpenChange={setDiscard}
+        title={t.sections.task.discardTitle}
+        description={t.sections.task.discardBody}
+        confirmLabel={t.sections.task.discardConfirm}
+        onConfirm={() => closeCard()}
+      />
     </motion.section>
   );
 }

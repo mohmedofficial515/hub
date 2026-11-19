@@ -26,6 +26,7 @@ import {
   plural,
   RelativeTime,
   setArchived,
+  setQuery,
   showToast,
   SkeletonRows,
   useCardsQuery,
@@ -93,6 +94,8 @@ export function DeletedView() {
         actions={
           <AppLink
             view="tasks"
+            // The same view keeps its params, so the way back clears the ones that make this the Deleted view.
+            query={{ view: null, type: null }}
             className={cn(
               'hit-44 inline-flex items-center gap-1.5 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
               focusRing,
@@ -111,7 +114,8 @@ export function DeletedView() {
               param: 'type',
               label: t.deleted.type,
               any: t.deleted.anyType,
-              options: TYPES.filter((v) => all.some((c) => c.type === v)).map((v) => ({
+              // The chosen type stays an option, so a link from another page still says what it filters.
+              options: TYPES.filter((v) => v === type || all.some((c) => c.type === v)).map((v) => ({
                 value: v,
                 label: kit.types[v],
               })),
@@ -131,8 +135,14 @@ export function DeletedView() {
             code={isHubError(query.error) ? query.error.code : undefined}
             onRetry={() => void query.refetch()}
           />
+        ) : rows.length === 0 && all.length > 0 ? (
+          <EmptyState
+            icon={SearchX}
+            title={t.deleted.noneOfType}
+            action={<Button onClick={() => setQuery({ type: null })}>{t.deleted.showAll}</Button>}
+          />
         ) : rows.length === 0 ? (
-          <EmptyState icon={all.length ? SearchX : Trash2} title={t.deleted.emptyTitle}>
+          <EmptyState icon={Trash2} title={t.deleted.emptyTitle}>
             {t.deleted.emptyBody}
           </EmptyState>
         ) : (

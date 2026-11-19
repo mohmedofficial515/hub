@@ -122,6 +122,7 @@ export function MarkdownField({
   rows = 8,
   invalid = false,
   error,
+  disabled = false,
 }: {
   label: ReactNode;
   hint?: ReactNode | undefined;
@@ -130,6 +131,8 @@ export function MarkdownField({
   rows?: number | undefined;
   invalid?: boolean | undefined;
   error?: ReactNode | undefined;
+  /** Shown and not editable, for a member the API does not let change this field. */
+  disabled?: boolean | undefined;
 }) {
   const w = useEditWords();
   const id = useId();
@@ -153,6 +156,7 @@ export function MarkdownField({
             dir="auto"
             rows={rows}
             value={value}
+            disabled={disabled}
             onChange={(e) => onChange(e.target.value)}
             aria-invalid={invalid || undefined}
           />
@@ -169,6 +173,15 @@ export function MarkdownField({
     </Field>
   );
 }
+
+/** A full link, as the API asks for a PR (`github.com/…` alone is refused). */
+export const isUrl = (text: string) => {
+  try {
+    return !!new URL(text);
+  } catch {
+    return false;
+  }
+};
 
 export const parseTags = (text: string) => [
   ...new Set(

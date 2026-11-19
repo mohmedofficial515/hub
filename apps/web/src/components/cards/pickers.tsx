@@ -12,7 +12,7 @@ import { focusRing, focusRingInset } from '@/components/cards/meta';
 import { Bidi, Ltr } from '@/components/common/text';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
-import { getCard, useCards, useCardSearch, useCardsQuery } from '@/features/cards/store';
+import { getCard, useCardSearch, useCardsQuery } from '@/features/cards/store';
 import type { CardListItem, CardType } from '@/features/cards/types';
 import { plural } from '@/lib/format';
 import { useLocale, useT } from '@/lib/i18n';
@@ -162,7 +162,8 @@ export function CardPicker({
 }) {
   const t = useT(kitMessages).sections.pickers;
   const kit = useT(kitMessages);
-  const recent = useCards();
+  // Only while open: the picker is mounted closed in every task sheet.
+  const recent = useCardsQuery({}, { enabled: open }).data?.items ?? [];
   const id = useId();
   const listRef = useRef<HTMLUListElement>(null);
   const [query, setQuery] = useState('');
@@ -437,7 +438,7 @@ export function DocPicker({
 }) {
   const t = useT(kitMessages).sections.pickers;
   const locale = useLocale();
-  const docCards = useCardsQuery({ type: ['doc'] }).data?.items;
+  const docCards = useCardsQuery({ type: ['doc'] }, { enabled: open && !docs }).data?.items;
   const treeRef = useRef<HTMLUListElement>(null);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<string[]>(value);

@@ -37,16 +37,55 @@ import { isMine } from '@/features/tasks/model';
 
 import type { TaskMessages } from './messages';
 
+/** How late a task is and what is in its way. Finished work is neither. */
+function urgencyOf(card: TaskCard) {
+  const open = card.status !== 'done' && card.status !== 'cancelled';
+  return {
+    blockers: open ? openBlockers(card) : [],
+    late: open && card.dueAt ? isOverdue({ dueAt: card.dueAt, flags: card.flags }) : false,
+    h: open && card.dueAt ? hoursFromNow(card.dueAt) : null,
+  };
+}
+
+/**
+ * The signals a row must never lose, wherever it is drawn: mine, overdue or due within 24 h, and blocked. The list's table puts them under
+ * the title, where its other columns already say the rest.
+ */
+export function TaskSignals({ card }: { card: TaskCard }) {
+  const t = useT<TaskMessages>('tasks');
+  const locale = useLocale();
+  const { me, roles } = useSession();
+  const { blockers, late, h } = urgencyOf(card);
+  const mine = isMine(card, me.id, roles);
+  const soon = !late && h !== null && h <= 24;
+  if (!mine && !late && !soon && !blockers[0]) return null;
+  return (
+    <span data-task-signals className="mt-1 flex flex-wrap items-center gap-2 text-body-sm">
+      {mine && <MineMark />}
+      {late && card.dueAt && (
+        <Pill tone="danger" icon={Clock}>
+          {fmt(t.card.overdueBy, { d: duration(Date.parse(card.dueAt) - nowMs(), locale) })}
+        </Pill>
+      )}
+      {soon && card.dueAt && (
+        <Pill tone="warning" icon={Clock}>
+          {fmt(t.card.dueSoon, { rel: rel(card.dueAt, locale) })}
+        </Pill>
+      )}
+      {blockers[0] && (
+        <Pill icon={Ban}>{fill(t.card.blockedBy, { key: <Ltr mono>{blockers[0]}</Ltr> })}</Pill>
+      )}
+    </span>
+  );
+}
+
 /** What a task's row says besides its title: who, how big, how late, what is in the way. */
 export function TaskFacts({ card, showAssignee = true }: { card: TaskCard; showAssignee?: boolean }) {
   const t = useT<TaskMessages>('tasks');
   const kit = useT(kitMessages);
   const locale = useLocale();
   const { me, roles } = useSession();
-  const open = card.status !== 'done' && card.status !== 'cancelled';
-  const blockers = open ? openBlockers(card) : [];
-  const late = open && card.dueAt ? isOverdue({ dueAt: card.dueAt, flags: card.flags }) : false;
-  const h = open && card.dueAt ? hoursFromNow(card.dueAt) : null;
+  const { blockers, late, h } = urgencyOf(card);
   const branch = card.task.branch ?? card.branch;
   const pr = card.task.prUrl ? /(\d+)\/?$/.exec(card.task.prUrl)?.[1] : undefined;
   return (

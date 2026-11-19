@@ -66,12 +66,16 @@ export async function fetchCards(
 }
 
 /** A list with its loading and error state. Every page renders those states from here. */
-export function useCardsQuery(filters: CardFilters = {}): UseQueryResult<Paginated<CardListItem>> {
+export function useCardsQuery(
+  filters: CardFilters = {},
+  { enabled = true }: { enabled?: boolean } = {},
+): UseQueryResult<Paginated<CardListItem>> {
   const { ws: slug } = useRoute();
   return useQuery({
     queryKey: qk.cardList(slug, filters as Record<string, unknown>),
     queryFn: () => fetchCards(slug, filters),
-    enabled: !!slug,
+    // A closed picker asks for nothing, and a live event does not refetch it (`enabled: false` is skipped by invalidation).
+    enabled: enabled && !!slug,
   });
 }
 
@@ -94,13 +98,28 @@ export function useCard(key: string | null | undefined): HubCard | undefined {
   return useCardQuery(key).data;
 }
 
+/** A page holds 100, and the API sends History and Comments oldest first, so the newest are on the last page. */
+const MAX_PAGES = 10;
+
+/** Every page of a list, following `nextCursor` up to 1000 items. */
+export async function fetchAllPages<T>(path: string): Promise<T[]> {
+  const items: T[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const result: Paginated<T> = await getPage<T>(path, { limit: 100, ...(cursor ? { cursor } : {}) });
+    items.push(...result.items);
+    cursor = result.nextCursor;
+    if (!cursor) break;
+  }
+  return items;
+}
+
 export function useCardEvents(key: string | null | undefined): UseQueryResult<CardEvent[]> {
   const { ws: slug } = useRoute();
   return useQuery({
     queryKey: qk.events(slug, key ?? ''),
     enabled: !!key && !!slug,
-    queryFn: async () =>
-      (await getPage<EventDto>(`${cardsPath(slug)}/${key}/events`, { limit: 100 })).items.map(toEvent),
+    queryFn: async () => (await fetchAllPages<EventDto>(`${cardsPath(slug)}/${key}/events`)).map(toEvent),
   });
 }
 
@@ -110,7 +129,7 @@ export function useCardComments(key: string | null | undefined): UseQueryResult<
     queryKey: qk.comments(slug, key ?? ''),
     enabled: !!key && !!slug,
     queryFn: async () =>
-      (await getPage<CommentDto>(`${cardsPath(slug)}/${key}/comments`, { limit: 100 })).items.map(toComment),
+      (await fetchAllPages<CommentDto>(`${cardsPath(slug)}/${key}/comments`)).map(toComment),
   });
 }
 

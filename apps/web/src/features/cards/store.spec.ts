@@ -4,9 +4,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getQueryClient } from '@/lib/query-client';
+import { stubFetch } from '@/test/render';
 
 import { qk } from './keys';
-import { writeCard } from './store';
+import { fetchAllPages, writeCard } from './store';
 import type { CardListItem, HubCard } from './types';
 
 const WS = 'goteav';
@@ -69,5 +70,21 @@ describe('writeCard', () => {
     expect(keys).toContain(JSON.stringify(qk.cards(WS)));
     expect(keys).toContain(JSON.stringify(qk.counters(WS)));
     spy.mockRestore();
+  });
+});
+
+describe('fetchAllPages', () => {
+  it('follows nextCursor and joins the pages, so the newest comments are reached', async () => {
+    const { calls } = stubFetch((url) =>
+      url.searchParams.get('cursor') === 'c2'
+        ? { body: { data: [{ id: 'b' }], meta: { pagination: { nextCursor: null } } } }
+        : { body: { data: [{ id: 'a' }], meta: { pagination: { nextCursor: 'c2' } } } },
+    );
+    await expect(fetchAllPages<{ id: string }>('workspaces/demo/cards/DMO-1/comments')).resolves.toEqual([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+    expect(calls).toHaveLength(2);
+    vi.unstubAllGlobals();
   });
 });

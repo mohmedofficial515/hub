@@ -38,18 +38,20 @@ import { isFinished, PRIORITIES, type SortKey } from '@/features/tasks/model';
 import { isHubError } from '@/lib/api/errors';
 
 import type { TaskMessages } from './messages';
-import { MoveButton, type OnMove, TaskFacts } from './task-bits';
+import { MoveButton, type OnMove, TaskFacts, TaskSignals } from './task-bits';
 
 function SortHead({
   id,
   label,
   sort,
   desc,
+  className,
 }: {
   id: SortKey;
   label: string;
   sort: SortKey | null;
   desc: boolean;
+  className?: string | undefined;
 }) {
   const t = useT<TaskMessages>('tasks');
   const active = sort === id;
@@ -58,12 +60,21 @@ function SortHead({
     <th
       scope="col"
       aria-sort={active ? (desc ? 'descending' : 'ascending') : 'none'}
-      className="px-2.5 py-2 text-start font-medium"
+      className={cn('px-2.5 py-2 text-start font-medium', className)}
     >
       <button
         type="button"
         aria-label={fmt(t.table.sortBy, { name: label })}
-        onClick={() => setQuery({ sort: id, order: active && !desc ? 'desc' : null })}
+        // Ascending, then descending, then back to the default order: open work first, then the backlog, then finished (review M5, R9).
+        onClick={() =>
+          setQuery(
+            !active
+              ? { sort: id, order: null }
+              : desc
+                ? { sort: null, order: null }
+                : { sort: id, order: 'desc' },
+          )
+        }
         className={cn(
           'inline-flex items-center gap-1 rounded-sm whitespace-nowrap hover:text-foreground',
           active && 'text-foreground',
@@ -76,6 +87,9 @@ function SortHead({
     </th>
   );
 }
+
+/** Columns a page narrower than 80rem (1440 px with the sidebar) leaves out, so the action column is never cut off. The sheet still shows them. */
+const roomy = 'hidden @min-[80rem]:table-cell';
 
 const None = ({ label }: { label: string }) => <span aria-label={label}>—</span>;
 
@@ -149,7 +163,7 @@ export function TaskList({
       aria-label={t.table.caption}
       className={cn('relative overflow-x-auto rounded-lg border border-border bg-card', focusRingInset)}
     >
-      <table className="w-full min-w-240 border-collapse text-body-sm">
+      <table className="w-full min-w-200 border-collapse text-body-sm">
         <caption className="sr-only">{t.table.caption}</caption>
         <thead className="border-b border-border text-muted-foreground">
           <tr>
@@ -168,11 +182,11 @@ export function TaskList({
             <th scope="col" className={head}>
               {t.table.assignee}
             </th>
-            <th scope="col" className={head}>
+            <th scope="col" className={cn(head, roomy)}>
               {t.table.branch}
             </th>
             <SortHead id="due" label={t.table.due} sort={sort} desc={desc} />
-            <SortHead id="updated" label={t.table.updated} sort={sort} desc={desc} />
+            <SortHead id="updated" label={t.table.updated} sort={sort} desc={desc} className={roomy} />
             {canMove && (
               <th scope="col" className={head}>
                 <span className="sr-only">{t.table.action}</span>
@@ -196,7 +210,7 @@ export function TaskList({
                     {card.key}
                   </Ltr>
                 </td>
-                <td className={cn(cell, 'min-w-52')}>
+                <td className={cn(cell, 'min-w-60')}>
                   <AppLink
                     id={`task-${card.key}`}
                     card={card.key}
@@ -207,6 +221,7 @@ export function TaskList({
                   >
                     <Bidi>{card.title}</Bidi>
                   </AppLink>
+                  <TaskSignals card={card} />
                 </td>
                 <td className={cn(cell, 'whitespace-nowrap text-muted-foreground')}>
                   {kit.sheet.task.specialties[card.task.specialty]}
@@ -245,7 +260,7 @@ export function TaskList({
                 <td className={cn(cell, 'whitespace-nowrap text-muted-foreground')}>
                   {card.assigneeId ? <ActorChip memberId={card.assigneeId} /> : <None label={t.table.none} />}
                 </td>
-                <td className={cn(cell, 'max-w-36 text-muted-foreground')}>
+                <td className={cn(cell, roomy, 'max-w-36 text-muted-foreground')}>
                   {pr ? (
                     <Ltr mono className="text-caption">
                       #{pr}
@@ -266,7 +281,7 @@ export function TaskList({
                 <td className={cn(cell, 'whitespace-nowrap text-muted-foreground')}>
                   {card.dueAt ? when(card.dueAt, locale) : <None label={t.table.none} />}
                 </td>
-                <td className={cn(cell, 'whitespace-nowrap text-muted-foreground')}>
+                <td className={cn(cell, roomy, 'whitespace-nowrap text-muted-foreground')}>
                   <RelativeTime iso={card.lastEventAt} />
                 </td>
                 {canMove && (

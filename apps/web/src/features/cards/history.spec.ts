@@ -66,3 +66,31 @@ describe('eventFacts', () => {
     expect(facts({ from: 'a', to: 'b', field: 'priority', title: 'T', selfVerified: true }).rows).toEqual([]);
   });
 });
+
+describe('eventFacts on an edit’s changes', () => {
+  const FIELDS = { priority: 'Priority', assigneeId: 'Assignee', body: 'Description' };
+  const edit = (changes: unknown[]) => eventFacts({ changes }, FIELDS, nameOf).changes;
+
+  it('names the field and both values', () => {
+    expect(edit([{ field: 'priority', from: 'P2', to: 'P0' }])).toEqual([
+      { key: 'priority', label: 'Priority', from: 'P2', to: 'P0', edited: false },
+    ]);
+  });
+
+  it('turns an assignee id into the member’s name', () => {
+    expect(edit([{ field: 'assigneeId', from: null, to: SARA }])?.[0]).toMatchObject({
+      from: null,
+      to: 'Sara',
+    });
+  });
+
+  it('says a long text was edited, without its hashes', () => {
+    expect(edit([{ field: 'body', from: 'a1b2', to: 'c3d4' }])).toEqual([
+      { key: 'body', label: 'Description', from: null, to: null, edited: true },
+    ]);
+  });
+
+  it('leaves out a field with no name', () => {
+    expect(edit([{ field: 'presence', from: 'a', to: 'b' }])).toBeUndefined();
+  });
+});

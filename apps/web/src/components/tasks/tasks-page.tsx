@@ -37,6 +37,7 @@ import {
   useFilterList,
   useKeyboardList,
   useLocale,
+  useMembers,
   usePageWide,
   usePerformAction,
   useReadyTasks,
@@ -132,24 +133,29 @@ function TasksBoardOrList() {
   const sort = useFilter('sort') as SortKey | null;
   const desc = useFilter('order') === 'desc';
 
-  // A link to a folded column, such as Today's "see the backlog", opens it.
-  const [railsOpen, setRailsOpen] = useState<Set<Column>>(
-    () => new Set(status === 'backlog' || status === 'done' ? [status] : []),
-  );
+  // The folded columns opened, in the URL so a reload or a shared link keeps them. A link to a folded column, such as Today's "see the backlog", opens it.
+  const railsParam = useFilterList('rails');
+  const isRail = (c: string | null): c is 'backlog' | 'done' => c === 'backlog' || c === 'done';
+  const railsOpen = new Set<Column>([...railsParam.filter(isRail), ...(isRail(status) ? [status] : [])]);
+  const assignee = useFilter('assignee');
 
   const accountantOnly = roles.length === 1 && roles[0] === 'accountant';
   const canMove = !accountantOnly;
 
   const tasks = useMemo(() => query.data?.items ?? [], [query.data]);
-  const filters = { specialties, priority, module: moduleFilter, q, review, mine };
+  const filters = { specialties, priority, module: moduleFilter, q, review, mine, assignee };
   const visible = tasks.filter((c) => matchesFilters(c, filters, me.id, roles));
   const byColumn = columnsOf(visible, me.id, roles);
   const listRows = sortList(visible, { status, sort, desc }, me.id, roles);
 
-  // The Focus desk's stage: a link to a column opens on it, else Ready, where the next piece of work waits.
-  const [stage, setStage] = useState<Column>(() =>
-    COLUMNS.includes(status as Column) ? (status as Column) : 'ready',
-  );
+  // The Focus desk's stage, in the URL so Back and a shared link keep it: a link to a column opens on it, else Ready, where the next piece of work waits.
+  const stageParam = useFilter('stage');
+  const stage: Column = COLUMNS.includes(stageParam as Column)
+    ? (stageParam as Column)
+    : COLUMNS.includes(status as Column)
+      ? (status as Column)
+      : 'ready';
+  const setStage = (next: Column) => setQuery({ stage: next === 'ready' ? null : next });
 
   const boardIds = (Object.keys(byColumn) as Column[])
     .flatMap((c) => (c === 'backlog' || c === 'done' ? (railsOpen.has(c) ? byColumn[c] : []) : byColumn[c]))
@@ -253,8 +259,15 @@ function TasksBoardOrList() {
   const awaitingReview = tasks.filter((c) => c.status === 'in_review' && seesReview).length;
 
   const modules = [...new Set(tasks.map((c) => c.module).filter((m): m is string => !!m))].sort();
+  // Who holds work: the members holding at least one task, by name.
+  const members = useMembers().data ?? [];
+  const holders = members
+    .filter((m) => tasks.some((c) => c.assigneeId === m.id))
+    .sort((a, b) => a.name.localeCompare(b.name, locale));
   const activeFilters =
-    ['specialty', 'priority', 'module', 'q', 'review', 'status'].some((p) => route.query.get(p)) || mine;
+    ['specialty', 'priority', 'module', 'q', 'review', 'status', 'assignee'].some((p) =>
+      route.query.get(p),
+    ) || mine;
   const clear = () => {
     rememberMine('tasks', me.id, false);
     setQuery({
@@ -265,6 +278,11 @@ function TasksBoardOrList() {
       review: null,
       status: null,
       mine: null,
+      assignee: null,
+      sort: null,
+      order: null,
+      stage: null,
+      rails: null,
     });
   };
 
@@ -289,12 +307,13 @@ function TasksBoardOrList() {
         <button
           key={value}
           type="button"
-          aria-pressed={view === value}
+          // The member's choice stays pressed while a tight page shows the List in the Board's place; the note below says why.
+          aria-pressed={chosenView === value}
           aria-keyshortcuts="v"
           onClick={() => setView(value)}
           className={cn(
             'inline-flex h-11 items-center gap-1.5 rounded-sm px-3 text-body-sm font-medium transition-colors duration-120 md:h-8',
-            view === value
+            chosenView === value
               ? 'bg-foreground text-background'
               : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             focusRing,
@@ -428,6 +447,11 @@ function TasksBoardOrList() {
   return (
     <PageContainer className="max-w-none">
       {header}
+      {boardTight && chosenView === 'board' && (
+        <p data-board-tight className="rounded-md bg-muted px-3 py-2 text-body-sm text-muted-foreground">
+          {t.view.boardTight}
+        </p>
+      )}
       {accountantOnly && (
         <p className="rounded-md bg-muted px-3 py-2 text-body-sm text-muted-foreground">{t.board.readOnly}</p>
       )}
@@ -456,11 +480,25 @@ function TasksBoardOrList() {
               any: t.filters.anyPriority,
               options: PRIORITIES.map((p) => ({ value: p, label: p })),
             },
+            // A project with no modules has nothing to choose here.
+            ...(modules.length
+              ? [
+                  {
+                    param: 'module',
+                    label: t.filters.module,
+                    any: t.filters.anyModule,
+                    options: modules.map((m) => ({ value: m, label: m })),
+                  },
+                ]
+              : []),
             {
-              param: 'module',
-              label: t.filters.module,
-              any: t.filters.anyModule,
-              options: modules.map((m) => ({ value: m, label: m })),
+              param: 'assignee',
+              label: t.filters.assignee,
+              any: t.filters.anyAssignee,
+              options: [
+                { value: 'none', label: t.filters.unassigned },
+                ...holders.map((m) => ({ value: m.id, label: m.name })),
+              ],
             },
             ...(view === 'list'
               ? [
@@ -505,14 +543,16 @@ function TasksBoardOrList() {
           byColumn={byColumn}
           rowProps={list.rowProps}
           openRails={railsOpen}
-          onToggleRail={(column) =>
-            setRailsOpen((set) => {
-              const next = new Set(set);
-              if (next.has(column)) next.delete(column);
-              else next.add(column);
-              return next;
-            })
-          }
+          onToggleRail={(column) => {
+            const next = new Set(railsOpen);
+            if (next.has(column)) next.delete(column);
+            else next.add(column);
+            // Closing the rail a status link opened also drops that status, or it would open again at once.
+            setQuery({
+              rails: [...next].join(',') || null,
+              ...(status === column && !next.has(column) ? { status: null } : {}),
+            });
+          }}
           onMove={onMove}
           canMove={canMove}
           specialtyFiltered={specialties.length > 0}

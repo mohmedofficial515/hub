@@ -41,6 +41,8 @@ export interface TaskFilters {
   q: string;
   review: boolean;
   mine: boolean;
+  /** A member's id, or `none` for the tasks nobody holds. */
+  assignee?: string | null | undefined;
 }
 
 export function matchesFilters(card: TaskCard, f: TaskFilters, memberId: string, roles: readonly Role[]) {
@@ -50,6 +52,8 @@ export function matchesFilters(card: TaskCard, f: TaskFilters, memberId: string,
   if (f.q && !card.key.toLowerCase().includes(f.q) && !card.title.toLowerCase().includes(f.q)) return false;
   if (f.review && card.status !== 'in_review') return false;
   if (f.mine && !isMine(card, memberId, roles)) return false;
+  if (f.assignee === 'none' && card.assigneeId) return false;
+  if (f.assignee && f.assignee !== 'none' && card.assigneeId !== f.assignee) return false;
   return true;
 }
 

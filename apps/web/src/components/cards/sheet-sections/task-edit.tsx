@@ -13,12 +13,15 @@ import { detectSecret, Field, SecretFilterError, Select, TextInput } from '@/com
 import type { Priority, Role, TaskCard, TaskDetail } from '@/features/cards/types';
 import { useMembers } from '@/features/session/session';
 import { saveTask, type TaskDetailPatch } from '@/features/tasks/queries';
+import { useUnsavedGuard } from '@/lib/hooks';
 import { kitMessages, useT } from '@/lib/i18n';
 
 import {
+  ChangedElsewhere,
   FormActions,
   FormFailure,
   fromLocalInput,
+  isUrl,
   MarkdownField,
   parseTags,
   toLocalInput,
@@ -55,13 +58,25 @@ interface TaskWords {
   };
 }
 
-const isUrl = (text: string) => {
-  try {
-    return !!new URL(text);
-  } catch {
-    return false;
-  }
-};
+/** The card's fields this form shows, to tell when a live change arrived while it was open. */
+const shownOf = (card: TaskCard) =>
+  JSON.stringify([
+    card.title,
+    card.body,
+    card.priority,
+    card.ownerRole,
+    card.assigneeId,
+    card.dueAt,
+    card.module,
+    card.tags,
+    card.repo,
+    card.task.specialty,
+    card.task.effort,
+    card.task.branch,
+    card.task.prUrl,
+    card.task.acceptance,
+    card.task.prompt,
+  ]);
 
 export function TaskEditForm({ card }: { card: TaskCard }) {
   const w = useEditWords();
@@ -93,6 +108,29 @@ export function TaskEditForm({ card }: { card: TaskCard }) {
   const [acceptance, setAcceptance] = useState(task.acceptance ?? '');
   const [prompt, setPrompt] = useState(task.prompt ?? '');
   const [tried, setTried] = useState(false);
+
+  // What the form opened on. A draft that differs is guarded from a reload; a card that changed underneath is said, and the draft stays.
+  const draft = JSON.stringify([
+    title,
+    body,
+    specialty,
+    effort,
+    priority,
+    role,
+    assignee,
+    due,
+    moduleName,
+    tags,
+    repo,
+    branch,
+    pr,
+    acceptance,
+    prompt,
+  ]);
+  const [opened] = useState(draft);
+  useUnsavedGuard(draft !== opened);
+  const shownNow = shownOf(card);
+  const [shownAtStart] = useState(shownNow);
 
   const noTitle = !title.trim();
   const badPr = !!pr.trim() && !isUrl(pr.trim());
@@ -150,7 +188,7 @@ export function TaskEditForm({ card }: { card: TaskCard }) {
           aria-invalid={tried && noTitle}
         />
       </Field>
-      <MarkdownField label={w.body} rows={4} value={body} onChange={setBody} />
+      <MarkdownField label={w.body} rows={4} value={body} onChange={setBody} disabled={!canContent} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id={`${id}-specialty`} label={e.specialty}>
@@ -297,14 +335,23 @@ export function TaskEditForm({ card }: { card: TaskCard }) {
         rows={4}
         value={acceptance}
         onChange={setAcceptance}
+        disabled={!canDetail}
       />
-      <MarkdownField label={e.prompt} hint={e.promptHint} rows={4} value={prompt} onChange={setPrompt} />
+      <MarkdownField
+        label={e.prompt}
+        hint={e.promptHint}
+        rows={4}
+        value={prompt}
+        onChange={setPrompt}
+        disabled={!canDetail}
+      />
 
       {(!canContent || !canRouting || !canDetail) && (
         <p className="text-body-sm text-muted-foreground">{e.who}</p>
       )}
       {secret && <SecretFilterError pattern={secret} />}
       <FormFailure message={failure} />
+      <ChangedElsewhere changed={shownAtStart !== shownNow} />
       <FormActions busy={busy} onCancel={() => setQuery({ action: null })} />
     </ActionPanel>
   );

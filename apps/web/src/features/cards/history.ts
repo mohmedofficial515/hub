@@ -12,6 +12,40 @@ export interface EventFacts {
   /** "field: from → to". `label` is null for a status change, whose verb already names it. */
   change: { label: string | null; from: string | null; to: string | null } | null;
   rows: { key: string; label: string; value: string }[];
+  /** An edit's fields, from `{ changes: [{ field, from?, to? }] }`. Absent when the event has none. */
+  changes?: EventChange[] | undefined;
+}
+
+export interface EventChange {
+  key: string;
+  label: string;
+  from: string | null;
+  to: string | null;
+  /** A long text (or one sent as a hash): only that it changed is said. */
+  edited: boolean;
+}
+
+/** Texts too long for a line, and `body` arrives as a hash. */
+const LONG_TEXT = new Set(['body', 'acceptance', 'prompt', 'comment', 'adrBody', 'notes', 'options']);
+
+function changesOf(
+  value: unknown,
+  fieldNames: Readonly<Record<string, string>>,
+  nameOf: NameOf,
+): EventChange[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item: unknown) => {
+    if (!item || typeof item !== 'object') return [];
+    const { field, from, to } = item as { field?: unknown; from?: unknown; to?: unknown };
+    const label = typeof field === 'string' ? fieldNames[field] : undefined;
+    if (typeof field !== 'string' || !label) return [];
+    if (LONG_TEXT.has(field)) return [{ key: field, label, from: null, to: null, edited: true }];
+    const fromText = from === null || from === undefined ? null : printable(from, nameOf);
+    const toText = to === null || to === undefined ? null : printable(to, nameOf);
+    // A value that cannot be printed (an object, an unknown id) still says the field changed.
+    const unreadable = (from != null && fromText === null) || (to != null && toText === null);
+    return [{ key: field, label, from: fromText, to: toText, edited: unreadable }];
+  });
 }
 
 type NameOf = (id: string) => string | undefined;
@@ -57,5 +91,10 @@ export function eventFacts(
     (to === null || toText !== null) &&
     (fromText !== null || toText !== null);
 
-  return { change: readable ? { label, from: fromText, to: toText } : null, rows };
+  const changes = changesOf(data['changes'], fieldNames, nameOf);
+  return {
+    change: readable ? { label, from: fromText, to: toText } : null,
+    rows,
+    ...(changes.length ? { changes } : {}),
+  };
 }

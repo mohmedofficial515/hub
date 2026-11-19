@@ -5,7 +5,7 @@
  * @description The Focus view of Tasks ("Focus desk", owner pick 2026-11-09): the six stages as one strip, the task to do
  * next on top, the chosen stage's queue under it, and what is in my hands or waiting for review beside it.
  */
-import { Ban, Eye, Hand, ListTodo, Sparkles } from 'lucide-react';
+import { Ban, Eye, Hand, ListTodo, Send, Sparkles } from 'lucide-react';
 
 import {
   Bidi,
@@ -36,6 +36,8 @@ export interface FocusDeskRows {
   mine: TaskCard[];
   /** In review, for QA and managers, when it is not already shown above. */
   review: TaskCard[];
+  /** For everyone else: what I sent for review and still waits, when it is not already shown above. */
+  sent: TaskCard[];
 }
 
 /** Which task shows where, so each appears once and the keyboard list walks them in screen order. */
@@ -51,11 +53,12 @@ export function focusDeskOf(
   const mine = inHands.filter((c) => !shown.has(c.key));
   mine.forEach((c) => shown.add(c.key));
   const review = seesReview ? byColumn.in_review.filter((c) => !shown.has(c.key)) : [];
-  return { hero, queue, mine, review };
+  const sent = seesReview ? [] : byColumn.in_review.filter((c) => c.assigneeId === meId && !shown.has(c.key));
+  return { hero, queue, mine, review, sent };
 }
 
-export const focusDeskIds = ({ hero, queue, mine, review }: FocusDeskRows) =>
-  [...(hero ? [hero] : []), ...queue, ...mine, ...review].map((c) => c.key);
+export const focusDeskIds = ({ hero, queue, mine, review, sent }: FocusDeskRows) =>
+  [...(hero ? [hero] : []), ...queue, ...mine, ...review, ...sent].map((c) => c.key);
 
 const panel = 'overflow-hidden rounded-xl border border-border bg-card shadow-xs';
 
@@ -162,14 +165,16 @@ export function FocusDesk({
   rowProps: (id: string) => Record<string, unknown>;
   onMove: OnMove;
   canMove: boolean;
-  /** The one filled button of the page: the first Ready task I can claim. */
+  /** The first Ready task I can claim. It fills a queue's button only when there is no task in Next for you. */
   primaryKey: string | undefined;
   specialtyFiltered: boolean;
   seesReview: boolean;
 }) {
   const t = useT<TaskMessages>('tasks');
   const locale = useLocale();
-  const { hero, queue, mine, review } = rows;
+  const { hero, queue, mine, review, sent } = rows;
+  // The filled button is the next thing this page wants from me: the task in "Next for you". Only with no hero does a queue fill one.
+  const rowsPrimary = hero ? undefined : primaryKey;
   const stageName = t.board.columns[stage];
 
   const blockedBy = (column: Column) =>
@@ -248,11 +253,7 @@ export function FocusDesk({
                 hideType
                 className="bg-transparent pt-2 pb-4 sm:px-4"
                 meta={<TaskFacts card={hero} />}
-                action={
-                  canMove ? (
-                    <MoveButton card={hero} onMove={onMove} primary={hero.key === primaryKey} />
-                  ) : undefined
-                }
+                action={canMove ? <MoveButton card={hero} onMove={onMove} primary /> : undefined}
               />
             ) : (
               <p className="px-4 pt-1 pb-4 text-body-sm text-muted-foreground">{t.focus.nextEmpty}</p>
@@ -270,7 +271,7 @@ export function FocusDesk({
               rowProps={rowProps}
               onMove={onMove}
               canMove={canMove}
-              primaryKey={primaryKey}
+              primaryKey={rowsPrimary}
               empty={queueEmpty}
             />
           </section>
@@ -284,7 +285,7 @@ export function FocusDesk({
               rowProps={rowProps}
               onMove={onMove}
               canMove={canMove}
-              primaryKey={primaryKey}
+              primaryKey={rowsPrimary}
               empty={t.focus.mineEmpty}
             />
           </section>
@@ -296,8 +297,21 @@ export function FocusDesk({
                 rowProps={rowProps}
                 onMove={onMove}
                 canMove={canMove}
-                primaryKey={primaryKey}
+                primaryKey={rowsPrimary}
                 empty={t.focus.reviewEmpty}
+              />
+            </section>
+          )}
+          {!seesReview && (
+            <section aria-labelledby="focus-sent" className={panel}>
+              <PanelHeader id="focus-sent" icon={Send} title={t.focus.sent} count={sent.length} />
+              <Rows
+                cards={sent}
+                rowProps={rowProps}
+                onMove={onMove}
+                canMove={canMove}
+                primaryKey={rowsPrimary}
+                empty={t.focus.sentEmpty}
               />
             </section>
           )}

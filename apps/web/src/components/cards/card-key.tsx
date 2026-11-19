@@ -9,6 +9,7 @@ import { focusRing } from '@/components/cards/meta';
 import { Ltr } from '@/components/common/text';
 import { AppLink } from '@/components/shell/router';
 import { getCard } from '@/features/cards/store';
+import type { CardListItem } from '@/features/cards/types';
 import { useT } from '@/lib/i18n';
 import { kitMessages } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,7 @@ export function CardChip({
   title,
   showTitle = false,
   showStatus = false,
+  card: given,
   className,
 }: {
   k: string;
@@ -60,10 +62,12 @@ export function CardChip({
   title?: string | undefined;
   showTitle?: boolean | undefined;
   showStatus?: boolean | undefined;
+  /** The other card as a link or a row carried it, for a card no list has loaded. The caches win when they know it. */
+  card?: Pick<CardListItem, 'type' | 'title' | 'status' | 'flags' | 'closedAt'> | undefined;
   className?: string | undefined;
 }) {
   const t = useT(kitMessages);
-  const card = getCard(k);
+  const card = getCard(k) ?? given;
   const resolvedType = type ?? card?.type ?? 'task';
   const resolvedTitle = title ?? card?.title;
   return (

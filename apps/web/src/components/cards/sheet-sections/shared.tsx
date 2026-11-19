@@ -4,13 +4,17 @@
  * @file shared.tsx
  * @description Ported from apps/lab/hub/today/v5-peacock-app/kit/sheet-sections/shared.tsx. Contract: apps/web/README.md.
  */
+import { Check } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useRef, useState } from 'react';
 
+import { MarkdownView } from '@/components/common/markdown';
+import { Bidi, fmt } from '@/components/common/text';
 import { Button } from '@/components/ui/button';
 import { Field, focusFirstInvalid, Textarea } from '@/components/ui/form';
 import type { ActionPayload } from '@/features/cards/rules';
 import type { HubCard } from '@/features/cards/types';
-import { useT } from '@/lib/i18n';
+import { num } from '@/lib/format';
+import { useLocale, useT } from '@/lib/i18n';
 import { type CardAction, kitMessages } from '@/lib/i18n';
 import { matchKey } from '@/lib/keys';
 import { cn } from '@/lib/utils';
@@ -83,6 +87,10 @@ export function ActionPanel({
     <form
       ref={ref}
       aria-labelledby={labelledBy}
+      // The sheet asks before Esc or Close throws away what was typed here (08 §5.7).
+      onInput={(e) => {
+        e.currentTarget.dataset['dirty'] = 'true';
+      }}
       onSubmit={(e) => {
         e.preventDefault();
         submit();
@@ -160,27 +168,69 @@ export function NoteActionForm({
   );
 }
 
-/** `- [x] item` lines as a read-only checklist (08 §5.4: ticking is a comment by the claimer). */
+/** A checklist line: any list marker (`-`, `*`, `+`, `1.`), then `[ ]`, `[x]` or `[X]`. */
+const CHECK_LINE = /^(?:[-*+]|\d+[.)])\s+\[([ xX])\]\s+(.*)$/;
+
+export interface ChecklistItem {
+  done: boolean;
+  text: string;
+}
+
+/** What a criteria text holds: its checklist lines, and whether every non-empty line is one of them. */
+export function parseChecklist(markdown: string): { items: ChecklistItem[]; onlyItems: boolean } {
+  const lines = markdown.split('\n').filter((line) => line.trim());
+  const items = lines.flatMap((line) => {
+    const m = CHECK_LINE.exec(line.trim());
+    return m ? [{ done: m[1] !== ' ', text: m[2] ?? '' }] : [];
+  });
+  return { items, onlyItems: items.length > 0 && items.length === lines.length };
+}
+
+/**
+ * Acceptance criteria, read-only (08 §5.4: ticking is a comment by the claimer). A pure checklist draws as one with its progress; any other
+ * text (plain bullets from an import, a numbered list, free prose from an agent) draws as Markdown, so no line is ever dropped.
+ */
 export function Checklist({ markdown }: { markdown: string }) {
-  const items = markdown
-    .split('\n')
-    .map((line) => /^- \[( |x)\] (.*)$/.exec(line.trim()))
-    .filter((m): m is RegExpExecArray => !!m);
+  const t = useT(kitMessages);
+  const locale = useLocale();
+  const w = t.sections.task;
+  const { items, onlyItems } = parseChecklist(markdown);
+  const done = items.filter((item) => item.done).length;
+  const progress = items.length > 0 && (
+    <p className="text-body-sm text-muted-foreground">
+      {fmt(w.acceptanceProgress, { done: num(done, locale), total: num(items.length, locale) })}
+    </p>
+  );
+  if (!onlyItems) {
+    return (
+      <div className="flex flex-col gap-2">
+        {progress}
+        <MarkdownView source={markdown} dir="auto" headingOffset={2} copyCodeLabel={t.sheet.copyCode} />
+      </div>
+    );
+  }
   return (
-    <ul className="flex flex-col gap-1.5 text-body">
-      {items.map((m, i) => (
-        <li key={i} className="flex items-start gap-2">
-          <input
-            type="checkbox"
-            checked={m[1] === 'x'}
-            readOnly
-            tabIndex={-1}
-            aria-label={m[2]}
-            className="mt-1 size-4 shrink-0 accent-primary"
-          />
-          <span className="text-foreground">{m[2]}</span>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-2">
+      {progress}
+      <ul className="flex flex-col gap-1.5 text-body">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <span
+              aria-hidden
+              className={cn(
+                'mt-1 flex size-4 shrink-0 items-center justify-center rounded-full border',
+                item.done ? 'border-primary bg-primary text-primary-foreground' : 'border-border',
+              )}
+            >
+              {item.done && <Check className="size-3" strokeWidth={2.5} />}
+            </span>
+            <span className="min-w-0 text-foreground">
+              <Bidi>{item.text}</Bidi>
+              <span className="sr-only"> ({item.done ? w.criterionDone : w.criterionOpen})</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -89,4 +89,13 @@ describe('matchesFilters', () => {
     expect(matchesFilters(card, { ...none, specialties: ['qa'] }, 'me', roles)).toBe(false);
     expect(matchesFilters(card, { ...none, review: true }, 'me', roles)).toBe(false);
   });
+
+  it('keeps the tasks nobody holds, or one member’s', () => {
+    const free = task('GTV-2');
+    const held = task('GTV-3', { assigneeId: 'sara', status: 'in_progress' });
+    expect(matchesFilters(free, { ...none, assignee: 'none' }, 'me', roles)).toBe(true);
+    expect(matchesFilters(held, { ...none, assignee: 'none' }, 'me', roles)).toBe(false);
+    expect(matchesFilters(held, { ...none, assignee: 'sara' }, 'me', roles)).toBe(true);
+    expect(matchesFilters(free, { ...none, assignee: 'sara' }, 'me', roles)).toBe(false);
+  });
 });
