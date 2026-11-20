@@ -116,7 +116,14 @@
       "step_not_found": "That step is not on this plan.",
       "revision_not_found": "That revision does not exist.",
       "unknown_phase": "A step names a phase this plan does not have: {phase}. Add the phase, or leave the step without one.",
-      "phase_in_use": "Steps still belong to the phase {phase}. Move them to another phase, or leave them without one, in the same save."
+      "phase_in_use": "Steps still belong to the phase {phase}. Move them to another phase, or leave them without one, in the same save.",
+      "evidence_type": "Hub keeps PNG, JPEG or WebP pictures and MP4 or WebM clips. This file is none of them.",
+      "evidence_too_large": "The file is too large: a picture up to 8 MB, a clip up to 40 MB.",
+      "evidence_damaged": "The picture cannot be read. Save it again and send it once more.",
+      "evidence_kind": "A clip is the kind video, and a picture is before or after.",
+      "evidence_full": "This step already has {max} files of evidence. Remove one first.",
+      "evidence_not_found": "That evidence is not on this step.",
+      "evidence_file_not_found": "Hub cannot read that file. It must be inside one of the project's folders on the machine Hub runs on."
     },
     "docs": {
       "not_found": "Document not found.",

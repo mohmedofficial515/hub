@@ -254,6 +254,9 @@ describe('permission matrix', () => {
       ],
       ['Plan: approve', ['plan.approve']],
       ['Plan: request changes', ['plan.request_changes']],
+      ['Plan: add evidence to a step', ['plan.add_evidence']],
+      ["Plan: remove a step's evidence", ['plan.remove_evidence']],
+      ['Plan: remove evidence you added', ['plan.remove_own_evidence']],
       ['Audit log: read', ['audit.read']],
     ];
 

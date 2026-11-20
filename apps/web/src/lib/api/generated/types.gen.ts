@@ -9904,6 +9904,95 @@ export type PlansControllerToTasksResponses = {
 
 export type PlansControllerToTasksResponse = PlansControllerToTasksResponses[keyof PlansControllerToTasksResponses];
 
+export type PlanEvidenceControllerAddData = {
+    body: {
+        file: Blob | File;
+        kind: 'before' | 'after' | 'video';
+        caption?: string;
+    };
+    path: {
+        ws: string;
+        key: string;
+        stepId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence';
+};
+
+export type PlanEvidenceControllerAddErrors = {
+    /**
+     * hub.plans.evidence_full (10 files on a step)
+     */
+    409: unknown;
+    /**
+     * hub.plans.evidence_too_large
+     */
+    413: unknown;
+    /**
+     * hub.plans.evidence_type (SVG, HTML and anything not a picture or clip)
+     */
+    415: unknown;
+    /**
+     * hub.plans.evidence_kind · hub.plans.evidence_damaged
+     */
+    422: unknown;
+};
+
+export type PlanEvidenceControllerAddResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlanEvidenceControllerAddResponse = PlanEvidenceControllerAddResponses[keyof PlanEvidenceControllerAddResponses];
+
+export type PlanEvidenceControllerRemoveData = {
+    body?: never;
+    path: {
+        key: string;
+        stepId: string;
+        attachmentId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence/{attachmentId}';
+};
+
+export type PlanEvidenceControllerRemoveResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlanEvidenceControllerRemoveResponse = PlanEvidenceControllerRemoveResponses[keyof PlanEvidenceControllerRemoveResponses];
+
+export type PlanEvidenceControllerFileData = {
+    body?: never;
+    path: {
+        key: string;
+        attachmentId: string;
+    };
+    query?: {
+        size?: 'full' | 'thumb';
+    };
+    url: '/api/v1/workspaces/{ws}/cards/{key}/attachments/{attachmentId}/file';
+};
+
+export type PlanEvidenceControllerFileErrors = {
+    /**
+     * hub.plans.evidence_not_found
+     */
+    404: unknown;
+};
+
+export type PlanEvidenceControllerFileResponses = {
+    /**
+     * The bytes, with nosniff, a CSP that runs nothing and an ETag
+     */
+    200: Blob | File;
+    /**
+     * The asked range
+     */
+    206: unknown;
+};
+
+export type PlanEvidenceControllerFileResponse = PlanEvidenceControllerFileResponses[keyof PlanEvidenceControllerFileResponses];
+
 export type HealthControllerLiveData = {
     body?: never;
     path?: never;

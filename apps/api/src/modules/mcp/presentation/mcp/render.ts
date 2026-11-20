@@ -145,6 +145,11 @@ interface StepRow {
   readonly size?: string;
   readonly after?: readonly string[];
   readonly acceptance?: string;
+  readonly evidence?: readonly {
+    readonly attachmentId: string;
+    readonly kind: string;
+    readonly caption?: string;
+  }[];
 }
 
 /** A step's line, then its reason, size, the steps it waits for and when it is done, each indented (owner decision 9a). */
@@ -158,6 +163,10 @@ function stepLines(step: StepRow, index: number): string[] {
     ...(step.why ? [`   Why: ${step.why}`] : []),
     ...(step.after?.length ? [`   After: ${step.after.join(', ')}`] : []),
     ...(step.acceptance ? [`   Done when: ${step.acceptance}`] : []),
+    ...(step.evidence ?? []).map(
+      (item) =>
+        `   Evidence: ${item.kind}${item.caption ? ` · ${item.caption}` : ''} (attachment ${item.attachmentId})`,
+    ),
   ];
 }
 

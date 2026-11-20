@@ -4,7 +4,15 @@
  * phase are the writer's (owner decision 9a, v5-live-plan). `doneAt` is Hub's: set when a step that was not done becomes done, kept while it
  * stays done, and never invented for a step that arrives already done.
  */
-import type { ErrorCode, PlanPhase, PlanStep, PlanStepInput, Role, Specialty } from '@hub/contracts';
+import type {
+  ErrorCode,
+  PlanPhase,
+  PlanStep,
+  PlanStepEvidence,
+  PlanStepInput,
+  Role,
+  Specialty,
+} from '@hub/contracts';
 
 export function normalizeSteps(
   inputs: readonly PlanStepInput[],
@@ -55,6 +63,8 @@ export function normalizeSteps(
       ...(input.acceptance ? { acceptance: input.acceptance } : {}),
       ...(input.phaseId ? { phaseId: input.phaseId } : {}),
       ...(doneAt ? { doneAt } : {}),
+      // Evidence is Hub's (batch 3): a save never sends it, and the step keeps what it had.
+      ...(before?.evidence?.length ? { evidence: before.evidence } : {}),
     };
   });
   return withAfter(inputs, steps);
@@ -97,7 +107,25 @@ export function canonicalStep(step: PlanStep): PlanStep {
     ...(step.acceptance ? { acceptance: step.acceptance } : {}),
     ...(step.phaseId ? { phaseId: step.phaseId } : {}),
     ...(step.doneAt ? { doneAt: step.doneAt } : {}),
+    ...(step.evidence && step.evidence.length > 0 ? { evidence: step.evidence.map(canonicalEvidence) } : {}),
+    // Last, as `withAfter` adds it after the rest.
     ...(step.after && step.after.length > 0 ? { after: [...step.after] } : {}),
+  };
+}
+
+/** One file of evidence with its keys in one order, for the same reason as `canonicalStep`. */
+export function canonicalEvidence(item: PlanStepEvidence): PlanStepEvidence {
+  return {
+    attachmentId: item.attachmentId,
+    kind: item.kind,
+    ...(item.caption ? { caption: item.caption } : {}),
+    mime: item.mime,
+    ...(item.width ? { width: item.width } : {}),
+    ...(item.height ? { height: item.height } : {}),
+    addedAt: item.addedAt,
+    via: item.via,
+    ...(item.addedBy ? { addedBy: item.addedBy } : {}),
+    ...(item.thumb ? { thumb: true } : {}),
   };
 }
 

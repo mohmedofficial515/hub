@@ -7,7 +7,7 @@
  * page is open pops its check and flashes once; pointing at a square outlines the squares it depends on. Any step opens the drawer.
  */
 import { motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Lock, Sparkles, SquareCheck } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Images, Lock, Sparkles, SquareCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -161,6 +161,15 @@ function StepRow({ step, all, run, isNext, hot, justDone, showRole, onHot, onOpe
             </span>
           )}
           {step.size && <SizeChip size={step.size} />}
+          {step.evidence?.length ? (
+            <span
+              data-pj-evidence-count
+              className="inline-flex h-5.5 items-center gap-1 rounded-full border border-border bg-card px-2 text-caption text-muted-foreground"
+            >
+              <Images aria-hidden className="pj-tone-fg size-3" strokeWidth={2} />
+              {fmt(t.evidence.countLabel, { n: num(step.evidence.length, locale) })}
+            </span>
+          ) : null}
           {step.taskKey && (
             <span className="inline-flex h-5.5 items-center gap-1 rounded-full border border-border bg-card px-2 text-caption text-muted-foreground">
               <SquareCheck aria-hidden className="size-3 text-type-task-fg" strokeWidth={2} />

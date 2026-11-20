@@ -4,7 +4,7 @@
  * @file step-drawer.tsx
  * @description A step opened from the chapter, the waffle or the list (v5-live-plan): a drawer from the page's end edge. It holds why the step
  * exists, its acceptance checks, what it waits for and what it opens the way to (each a link to that step), and its task. Radix traps focus, Esc
- * closes, and focus returns to the opener. Running a step with Claude and its evidence come in later batches of the port.
+ * closes, and focus returns to the opener. Its evidence (batch 3) is `step-evidence.tsx`: before and after, pictures, clips, and adding one.
  */
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, CircleDashed, Lock, X } from 'lucide-react';
@@ -33,6 +33,7 @@ import { blockersOf, type JourneyStep, type PhaseGroup, toneOf } from '@/feature
 import type { StepTask } from './detail-parts';
 import type { PlanningMessages } from './messages';
 import { waitsFor } from './phase-focus';
+import { StepEvidenceSection } from './step-evidence';
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
 
@@ -91,10 +92,13 @@ export function StepDrawer({
   groups,
   nextId,
   tasks,
+  evidence,
   onOpenStep,
   onClose,
 }: {
   step: JourneyStep | null;
+  /** The plan the step is in, and what the member may do with its evidence. Absent: the section is not shown. */
+  evidence?: { cardKey: string; canAdd: boolean; canRemove: boolean } | undefined;
   groups: PhaseGroup[];
   nextId: string | null;
   /** Each step's task, by key, where the page knows it. */
@@ -102,7 +106,8 @@ export function StepDrawer({
   onOpenStep: (id: string) => void;
   onClose: () => void;
 }) {
-  const j = useT<PlanningMessages>('planning').detail.journey;
+  const d = useT<PlanningMessages>('planning').detail;
+  const j = d.journey;
   const locale = useLocale();
   const all = groups.flatMap((g) => g.steps);
   const group = step ? groups.find((g) => g.steps.some((s) => s.id === step.id)) : undefined;
@@ -235,6 +240,17 @@ export function StepDrawer({
                             />
                           )}
                         </div>
+                      </Section>
+                    )}
+
+                    {evidence && (
+                      <Section title={d.evidence.title}>
+                        <StepEvidenceSection
+                          cardKey={evidence.cardKey}
+                          step={step}
+                          canAdd={evidence.canAdd}
+                          canRemove={evidence.canRemove}
+                        />
                       </Section>
                     )}
 

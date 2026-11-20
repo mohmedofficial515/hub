@@ -8,7 +8,8 @@
  * evidence, runs and revisions beside the outline and the facts), comments, history and links. Any step opens a drawer with why it exists, its
  * acceptance checks and what it waits for. A plan saved before phases shows the head and one plain list, with no ring and no map.
  * Batch 2 adds the live layer (plan-live.tsx): Claude's run on a step with its stages and the approval it waits on, the halo on its phase, the
- * activity feed and a phase's celebration. Step evidence and the explainer video are later batches. Why it looks this way: the version's README.
+ * activity feed and a phase's celebration. Batch 3 adds each step's evidence in its drawer (step-evidence.tsx) and its count on the step's row.
+ * The explainer video is the last batch. Why it looks this way: the version's README.
  */
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import {
@@ -836,6 +837,11 @@ export function PlanDetail({
           groups={groups}
           nextId={nextId}
           tasks={tasks}
+          evidence={{
+            cardKey: card.key,
+            canAdd: !card.archivedAt && card.allowedActions.includes('plan.add_evidence'),
+            canRemove: !card.archivedAt && card.allowedActions.includes('plan.remove_evidence'),
+          }}
           onOpenStep={setOpenId}
           onClose={() => setOpenId(null)}
         />

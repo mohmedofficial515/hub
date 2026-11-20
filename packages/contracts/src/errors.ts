@@ -93,6 +93,13 @@ export const ERROR_CATALOGUE = {
   'hub.plans.revision_not_found': 404,
   'hub.plans.unknown_phase': 400,
   'hub.plans.phase_in_use': 409,
+  'hub.plans.evidence_type': 415,
+  'hub.plans.evidence_too_large': 413,
+  'hub.plans.evidence_damaged': 422,
+  'hub.plans.evidence_kind': 422,
+  'hub.plans.evidence_full': 409,
+  'hub.plans.evidence_not_found': 404,
+  'hub.plans.evidence_file_not_found': 404,
 
   'hub.audit.export_too_large': 400,
   'hub.docs.not_found': 404,

@@ -70,6 +70,8 @@ export function mergeSteps(
       ...(step.acceptance ? { acceptance: step.acceptance } : {}),
       ...(step.phaseId ? { phaseId: step.phaseId } : {}),
       ...(before?.done && before.doneAt ? { doneAt: before.doneAt } : {}),
+      // Hub keeps a step's evidence across a save; the copy shown meanwhile keeps it too.
+      ...(before?.evidence?.length ? { evidence: before.evidence } : {}),
     };
   });
 }

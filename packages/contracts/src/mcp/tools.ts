@@ -43,6 +43,7 @@ import {
   markPortedSchema,
   NEED_STATUSES,
   optionalReasonSchema,
+  PLAN_EVIDENCE_KINDS,
   PLAN_STATUSES,
   planToTasksSchema,
   reasonSchema,
@@ -675,6 +676,29 @@ const TOOL_TABLE = {
       `POST ${W}/plans/:key/finish`,
       `POST ${W}/plans/:key/abandon`,
     ],
+  },
+  add_step_evidence: {
+    description:
+      "Attach a screenshot or a clip to a plan step as its evidence, when you finish the step: `kind` before or after for a picture (PNG, JPEG or WebP, up to 8 MB), video for a clip (MP4 or WebM, up to 40 MB), and a one-line `caption`. `path` is the file's absolute path; it must lie inside one of the project's registered folders (or a Hub worktree of one) on the machine Hub runs on. Hub keeps a picture without its metadata. `step` is the step's id, or its number from 1.",
+    input: key.extend({
+      step: z.union([z.string().min(1).max(64), z.number().int().min(1).max(200)]),
+      kind: z.enum(PLAN_EVIDENCE_KINDS),
+      caption: z.string().trim().min(1).max(200).optional(),
+      path: z.string().min(1).max(500),
+    }),
+    actions: ['plan.add_evidence'],
+    routes: [`POST ${W}/plans/:key/steps/:stepId/evidence`],
+  },
+  remove_step_evidence: {
+    description:
+      "Remove a file from a plan step's evidence, by its attachment id (get_plan lists them). The plan's owner, a pm and its creator may remove any; anyone may remove what they added. Its bytes are deleted.",
+    input: key.extend({
+      step: z.union([z.string().min(1).max(64), z.number().int().min(1).max(200)]),
+      attachmentId: z.uuid(),
+    }),
+    actions: ['plan.remove_evidence', 'plan.remove_own_evidence'],
+    routes: [`DELETE ${W}/plans/:key/steps/:stepId/evidence/:attachmentId`],
+    destructive: true,
   },
   plan_to_tasks: {
     description: 'Create one task per step with no task yet, and move the plan to in progress.',

@@ -7237,6 +7237,226 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence": {
+      "post": {
+        "operationId": "PlanEvidenceController_add",
+        "parameters": [
+          {
+            "name": "ws",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stepId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "kind"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "before",
+                      "after",
+                      "video"
+                    ]
+                  },
+                  "caption": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardWrittenResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "hub.plans.evidence_full (10 files on a step)"
+          },
+          "413": {
+            "description": "hub.plans.evidence_too_large"
+          },
+          "415": {
+            "description": "hub.plans.evidence_type (SVG, HTML and anything not a picture or clip)"
+          },
+          "422": {
+            "description": "hub.plans.evidence_kind · hub.plans.evidence_damaged"
+          }
+        },
+        "summary": "Add a picture (before or after) or a clip (video) to a plan step's evidence. PNG, JPEG or WebP up to 8 MB, kept without metadata; MP4 or WebM up to 40 MB",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence/{attachmentId}": {
+      "delete": {
+        "operationId": "PlanEvidenceController_remove",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stepId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardWrittenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Remove a file from a plan step's evidence, and its bytes. The plan's owner, a pm and its creator remove any; anyone what they added",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/cards/{key}/attachments/{attachmentId}/file": {
+      "get": {
+        "operationId": "PlanEvidenceController_file",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "attachmentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "size",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full",
+                "thumb"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The bytes, with nosniff, a CSP that runs nothing and an ETag",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/mp4": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "video/webm": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "206": {
+            "description": "The asked range"
+          },
+          "404": {
+            "description": "hub.plans.evidence_not_found"
+          }
+        },
+        "summary": "An uploaded attachment's bytes, such as a plan step's evidence. A range for a clip",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",

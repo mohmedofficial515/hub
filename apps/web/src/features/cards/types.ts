@@ -280,6 +280,25 @@ export interface PlanStep {
   phaseId?: string | undefined;
   /** When the step last became done, set by Hub. */
   doneAt?: string | undefined;
+  /** Pictures and clips that show the step done (v5-live-plan, batch 3). Hub's: the form never sends them. */
+  evidence?: StepEvidence[] | undefined;
+}
+
+/** One file of a step's evidence: an attachment of the plan card, served at `evidenceUrl`. */
+export interface StepEvidence {
+  attachmentId: string;
+  kind: 'before' | 'after' | 'video';
+  caption?: string | undefined;
+  mime: string;
+  width?: number | null | undefined;
+  height?: number | null | undefined;
+  addedAt: string;
+  /** How it came: `mcp` when Claude attached it. */
+  via: 'web' | 'mcp';
+  /** Who added it: they may remove it again. */
+  addedBy?: string | null | undefined;
+  /** A picture has a small WebP for a grid, at `…/file?size=thumb`. */
+  thumb?: boolean | undefined;
 }
 
 /** A named part of a plan's steps, in the order of `PlanDetail.phases` (v5-live-plan). */

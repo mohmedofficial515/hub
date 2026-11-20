@@ -550,3 +550,77 @@
     animation: none;
   }
 }
+
+/* Evidence (v5-live-plan, batch 3): before and after on one frame, and a step's clip. */
+.pj-compare {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--muted);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: pan-y;
+}
+.pj-compare img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.pj-compare-top {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.pj-compare-handle {
+  position: absolute;
+  inset-block: 0;
+  display: grid;
+  width: 2.75rem;
+  margin-inline-start: -1.375rem;
+  place-items: center;
+  cursor: ew-resize;
+  outline: none;
+}
+.pj-compare-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 1px);
+  width: 2px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+.pj-compare-knob {
+  position: relative;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+.pj-compare-handle:focus-visible .pj-compare-knob {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--ring);
+}
+.pj-compare-tag {
+  position: absolute;
+  top: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.65);
+  color: rgb(255 255 255);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.pj-video {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  background: rgb(0 0 0);
+}

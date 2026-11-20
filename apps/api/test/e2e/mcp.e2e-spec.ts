@@ -3,8 +3,11 @@
  * reaches a real SSE listener within a second. Then what MCP must refuse: no token, a cookie, a hook token, a secret,
  * another member's project, and what the member's roles do not allow.
  */
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import http, { type ClientRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -318,6 +321,56 @@ describe('MCP over HTTP', () => {
       const refused = await hub.call('update_plan', { key, phases: [{ id: 'p0', title: 'Setup' }] });
       expect(refused.isError).toBe(true);
       expect(refused.content[0]?.text).toContain('Build');
+    });
+
+    it('Claude attaches a screenshot to a step from a file in a project folder, and nothing outside one', async () => {
+      const { workspace, token } = await setup();
+      const folder = mkdtempSync(join(tmpdir(), 'hub-evidence-'));
+      const outside = mkdtempSync(join(tmpdir(), 'hub-outside-'));
+      // A 1×1 PNG.
+      const png = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64',
+      );
+      writeFileSync(join(folder, 'after.png'), png);
+      writeFileSync(join(outside, 'after.png'), png);
+      await db().workspace.update({ where: { id: workspace.id }, data: { repoPaths: [folder] } });
+      const hub = await connect(token);
+      const key = keyIn(
+        await hub.ok('create_plan', { title: 'With evidence', steps: [{ title: 'Screens' }] }),
+      );
+
+      const done = await hub.ok('add_step_evidence', {
+        key,
+        step: 1,
+        kind: 'after',
+        caption: 'The new screens',
+        path: join(folder, 'after.png'),
+      });
+      expect(done).toContain('Attached after evidence to step 1');
+      const sheet = await hub.ok('get_plan', { key });
+      expect(sheet).toMatch(/Evidence: after · The new screens \(attachment [0-9a-f-]{36}\)/);
+      const card = await db().card.findFirstOrThrow({
+        where: { workspaceId: workspace.id, key },
+        include: { plan: true },
+      });
+      expect((card.plan?.steps as { evidence?: { via: string }[] }[])[0]?.evidence?.[0]?.via).toBe('mcp');
+
+      const refused = await hub.call('add_step_evidence', {
+        key,
+        step: 1,
+        kind: 'after',
+        path: join(outside, 'after.png'),
+      });
+      expect(refused.isError).toBe(true);
+      expect(refused.content[0]?.text).toContain('project');
+      const relative = await hub.call('add_step_evidence', {
+        key,
+        step: 1,
+        kind: 'after',
+        path: '../after.png',
+      });
+      expect(relative.isError).toBe(true);
     });
 
     it('records the agent as the actor, through the same path as the web', async () => {

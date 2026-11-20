@@ -6,8 +6,10 @@
 import {
   type CreatePlanInput,
   createPlanSchema,
+  PLAN_STEP_EVIDENCE_MAX,
   type PlanPhase,
   type PlanStep,
+  planStepEvidenceSchema,
   type PlanToTasksInput,
   planToTasksSchema,
   type ReasonInput,
@@ -34,7 +36,14 @@ import {
 } from '@/modules/cards';
 import { AppException } from '@/shared/errors';
 
-import { canonicalStep, normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
+import {
+  canonicalEvidence,
+  canonicalStep,
+  normalizeSteps,
+  phaseProblem,
+  specialtyOfStep,
+  withDone,
+} from './plan-steps';
 import { StudioSourceCheck } from './studio-source.check';
 
 /** The plan's steps, each with its keys in one order (see `canonicalStep`), so a compare with normalised steps does not depend on JSONB. */
@@ -343,5 +352,93 @@ export class PlanSyncStepAction implements CardActionDefinition<SyncInput> {
     if (!step || step.done === payload.done) return { noop: true };
     const steps = found.map((item) => (item === step ? withDone(item, payload.done, now) : item));
     return { detail: { steps }, event: { kind: 'plan_steps_changed', data: { steps } } };
+  }
+}
+
+const addEvidenceSchema = z.object({ stepId: z.string().min(1).max(64), evidence: planStepEvidenceSchema });
+type AddEvidenceInput = z.infer<typeof addEvidenceSchema>;
+
+/**
+ * A file of evidence joins a step (v5-live-plan, batch 3). Applied only by `PlanEvidenceService`, after it stored the file as an attachment of
+ * this card, so the attachment id and its facts are Hub's own.
+ */
+@Injectable()
+@CardActionHandler()
+export class PlanAddEvidenceAction implements CardActionDefinition<AddEvidenceInput> {
+  readonly action = 'plan.add_evidence';
+  readonly payload = addEvidenceSchema;
+
+  plan({ card, payload }: CardActionContext<AddEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.add_evidence needs a card');
+    const found = stepsOf(card);
+    const step = found.find((item) => item.id === payload.stepId);
+    if (!step) throw new AppException('hub.plans.step_not_found');
+    const had = step.evidence ?? [];
+    if (had.length >= PLAN_STEP_EVIDENCE_MAX) {
+      throw new AppException('hub.plans.evidence_full', { params: { max: String(PLAN_STEP_EVIDENCE_MAX) } });
+    }
+    const evidence = canonicalEvidence(payload.evidence);
+    const steps = found.map((item) => (item === step ? { ...item, evidence: [...had, evidence] } : item));
+    return {
+      detail: { steps },
+      event: {
+        kind: 'plan_steps_changed',
+        data: { steps, evidence: { stepId: step.id, added: evidence.attachmentId, kind: evidence.kind } },
+      },
+    };
+  }
+}
+
+const removeEvidenceSchema = z.object({ stepId: z.string().min(1).max(64), attachmentId: z.string().min(1) });
+type RemoveEvidenceInput = z.infer<typeof removeEvidenceSchema>;
+
+/** The step without one file of its evidence. `own` refuses a file the actor did not add. */
+function withoutEvidence(card: CardView, payload: RemoveEvidenceInput, own: string | null): CardActionPlan {
+  const found = stepsOf(card);
+  const step = found.find((item) => item.id === payload.stepId);
+  if (!step) throw new AppException('hub.plans.step_not_found');
+  const target = (step.evidence ?? []).find((item) => item.attachmentId === payload.attachmentId);
+  if (!target) throw new AppException('hub.plans.evidence_not_found');
+  if (own !== null && target.addedBy !== own) {
+    throw new AppException('hub.common.forbidden', { details: { action: 'plan.remove_own_evidence' } });
+  }
+  const left = (step.evidence ?? []).filter((item) => item !== target);
+  const steps = found.map((item) => {
+    if (item !== step) return item;
+    const { evidence: _evidence, ...rest } = item;
+    return left.length > 0 ? { ...rest, evidence: left } : rest;
+  });
+  return {
+    detail: { steps },
+    event: {
+      kind: 'plan_steps_changed',
+      data: { steps, evidence: { stepId: step.id, removed: payload.attachmentId } },
+    },
+  };
+}
+
+/** A file of evidence leaves its step; `PlanEvidenceService` then removes its bytes. The event keeps which one it was. */
+@Injectable()
+@CardActionHandler()
+export class PlanRemoveEvidenceAction implements CardActionDefinition<RemoveEvidenceInput> {
+  readonly action = 'plan.remove_evidence';
+  readonly payload = removeEvidenceSchema;
+
+  plan({ card, payload }: CardActionContext<RemoveEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.remove_evidence needs a card');
+    return withoutEvidence(card, payload, null);
+  }
+}
+
+/** The same, for whoever added the file (owner's answer, 2026-11-20): any other file is refused. */
+@Injectable()
+@CardActionHandler()
+export class PlanRemoveOwnEvidenceAction implements CardActionDefinition<RemoveEvidenceInput> {
+  readonly action = 'plan.remove_own_evidence';
+  readonly payload = removeEvidenceSchema;
+
+  plan({ actor, card, payload }: CardActionContext<RemoveEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.remove_own_evidence needs a card');
+    return withoutEvidence(card, payload, actor.userId ?? '');
   }
 }

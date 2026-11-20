@@ -128,3 +128,25 @@ Built only on what Hub already has, with no new event (`plan-live.tsx`, `feature
   note, and other members' runs (the queue is each member's own; project-wide visibility of runs is a later batch, owner
   2026-11-20).
 - **Owner's answers (2026-11-20):** Approve and Deny keep equal weight, every phase completion celebrates, a new step joins the last phase.
+
+## Evidence on steps (v5-live-plan, batch 3 of 4, 2026-11-20)
+
+- **Stored in the database:** an upload is a `card_attachments` row (kind `evidence`) with its bytes in `card_attachment_files` (migration
+  `0016`), so a backup holds them with the card. A step names its files in `step.evidence` (attachment id, kind, caption, type, size,
+  when and how it came); that list is Hub's, kept across every plan save, and the form never sends it.
+- **Read from the bytes, then drawn again:** PNG, JPEG and WebP up to 8 MB, MP4 and WebM up to 40 MB, whatever the name or type says; SVG,
+  HTML and the rest are refused (`hub.plans.evidence_type`). The byte checks are the first gate; then `sharp` (0.35.5, pinned) draws a picture
+  again in its own type, so none of its metadata survives, applies its EXIF turn, caps it at 2560 wide and 16000 high (a full-page screenshot
+  stays readable) and makes a 480 px WebP thumbnail for the grids (`…/file?size=thumb`). A clip is kept as it came.
+- **Routes:** `POST /plans/{key}/steps/{stepId}/evidence` (multipart: `file`, `kind`, `caption`), `DELETE …/evidence/{attachmentId}`, and
+  `GET /cards/{key}/attachments/{id}/file` (its own type only, `nosniff`, a CSP that runs nothing, a range for a clip). Adding is everyone's,
+  like a work report (`plan.add_evidence`). The plan's owner, a pm and its creator remove any file (`plan.remove_evidence`); whoever added a
+  file removes that one (`plan.remove_own_evidence`, judged on the file's `addedBy`).
+- **Claude:** `add_step_evidence` takes a file's absolute path inside a registered project folder or a Hub worktree of one, read on the
+  machine Hub runs on (links followed, then checked again); `remove_step_evidence` asks first in a bridge run. A plan step run's prompt asks for
+  a screenshot when the step changes something a person sees.
+- **Page:** the drawer's Evidence section, with its own picker (drop a file, or choose it; its name and size; a wrong type or size said at once) (before and after on one slider, by pointer or by keys in reading direction; each clip in a player;
+  every picture in the lightbox; add and remove for who may), and the count on the step's row in the chapter.
+- **Later batches:** reading evidence files from the team's paired machines through the bridge (today `add_step_evidence` reads only on the
+  machine Hub runs on), and project-wide visibility of runs. A one-off failure of the plans, MCP and queue API e2e run together was seen once
+  and not again in eight runs; it is noted, not chased further.

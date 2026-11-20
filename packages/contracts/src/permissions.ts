@@ -129,6 +129,11 @@ const MATRIX = {
   'plan.to_tasks': OWNER_PM_CREATOR,
   'plan.sync_step': SYSTEM_ONLY,
   'plan.restore_revision': OWNER_PM_CREATOR,
+  // Evidence on a step (v5-live-plan, batch 3): like a work report, anyone may add it. The plan's owners may remove any of it, and whoever added
+  // a file may remove that one (`remove_own_evidence`, judged on the file itself: owner's answer, 2026-11-20).
+  'plan.add_evidence': EVERYONE,
+  'plan.remove_evidence': OWNER_PM_CREATOR,
+  'plan.remove_own_evidence': EVERYONE,
 
   // Facts
   'change.create': SYSTEM_ONLY,

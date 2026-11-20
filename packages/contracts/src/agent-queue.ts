@@ -306,7 +306,8 @@ export function runPrompt(input: {
   if (input.source === 'plan_step') {
     const step = (input.planStep ?? 0) + 1;
     return `Carry out step ${step} of plan ${input.cardKey ?? ''}: ${input.stepTitle ?? ''}\nRead the plan with hub get_card first, do only this step, run its checks, and say what you changed and what you did not check.
-As /hub:work does, call hub report_stage with protocol work as each of its stages (understand, plan, execute, verify, report) starts and ends, so the plan's page shows where you are.`;
+As /hub:work does, call hub report_stage with protocol work as each of its stages (understand, plan, execute, verify, report) starts and ends, so the plan's page shows where you are.
+If the step changes something a person sees, save a screenshot of it in the folder and attach it with hub add_step_evidence (kind after, and before if you took one first).`;
   }
   return input.prompt ?? '';
 }

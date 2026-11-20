@@ -65,6 +65,41 @@ export const planPhasesSchema = z
     message: 'Each phase id is used once',
   });
 
+/** What a file of a step's evidence shows: the step's screen before, after, or a clip of it (v5-live-plan, batch 3). */
+export const PLAN_EVIDENCE_KINDS = ['before', 'after', 'video'] as const;
+export type PlanEvidenceKind = (typeof PLAN_EVIDENCE_KINDS)[number];
+/** The most files one step keeps. */
+export const PLAN_STEP_EVIDENCE_MAX = 10;
+/** The largest picture and clip Hub takes, in bytes. A picture is drawn again (at most 2560 wide and 16000 high) before it is kept. */
+export const PLAN_EVIDENCE_LIMITS = { imageBytes: 8 * 1024 * 1024, videoBytes: 40 * 1024 * 1024 } as const;
+
+/**
+ * One file of a step's evidence: an attachment of the plan card, served at `GET /cards/{key}/attachments/{attachmentId}/file`. Hub's own: written by
+ * `POST /plans/{key}/steps/{stepId}/evidence` and the MCP `add_step_evidence`, never by a plan save. `via` is `mcp` when Claude attached it.
+ */
+export const planStepEvidenceSchema = z.object({
+  attachmentId: z.string(),
+  kind: z.enum(PLAN_EVIDENCE_KINDS),
+  caption: z.string().trim().min(1).max(200).optional(),
+  mime: z.string(),
+  width: z.number().int().nullable().optional(),
+  height: z.number().int().nullable().optional(),
+  addedAt: z.iso.datetime({ offset: true }),
+  via: z.enum(['web', 'mcp']),
+  /** Who added it: they may remove it again, as may the plan's owner, a pm and its creator. */
+  addedBy: z.string().nullable().optional(),
+  /** A picture has a small WebP at `…/file?size=thumb`. */
+  thumb: z.boolean().optional(),
+});
+export type PlanStepEvidence = z.infer<typeof planStepEvidenceSchema>;
+
+/** The fields sent beside the file. */
+export const addStepEvidenceSchema = z.object({
+  kind: z.enum(PLAN_EVIDENCE_KINDS),
+  caption: z.string().trim().min(1).max(200).optional(),
+});
+export type AddStepEvidenceInput = z.infer<typeof addStepEvidenceSchema>;
+
 /**
  * One step. `why`, `size`, `after` and `acceptance` are what the Plan Studio proposed for it (owner decision 9a, 2026-11-19), so a page reads them
  * as data. `after` names earlier steps of the same plan by id; Hub drops any that is not an earlier step. `phaseId` names one of the plan's
@@ -82,12 +117,13 @@ export const planStepSchema = z.object({
   acceptance: stepTextSchema.optional(),
   phaseId: stepIdSchema.optional(),
   doneAt: z.iso.datetime({ offset: true }).optional(),
+  evidence: z.array(planStepEvidenceSchema).max(PLAN_STEP_EVIDENCE_MAX).optional(),
 });
 export type PlanStep = z.infer<typeof planStepSchema>;
 
-/** A step as a client writes it: Hub gives it an id when it has none. `taskKey` and `done` follow its task, and Hub sets `doneAt`. */
+/** A step as a client writes it: Hub gives it an id when it has none. `taskKey` and `done` follow its task, and Hub sets `doneAt` and keeps `evidence`. */
 export const planStepInputSchema = planStepSchema
-  .omit({ doneAt: true })
+  .omit({ doneAt: true, evidence: true })
   .extend({ id: planStepSchema.shape.id.optional() });
 export type PlanStepInput = z.infer<typeof planStepInputSchema>;
 

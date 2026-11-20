@@ -299,6 +299,9 @@ and `/me/context`.
 | Plan: edit / submit for review / start / finish / abandon / create tasks from steps | ✓ | ✓ | C | C | C | C | C |
 | Plan: approve | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Plan: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Plan: add evidence to a step | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Plan: remove a step's evidence | ✓ | ✓ | C | C | C | C | C |
+| Plan: remove evidence you added | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Project: create (D30) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Members: invite, change roles, remove, GitHub identity (only an owner grants, takes or removes the owner role, or gets an owner's reset link) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Project: edit details | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |

@@ -7,9 +7,12 @@ import { CardsModule } from '@/modules/cards';
 
 import {
   PlanAbandonAction,
+  PlanAddEvidenceAction,
   PlanApproveAction,
   PlanCreateAction,
   PlanFinishAction,
+  PlanRemoveEvidenceAction,
+  PlanRemoveOwnEvidenceAction,
   PlanRequestChangesAction,
   PlanRestoreRevisionAction,
   PlanStartAction,
@@ -18,13 +21,15 @@ import {
   PlanToTasksAction,
   PlanUpdateAction,
 } from './application/plan-actions';
+import { PlanEvidenceService } from './application/plan-evidence.service';
 import { PlanReadService } from './application/plan-read.service';
 import { StudioSourceCheck } from './application/studio-source.check';
+import { PlanEvidenceController } from './presentation/http/plan-evidence.controller';
 import { PlansController } from './presentation/http/plans.controller';
 
 @Module({
   imports: [CardsModule],
-  controllers: [PlansController],
+  controllers: [PlansController, PlanEvidenceController],
   providers: [
     PlanReadService,
     StudioSourceCheck,
@@ -39,7 +44,11 @@ import { PlansController } from './presentation/http/plans.controller';
     PlanAbandonAction,
     PlanToTasksAction,
     PlanSyncStepAction,
+    PlanAddEvidenceAction,
+    PlanRemoveEvidenceAction,
+    PlanRemoveOwnEvidenceAction,
+    PlanEvidenceService,
   ],
-  exports: [PlanReadService, StudioSourceCheck],
+  exports: [PlanReadService, StudioSourceCheck, PlanEvidenceService],
 })
 export class PlansModule {}
