@@ -7,10 +7,12 @@
  * buttons), the journey map with the chosen phase's chapter under it, then the tabs: the plan (who carries it, every phase with its steps, the text,
  * evidence, runs and revisions beside the outline and the facts), comments, history and links. Any step opens a drawer with why it exists, its
  * acceptance checks and what it waits for. A plan saved before phases shows the head and one plain list, with no ring and no map.
- * Live runs with Claude, step evidence and the explainer video are later batches of the port. Why it looks this way: the version's README.
+ * Batch 2 adds the live layer (plan-live.tsx): Claude's run on a step with its stages and the approval it waits on, the halo on its phase, the
+ * activity feed and a phase's celebration. Step evidence and the explainer video are later batches. Why it looks this way: the version's README.
  */
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import {
+  Activity,
   ArrowLeft,
   ArrowRight,
   CalendarClock,
@@ -98,6 +100,16 @@ import type { PlanningMessages } from './messages';
 import { PhaseFocus } from './phase-focus';
 import { PhaseList } from './phase-list';
 import { PlanRing, RolesChart } from './plan-charts';
+import {
+  ActivityFeed,
+  AnimatedNumber,
+  Celebration,
+  ClaudeNow,
+  type Connection,
+  LiveBadge,
+  type LiveRun,
+  usePlanLive,
+} from './plan-live';
 import { StepDrawer } from './step-drawer';
 
 /** Each step's task as the page knows it, without asking the API: the cache's card, or the summary on the plan's own link. */
@@ -264,6 +276,9 @@ function PlanHero({
   hover,
   onGo,
   onHover,
+  run,
+  connection,
+  onOpenStep,
 }: {
   card: PlanCard;
   action: CardAction | null;
@@ -273,6 +288,10 @@ function PlanHero({
   hover: number | null;
   onGo: (index: number, scroll?: boolean) => void;
   onHover: (index: number | null) => void;
+  /** Claude's run on a step of this plan, when there is one: it takes the next step's place. */
+  run: LiveRun | null;
+  connection: Connection;
+  onOpenStep: (id: string) => void;
 }) {
   const t = useT<PlanningMessages>('planning');
   const d = t.detail;
@@ -324,10 +343,16 @@ function PlanHero({
           <StagePill card={card} className="whitespace-nowrap" />
           <PriorityBadge priority={card.priority} className="whitespace-nowrap" />
           {isMineHere(card, me.id, roles) && <MineMark className="text-caption" />}
-          {live && (
+          {run ? (
             <span className="ms-auto">
-              <LivePill label={d.live} hint={d.liveHint} />
+              <LiveBadge connection={connection} />
             </span>
+          ) : (
+            live && (
+              <span className="ms-auto">
+                <LivePill label={d.live} hint={d.liveHint} />
+              </span>
+            )
           )}
         </div>
         <h1
@@ -374,11 +399,7 @@ function PlanHero({
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-5 gap-y-1">
             <p className="text-body text-muted-foreground">
               {fill(j.progress, {
-                done: (
-                  <span className="text-headline font-bold text-foreground tabular-nums">
-                    {num(done, locale)}
-                  </span>
-                ),
+                done: <AnimatedNumber value={done} className="text-headline font-bold text-foreground" />,
                 total: (
                   <span className="font-semibold text-foreground">{plural(total, locale, j.stepsWord)}</span>
                 ),
@@ -394,7 +415,28 @@ function PlanHero({
             {phased && total > 0 && <Stats steps={steps} />}
           </div>
 
-          {next && <NextStep card={card} step={next} group={nextGroup} phased={phased} onGo={onGo} />}
+          <AnimatePresence mode="popLayout" initial={false}>
+            {run ? (
+              <ClaudeNow
+                key="claude"
+                run={run}
+                step={steps.find((s) => s.id === run.stepId) ?? null}
+                onOpen={() => onOpenStep(run.stepId)}
+              />
+            ) : (
+              next && (
+                <motion.div
+                  key="next"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <NextStep card={card} step={next} group={nextGroup} phased={phased} onGo={onGo} />
+                </motion.div>
+              )
+            )}
+          </AnimatePresence>
           {(guideWords || (!next && total > 0)) && (
             <div className="flex items-start gap-2 rounded-xl bg-muted/60 px-3 py-2.5 text-body-sm text-foreground">
               <Compass
@@ -556,6 +598,11 @@ export function PlanDetail({
   const [hover, setHover] = useState<number | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const justDone = useJustDone(steps);
+  const live = usePlanLive(card, steps, groups);
+  const run = live.run;
+  const activePhase = run
+    ? (groups.find((g) => g.steps.some((s) => s.id === run.stepId))?.index ?? null)
+    : null;
   const glow = useChangeGlow(card.body);
   const last = groups.length - 1;
   const focus = groups[Math.min(selected, last)];
@@ -579,6 +626,18 @@ export function PlanDetail({
     },
     [selected],
   );
+
+  // The chapter follows Claude (owner, 2026-11-20): whenever the running step or its phase changes, a new run included, the shown chapter moves to
+  // that phase. Between those moments the owner may look elsewhere. The page itself never scrolls; the slide respects reduced motion.
+  const following = run && activePhase !== null ? `${run.id}:${run.stepId}:${activePhase}` : null;
+  const followed = useRef<string | null>(null);
+  useEffect(() => {
+    if (following === null || activePhase === null || followed.current === following) return;
+    followed.current = following;
+    setDir(activePhase >= selected ? 1 : -1);
+    setSelected(activePhase);
+    // Only when what Claude works on moves, not when the owner picks another chapter.
+  }, [following]);
 
   const Section = sheetSections.plan;
   const tabs = [
@@ -613,6 +672,9 @@ export function PlanDetail({
           hover={hover}
           onGo={select}
           onHover={setHover}
+          run={run}
+          connection={live.connection}
+          onOpenStep={setOpenId}
         />
 
         {phased && focus && (
@@ -638,6 +700,7 @@ export function PlanDetail({
               groups={groups}
               selected={selected}
               hover={hover}
+              active={activePhase}
               onSelect={select}
               onHover={setHover}
             />
@@ -655,6 +718,7 @@ export function PlanDetail({
                     all={steps}
                     last={last}
                     nextId={nextId}
+                    run={run}
                     justDone={justDone}
                     onStep={(delta) => select(Math.min(last, Math.max(0, focus.index + delta)))}
                     onOpen={setOpenId}
@@ -730,11 +794,23 @@ export function PlanDetail({
                   {wb && <CardRuns cardKey={card.key} />}
                   <Revisions card={card} canRestore={canRestore} />
                 </div>
-                <Aside
-                  card={card}
-                  withProgress={false}
-                  onOutlineMissing={() => setQuery({ tab: null, action: null })}
-                />
+                <div className="flex min-w-0 flex-col gap-4">
+                  {(live.watching || live.feed.length > 0) && (
+                    <Panel
+                      id={`feed-${card.key}`}
+                      icon={Activity}
+                      title={d.liveRun.feedTitle}
+                      aside={<LiveBadge connection={live.connection} />}
+                    >
+                      <ActivityFeed feed={live.feed} />
+                    </Panel>
+                  )}
+                  <Aside
+                    card={card}
+                    withProgress={false}
+                    onOutlineMissing={() => setQuery({ tab: null, action: null })}
+                  />
+                </div>
               </div>
             )}
           </Tabs.Content>
@@ -762,6 +838,11 @@ export function PlanDetail({
           tasks={tasks}
           onOpenStep={setOpenId}
           onClose={() => setOpenId(null)}
+        />
+        <Celebration
+          event={live.celebration}
+          title={live.celebration ? (groups[live.celebration.phase]?.phase?.title ?? '') : ''}
+          onDone={live.clearCelebration}
         />
       </PageContainer>
     </MotionConfig>

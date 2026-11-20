@@ -373,7 +373,58 @@
       "noDeps": "لا تعتمد على خطوة أخرى، ولا تنتظرها خطوة.",
       "taskLabel": "المهمة",
       "closeDrawer": "إغلاق",
-      "doneOn": "أُنجزت {date}"
+      "doneOn": "أُنجزت {date}",
+      "claudeHere": "Claude يعمل هنا"
+    },
+    "liveRun": {
+      "live": "مباشر",
+      "reconnecting": "يعيد الاتصال…",
+      "unavailable": "غير مباشر",
+      "liveHint": "التحديثات تصل من Hub لحظة وقوعها: مراحل Claude في خطوة، أو موافقة ينتظرها، أو خطوة أُنجزت.",
+      "claudeWorking": "Claude يعمل على الخطوة {n}",
+      "claudeWaiting": "Claude ينتظرك في الخطوة {n}",
+      "claudeRegion": "Claude في الخطوة {n}",
+      "stagesLabel": "مراحل عمل Claude",
+      "stageNames": {
+        "understand": "فهم",
+        "plan": "تخطيط",
+        "execute": "تنفيذ",
+        "verify": "تحقق",
+        "report": "تقرير"
+      },
+      "stageState": {
+        "todo": "لم تبدأ",
+        "started": "جارية",
+        "done": "انتهت",
+        "failed": "فشلت"
+      },
+      "noStage": "لم يبلّغ Claude عن أي مرحلة بعد.",
+      "elapsed": "منذ {t}",
+      "waitingTitle": "ينتظر موافقتك",
+      "waitingBody": "يريد Claude تشغيل هذا الأمر:",
+      "approve": "وافق",
+      "deny": "ارفض",
+      "answered": "ردّك في طريقه إلى Claude.",
+      "deviceOffline": "الجهاز الذي يشغّل Claude غير متصل، فلا يصله ردّ الآن.",
+      "questionTitle": "سألك Claude سؤالًا",
+      "questionBody": "خياراته في المحادثة. أجب هناك ويتابع التشغيل.",
+      "openChat": "افتح المحادثة",
+      "feedTitle": "النشاط المباشر",
+      "feedEmpty": "لا شيء بعد. تشغيلات Claude في هذه الخطة وموافقاته والخطوات المنجزة تظهر هنا لحظة وقوعها.",
+      "words": {
+        "started": "بدأ Claude الخطوة {n}",
+        "approval": "ينتظر موافقتك لتشغيل {cmd}",
+        "approved": "وافقت على: {cmd}",
+        "denied": "لم يُشغَّل: {cmd}",
+        "question": "سأل Claude سؤالًا",
+        "ended": "أنهى Claude تشغيله للخطوة {n}",
+        "stopped": "لم يكتمل تشغيل Claude للخطوة {n}",
+        "done": "أُنجزت الخطوة {n}",
+        "phaseDone": "اكتملت المرحلة: {title}",
+        "resync": "عاد الاتصال وحُدّثت الخطة"
+      },
+      "phaseComplete": "اكتملت المرحلة {n}",
+      "phaseCompleteBody": "{title}. أُنجزت كل خطواتها."
     }
   },
   "draft": {

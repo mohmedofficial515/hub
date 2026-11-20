@@ -106,3 +106,25 @@ the celebration), batch 3 (evidence on steps and the compare slider) and batch 4
 - **Kept from the page before:** the action bar and the Claude buttons, the live mark, the idea it came from (`PathStrip`), the step's run menu,
   task status and evidence in the list, the plan text, evidence, runs, revisions, the outline and the facts. The stage track is gone: the status
   pill says the stage, as the version does.
+
+## The live plan (v5-live-plan, batch 2 of 4, 2026-11-20)
+
+Built only on what Hub already has, with no new event (`plan-live.tsx`, `features/planning/live-run.ts`):
+
+- **Claude's run** is the member's agent queue: a `plan_step` run on this plan (its `planStep` is the step's place), or a `task` run on a step's task
+  (the queue turns a step with a task into that task's run). Waiting runs come first, then the last started. The queue is read only where runs
+  can happen (a page with the workbench), as the runs list is, and the stream rereads it on `queue.changed` and `chat.changed`.
+- **The five stages** are the run's own `report_stage` reports, read from its chat turn (`stages` on the message), which `chat.event` keeps live.
+  A task run reports them through `/hub:work`; a `plan_step` run's prompt now asks for them too (`runPrompt` in contracts).
+- **Waiting for you** is the run's `waitingOn`. Approve and Deny answer the run's own approval on its chat (`POST chats/{id}/approvals/{id}`), the
+  same route and the same 400 ms arming as the panel, with equal weight. A question is not answered here: the box opens the chat. With the
+  device offline the buttons are off and say why.
+- **The feed** is built from stored times (a run's start and end, the active turn's approvals and questions, `step.doneAt`, a phase's last
+  `doneAt`), so a reload shows the same; "back online" is the only line only this page sees.
+- **Halo** on the map stop of the running step's phase, the live row in the chapter (stages in place, the waffle cell ringed), the chapter
+  following Claude whenever the running step or its phase changes (owner, 2026-11-20; never scrolling), the done-count running up, and a celebration when a phase completes while the page is open.
+  Every loop and the confetti stop under reduced motion; the banner stays.
+- **Not here:** the lab's simulation bar, Claude's per-step file and commit lines (Hub has no such event), a run's live note beyond the stage
+  note, and other members' runs (the queue is each member's own; project-wide visibility of runs is a later batch, owner
+  2026-11-20).
+- **Owner's answers (2026-11-20):** Approve and Deny keep equal weight, every phase completion celebrates, a new step joins the last phase.

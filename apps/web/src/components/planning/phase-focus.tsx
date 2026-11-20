@@ -7,7 +7,7 @@
  * page is open pops its check and flashes once; pointing at a square outlines the squares it depends on. Any step opens the drawer.
  */
 import { motion } from 'framer-motion';
-import { Check, ChevronLeft, ChevronRight, Lock, SquareCheck } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Lock, Sparkles, SquareCheck } from 'lucide-react';
 import { useState } from 'react';
 
 import {
@@ -34,6 +34,7 @@ import {
 } from '@/features/planning/journey';
 
 import type { PlanningMessages } from './messages';
+import { type LiveRun, StageStepper } from './plan-live';
 
 const EASE = [0.2, 0.7, 0.2, 1] as const;
 
@@ -65,6 +66,8 @@ export function SizeChip({ size }: { size: NonNullable<JourneyStep['size']> }) {
 interface RowProps {
   step: JourneyStep;
   all: readonly JourneyStep[];
+  /** Claude's run, when it is on this step: the row carries its stages in place. */
+  run: LiveRun | null;
   isNext: boolean;
   hot: boolean;
   justDone: boolean;
@@ -73,14 +76,18 @@ interface RowProps {
   onOpen: (id: string) => void;
 }
 
-function StepRow({ step, all, isNext, hot, justDone, showRole, onHot, onOpen }: RowProps) {
-  const j = useT<PlanningMessages>('planning').detail.journey;
+function StepRow({ step, all, run, isNext, hot, justDone, showRole, onHot, onOpen }: RowProps) {
+  const t = useT<PlanningMessages>('planning').detail;
+  const j = t.journey;
   const locale = useLocale();
   const blockers = step.done ? [] : blockersOf(step, all);
+  const live = run !== null && !step.done;
   return (
     <li
       aria-current={isNext ? 'step' : undefined}
-      data-hot={hot || isNext}
+      data-hot={hot || (isNext && !live)}
+      data-live={live && !run?.waiting}
+      data-wait={live && !!run?.waiting}
       onMouseEnter={() => onHot(step.id)}
       onMouseLeave={() => onHot(null)}
       className="pj-step relative flex min-w-0 items-start gap-3 overflow-hidden rounded-lg px-2 py-2.5 transition-colors duration-200 md:px-3"
@@ -100,11 +107,13 @@ function StepRow({ step, all, isNext, hot, justDone, showRole, onHot, onOpen }: 
           'relative mt-px flex size-6 shrink-0 items-center justify-center rounded-full border-2 text-caption font-semibold tabular-nums',
           step.done
             ? 'pj-tone-bg pj-tone-border'
-            : blockers.length
-              ? 'border-border text-muted-foreground'
-              : isNext
-                ? 'pj-tone-border pj-tone-fg'
-                : 'pj-tone-line-border text-muted-foreground',
+            : live
+              ? 'border-primary bg-primary text-primary-foreground'
+              : blockers.length
+                ? 'border-border text-muted-foreground'
+                : isNext
+                  ? 'pj-tone-border pj-tone-fg'
+                  : 'pj-tone-line-border text-muted-foreground',
         )}
       >
         {step.done ? (
@@ -115,6 +124,8 @@ function StepRow({ step, all, isNext, hot, justDone, showRole, onHot, onOpen }: 
           >
             <Check className="size-3.5" strokeWidth={3} />
           </motion.span>
+        ) : live ? (
+          <Sparkles className="size-3.5" strokeWidth={2.5} />
         ) : blockers.length ? (
           <Lock className="size-3" strokeWidth={2.5} />
         ) : (
@@ -138,7 +149,7 @@ function StepRow({ step, all, isNext, hot, justDone, showRole, onHot, onOpen }: 
           {step.done && <span className="sr-only"> ({j.done})</span>}
         </button>
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          {isNext && (
+          {isNext && !live && (
             <span className="pj-tone-bg inline-flex h-5.5 items-center rounded-full px-2 text-caption font-semibold">
               {j.next}
             </span>
@@ -158,6 +169,26 @@ function StepRow({ step, all, isNext, hot, justDone, showRole, onHot, onOpen }: 
           )}
           {showRole && step.role && <RoleBadge role={step.role} />}
         </div>
+        {live && run && (
+          <div className="flex min-w-0 flex-col gap-1.5 md:w-56 md:shrink-0" data-pj-live-row>
+            <StageStepper stages={run.stages} compact />
+            <p
+              dir="auto"
+              className={cn(
+                'text-caption',
+                run.waiting ? 'font-semibold text-warning-soft-foreground' : 'text-muted-foreground',
+              )}
+            >
+              <Bidi>
+                {run.waiting
+                  ? run.waiting.kind === 'question'
+                    ? t.liveRun.questionTitle
+                    : t.liveRun.waitingTitle
+                  : (run.note ?? fmt(t.liveRun.claudeWorking, { n: num(step.n, locale) }))}
+              </Bidi>
+            </p>
+          </div>
+        )}
       </div>
     </li>
   );
@@ -168,6 +199,7 @@ export function PhaseFocus({
   all,
   last,
   nextId,
+  run = null,
   justDone,
   onStep,
   onOpen,
@@ -176,6 +208,8 @@ export function PhaseFocus({
   all: readonly JourneyStep[];
   last: number;
   nextId: string | null;
+  /** Claude's run on a step of this plan, if any (v5-live-plan, batch 2). */
+  run?: LiveRun | null;
   /** A step that became done while the page is open: it pops its check once. */
   justDone: string | null;
   onStep: (delta: 1 | -1) => void;
@@ -260,6 +294,7 @@ export function PhaseFocus({
               {group.steps.map((s, i) => {
                 const blocked = !s.done && blockersOf(s, all).length > 0;
                 const pop = justDone === s.id;
+                const liveCell = !s.done && run?.stepId === s.id;
                 return (
                   <motion.span
                     key={s.id}
@@ -267,6 +302,7 @@ export function PhaseFocus({
                     data-state={s.done ? 'done' : s.id === nextId ? 'next' : 'todo'}
                     data-hot={hot === s.id}
                     data-blocked={blocked}
+                    data-live={liveCell}
                     data-dep={deps.has(s.id)}
                     onMouseEnter={() => setHot(s.id)}
                     onMouseLeave={() => setHot(null)}
@@ -278,6 +314,8 @@ export function PhaseFocus({
                   >
                     {s.done ? (
                       <Check className="size-3.5" strokeWidth={3} />
+                    ) : liveCell ? (
+                      <Sparkles className="size-3.5 text-primary-text" strokeWidth={2.5} />
                     ) : blocked ? (
                       <Lock className="size-3" strokeWidth={2.5} />
                     ) : (
@@ -324,6 +362,7 @@ export function PhaseFocus({
                 key={s.id}
                 step={s}
                 all={all}
+                run={run?.stepId === s.id ? run : null}
                 isNext={s.id === nextId}
                 hot={hot === s.id}
                 justDone={justDone === s.id}

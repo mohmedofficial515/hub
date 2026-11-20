@@ -291,7 +291,10 @@ export interface QueueChanged {
 
 // ── What the engine is told ────────────────────────────────────────────────────────────────────────
 
-/** A task runs the work protocol, so its stages and `report_work` land on the card. A step names its plan, and Claude reads the rest through Hub. */
+/**
+ * A task runs the work protocol, so its stages and `report_work` land on the card. A step names its plan, and Claude reads the rest through Hub; it
+ * reports the same five stages, which the plan's page shows on the running step (v5-live-plan, batch 2).
+ */
 export function runPrompt(input: {
   source: RunSource;
   cardKey?: string | null;
@@ -302,7 +305,8 @@ export function runPrompt(input: {
   if (input.source === 'task') return `/hub:work ${input.cardKey ?? ''}`.trim();
   if (input.source === 'plan_step') {
     const step = (input.planStep ?? 0) + 1;
-    return `Carry out step ${step} of plan ${input.cardKey ?? ''}: ${input.stepTitle ?? ''}\nRead the plan with hub get_card first, do only this step, run its checks, and say what you changed and what you did not check.`;
+    return `Carry out step ${step} of plan ${input.cardKey ?? ''}: ${input.stepTitle ?? ''}\nRead the plan with hub get_card first, do only this step, run its checks, and say what you changed and what you did not check.
+As /hub:work does, call hub report_stage with protocol work as each of its stages (understand, plan, execute, verify, report) starts and ends, so the plan's page shows where you are.`;
   }
   return input.prompt ?? '';
 }

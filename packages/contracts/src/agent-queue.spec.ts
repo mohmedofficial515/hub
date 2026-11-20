@@ -88,6 +88,9 @@ describe('a run', () => {
     expect(
       runPrompt({ source: 'plan_step', cardKey: 'GTV-9', planStep: 1, stepTitle: 'Add a test' }),
     ).toMatch(/^Carry out step 2 of plan GTV-9: Add a test/);
+    expect(
+      runPrompt({ source: 'plan_step', cardKey: 'GTV-9', planStep: 1, stepTitle: 'Add a test' }),
+    ).toContain('report_stage with protocol work');
     expect(runPrompt({ source: 'prompt', prompt: 'Tidy the README' })).toBe('Tidy the README');
   });
 

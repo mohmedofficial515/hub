@@ -9,7 +9,7 @@
  * vertical line, a stop per row.
  */
 import { motion } from 'framer-motion';
-import { Check, Flag } from 'lucide-react';
+import { Check, Flag, Sparkles } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { cn, fmt, focusRing, Ltr, num, useLocale, useRoving, useT } from '@/components/kit';
@@ -85,12 +85,15 @@ export function JourneyMap({
   groups,
   selected,
   hover,
+  active = null,
   onSelect,
   onHover,
 }: {
   groups: PhaseGroup[];
   selected: number;
   hover: number | null;
+  /** The phase holding the step Claude works on, if any: its stop wears the halo (v5-live-plan, batch 2). */
+  active?: number | null;
   onSelect: (index: number) => void;
   onHover: (index: number | null) => void;
 }) {
@@ -205,7 +208,7 @@ export function JourneyMap({
                 aria-label={`${fmt(j.phaseOfN, { n: num(g.index, locale), last: num(last, locale) })}: ${title}. ${fmt(
                   j.progressLabel,
                   { done: num(g.done, locale), total: num(g.total, locale) },
-                )}. ${words}${state === 'now' ? `. ${j.here}` : ''}`}
+                )}. ${words}${state === 'now' ? `. ${j.here}` : ''}${active === i ? `. ${j.claudeHere}` : ''}`}
                 data-state={state}
                 className={cn('pj-node shrink-0 text-body', focusRing)}
               >
@@ -215,6 +218,20 @@ export function JourneyMap({
                     className="pj-sel-ring"
                     transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                   />
+                )}
+                {active === i && (
+                  <>
+                    <span aria-hidden className="pj-halo" data-pj-halo />
+                    <motion.span
+                      aria-hidden
+                      className="pj-halo-badge"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                    >
+                      <Sparkles className="size-3" strokeWidth={2.5} />
+                    </motion.span>
+                  </>
                 )}
                 {state === 'done' ? (
                   <motion.span

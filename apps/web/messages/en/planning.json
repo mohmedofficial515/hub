@@ -356,7 +356,58 @@
       "noDeps": "Depends on no other step, and no step waits for it.",
       "taskLabel": "Task",
       "closeDrawer": "Close",
-      "doneOn": "Done {date}"
+      "doneOn": "Done {date}",
+      "claudeHere": "Claude is working here"
+    },
+    "liveRun": {
+      "live": "Live",
+      "reconnecting": "Reconnecting…",
+      "unavailable": "Not live",
+      "liveHint": "Updates arrive from Hub as they happen: Claude's stages on a step, an approval it waits for, a step done.",
+      "claudeWorking": "Claude is working on step {n}",
+      "claudeWaiting": "Claude is waiting for you on step {n}",
+      "claudeRegion": "Claude on step {n}",
+      "stagesLabel": "Stages of Claude's work",
+      "stageNames": {
+        "understand": "Understand",
+        "plan": "Plan",
+        "execute": "Execute",
+        "verify": "Verify",
+        "report": "Report"
+      },
+      "stageState": {
+        "todo": "not started",
+        "started": "in progress",
+        "done": "done",
+        "failed": "failed"
+      },
+      "noStage": "Claude has not reported a stage yet.",
+      "elapsed": "for {t}",
+      "waitingTitle": "Waiting for you",
+      "waitingBody": "Claude wants to run this command:",
+      "approve": "Approve",
+      "deny": "Deny",
+      "answered": "Your answer is on its way to Claude.",
+      "deviceOffline": "The device running Claude is offline, so an answer cannot reach it now.",
+      "questionTitle": "Claude asked you a question",
+      "questionBody": "Its options are in the chat. Answer it there and the run carries on.",
+      "openChat": "Open the chat",
+      "feedTitle": "Live activity",
+      "feedEmpty": "Nothing yet. Claude's runs on this plan, its approvals and the steps done show here as they happen.",
+      "words": {
+        "started": "Claude started step {n}",
+        "approval": "Waiting for your approval to run {cmd}",
+        "approved": "Approved: {cmd}",
+        "denied": "Not run: {cmd}",
+        "question": "Claude asked a question",
+        "ended": "Claude finished its run on step {n}",
+        "stopped": "Claude's run on step {n} did not finish",
+        "done": "Step {n} done",
+        "phaseDone": "Phase complete: {title}",
+        "resync": "Back online; the plan is up to date"
+      },
+      "phaseComplete": "Phase {n} complete",
+      "phaseCompleteBody": "{title}. Every step in it is done."
     }
   },
   "draft": {
