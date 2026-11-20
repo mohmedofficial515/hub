@@ -12,6 +12,7 @@ import { docHandlers } from './doc-files.mjs';
 import { runChecks, runFix } from './health.mjs';
 import { folderServerIsRight, installFolderServer } from './install.mjs';
 import { recordLink } from './links.mjs';
+import { mediaHandlers } from './media-files.mjs';
 import { claudeConfigFile } from './paths.mjs';
 import { syncPlugin } from './plugin-sync.mjs';
 import { BRIDGE_ACTIONS, HEALTH_FIXES, Refusal } from './protocol.mjs';
@@ -68,6 +69,7 @@ const handlers = {
   'folder.link': linkFolder,
   ...turnHandlers,
   ...docHandlers,
+  ...mediaHandlers,
   ...schemaHandlers,
   'vscode.open': openInVsCode,
   'plugin.sync': syncPlugin,

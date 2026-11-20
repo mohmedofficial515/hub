@@ -146,8 +146,10 @@ Built only on what Hub already has, with no new event (`plan-live.tsx`, `feature
   a screenshot when the step changes something a person sees.
 - **Page:** the drawer's Evidence section, with its own picker (drop a file, or choose it; its name and size; a wrong type or size said at once) (before and after on one slider, by pointer or by keys in reading direction; each clip in a player;
   every picture in the lightbox; add and remove for who may), and the count on the step's row in the chapter.
-- **Later batches:** reading evidence files from the team's paired machines through the bridge (today `add_step_evidence` reads only on the
-  machine Hub runs on). A one-off failure of the plans, MCP and queue API e2e run together was seen once
+- **Files on a paired machine (2026-11-20):** in a Claude run, `add_step_evidence` and `attach_plan_explainer` read the file on the device
+  where the run works, through its bridge (`file.read`: the folder rule on the path and again on its real path, only picture, clip and
+  captions names, Hub's size cap, in 512 KB pieces under the 1 MB frame). A call from no run of Hub's still reads on the machine Hub runs on.
+  Hub checks the bytes and redraws a picture either way. A one-off failure of the plans, MCP and queue API e2e run together was seen once
   and not again in eight runs; it is noted, not chased further.
 
 ## The plan on video (v5-live-plan, batch 4 of 4, 2026-11-20, for review)

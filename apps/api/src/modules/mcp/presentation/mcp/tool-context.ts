@@ -23,8 +23,14 @@ import { AgentQueueService, PlanRunsService } from '@/modules/agent-queue';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
-import { ChatsService, DocDraftsService, SuggestionsService, WorkReportsService } from '@/modules/chats';
-import { DevicesService } from '@/modules/devices';
+import {
+  ChatsService,
+  DocDraftsService,
+  SuggestionsService,
+  TurnRegistry,
+  WorkReportsService,
+} from '@/modules/chats';
+import { BridgeHub, DevicesService } from '@/modules/devices';
 import { BriefsService } from '@/modules/digests';
 import { DocsReadService, DocsWriteService } from '@/modules/docs';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
@@ -57,6 +63,8 @@ export class McpDeps {
     readonly plans: PlanReadService,
     readonly evidence: PlanEvidenceService,
     readonly planRuns: PlanRunsService,
+    readonly turns: TurnRegistry,
+    readonly bridge: BridgeHub,
     readonly explainer: PlanExplainerService,
     readonly releaseNotes: ReleaseNotesService,
     readonly projects: ProjectsService,
