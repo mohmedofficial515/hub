@@ -9,7 +9,8 @@
  * acceptance checks and what it waits for. A plan saved before phases shows the head and one plain list, with no ring and no map.
  * Batch 2 adds the live layer (plan-live.tsx): Claude's run on a step with its stages and the approval it waits on, the halo on its phase, the
  * activity feed and a phase's celebration. Batch 3 adds each step's evidence in its drawer (step-evidence.tsx) and its count on the step's row.
- * The explainer video is the last batch. Why it looks this way: the version's README.
+ * Batch 4 adds the plan on video, made by Hams on request (plan-video.tsx), whose chapters light their phases on the map. Why it looks this way:
+ * the version's README.
  */
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import {
@@ -111,6 +112,7 @@ import {
   type LiveRun,
   usePlanLive,
 } from './plan-live';
+import { PlanVideo } from './plan-video';
 import { StepDrawer } from './step-drawer';
 
 /** Each step's task as the page knows it, without asking the API: the cache's card, or the summary on the plan's own link. */
@@ -729,6 +731,8 @@ export function PlanDetail({
             </div>
           </section>
         )}
+
+        {phased && <PlanVideo card={card} onSpot={setHover} />}
 
         <Tabs.Root
           value={tab}

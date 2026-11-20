@@ -118,6 +118,16 @@ describe('evidence files', () => {
     expect(readEvidenceFile(big)).toEqual({ refused: 'too_large' });
   });
 
+  it('a clip is capped at 40 MB unless the caller allows more (an explainer film, 120 MB)', () => {
+    const big = Buffer.concat([
+      Buffer.from([0, 0, 0, 24]),
+      Buffer.from('ftypisom', 'latin1'),
+      Buffer.alloc(50 * 1024 * 1024),
+    ]);
+    expect(readEvidenceFile(big)).toEqual({ refused: 'too_large' });
+    expect(readEvidenceFile(big, 120 * 1024 * 1024)).toMatchObject({ mime: 'video/mp4' });
+  });
+
   it('a video is only video, and a picture before or after', () => {
     expect(kindFits('video/mp4', 'video')).toBe(true);
     expect(kindFits('video/mp4', 'after')).toBe(false);

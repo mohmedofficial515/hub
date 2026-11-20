@@ -123,7 +123,10 @@
       "evidence_kind": "A clip is the kind video, and a picture is before or after.",
       "evidence_full": "This step already has {max} files of evidence. Remove one first.",
       "evidence_not_found": "That evidence is not on this step.",
-      "evidence_file_not_found": "Hub cannot read that file. It must be inside one of the project's folders on the machine Hub runs on."
+      "evidence_file_not_found": "Hub cannot read that file. It must be inside one of the project's folders on the machine Hub runs on.",
+      "explainer_not_requested": "No explainer video was asked for on this plan. Ask for one from the plan's page first.",
+      "explainer_stale": "This film explains revision {revision}, but the plan asked for revision {asked}. Make it again from the plan as it is.",
+      "explainer_captions": "The captions file is not WebVTT text. It must start with WEBVTT."
     },
     "docs": {
       "not_found": "Document not found.",

@@ -5,8 +5,6 @@
  * the outermost one; if the action then fails, the stored file is removed again, so nothing is left without a step. Removing evidence takes it off
  * the step first and then deletes the bytes, so a failed removal never leaves a step naming a missing file.
  */
-import { createHash } from 'node:crypto';
-
 import {
   type AddStepEvidenceInput,
   type ErrorCode,
@@ -28,6 +26,7 @@ import {
   kindFits,
   readEvidenceFile,
 } from '../domain/evidence-media';
+import { AttachmentStore } from './attachment-store';
 import { redrawImage } from './evidence-image';
 
 const REFUSED: Record<EvidenceRefusal, ErrorCode> = {
@@ -49,15 +48,12 @@ export interface AttachmentFile {
   etag: string;
 }
 
-/** Where the API serves an attachment's bytes, as the web reads it. */
-export const attachmentFileUrl = (slug: string, key: string, id: string) =>
-  `/api/v1/workspaces/${slug}/cards/${key}/attachments/${id}/file`;
-
 @Injectable()
 export class PlanEvidenceService {
   constructor(
     private readonly txHost: TransactionHost<PrismaTransactionalAdapter>,
     private readonly cards: CardService,
+    private readonly store: AttachmentStore,
     private readonly query: CardQueryService,
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
@@ -85,33 +81,18 @@ export class PlanEvidenceService {
     const file = await this.redrawn(checked);
 
     const name = (upload.name.split(/[\\/]/).pop() ?? '').slice(0, 200) || `${upload.kind}`;
-    const attachment = await this.txHost.withTransaction(async () => {
-      const row = await this.txHost.tx.cardAttachment.create({
-        data: {
-          cardId: card.id,
-          kind: 'evidence',
-          name,
-          url: '',
-          mime: file.mime,
-          width: file.width,
-          height: file.height,
-          file: {
-            create: {
-              data: new Uint8Array(file.data),
-              size: file.data.length,
-              sha256: createHash('sha256').update(file.data).digest('hex'),
-              ...(file.thumb ? { thumb: new Uint8Array(file.thumb) } : {}),
-            },
-          },
-        },
-        select: { id: true },
-      });
-      await this.txHost.tx.cardAttachment.update({
-        where: { id: row.id },
-        data: { url: attachmentFileUrl(slug, card.key, row.id) },
-      });
-      return row;
-    });
+    const [attachmentId] = await this.store.store(card, slug, [
+      {
+        kind: 'evidence',
+        name,
+        mime: file.mime,
+        data: file.data,
+        width: file.width,
+        height: file.height,
+        thumb: file.thumb,
+      },
+    ]);
+    const attachment = { id: attachmentId! };
 
     const evidence: PlanStepEvidence = {
       attachmentId: attachment.id,
@@ -193,10 +174,6 @@ export class PlanEvidenceService {
   }
 
   private async forget(attachmentId: string, cardId?: string) {
-    await this.txHost.withTransaction(() =>
-      this.txHost.tx.cardAttachment.deleteMany({
-        where: { id: attachmentId, ...(cardId ? { cardId } : {}) },
-      }),
-    );
+    await this.store.forget([attachmentId], cardId);
   }
 }

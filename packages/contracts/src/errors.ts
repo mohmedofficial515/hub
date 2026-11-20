@@ -100,6 +100,9 @@ export const ERROR_CATALOGUE = {
   'hub.plans.evidence_full': 409,
   'hub.plans.evidence_not_found': 404,
   'hub.plans.evidence_file_not_found': 404,
+  'hub.plans.explainer_not_requested': 409,
+  'hub.plans.explainer_stale': 409,
+  'hub.plans.explainer_captions': 422,
 
   'hub.audit.export_too_large': 400,
   'hub.docs.not_found': 404,

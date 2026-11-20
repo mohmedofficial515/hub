@@ -449,6 +449,95 @@
       "chosen": "{name} · {size}",
       "clearFile": "Remove the chosen file",
       "dropActive": "Drop it to choose it"
+    },
+    "video": {
+      "title": "The plan on video",
+      "hint": "Each chapter lights its phase on the map while it plays.",
+      "none": "No explainer video yet. Hams can make one from the plan and its phases.",
+      "request": "Ask Hams for a video",
+      "askTitle": "Explainer video with Hams",
+      "intro": "Claude writes the script from the plan and its phases on your machine, then Hams makes the video in the style and voice you pick.",
+      "style": "Style",
+      "styles": {
+        "whiteboard": [
+          "Hand-drawn whiteboard",
+          "A hand draws the phases, writes, and circles the spoken word"
+        ],
+        "slides": ["Animated slides", "A slide per phase, points appearing with the narration"],
+        "motion": ["Motion graphics", "Shapes and icons that explain each phase"],
+        "kinetic": ["Kinetic text", "The words are the show, moving to the rhythm"],
+        "data": ["Numbers and charts", "Progress, effort and phases as charts and counters"],
+        "mixed": ["Mixed by scene", "Claude picks the best style for each phase"]
+      },
+      "recommended": "Recommended",
+      "voice": "Voice",
+      "voices": {
+        "google": ["Google voice", "Gemini TTS, the default. High quality and fast; needs the internet."],
+        "hams": [
+          "Hams local voice",
+          "An Egyptian model on the graphics card. Nothing leaves the machine; slower."
+        ],
+        "none": ["No narration", "Music and on-screen text only."]
+      },
+      "googleVoice": "Google voice",
+      "googleVoices": {
+        "Charon": "Charon: deep and calm (male)",
+        "Fenrir": "Fenrir: energetic (male)",
+        "Puck": "Puck: young (male)",
+        "Orus": "Orus: formal (male)",
+        "Kore": "Kore: clear (female)",
+        "Aoede": "Aoede: warm (female)",
+        "Leda": "Leda: young (female)",
+        "Zephyr": "Zephyr: bright (female)"
+      },
+      "dialect": "Dialect",
+      "dialects": {
+        "egyptian": "Egyptian",
+        "msa": "Simple Standard Arabic"
+      },
+      "aspect": "Shape",
+      "aspects": {
+        "landscape": "Landscape 16:9",
+        "portrait": "Portrait 9:16",
+        "square": "Square 1:1"
+      },
+      "length": "Length",
+      "lengths": {
+        "chapters": "A chapter per phase",
+        "short": "Short: about a minute"
+      },
+      "captions": "Captions on screen",
+      "googleNotice": "With the Google voice, the script's text is sent to Google to make the voice. Nothing else leaves your machine.",
+      "localNotice": "With the Hams voice or no narration, nothing leaves your machine.",
+      "folder": "Hams' folder on {device}",
+      "noFolder": "Hams' folder is not one of this project's folders. Add it (for example F:/tools/hams) in the project's settings, then ask again.",
+      "noDevice": "No device runs Claude here. Connect one from the panel first.",
+      "start": "Make the video",
+      "cancel": "Cancel",
+      "asked": "Asked for. It starts when Claude's queue reaches it on {device}.",
+      "making": "Hams is making the video",
+      "stages": {
+        "script": "Claude writes the script from the plan",
+        "voice": "Making the voice with {voice}",
+        "scenes": "Hams builds the scenes",
+        "render": "Rendering the video",
+        "attach": "Adding it to the plan with chapters and captions"
+      },
+      "stagesLabel": "Making the video",
+      "failed": "The video was not made: the run ended without it.",
+      "openChat": "Open the run's chat",
+      "again": "Make it again",
+      "outdated": "The plan changed after this video (revision {n}).",
+      "made": "Hams · {style} · {voice} · {aspect} · revision {n}",
+      "voiceGoogle": "Google: {name}",
+      "voiceHams": "Hams local voice",
+      "voiceNone": "No narration",
+      "chapters": "Chapters",
+      "intro_": "Introduction",
+      "outro": "Close",
+      "openInHams": "Open in Hams",
+      "captionsLabel": "Arabic",
+      "previous": "The video before this request still plays until the new one is ready."
     }
   },
   "draft": {

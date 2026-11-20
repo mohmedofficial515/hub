@@ -6,7 +6,10 @@
 import {
   type CreatePlanInput,
   createPlanSchema,
+  explainerChapterSchema,
+  explainerRequestSchema,
   PLAN_STEP_EVIDENCE_MAX,
+  type PlanExplainer,
   type PlanPhase,
   type PlanStep,
   planStepEvidenceSchema,
@@ -440,5 +443,101 @@ export class PlanRemoveOwnEvidenceAction implements CardActionDefinition<RemoveE
   plan({ actor, card, payload }: CardActionContext<RemoveEvidenceInput>): CardActionPlan {
     if (!card) throw new Error('plan.remove_own_evidence needs a card');
     return withoutEvidence(card, payload, actor.userId ?? '');
+  }
+}
+
+function explainerOf(card: CardView): PlanExplainer | null {
+  return (card.detail?.['explainer'] as PlanExplainer | null | undefined) ?? null;
+}
+
+const requestExplainerSchema = z.object({ request: explainerRequestSchema });
+type RequestExplainerInput = z.infer<typeof requestExplainerSchema>;
+
+/**
+ * The owner asks for the plan's explainer video (v5-live-plan, batch 4), for the plan as it is now. A film already made stays playable as
+ * `previous` until the new one is attached.
+ */
+@Injectable()
+@CardActionHandler()
+export class PlanRequestExplainerAction implements CardActionDefinition<RequestExplainerInput> {
+  readonly action = 'plan.request_explainer';
+  readonly payload = requestExplainerSchema;
+
+  plan({ card, payload, now }: CardActionContext<RequestExplainerInput>): CardActionPlan {
+    if (!card) throw new Error('plan.request_explainer needs a card');
+    const before = explainerOf(card);
+    const made = before?.status === 'ready' && before.attachmentId ? before : null;
+    const keep = made
+      ? {
+          attachmentId: made.attachmentId!,
+          ...(made.posterId ? { posterId: made.posterId } : {}),
+          ...(made.captionsId ? { captionsId: made.captionsId } : {}),
+          ...(made.chapters ? { chapters: made.chapters } : {}),
+          revision: made.revision,
+          request: made.request,
+        }
+      : before?.previous;
+    const explainer: PlanExplainer = {
+      status: 'requested',
+      request: payload.request,
+      revision: Number(card.detail?.['revision'] ?? 1),
+      requestedAt: now.toISOString(),
+      ...(keep ? { previous: keep } : {}),
+    };
+    return {
+      detail: { explainer },
+      event: {
+        kind: 'field_changed',
+        data: { changes: [{ field: 'explainer', from: before?.status ?? null, to: 'requested' }] },
+      },
+    };
+  }
+}
+
+const attachExplainerSchema = z.object({
+  revision: z.number().int().min(1),
+  attachmentId: z.string(),
+  posterId: z.string().optional(),
+  captionsId: z.string().optional(),
+  chapters: z.array(explainerChapterSchema).max(60),
+  hamsProject: z.object({ id: z.string().min(1).max(200), url: z.url() }).optional(),
+});
+type AttachExplainerInput = z.infer<typeof attachExplainerSchema>;
+
+/** The film made for the request joins the plan. Applied only by `PlanExplainerService`, after it stored the files as this card's attachments. */
+@Injectable()
+@CardActionHandler()
+export class PlanAttachExplainerAction implements CardActionDefinition<AttachExplainerInput> {
+  readonly action = 'plan.attach_explainer';
+  readonly payload = attachExplainerSchema;
+
+  plan({ card, payload, now }: CardActionContext<AttachExplainerInput>): CardActionPlan {
+    if (!card) throw new Error('plan.attach_explainer needs a card');
+    const before = explainerOf(card);
+    if (!before || before.status !== 'requested') throw new AppException('hub.plans.explainer_not_requested');
+    if (payload.revision !== before.revision) {
+      throw new AppException('hub.plans.explainer_stale', {
+        params: { revision: String(payload.revision), asked: String(before.revision) },
+      });
+    }
+    const explainer: PlanExplainer = {
+      status: 'ready',
+      request: before.request,
+      revision: before.revision,
+      requestedAt: before.requestedAt,
+      attachmentId: payload.attachmentId,
+      ...(payload.posterId ? { posterId: payload.posterId } : {}),
+      ...(payload.captionsId ? { captionsId: payload.captionsId } : {}),
+      chapters: payload.chapters,
+      ...(payload.hamsProject ? { hamsProject: payload.hamsProject } : {}),
+      madeAt: now.toISOString(),
+    };
+    return {
+      detail: { explainer },
+      event: {
+        kind: 'field_changed',
+        data: { changes: [{ field: 'explainer', from: 'requested', to: 'ready' }] },
+      },
+    };
   }
 }

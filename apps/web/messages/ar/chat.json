@@ -64,7 +64,12 @@
     "propose": "الاقتراح",
     "draft": "المسودة",
     "save": "الحفظ",
-    "link": "الربط"
+    "link": "الربط",
+    "script": "السكربت",
+    "voice": "الصوت",
+    "scenes": "المشاهد",
+    "render": "التصدير",
+    "attach": "الإرفاق"
   },
   "suggestions": {
     "explain_card": {
@@ -733,7 +738,12 @@
         "propose": "اقترح",
         "draft": "صُغ مسودة",
         "save": "احفظ",
-        "link": "اربط"
+        "link": "اربط",
+        "script": "السكربت",
+        "voice": "الصوت",
+        "scenes": "المشاهد",
+        "render": "التصدير",
+        "attach": "الإرفاق"
       },
       "plan": {
         "title": "خطة مقترحة",

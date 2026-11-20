@@ -211,6 +211,8 @@ export const HUB_OTHER_TOOLS = [
   'update_plan',
   'plan_to_tasks',
   'add_step_evidence',
+  'request_plan_explainer',
+  'attach_plan_explainer',
   'update_card',
   'move_card',
   'comment',

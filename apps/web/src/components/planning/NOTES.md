@@ -150,3 +150,24 @@ Built only on what Hub already has, with no new event (`plan-live.tsx`, `feature
 - **Later batches:** reading evidence files from the team's paired machines through the bridge (today `add_step_evidence` reads only on the
   machine Hub runs on), and project-wide visibility of runs. A one-off failure of the plans, MCP and queue API e2e run together was seen once
   and not again in eight runs; it is noted, not chased further.
+
+## The plan on video (v5-live-plan, batch 4 of 4, 2026-11-20, for review)
+
+- **Data:** `plan.explainer` (migration `0017`): `{ status: requested | ready, request, revision, requestedAt, attachmentId, posterId,
+captionsId, chapters[{ phaseId | null, title?, start }], hamsProject?, madeAt, previous? }`. Its files are attachments of the plan card in
+  batch 3's storage (`AttachmentStore`): the film is checked from its bytes (MP4 or WebM, up to 120 MB, owner 2026-11-20; a step's clip
+  stays at 40 MB), the poster drawn again by sharp, the captions plain WebVTT (512 KB).
+- **Asking:** the page's panel (the lab's options: style, voice google | hams | none with Charon by default, dialect Egyptian, aspect,
+  length, captions) says what leaves the machine before anything starts, records the request (`POST /plans/{key}/explainer`,
+  `plan.request_explainer`) and adds an `explainer` run to the member's agent queue in the registered folder whose name is `hams`.
+- **Voices:** the prompt has Claude write `voiceMode` into the film's `FILM` (`google` with its Gemini `voice`; `hams`, Hams' local
+  VoiceTut, after checking its TTS service answers on `ports.tts`; `none`, a silent text-timed film with music). Only `google` sends
+  anything out (the script's text), and the page says so before starting.
+- **Making:** the run's prompt (`runPrompt`) tells Claude to use Hams' own `engine/plan-film` (`build.mjs <film> script | voice | build |
+render | export`), to report the five film stages through `report_stage` (protocol `film`: script, voice, scenes, render, attach), and to
+  attach the export with the MCP `attach_plan_explainer` (paths inside a registered folder, chapters by phase number, Hams' project).
+  Hub never touches Hams itself.
+- **Page:** while the run works, the five stages; once attached, the player with captions and poster, chapters that light their phase on
+  the map, "Open in Hams" only with a Hams project, and an outdated note when the plan's revision moved past the film's. The film before a
+  new request keeps playing until the new one is in, then its files are removed.
+- **Not in tests:** no Claude run makes a film and no Gemini request is ever sent; the e2e attaches an export through MCP as the run would.

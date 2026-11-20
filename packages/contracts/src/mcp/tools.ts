@@ -36,6 +36,7 @@ import {
   editDecisionOptionsSchema,
   editReleaseSchema,
   editTaskDetailSchema,
+  explainerRequestSchema,
   HANDOFF_STATUSES,
   IDEA_STATUSES,
   ideaToPlanSchema,
@@ -700,6 +701,34 @@ const TOOL_TABLE = {
     routes: [`DELETE ${W}/plans/:key/steps/:stepId/evidence/:attachmentId`],
     destructive: true,
   },
+  request_plan_explainer: {
+    description:
+      "Ask for the plan's explainer video, made by Hams: `style`, `voice` (google, the default, sends only the script's text to Google; hams stays on the machine; none), `googleVoice` (Charon by default), `dialect`, `aspect`, `length`, `captions`. It records the request for the plan's current revision; the owner's agent queue makes it in Hams' folder.",
+    input: key.extend(explainerRequestSchema.shape),
+    actions: ['plan.request_explainer'],
+    routes: [`POST ${W}/plans/:key/explainer`],
+  },
+  attach_plan_explainer: {
+    description:
+      "Attach the explainer film made for a plan with Hams' plan-film: the absolute paths of the exported mp4, its poster and its captions (.vtt), each inside one of the project's registered folders on the machine Hub runs on; `chapters` from plan-explainer.chapters.json (`phase` is the plan's phase number, null for the intro and the close; `start` in seconds); `revision` the plan revision it explains (as the run was told); and `hamsProject` {id, url} to open it in Hams.",
+    input: key.extend({
+      revision: z.number().int().min(1),
+      video: z.string().min(1).max(500),
+      poster: z.string().min(1).max(500).optional(),
+      captions: z.string().min(1).max(500).optional(),
+      chapters: z
+        .array(
+          z.object({
+            phase: z.number().int().min(0).max(99).nullable(),
+            title: z.string().trim().min(1).max(200).optional(),
+            start: z.number().min(0).max(36_000),
+          }),
+        )
+        .max(60),
+      hamsProject: z.object({ id: z.string().min(1).max(200), url: z.url() }).optional(),
+    }),
+    actions: ['plan.attach_explainer'],
+  },
   plan_to_tasks: {
     description: 'Create one task per step with no task yet, and move the plan to in progress.',
     input: key.extend(planToTasksSchema.shape),
@@ -925,7 +954,7 @@ const TOOL_TABLE = {
   },
   report_stage: {
     description:
-      'Say which stage of /hub:work or /hub:doc you are in, so the panel shows a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.',
+      "Say which stage of /hub:work (protocol work), /hub:doc (doc) or a plan's explainer video (film: script, voice, scenes, render, attach) you are in, so the panel and the plan's page show a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.",
     input: stageReportSchema,
     actions: ['chat.read'],
     readOnly: true,

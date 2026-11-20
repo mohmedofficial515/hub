@@ -18,6 +18,7 @@ import {
   editTaskDetailSchema,
   nestCreateInput,
   PLAN_EVIDENCE_LIMITS,
+  PLAN_EXPLAINER_LIMITS,
   updateCardSchema,
 } from '@hub/contracts';
 
@@ -47,6 +48,7 @@ async function stepIdOf(context: ToolContext, key: string, step: string | number
 async function readEvidencePath(
   path: string,
   repoPaths: readonly string[],
+  maxBytes: number = PLAN_EVIDENCE_LIMITS.videoBytes,
 ): Promise<{ data: Buffer; name: string }> {
   const allowed = (candidate: string) =>
     isAbsolute(candidate) && folderIsRegistered(candidate, repoPaths, platform());
@@ -66,7 +68,7 @@ async function readEvidencePath(
   }
   const info = await stat(real);
   if (!info.isFile()) throw new AppException('hub.plans.evidence_file_not_found');
-  if (info.size > PLAN_EVIDENCE_LIMITS.videoBytes) throw new AppException('hub.plans.evidence_too_large');
+  if (info.size > maxBytes) throw new AppException('hub.plans.evidence_too_large');
   return { data: await readFile(real), name: basename(real) };
 }
 
@@ -437,6 +439,28 @@ export const cardToolHandlers = {
       await context.deps.query.written(actor, result),
       await context.project(),
     );
+  },
+  request_plan_explainer: (context, input) =>
+    context.apply('Asked for the explainer video of', input.key, 'plan.request_explainer', {
+      request: payloadOf(input),
+    }),
+  async attach_plan_explainer(context, input) {
+    const actor = await context.actor();
+    const project = await context.project();
+    const { repoPaths } = await context.deps.projects.get(actor);
+    const read = (path: string, max: number) => readEvidencePath(path, repoPaths, max);
+    const result = await context.deps.explainer.attach(actor, project.slug, input.key, {
+      revision: input.revision,
+      video: await read(input.video, PLAN_EXPLAINER_LIMITS.videoBytes),
+      ...(input.poster ? { poster: await read(input.poster, PLAN_EXPLAINER_LIMITS.posterBytes) } : {}),
+      ...(input.captions
+        ? { captions: await read(input.captions, PLAN_EXPLAINER_LIMITS.captionsBytes) }
+        : {}),
+      chapters: input.chapters,
+      ...(input.hamsProject ? { hamsProject: input.hamsProject } : {}),
+    });
+    const card = await context.deps.query.written(actor, result);
+    return written('Attached the explainer video to', card, project);
   },
   plan_to_tasks: (context, input) =>
     context.apply('Created the tasks of', input.key, 'plan.to_tasks', payloadOf(input), (_card, others) =>

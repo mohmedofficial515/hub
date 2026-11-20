@@ -6,6 +6,7 @@
 import { z } from 'zod';
 
 import { cardKeySchema } from './cards/card';
+import type { ExplainerRequest } from './cards/plan';
 import {
   APPROVAL_CATEGORIES,
   changedFileSchema,
@@ -18,7 +19,7 @@ import { roleSchema } from './roles';
 import { QUEUE_ISOLATIONS } from './worktrees';
 
 /** What a run starts from. A task runs `/hub:work`, so its stages and report land on the card. */
-export const RUN_SOURCES = ['task', 'plan_step', 'prompt'] as const;
+export const RUN_SOURCES = ['task', 'plan_step', 'prompt', 'explainer'] as const;
 export type RunSource = (typeof RUN_SOURCES)[number];
 
 /**
@@ -144,6 +145,9 @@ export const createRunSchema = z
     }
     if (value.source !== 'prompt' && !value.cardKey) {
       ctx.addIssue({ code: 'custom', path: ['cardKey'], message: 'A task or plan step run needs its card' });
+    }
+    if (value.source === 'explainer' && !value.cardKey) {
+      ctx.addIssue({ code: 'custom', path: ['cardKey'], message: 'An explainer run needs its plan' });
     }
     if (value.source === 'plan_step' && value.planStep === undefined) {
       ctx.addIssue({ code: 'custom', path: ['planStep'], message: 'A plan step run needs the step' });
@@ -301,6 +305,8 @@ export function runPrompt(input: {
   planStep?: number | null;
   stepTitle?: string | null;
   prompt?: string | null;
+  /** An explainer run: what was asked, and the plan revision it explains. */
+  explainer?: { request: ExplainerRequest; revision: number } | null;
 }): string {
   if (input.source === 'task') return `/hub:work ${input.cardKey ?? ''}`.trim();
   if (input.source === 'plan_step') {
@@ -309,7 +315,47 @@ export function runPrompt(input: {
 As /hub:work does, call hub report_stage with protocol work as each of its stages (understand, plan, execute, verify, report) starts and ends, so the plan's page shows where you are.
 If the step changes something a person sees, save a screenshot of it in the folder and attach it with hub add_step_evidence (kind after, and before if you took one first).`;
   }
+  if (input.source === 'explainer') return explainerPrompt(input.cardKey ?? '', input.explainer);
   return input.prompt ?? '';
+}
+
+/**
+ * The words of an explainer run (v5-live-plan, batch 4). It runs in Hams' folder (F:/tools/hams on the owner's machine) and uses Hams' own
+ * plan-film engine; Hub only asks, follows its five stages and keeps the result.
+ */
+function explainerPrompt(
+  cardKey: string,
+  explainer: { request: ExplainerRequest; revision: number } | null | undefined,
+): string {
+  const r = explainer?.request;
+  const revision = explainer?.revision ?? 1;
+  const film = `${cardKey.toLowerCase()}`;
+  const mode = r?.voice ?? 'google';
+  const gemini = r?.googleVoice ?? 'Charon';
+  const voice =
+    mode === 'google'
+      ? `google (Gemini TTS), voice ${gemini}`
+      : mode === 'hams'
+        ? "hams (Hams' local VoiceTut voice: nothing leaves the machine)"
+        : 'none (no narration: a silent, text-timed film with music only)';
+  const filmVoice = mode === 'google' ? `voiceMode: "google" and voice: "${gemini}"` : `voiceMode: "${mode}"`;
+  const voiceStep =
+    mode === 'google'
+      ? `2. node engine/plan-film/build.mjs ${film} voice. Only the script's text goes to Google, once. Report stage voice.`
+      : mode === 'hams'
+        ? `2. First check Hams' TTS service is up: its port is ports.tts in hams.config.json (http://127.0.0.1:<port>). If it does not answer, report stage voice as failed with a note that the service is not running (start it with npm run tts in this folder), and stop. Then node engine/plan-film/build.mjs ${film} voice; nothing leaves the machine. Report stage voice.`
+        : `2. node engine/plan-film/build.mjs ${film} voice: with no narration it times the film by its on-screen text, with music only. Report stage voice.`;
+  return [
+    `Make the explainer video of plan ${cardKey} (revision ${revision}) with Hams' plan-film engine, in this folder.`,
+    `Asked for: style ${r?.style ?? 'whiteboard'}, voice ${voice}, dialect ${r?.dialect ?? 'egyptian'}, aspect ${r?.aspect ?? 'landscape'}, length ${r?.length ?? 'chapters'}, captions ${r?.captions === false ? 'no' : 'yes'}.`,
+    'Read engine/plan-film/README.md and PATTERNS.md first, and read the plan with hub get_plan.',
+    `1. Write engine/plan-film/films/${film}.script.mjs and ${film}.scenes.mjs as the README says: one scene per idea, each scene's phase the plan's phase number (null for the intro and the close). In FILM write ${filmVoice}. Report stage script.`,
+    voiceStep,
+    `3. node engine/plan-film/build.mjs ${film} build. Report stage scenes.`,
+    `4. node engine/plan-film/build.mjs ${film} render, then export into output/hub-explainers/${film}-r${revision}. Report stage render.`,
+    `5. Attach it with hub attach_plan_explainer: key ${cardKey}, revision ${revision}, the exported plan-explainer.mp4, its poster, ${r?.captions === false ? 'no captions' : 'its captions (.ar.vtt)'}, the chapters from plan-explainer.chapters.json, and hamsProject (the film's slug, and http://127.0.0.1:<the web port in hams.config.json>/projects/<slug>). Report stage attach.`,
+    'Call hub report_stage with protocol film as each stage starts and ends (script, voice, scenes, render, attach). Change nothing else in Hams.',
+  ].join('\n');
 }
 
 // ── Calendar, in the queue's timezone ──────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { INestApplication } from '@nestjs/common';
+import sharp from 'sharp';
 
 import { aMember, aWorkspace } from '../factories';
 import { aToken } from '../helpers/auth';
@@ -371,6 +372,107 @@ describe('MCP over HTTP', () => {
         path: '../after.png',
       });
       expect(relative.isError).toBe(true);
+    });
+
+    it('Claude asks for a plan’s explainer and attaches the film Hams made: video, poster, captions, chapters by phase', async () => {
+      const { workspace, token } = await setup();
+      // What plan-film exports, made here: no Gemini request, no render. The clip is known by its bytes, the poster is drawn by sharp.
+      const folder = mkdtempSync(join(tmpdir(), 'hub-hams-'));
+      writeFileSync(
+        join(folder, 'plan-explainer.mp4'),
+        Buffer.concat([Buffer.from([0, 0, 0, 24]), Buffer.from('ftypisom', 'latin1'), Buffer.alloc(256)]),
+      );
+      writeFileSync(
+        join(folder, 'plan-explainer-poster.jpg'),
+        await sharp({ create: { width: 320, height: 180, channels: 3, background: '#224488' } })
+          .jpeg()
+          .toBuffer(),
+      );
+      writeFileSync(
+        join(folder, 'plan-explainer.ar.vtt'),
+        ['WEBVTT', '', '1', '00:00:00.000 --> 00:00:02.000', 'دي الخطة', ''].join('\n'),
+      );
+      writeFileSync(join(folder, 'notes.vtt'), 'not captions');
+      await db().workspace.update({ where: { id: workspace.id }, data: { repoPaths: [folder] } });
+      const hub = await connect(token);
+      const key = keyIn(
+        await hub.ok('create_plan', {
+          title: 'Filmed plan',
+          phases: [
+            { id: 'p0', title: 'Setup' },
+            { id: 'p1', title: 'Build' },
+          ],
+          steps: [{ title: 'Decide', phaseId: 'p0' }],
+        }),
+      );
+      const files = {
+        video: join(folder, 'plan-explainer.mp4'),
+        poster: join(folder, 'plan-explainer-poster.jpg'),
+        captions: join(folder, 'plan-explainer.ar.vtt'),
+      };
+      const chapters = [
+        { phase: null, title: 'Intro', start: 0 },
+        { phase: 0, start: 14.64 },
+        { phase: 1, start: 32.09 },
+        { phase: 7, start: 50 },
+      ];
+      const early = await hub.call('attach_plan_explainer', { key, revision: 1, chapters, ...files });
+      expect(early.content[0]?.text).toContain('hub.plans.explainer_not_requested');
+
+      await hub.ok('request_plan_explainer', { key, voice: 'google', googleVoice: 'Charon' });
+      const stale = await hub.call('attach_plan_explainer', { key, revision: 2, chapters, ...files });
+      expect(stale.content[0]?.text).toContain('hub.plans.explainer_stale');
+      const badCaptions = await hub.call('attach_plan_explainer', {
+        key,
+        revision: 1,
+        chapters,
+        ...files,
+        captions: join(folder, 'notes.vtt'),
+      });
+      expect(badCaptions.content[0]?.text).toContain('hub.plans.explainer_captions');
+
+      expect(
+        await hub.ok('attach_plan_explainer', {
+          key,
+          revision: 1,
+          chapters,
+          ...files,
+          hamsProject: {
+            id: 'plan-gtv472-20261119',
+            url: 'http://127.0.0.1:4700/projects/plan-gtv472-20261119',
+          },
+        }),
+      ).toContain('Attached the explainer video to');
+      const card = await db().card.findFirstOrThrow({
+        where: { workspaceId: workspace.id, key },
+        include: { plan: true },
+      });
+      const explainer = card.plan?.explainer as {
+        status: string;
+        chapters: { phaseId: string | null }[];
+        attachmentId: string;
+        captionsId: string;
+        posterId: string;
+        request: { voice: string; dialect: string };
+      };
+      expect(explainer).toMatchObject({ status: 'ready', request: { voice: 'google', dialect: 'egyptian' } });
+      expect(explainer.chapters.map((chapter) => chapter.phaseId)).toEqual([null, 'p0', 'p1', null]);
+      const kinds = await db().cardAttachment.findMany({
+        where: { cardId: card.id },
+        select: { kind: true, mime: true },
+      });
+      expect(kinds.map((row) => `${row.kind} ${row.mime}`).sort()).toEqual([
+        'explainer video/mp4',
+        'explainer_captions text/vtt',
+        'explainer_poster image/jpeg',
+      ]);
+
+      // Asked again and attached again: the first film is removed once the new one is in.
+      await hub.ok('request_plan_explainer', { key });
+      await hub.ok('attach_plan_explainer', { key, revision: 1, chapters, video: files.video });
+      expect(await db().cardAttachment.findUnique({ where: { id: explainer.attachmentId } })).toBeNull();
+      expect(await db().cardAttachment.findUnique({ where: { id: explainer.captionsId } })).toBeNull();
+      expect(await db().cardAttachment.count({ where: { cardId: card.id } })).toBe(1);
     });
 
     it('records the agent as the actor, through the same path as the web', async () => {

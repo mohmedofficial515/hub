@@ -7441,6 +7441,12 @@
                   "type": "string",
                   "format": "binary"
                 }
+              },
+              "text/vtt": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
           },
@@ -7452,6 +7458,47 @@
           }
         },
         "summary": "An uploaded attachment's bytes, such as a plan step's evidence. A range for a clip",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{ws}/plans/{key}/explainer": {
+      "post": {
+        "operationId": "PlanExplainerController_request",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainerRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardWrittenResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Ask for the plan's explainer video, made by Hams for the plan as it is now. The owner's agent queue makes it (source explainer). With the Google voice, the script's text goes to Google",
         "tags": [
           "plans"
         ]
@@ -12754,6 +12801,71 @@
                         },
                         "doneAt": {
                           "type": "string"
+                        },
+                        "evidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "before",
+                                  "after",
+                                  "video"
+                                ]
+                              },
+                              "caption": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "mime": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "nullable": true
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "nullable": true
+                              },
+                              "addedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "via": {
+                                "type": "string",
+                                "enum": [
+                                  "web",
+                                  "mcp"
+                                ]
+                              },
+                              "addedBy": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "thumb": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "attachmentId",
+                              "kind",
+                              "mime",
+                              "addedAt",
+                              "via"
+                            ]
+                          }
                         }
                       },
                       "required": [
@@ -12762,6 +12874,283 @@
                         "done"
                       ]
                     }
+                  },
+                  "explainer": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "requested",
+                          "ready"
+                        ]
+                      },
+                      "request": {
+                        "type": "object",
+                        "properties": {
+                          "style": {
+                            "default": "whiteboard",
+                            "type": "string",
+                            "enum": [
+                              "whiteboard",
+                              "slides",
+                              "motion",
+                              "kinetic",
+                              "data",
+                              "mixed"
+                            ]
+                          },
+                          "voice": {
+                            "default": "google",
+                            "type": "string",
+                            "enum": [
+                              "google",
+                              "hams",
+                              "none"
+                            ]
+                          },
+                          "googleVoice": {
+                            "default": "Charon",
+                            "type": "string",
+                            "enum": [
+                              "Charon",
+                              "Fenrir",
+                              "Puck",
+                              "Orus",
+                              "Kore",
+                              "Aoede",
+                              "Leda",
+                              "Zephyr"
+                            ]
+                          },
+                          "dialect": {
+                            "default": "egyptian",
+                            "type": "string",
+                            "enum": [
+                              "egyptian",
+                              "msa"
+                            ]
+                          },
+                          "aspect": {
+                            "default": "landscape",
+                            "type": "string",
+                            "enum": [
+                              "landscape",
+                              "portrait",
+                              "square"
+                            ]
+                          },
+                          "length": {
+                            "default": "chapters",
+                            "type": "string",
+                            "enum": [
+                              "chapters",
+                              "short"
+                            ]
+                          },
+                          "captions": {
+                            "default": true,
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "requestedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "attachmentId": {
+                        "type": "string"
+                      },
+                      "posterId": {
+                        "type": "string"
+                      },
+                      "captionsId": {
+                        "type": "string"
+                      },
+                      "chapters": {
+                        "maxItems": 60,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "phaseId": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "start": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 36000
+                            }
+                          },
+                          "required": [
+                            "phaseId",
+                            "start"
+                          ]
+                        }
+                      },
+                      "hamsProject": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url"
+                        ]
+                      },
+                      "madeAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "previous": {
+                        "type": "object",
+                        "properties": {
+                          "attachmentId": {
+                            "type": "string"
+                          },
+                          "posterId": {
+                            "type": "string"
+                          },
+                          "captionsId": {
+                            "type": "string"
+                          },
+                          "chapters": {
+                            "maxItems": 60,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "phaseId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "start": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 36000
+                                }
+                              },
+                              "required": [
+                                "phaseId",
+                                "start"
+                              ]
+                            }
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "request": {
+                            "type": "object",
+                            "properties": {
+                              "style": {
+                                "default": "whiteboard",
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard",
+                                  "slides",
+                                  "motion",
+                                  "kinetic",
+                                  "data",
+                                  "mixed"
+                                ]
+                              },
+                              "voice": {
+                                "default": "google",
+                                "type": "string",
+                                "enum": [
+                                  "google",
+                                  "hams",
+                                  "none"
+                                ]
+                              },
+                              "googleVoice": {
+                                "default": "Charon",
+                                "type": "string",
+                                "enum": [
+                                  "Charon",
+                                  "Fenrir",
+                                  "Puck",
+                                  "Orus",
+                                  "Kore",
+                                  "Aoede",
+                                  "Leda",
+                                  "Zephyr"
+                                ]
+                              },
+                              "dialect": {
+                                "default": "egyptian",
+                                "type": "string",
+                                "enum": [
+                                  "egyptian",
+                                  "msa"
+                                ]
+                              },
+                              "aspect": {
+                                "default": "landscape",
+                                "type": "string",
+                                "enum": [
+                                  "landscape",
+                                  "portrait",
+                                  "square"
+                                ]
+                              },
+                              "length": {
+                                "default": "chapters",
+                                "type": "string",
+                                "enum": [
+                                  "chapters",
+                                  "short"
+                                ]
+                              },
+                              "captions": {
+                                "default": true,
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "attachmentId",
+                          "revision",
+                          "request"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "request",
+                      "revision",
+                      "requestedAt"
+                    ],
+                    "nullable": true
                   },
                   "phases": {
                     "type": "array",
@@ -14447,6 +14836,71 @@
                         },
                         "doneAt": {
                           "type": "string"
+                        },
+                        "evidence": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "before",
+                                  "after",
+                                  "video"
+                                ]
+                              },
+                              "caption": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "mime": {
+                                "type": "string"
+                              },
+                              "width": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "nullable": true
+                              },
+                              "height": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991,
+                                "nullable": true
+                              },
+                              "addedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "via": {
+                                "type": "string",
+                                "enum": [
+                                  "web",
+                                  "mcp"
+                                ]
+                              },
+                              "addedBy": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "thumb": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "attachmentId",
+                              "kind",
+                              "mime",
+                              "addedAt",
+                              "via"
+                            ]
+                          }
                         }
                       },
                       "required": [
@@ -14455,6 +14909,283 @@
                         "done"
                       ]
                     }
+                  },
+                  "explainer": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "requested",
+                          "ready"
+                        ]
+                      },
+                      "request": {
+                        "type": "object",
+                        "properties": {
+                          "style": {
+                            "default": "whiteboard",
+                            "type": "string",
+                            "enum": [
+                              "whiteboard",
+                              "slides",
+                              "motion",
+                              "kinetic",
+                              "data",
+                              "mixed"
+                            ]
+                          },
+                          "voice": {
+                            "default": "google",
+                            "type": "string",
+                            "enum": [
+                              "google",
+                              "hams",
+                              "none"
+                            ]
+                          },
+                          "googleVoice": {
+                            "default": "Charon",
+                            "type": "string",
+                            "enum": [
+                              "Charon",
+                              "Fenrir",
+                              "Puck",
+                              "Orus",
+                              "Kore",
+                              "Aoede",
+                              "Leda",
+                              "Zephyr"
+                            ]
+                          },
+                          "dialect": {
+                            "default": "egyptian",
+                            "type": "string",
+                            "enum": [
+                              "egyptian",
+                              "msa"
+                            ]
+                          },
+                          "aspect": {
+                            "default": "landscape",
+                            "type": "string",
+                            "enum": [
+                              "landscape",
+                              "portrait",
+                              "square"
+                            ]
+                          },
+                          "length": {
+                            "default": "chapters",
+                            "type": "string",
+                            "enum": [
+                              "chapters",
+                              "short"
+                            ]
+                          },
+                          "captions": {
+                            "default": true,
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "revision": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 9007199254740991
+                      },
+                      "requestedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "attachmentId": {
+                        "type": "string"
+                      },
+                      "posterId": {
+                        "type": "string"
+                      },
+                      "captionsId": {
+                        "type": "string"
+                      },
+                      "chapters": {
+                        "maxItems": 60,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "phaseId": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "title": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "start": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 36000
+                            }
+                          },
+                          "required": [
+                            "phaseId",
+                            "start"
+                          ]
+                        }
+                      },
+                      "hamsProject": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "url": {
+                            "type": "string",
+                            "format": "uri"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "url"
+                        ]
+                      },
+                      "madeAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      "previous": {
+                        "type": "object",
+                        "properties": {
+                          "attachmentId": {
+                            "type": "string"
+                          },
+                          "posterId": {
+                            "type": "string"
+                          },
+                          "captionsId": {
+                            "type": "string"
+                          },
+                          "chapters": {
+                            "maxItems": 60,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "phaseId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "start": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 36000
+                                }
+                              },
+                              "required": [
+                                "phaseId",
+                                "start"
+                              ]
+                            }
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "request": {
+                            "type": "object",
+                            "properties": {
+                              "style": {
+                                "default": "whiteboard",
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard",
+                                  "slides",
+                                  "motion",
+                                  "kinetic",
+                                  "data",
+                                  "mixed"
+                                ]
+                              },
+                              "voice": {
+                                "default": "google",
+                                "type": "string",
+                                "enum": [
+                                  "google",
+                                  "hams",
+                                  "none"
+                                ]
+                              },
+                              "googleVoice": {
+                                "default": "Charon",
+                                "type": "string",
+                                "enum": [
+                                  "Charon",
+                                  "Fenrir",
+                                  "Puck",
+                                  "Orus",
+                                  "Kore",
+                                  "Aoede",
+                                  "Leda",
+                                  "Zephyr"
+                                ]
+                              },
+                              "dialect": {
+                                "default": "egyptian",
+                                "type": "string",
+                                "enum": [
+                                  "egyptian",
+                                  "msa"
+                                ]
+                              },
+                              "aspect": {
+                                "default": "landscape",
+                                "type": "string",
+                                "enum": [
+                                  "landscape",
+                                  "portrait",
+                                  "square"
+                                ]
+                              },
+                              "length": {
+                                "default": "chapters",
+                                "type": "string",
+                                "enum": [
+                                  "chapters",
+                                  "short"
+                                ]
+                              },
+                              "captions": {
+                                "default": true,
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "required": [
+                          "attachmentId",
+                          "revision",
+                          "request"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "request",
+                      "revision",
+                      "requestedAt"
+                    ],
+                    "nullable": true
                   },
                   "phases": {
                     "type": "array",
@@ -16453,6 +17184,71 @@
                             },
                             "doneAt": {
                               "type": "string"
+                            },
+                            "evidence": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "attachmentId": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "before",
+                                      "after",
+                                      "video"
+                                    ]
+                                  },
+                                  "caption": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "mime": {
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991,
+                                    "nullable": true
+                                  },
+                                  "height": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991,
+                                    "nullable": true
+                                  },
+                                  "addedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                  },
+                                  "via": {
+                                    "type": "string",
+                                    "enum": [
+                                      "web",
+                                      "mcp"
+                                    ]
+                                  },
+                                  "addedBy": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "thumb": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "attachmentId",
+                                  "kind",
+                                  "mime",
+                                  "addedAt",
+                                  "via"
+                                ]
+                              }
                             }
                           },
                           "required": [
@@ -16461,6 +17257,283 @@
                             "done"
                           ]
                         }
+                      },
+                      "explainer": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "ready"
+                            ]
+                          },
+                          "request": {
+                            "type": "object",
+                            "properties": {
+                              "style": {
+                                "default": "whiteboard",
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard",
+                                  "slides",
+                                  "motion",
+                                  "kinetic",
+                                  "data",
+                                  "mixed"
+                                ]
+                              },
+                              "voice": {
+                                "default": "google",
+                                "type": "string",
+                                "enum": [
+                                  "google",
+                                  "hams",
+                                  "none"
+                                ]
+                              },
+                              "googleVoice": {
+                                "default": "Charon",
+                                "type": "string",
+                                "enum": [
+                                  "Charon",
+                                  "Fenrir",
+                                  "Puck",
+                                  "Orus",
+                                  "Kore",
+                                  "Aoede",
+                                  "Leda",
+                                  "Zephyr"
+                                ]
+                              },
+                              "dialect": {
+                                "default": "egyptian",
+                                "type": "string",
+                                "enum": [
+                                  "egyptian",
+                                  "msa"
+                                ]
+                              },
+                              "aspect": {
+                                "default": "landscape",
+                                "type": "string",
+                                "enum": [
+                                  "landscape",
+                                  "portrait",
+                                  "square"
+                                ]
+                              },
+                              "length": {
+                                "default": "chapters",
+                                "type": "string",
+                                "enum": [
+                                  "chapters",
+                                  "short"
+                                ]
+                              },
+                              "captions": {
+                                "default": true,
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "attachmentId": {
+                            "type": "string"
+                          },
+                          "posterId": {
+                            "type": "string"
+                          },
+                          "captionsId": {
+                            "type": "string"
+                          },
+                          "chapters": {
+                            "maxItems": 60,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "phaseId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "start": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 36000
+                                }
+                              },
+                              "required": [
+                                "phaseId",
+                                "start"
+                              ]
+                            }
+                          },
+                          "hamsProject": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url"
+                            ]
+                          },
+                          "madeAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "previous": {
+                            "type": "object",
+                            "properties": {
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "posterId": {
+                                "type": "string"
+                              },
+                              "captionsId": {
+                                "type": "string"
+                              },
+                              "chapters": {
+                                "maxItems": 60,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "phaseId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "start": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 36000
+                                    }
+                                  },
+                                  "required": [
+                                    "phaseId",
+                                    "start"
+                                  ]
+                                }
+                              },
+                              "revision": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "request": {
+                                "type": "object",
+                                "properties": {
+                                  "style": {
+                                    "default": "whiteboard",
+                                    "type": "string",
+                                    "enum": [
+                                      "whiteboard",
+                                      "slides",
+                                      "motion",
+                                      "kinetic",
+                                      "data",
+                                      "mixed"
+                                    ]
+                                  },
+                                  "voice": {
+                                    "default": "google",
+                                    "type": "string",
+                                    "enum": [
+                                      "google",
+                                      "hams",
+                                      "none"
+                                    ]
+                                  },
+                                  "googleVoice": {
+                                    "default": "Charon",
+                                    "type": "string",
+                                    "enum": [
+                                      "Charon",
+                                      "Fenrir",
+                                      "Puck",
+                                      "Orus",
+                                      "Kore",
+                                      "Aoede",
+                                      "Leda",
+                                      "Zephyr"
+                                    ]
+                                  },
+                                  "dialect": {
+                                    "default": "egyptian",
+                                    "type": "string",
+                                    "enum": [
+                                      "egyptian",
+                                      "msa"
+                                    ]
+                                  },
+                                  "aspect": {
+                                    "default": "landscape",
+                                    "type": "string",
+                                    "enum": [
+                                      "landscape",
+                                      "portrait",
+                                      "square"
+                                    ]
+                                  },
+                                  "length": {
+                                    "default": "chapters",
+                                    "type": "string",
+                                    "enum": [
+                                      "chapters",
+                                      "short"
+                                    ]
+                                  },
+                                  "captions": {
+                                    "default": true,
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "attachmentId",
+                              "revision",
+                              "request"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "request",
+                          "revision",
+                          "requestedAt"
+                        ],
+                        "nullable": true
                       },
                       "phases": {
                         "type": "array",
@@ -17765,6 +18838,71 @@
                             },
                             "doneAt": {
                               "type": "string"
+                            },
+                            "evidence": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "attachmentId": {
+                                    "type": "string"
+                                  },
+                                  "kind": {
+                                    "type": "string",
+                                    "enum": [
+                                      "before",
+                                      "after",
+                                      "video"
+                                    ]
+                                  },
+                                  "caption": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "mime": {
+                                    "type": "string"
+                                  },
+                                  "width": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991,
+                                    "nullable": true
+                                  },
+                                  "height": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991,
+                                    "nullable": true
+                                  },
+                                  "addedAt": {
+                                    "type": "string",
+                                    "format": "date-time",
+                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                  },
+                                  "via": {
+                                    "type": "string",
+                                    "enum": [
+                                      "web",
+                                      "mcp"
+                                    ]
+                                  },
+                                  "addedBy": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "thumb": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "attachmentId",
+                                  "kind",
+                                  "mime",
+                                  "addedAt",
+                                  "via"
+                                ]
+                              }
                             }
                           },
                           "required": [
@@ -17773,6 +18911,283 @@
                             "done"
                           ]
                         }
+                      },
+                      "explainer": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "ready"
+                            ]
+                          },
+                          "request": {
+                            "type": "object",
+                            "properties": {
+                              "style": {
+                                "default": "whiteboard",
+                                "type": "string",
+                                "enum": [
+                                  "whiteboard",
+                                  "slides",
+                                  "motion",
+                                  "kinetic",
+                                  "data",
+                                  "mixed"
+                                ]
+                              },
+                              "voice": {
+                                "default": "google",
+                                "type": "string",
+                                "enum": [
+                                  "google",
+                                  "hams",
+                                  "none"
+                                ]
+                              },
+                              "googleVoice": {
+                                "default": "Charon",
+                                "type": "string",
+                                "enum": [
+                                  "Charon",
+                                  "Fenrir",
+                                  "Puck",
+                                  "Orus",
+                                  "Kore",
+                                  "Aoede",
+                                  "Leda",
+                                  "Zephyr"
+                                ]
+                              },
+                              "dialect": {
+                                "default": "egyptian",
+                                "type": "string",
+                                "enum": [
+                                  "egyptian",
+                                  "msa"
+                                ]
+                              },
+                              "aspect": {
+                                "default": "landscape",
+                                "type": "string",
+                                "enum": [
+                                  "landscape",
+                                  "portrait",
+                                  "square"
+                                ]
+                              },
+                              "length": {
+                                "default": "chapters",
+                                "type": "string",
+                                "enum": [
+                                  "chapters",
+                                  "short"
+                                ]
+                              },
+                              "captions": {
+                                "default": true,
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "requestedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "attachmentId": {
+                            "type": "string"
+                          },
+                          "posterId": {
+                            "type": "string"
+                          },
+                          "captionsId": {
+                            "type": "string"
+                          },
+                          "chapters": {
+                            "maxItems": 60,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "phaseId": {
+                                  "type": "string",
+                                  "nullable": true
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "start": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 36000
+                                }
+                              },
+                              "required": [
+                                "phaseId",
+                                "start"
+                              ]
+                            }
+                          },
+                          "hamsProject": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url"
+                            ]
+                          },
+                          "madeAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                          },
+                          "previous": {
+                            "type": "object",
+                            "properties": {
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "posterId": {
+                                "type": "string"
+                              },
+                              "captionsId": {
+                                "type": "string"
+                              },
+                              "chapters": {
+                                "maxItems": 60,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "phaseId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "start": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 36000
+                                    }
+                                  },
+                                  "required": [
+                                    "phaseId",
+                                    "start"
+                                  ]
+                                }
+                              },
+                              "revision": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "request": {
+                                "type": "object",
+                                "properties": {
+                                  "style": {
+                                    "default": "whiteboard",
+                                    "type": "string",
+                                    "enum": [
+                                      "whiteboard",
+                                      "slides",
+                                      "motion",
+                                      "kinetic",
+                                      "data",
+                                      "mixed"
+                                    ]
+                                  },
+                                  "voice": {
+                                    "default": "google",
+                                    "type": "string",
+                                    "enum": [
+                                      "google",
+                                      "hams",
+                                      "none"
+                                    ]
+                                  },
+                                  "googleVoice": {
+                                    "default": "Charon",
+                                    "type": "string",
+                                    "enum": [
+                                      "Charon",
+                                      "Fenrir",
+                                      "Puck",
+                                      "Orus",
+                                      "Kore",
+                                      "Aoede",
+                                      "Leda",
+                                      "Zephyr"
+                                    ]
+                                  },
+                                  "dialect": {
+                                    "default": "egyptian",
+                                    "type": "string",
+                                    "enum": [
+                                      "egyptian",
+                                      "msa"
+                                    ]
+                                  },
+                                  "aspect": {
+                                    "default": "landscape",
+                                    "type": "string",
+                                    "enum": [
+                                      "landscape",
+                                      "portrait",
+                                      "square"
+                                    ]
+                                  },
+                                  "length": {
+                                    "default": "chapters",
+                                    "type": "string",
+                                    "enum": [
+                                      "chapters",
+                                      "short"
+                                    ]
+                                  },
+                                  "captions": {
+                                    "default": true,
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            },
+                            "required": [
+                              "attachmentId",
+                              "revision",
+                              "request"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "request",
+                          "revision",
+                          "requestedAt"
+                        ],
+                        "nullable": true
                       },
                       "phases": {
                         "type": "array",
@@ -23573,6 +24988,71 @@
                               },
                               "doneAt": {
                                 "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "attachmentId": {
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "before",
+                                        "after",
+                                        "video"
+                                      ]
+                                    },
+                                    "caption": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "mime": {
+                                      "type": "string"
+                                    },
+                                    "width": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "height": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "addedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "via": {
+                                      "type": "string",
+                                      "enum": [
+                                        "web",
+                                        "mcp"
+                                      ]
+                                    },
+                                    "addedBy": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "thumb": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "attachmentId",
+                                    "kind",
+                                    "mime",
+                                    "addedAt",
+                                    "via"
+                                  ]
+                                }
                               }
                             },
                             "required": [
@@ -23581,6 +25061,283 @@
                               "done"
                             ]
                           }
+                        },
+                        "explainer": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "requested",
+                                "ready"
+                              ]
+                            },
+                            "request": {
+                              "type": "object",
+                              "properties": {
+                                "style": {
+                                  "default": "whiteboard",
+                                  "type": "string",
+                                  "enum": [
+                                    "whiteboard",
+                                    "slides",
+                                    "motion",
+                                    "kinetic",
+                                    "data",
+                                    "mixed"
+                                  ]
+                                },
+                                "voice": {
+                                  "default": "google",
+                                  "type": "string",
+                                  "enum": [
+                                    "google",
+                                    "hams",
+                                    "none"
+                                  ]
+                                },
+                                "googleVoice": {
+                                  "default": "Charon",
+                                  "type": "string",
+                                  "enum": [
+                                    "Charon",
+                                    "Fenrir",
+                                    "Puck",
+                                    "Orus",
+                                    "Kore",
+                                    "Aoede",
+                                    "Leda",
+                                    "Zephyr"
+                                  ]
+                                },
+                                "dialect": {
+                                  "default": "egyptian",
+                                  "type": "string",
+                                  "enum": [
+                                    "egyptian",
+                                    "msa"
+                                  ]
+                                },
+                                "aspect": {
+                                  "default": "landscape",
+                                  "type": "string",
+                                  "enum": [
+                                    "landscape",
+                                    "portrait",
+                                    "square"
+                                  ]
+                                },
+                                "length": {
+                                  "default": "chapters",
+                                  "type": "string",
+                                  "enum": [
+                                    "chapters",
+                                    "short"
+                                  ]
+                                },
+                                "captions": {
+                                  "default": true,
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "revision": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9007199254740991
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "attachmentId": {
+                              "type": "string"
+                            },
+                            "posterId": {
+                              "type": "string"
+                            },
+                            "captionsId": {
+                              "type": "string"
+                            },
+                            "chapters": {
+                              "maxItems": 60,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "phaseId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "start": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 36000
+                                  }
+                                },
+                                "required": [
+                                  "phaseId",
+                                  "start"
+                                ]
+                              }
+                            },
+                            "hamsProject": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url"
+                              ]
+                            },
+                            "madeAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "previous": {
+                              "type": "object",
+                              "properties": {
+                                "attachmentId": {
+                                  "type": "string"
+                                },
+                                "posterId": {
+                                  "type": "string"
+                                },
+                                "captionsId": {
+                                  "type": "string"
+                                },
+                                "chapters": {
+                                  "maxItems": 60,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "phaseId": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "start": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 36000
+                                      }
+                                    },
+                                    "required": [
+                                      "phaseId",
+                                      "start"
+                                    ]
+                                  }
+                                },
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "request": {
+                                  "type": "object",
+                                  "properties": {
+                                    "style": {
+                                      "default": "whiteboard",
+                                      "type": "string",
+                                      "enum": [
+                                        "whiteboard",
+                                        "slides",
+                                        "motion",
+                                        "kinetic",
+                                        "data",
+                                        "mixed"
+                                      ]
+                                    },
+                                    "voice": {
+                                      "default": "google",
+                                      "type": "string",
+                                      "enum": [
+                                        "google",
+                                        "hams",
+                                        "none"
+                                      ]
+                                    },
+                                    "googleVoice": {
+                                      "default": "Charon",
+                                      "type": "string",
+                                      "enum": [
+                                        "Charon",
+                                        "Fenrir",
+                                        "Puck",
+                                        "Orus",
+                                        "Kore",
+                                        "Aoede",
+                                        "Leda",
+                                        "Zephyr"
+                                      ]
+                                    },
+                                    "dialect": {
+                                      "default": "egyptian",
+                                      "type": "string",
+                                      "enum": [
+                                        "egyptian",
+                                        "msa"
+                                      ]
+                                    },
+                                    "aspect": {
+                                      "default": "landscape",
+                                      "type": "string",
+                                      "enum": [
+                                        "landscape",
+                                        "portrait",
+                                        "square"
+                                      ]
+                                    },
+                                    "length": {
+                                      "default": "chapters",
+                                      "type": "string",
+                                      "enum": [
+                                        "chapters",
+                                        "short"
+                                      ]
+                                    },
+                                    "captions": {
+                                      "default": true,
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "attachmentId",
+                                "revision",
+                                "request"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "request",
+                            "revision",
+                            "requestedAt"
+                          ],
+                          "nullable": true
                         },
                         "phases": {
                           "type": "array",
@@ -24837,6 +26594,71 @@
                               },
                               "doneAt": {
                                 "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "attachmentId": {
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "before",
+                                        "after",
+                                        "video"
+                                      ]
+                                    },
+                                    "caption": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "mime": {
+                                      "type": "string"
+                                    },
+                                    "width": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "height": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "addedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "via": {
+                                      "type": "string",
+                                      "enum": [
+                                        "web",
+                                        "mcp"
+                                      ]
+                                    },
+                                    "addedBy": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "thumb": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "attachmentId",
+                                    "kind",
+                                    "mime",
+                                    "addedAt",
+                                    "via"
+                                  ]
+                                }
                               }
                             },
                             "required": [
@@ -24845,6 +26667,283 @@
                               "done"
                             ]
                           }
+                        },
+                        "explainer": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "requested",
+                                "ready"
+                              ]
+                            },
+                            "request": {
+                              "type": "object",
+                              "properties": {
+                                "style": {
+                                  "default": "whiteboard",
+                                  "type": "string",
+                                  "enum": [
+                                    "whiteboard",
+                                    "slides",
+                                    "motion",
+                                    "kinetic",
+                                    "data",
+                                    "mixed"
+                                  ]
+                                },
+                                "voice": {
+                                  "default": "google",
+                                  "type": "string",
+                                  "enum": [
+                                    "google",
+                                    "hams",
+                                    "none"
+                                  ]
+                                },
+                                "googleVoice": {
+                                  "default": "Charon",
+                                  "type": "string",
+                                  "enum": [
+                                    "Charon",
+                                    "Fenrir",
+                                    "Puck",
+                                    "Orus",
+                                    "Kore",
+                                    "Aoede",
+                                    "Leda",
+                                    "Zephyr"
+                                  ]
+                                },
+                                "dialect": {
+                                  "default": "egyptian",
+                                  "type": "string",
+                                  "enum": [
+                                    "egyptian",
+                                    "msa"
+                                  ]
+                                },
+                                "aspect": {
+                                  "default": "landscape",
+                                  "type": "string",
+                                  "enum": [
+                                    "landscape",
+                                    "portrait",
+                                    "square"
+                                  ]
+                                },
+                                "length": {
+                                  "default": "chapters",
+                                  "type": "string",
+                                  "enum": [
+                                    "chapters",
+                                    "short"
+                                  ]
+                                },
+                                "captions": {
+                                  "default": true,
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "revision": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9007199254740991
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "attachmentId": {
+                              "type": "string"
+                            },
+                            "posterId": {
+                              "type": "string"
+                            },
+                            "captionsId": {
+                              "type": "string"
+                            },
+                            "chapters": {
+                              "maxItems": 60,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "phaseId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "start": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 36000
+                                  }
+                                },
+                                "required": [
+                                  "phaseId",
+                                  "start"
+                                ]
+                              }
+                            },
+                            "hamsProject": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url"
+                              ]
+                            },
+                            "madeAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "previous": {
+                              "type": "object",
+                              "properties": {
+                                "attachmentId": {
+                                  "type": "string"
+                                },
+                                "posterId": {
+                                  "type": "string"
+                                },
+                                "captionsId": {
+                                  "type": "string"
+                                },
+                                "chapters": {
+                                  "maxItems": 60,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "phaseId": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "start": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 36000
+                                      }
+                                    },
+                                    "required": [
+                                      "phaseId",
+                                      "start"
+                                    ]
+                                  }
+                                },
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "request": {
+                                  "type": "object",
+                                  "properties": {
+                                    "style": {
+                                      "default": "whiteboard",
+                                      "type": "string",
+                                      "enum": [
+                                        "whiteboard",
+                                        "slides",
+                                        "motion",
+                                        "kinetic",
+                                        "data",
+                                        "mixed"
+                                      ]
+                                    },
+                                    "voice": {
+                                      "default": "google",
+                                      "type": "string",
+                                      "enum": [
+                                        "google",
+                                        "hams",
+                                        "none"
+                                      ]
+                                    },
+                                    "googleVoice": {
+                                      "default": "Charon",
+                                      "type": "string",
+                                      "enum": [
+                                        "Charon",
+                                        "Fenrir",
+                                        "Puck",
+                                        "Orus",
+                                        "Kore",
+                                        "Aoede",
+                                        "Leda",
+                                        "Zephyr"
+                                      ]
+                                    },
+                                    "dialect": {
+                                      "default": "egyptian",
+                                      "type": "string",
+                                      "enum": [
+                                        "egyptian",
+                                        "msa"
+                                      ]
+                                    },
+                                    "aspect": {
+                                      "default": "landscape",
+                                      "type": "string",
+                                      "enum": [
+                                        "landscape",
+                                        "portrait",
+                                        "square"
+                                      ]
+                                    },
+                                    "length": {
+                                      "default": "chapters",
+                                      "type": "string",
+                                      "enum": [
+                                        "chapters",
+                                        "short"
+                                      ]
+                                    },
+                                    "captions": {
+                                      "default": true,
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "attachmentId",
+                                "revision",
+                                "request"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "request",
+                            "revision",
+                            "requestedAt"
+                          ],
+                          "nullable": true
                         },
                         "phases": {
                           "type": "array",
@@ -26434,6 +28533,71 @@
                                       },
                                       "doneAt": {
                                         "type": "string"
+                                      },
+                                      "evidence": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "attachmentId": {
+                                              "type": "string"
+                                            },
+                                            "kind": {
+                                              "type": "string",
+                                              "enum": [
+                                                "before",
+                                                "after",
+                                                "video"
+                                              ]
+                                            },
+                                            "caption": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "maxLength": 200
+                                            },
+                                            "mime": {
+                                              "type": "string"
+                                            },
+                                            "width": {
+                                              "type": "integer",
+                                              "minimum": -9007199254740991,
+                                              "maximum": 9007199254740991,
+                                              "nullable": true
+                                            },
+                                            "height": {
+                                              "type": "integer",
+                                              "minimum": -9007199254740991,
+                                              "maximum": 9007199254740991,
+                                              "nullable": true
+                                            },
+                                            "addedAt": {
+                                              "type": "string",
+                                              "format": "date-time",
+                                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                            },
+                                            "via": {
+                                              "type": "string",
+                                              "enum": [
+                                                "web",
+                                                "mcp"
+                                              ]
+                                            },
+                                            "addedBy": {
+                                              "type": "string",
+                                              "nullable": true
+                                            },
+                                            "thumb": {
+                                              "type": "boolean"
+                                            }
+                                          },
+                                          "required": [
+                                            "attachmentId",
+                                            "kind",
+                                            "mime",
+                                            "addedAt",
+                                            "via"
+                                          ]
+                                        }
                                       }
                                     },
                                     "required": [
@@ -26442,6 +28606,283 @@
                                       "done"
                                     ]
                                   }
+                                },
+                                "explainer": {
+                                  "type": "object",
+                                  "properties": {
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "requested",
+                                        "ready"
+                                      ]
+                                    },
+                                    "request": {
+                                      "type": "object",
+                                      "properties": {
+                                        "style": {
+                                          "default": "whiteboard",
+                                          "type": "string",
+                                          "enum": [
+                                            "whiteboard",
+                                            "slides",
+                                            "motion",
+                                            "kinetic",
+                                            "data",
+                                            "mixed"
+                                          ]
+                                        },
+                                        "voice": {
+                                          "default": "google",
+                                          "type": "string",
+                                          "enum": [
+                                            "google",
+                                            "hams",
+                                            "none"
+                                          ]
+                                        },
+                                        "googleVoice": {
+                                          "default": "Charon",
+                                          "type": "string",
+                                          "enum": [
+                                            "Charon",
+                                            "Fenrir",
+                                            "Puck",
+                                            "Orus",
+                                            "Kore",
+                                            "Aoede",
+                                            "Leda",
+                                            "Zephyr"
+                                          ]
+                                        },
+                                        "dialect": {
+                                          "default": "egyptian",
+                                          "type": "string",
+                                          "enum": [
+                                            "egyptian",
+                                            "msa"
+                                          ]
+                                        },
+                                        "aspect": {
+                                          "default": "landscape",
+                                          "type": "string",
+                                          "enum": [
+                                            "landscape",
+                                            "portrait",
+                                            "square"
+                                          ]
+                                        },
+                                        "length": {
+                                          "default": "chapters",
+                                          "type": "string",
+                                          "enum": [
+                                            "chapters",
+                                            "short"
+                                          ]
+                                        },
+                                        "captions": {
+                                          "default": true,
+                                          "type": "boolean"
+                                        }
+                                      }
+                                    },
+                                    "revision": {
+                                      "type": "integer",
+                                      "minimum": 1,
+                                      "maximum": 9007199254740991
+                                    },
+                                    "requestedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "attachmentId": {
+                                      "type": "string"
+                                    },
+                                    "posterId": {
+                                      "type": "string"
+                                    },
+                                    "captionsId": {
+                                      "type": "string"
+                                    },
+                                    "chapters": {
+                                      "maxItems": 60,
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "phaseId": {
+                                            "type": "string",
+                                            "nullable": true
+                                          },
+                                          "title": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 200
+                                          },
+                                          "start": {
+                                            "type": "number",
+                                            "minimum": 0,
+                                            "maximum": 36000
+                                          }
+                                        },
+                                        "required": [
+                                          "phaseId",
+                                          "start"
+                                        ]
+                                      }
+                                    },
+                                    "hamsProject": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 200
+                                        },
+                                        "url": {
+                                          "type": "string",
+                                          "format": "uri"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "url"
+                                      ]
+                                    },
+                                    "madeAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "previous": {
+                                      "type": "object",
+                                      "properties": {
+                                        "attachmentId": {
+                                          "type": "string"
+                                        },
+                                        "posterId": {
+                                          "type": "string"
+                                        },
+                                        "captionsId": {
+                                          "type": "string"
+                                        },
+                                        "chapters": {
+                                          "maxItems": 60,
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "phaseId": {
+                                                "type": "string",
+                                                "nullable": true
+                                              },
+                                              "title": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 200
+                                              },
+                                              "start": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 36000
+                                              }
+                                            },
+                                            "required": [
+                                              "phaseId",
+                                              "start"
+                                            ]
+                                          }
+                                        },
+                                        "revision": {
+                                          "type": "integer",
+                                          "minimum": -9007199254740991,
+                                          "maximum": 9007199254740991
+                                        },
+                                        "request": {
+                                          "type": "object",
+                                          "properties": {
+                                            "style": {
+                                              "default": "whiteboard",
+                                              "type": "string",
+                                              "enum": [
+                                                "whiteboard",
+                                                "slides",
+                                                "motion",
+                                                "kinetic",
+                                                "data",
+                                                "mixed"
+                                              ]
+                                            },
+                                            "voice": {
+                                              "default": "google",
+                                              "type": "string",
+                                              "enum": [
+                                                "google",
+                                                "hams",
+                                                "none"
+                                              ]
+                                            },
+                                            "googleVoice": {
+                                              "default": "Charon",
+                                              "type": "string",
+                                              "enum": [
+                                                "Charon",
+                                                "Fenrir",
+                                                "Puck",
+                                                "Orus",
+                                                "Kore",
+                                                "Aoede",
+                                                "Leda",
+                                                "Zephyr"
+                                              ]
+                                            },
+                                            "dialect": {
+                                              "default": "egyptian",
+                                              "type": "string",
+                                              "enum": [
+                                                "egyptian",
+                                                "msa"
+                                              ]
+                                            },
+                                            "aspect": {
+                                              "default": "landscape",
+                                              "type": "string",
+                                              "enum": [
+                                                "landscape",
+                                                "portrait",
+                                                "square"
+                                              ]
+                                            },
+                                            "length": {
+                                              "default": "chapters",
+                                              "type": "string",
+                                              "enum": [
+                                                "chapters",
+                                                "short"
+                                              ]
+                                            },
+                                            "captions": {
+                                              "default": true,
+                                              "type": "boolean"
+                                            }
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "attachmentId",
+                                        "revision",
+                                        "request"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "status",
+                                    "request",
+                                    "revision",
+                                    "requestedAt"
+                                  ],
+                                  "nullable": true
                                 },
                                 "phases": {
                                   "type": "array",
@@ -31073,6 +33514,71 @@
                               },
                               "doneAt": {
                                 "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "attachmentId": {
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "before",
+                                        "after",
+                                        "video"
+                                      ]
+                                    },
+                                    "caption": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "mime": {
+                                      "type": "string"
+                                    },
+                                    "width": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "height": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "addedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "via": {
+                                      "type": "string",
+                                      "enum": [
+                                        "web",
+                                        "mcp"
+                                      ]
+                                    },
+                                    "addedBy": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "thumb": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "attachmentId",
+                                    "kind",
+                                    "mime",
+                                    "addedAt",
+                                    "via"
+                                  ]
+                                }
                               }
                             },
                             "required": [
@@ -31081,6 +33587,283 @@
                               "done"
                             ]
                           }
+                        },
+                        "explainer": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "requested",
+                                "ready"
+                              ]
+                            },
+                            "request": {
+                              "type": "object",
+                              "properties": {
+                                "style": {
+                                  "default": "whiteboard",
+                                  "type": "string",
+                                  "enum": [
+                                    "whiteboard",
+                                    "slides",
+                                    "motion",
+                                    "kinetic",
+                                    "data",
+                                    "mixed"
+                                  ]
+                                },
+                                "voice": {
+                                  "default": "google",
+                                  "type": "string",
+                                  "enum": [
+                                    "google",
+                                    "hams",
+                                    "none"
+                                  ]
+                                },
+                                "googleVoice": {
+                                  "default": "Charon",
+                                  "type": "string",
+                                  "enum": [
+                                    "Charon",
+                                    "Fenrir",
+                                    "Puck",
+                                    "Orus",
+                                    "Kore",
+                                    "Aoede",
+                                    "Leda",
+                                    "Zephyr"
+                                  ]
+                                },
+                                "dialect": {
+                                  "default": "egyptian",
+                                  "type": "string",
+                                  "enum": [
+                                    "egyptian",
+                                    "msa"
+                                  ]
+                                },
+                                "aspect": {
+                                  "default": "landscape",
+                                  "type": "string",
+                                  "enum": [
+                                    "landscape",
+                                    "portrait",
+                                    "square"
+                                  ]
+                                },
+                                "length": {
+                                  "default": "chapters",
+                                  "type": "string",
+                                  "enum": [
+                                    "chapters",
+                                    "short"
+                                  ]
+                                },
+                                "captions": {
+                                  "default": true,
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "revision": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9007199254740991
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "attachmentId": {
+                              "type": "string"
+                            },
+                            "posterId": {
+                              "type": "string"
+                            },
+                            "captionsId": {
+                              "type": "string"
+                            },
+                            "chapters": {
+                              "maxItems": 60,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "phaseId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "start": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 36000
+                                  }
+                                },
+                                "required": [
+                                  "phaseId",
+                                  "start"
+                                ]
+                              }
+                            },
+                            "hamsProject": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url"
+                              ]
+                            },
+                            "madeAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "previous": {
+                              "type": "object",
+                              "properties": {
+                                "attachmentId": {
+                                  "type": "string"
+                                },
+                                "posterId": {
+                                  "type": "string"
+                                },
+                                "captionsId": {
+                                  "type": "string"
+                                },
+                                "chapters": {
+                                  "maxItems": 60,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "phaseId": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "start": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 36000
+                                      }
+                                    },
+                                    "required": [
+                                      "phaseId",
+                                      "start"
+                                    ]
+                                  }
+                                },
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "request": {
+                                  "type": "object",
+                                  "properties": {
+                                    "style": {
+                                      "default": "whiteboard",
+                                      "type": "string",
+                                      "enum": [
+                                        "whiteboard",
+                                        "slides",
+                                        "motion",
+                                        "kinetic",
+                                        "data",
+                                        "mixed"
+                                      ]
+                                    },
+                                    "voice": {
+                                      "default": "google",
+                                      "type": "string",
+                                      "enum": [
+                                        "google",
+                                        "hams",
+                                        "none"
+                                      ]
+                                    },
+                                    "googleVoice": {
+                                      "default": "Charon",
+                                      "type": "string",
+                                      "enum": [
+                                        "Charon",
+                                        "Fenrir",
+                                        "Puck",
+                                        "Orus",
+                                        "Kore",
+                                        "Aoede",
+                                        "Leda",
+                                        "Zephyr"
+                                      ]
+                                    },
+                                    "dialect": {
+                                      "default": "egyptian",
+                                      "type": "string",
+                                      "enum": [
+                                        "egyptian",
+                                        "msa"
+                                      ]
+                                    },
+                                    "aspect": {
+                                      "default": "landscape",
+                                      "type": "string",
+                                      "enum": [
+                                        "landscape",
+                                        "portrait",
+                                        "square"
+                                      ]
+                                    },
+                                    "length": {
+                                      "default": "chapters",
+                                      "type": "string",
+                                      "enum": [
+                                        "chapters",
+                                        "short"
+                                      ]
+                                    },
+                                    "captions": {
+                                      "default": true,
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "attachmentId",
+                                "revision",
+                                "request"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "request",
+                            "revision",
+                            "requestedAt"
+                          ],
+                          "nullable": true
                         },
                         "phases": {
                           "type": "array",
@@ -32856,6 +35639,71 @@
                               },
                               "doneAt": {
                                 "type": "string"
+                              },
+                              "evidence": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "attachmentId": {
+                                      "type": "string"
+                                    },
+                                    "kind": {
+                                      "type": "string",
+                                      "enum": [
+                                        "before",
+                                        "after",
+                                        "video"
+                                      ]
+                                    },
+                                    "caption": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "mime": {
+                                      "type": "string"
+                                    },
+                                    "width": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "height": {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991,
+                                      "nullable": true
+                                    },
+                                    "addedAt": {
+                                      "type": "string",
+                                      "format": "date-time",
+                                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                    },
+                                    "via": {
+                                      "type": "string",
+                                      "enum": [
+                                        "web",
+                                        "mcp"
+                                      ]
+                                    },
+                                    "addedBy": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "thumb": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "attachmentId",
+                                    "kind",
+                                    "mime",
+                                    "addedAt",
+                                    "via"
+                                  ]
+                                }
                               }
                             },
                             "required": [
@@ -32864,6 +35712,283 @@
                               "done"
                             ]
                           }
+                        },
+                        "explainer": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "requested",
+                                "ready"
+                              ]
+                            },
+                            "request": {
+                              "type": "object",
+                              "properties": {
+                                "style": {
+                                  "default": "whiteboard",
+                                  "type": "string",
+                                  "enum": [
+                                    "whiteboard",
+                                    "slides",
+                                    "motion",
+                                    "kinetic",
+                                    "data",
+                                    "mixed"
+                                  ]
+                                },
+                                "voice": {
+                                  "default": "google",
+                                  "type": "string",
+                                  "enum": [
+                                    "google",
+                                    "hams",
+                                    "none"
+                                  ]
+                                },
+                                "googleVoice": {
+                                  "default": "Charon",
+                                  "type": "string",
+                                  "enum": [
+                                    "Charon",
+                                    "Fenrir",
+                                    "Puck",
+                                    "Orus",
+                                    "Kore",
+                                    "Aoede",
+                                    "Leda",
+                                    "Zephyr"
+                                  ]
+                                },
+                                "dialect": {
+                                  "default": "egyptian",
+                                  "type": "string",
+                                  "enum": [
+                                    "egyptian",
+                                    "msa"
+                                  ]
+                                },
+                                "aspect": {
+                                  "default": "landscape",
+                                  "type": "string",
+                                  "enum": [
+                                    "landscape",
+                                    "portrait",
+                                    "square"
+                                  ]
+                                },
+                                "length": {
+                                  "default": "chapters",
+                                  "type": "string",
+                                  "enum": [
+                                    "chapters",
+                                    "short"
+                                  ]
+                                },
+                                "captions": {
+                                  "default": true,
+                                  "type": "boolean"
+                                }
+                              }
+                            },
+                            "revision": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "maximum": 9007199254740991
+                            },
+                            "requestedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "attachmentId": {
+                              "type": "string"
+                            },
+                            "posterId": {
+                              "type": "string"
+                            },
+                            "captionsId": {
+                              "type": "string"
+                            },
+                            "chapters": {
+                              "maxItems": 60,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "phaseId": {
+                                    "type": "string",
+                                    "nullable": true
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "start": {
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 36000
+                                  }
+                                },
+                                "required": [
+                                  "phaseId",
+                                  "start"
+                                ]
+                              }
+                            },
+                            "hamsProject": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                },
+                                "url": {
+                                  "type": "string",
+                                  "format": "uri"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url"
+                              ]
+                            },
+                            "madeAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                            },
+                            "previous": {
+                              "type": "object",
+                              "properties": {
+                                "attachmentId": {
+                                  "type": "string"
+                                },
+                                "posterId": {
+                                  "type": "string"
+                                },
+                                "captionsId": {
+                                  "type": "string"
+                                },
+                                "chapters": {
+                                  "maxItems": 60,
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "phaseId": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "start": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 36000
+                                      }
+                                    },
+                                    "required": [
+                                      "phaseId",
+                                      "start"
+                                    ]
+                                  }
+                                },
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "request": {
+                                  "type": "object",
+                                  "properties": {
+                                    "style": {
+                                      "default": "whiteboard",
+                                      "type": "string",
+                                      "enum": [
+                                        "whiteboard",
+                                        "slides",
+                                        "motion",
+                                        "kinetic",
+                                        "data",
+                                        "mixed"
+                                      ]
+                                    },
+                                    "voice": {
+                                      "default": "google",
+                                      "type": "string",
+                                      "enum": [
+                                        "google",
+                                        "hams",
+                                        "none"
+                                      ]
+                                    },
+                                    "googleVoice": {
+                                      "default": "Charon",
+                                      "type": "string",
+                                      "enum": [
+                                        "Charon",
+                                        "Fenrir",
+                                        "Puck",
+                                        "Orus",
+                                        "Kore",
+                                        "Aoede",
+                                        "Leda",
+                                        "Zephyr"
+                                      ]
+                                    },
+                                    "dialect": {
+                                      "default": "egyptian",
+                                      "type": "string",
+                                      "enum": [
+                                        "egyptian",
+                                        "msa"
+                                      ]
+                                    },
+                                    "aspect": {
+                                      "default": "landscape",
+                                      "type": "string",
+                                      "enum": [
+                                        "landscape",
+                                        "portrait",
+                                        "square"
+                                      ]
+                                    },
+                                    "length": {
+                                      "default": "chapters",
+                                      "type": "string",
+                                      "enum": [
+                                        "chapters",
+                                        "short"
+                                      ]
+                                    },
+                                    "captions": {
+                                      "default": true,
+                                      "type": "boolean"
+                                    }
+                                  }
+                                }
+                              },
+                              "required": [
+                                "attachmentId",
+                                "revision",
+                                "request"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "request",
+                            "revision",
+                            "requestedAt"
+                          ],
+                          "nullable": true
                         },
                         "phases": {
                           "type": "array",
@@ -34136,6 +37261,71 @@
                                 },
                                 "doneAt": {
                                   "type": "string"
+                                },
+                                "evidence": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "attachmentId": {
+                                        "type": "string"
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "before",
+                                          "after",
+                                          "video"
+                                        ]
+                                      },
+                                      "caption": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "mime": {
+                                        "type": "string"
+                                      },
+                                      "width": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991,
+                                        "nullable": true
+                                      },
+                                      "height": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991,
+                                        "nullable": true
+                                      },
+                                      "addedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                      },
+                                      "via": {
+                                        "type": "string",
+                                        "enum": [
+                                          "web",
+                                          "mcp"
+                                        ]
+                                      },
+                                      "addedBy": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "thumb": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "attachmentId",
+                                      "kind",
+                                      "mime",
+                                      "addedAt",
+                                      "via"
+                                    ]
+                                  }
                                 }
                               },
                               "required": [
@@ -34144,6 +37334,283 @@
                                 "done"
                               ]
                             }
+                          },
+                          "explainer": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "requested",
+                                  "ready"
+                                ]
+                              },
+                              "request": {
+                                "type": "object",
+                                "properties": {
+                                  "style": {
+                                    "default": "whiteboard",
+                                    "type": "string",
+                                    "enum": [
+                                      "whiteboard",
+                                      "slides",
+                                      "motion",
+                                      "kinetic",
+                                      "data",
+                                      "mixed"
+                                    ]
+                                  },
+                                  "voice": {
+                                    "default": "google",
+                                    "type": "string",
+                                    "enum": [
+                                      "google",
+                                      "hams",
+                                      "none"
+                                    ]
+                                  },
+                                  "googleVoice": {
+                                    "default": "Charon",
+                                    "type": "string",
+                                    "enum": [
+                                      "Charon",
+                                      "Fenrir",
+                                      "Puck",
+                                      "Orus",
+                                      "Kore",
+                                      "Aoede",
+                                      "Leda",
+                                      "Zephyr"
+                                    ]
+                                  },
+                                  "dialect": {
+                                    "default": "egyptian",
+                                    "type": "string",
+                                    "enum": [
+                                      "egyptian",
+                                      "msa"
+                                    ]
+                                  },
+                                  "aspect": {
+                                    "default": "landscape",
+                                    "type": "string",
+                                    "enum": [
+                                      "landscape",
+                                      "portrait",
+                                      "square"
+                                    ]
+                                  },
+                                  "length": {
+                                    "default": "chapters",
+                                    "type": "string",
+                                    "enum": [
+                                      "chapters",
+                                      "short"
+                                    ]
+                                  },
+                                  "captions": {
+                                    "default": true,
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              "revision": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "requestedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "posterId": {
+                                "type": "string"
+                              },
+                              "captionsId": {
+                                "type": "string"
+                              },
+                              "chapters": {
+                                "maxItems": 60,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "phaseId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "start": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 36000
+                                    }
+                                  },
+                                  "required": [
+                                    "phaseId",
+                                    "start"
+                                  ]
+                                }
+                              },
+                              "hamsProject": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "format": "uri"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "url"
+                                ]
+                              },
+                              "madeAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "previous": {
+                                "type": "object",
+                                "properties": {
+                                  "attachmentId": {
+                                    "type": "string"
+                                  },
+                                  "posterId": {
+                                    "type": "string"
+                                  },
+                                  "captionsId": {
+                                    "type": "string"
+                                  },
+                                  "chapters": {
+                                    "maxItems": 60,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "phaseId": {
+                                          "type": "string",
+                                          "nullable": true
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 200
+                                        },
+                                        "start": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 36000
+                                        }
+                                      },
+                                      "required": [
+                                        "phaseId",
+                                        "start"
+                                      ]
+                                    }
+                                  },
+                                  "revision": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "style": {
+                                        "default": "whiteboard",
+                                        "type": "string",
+                                        "enum": [
+                                          "whiteboard",
+                                          "slides",
+                                          "motion",
+                                          "kinetic",
+                                          "data",
+                                          "mixed"
+                                        ]
+                                      },
+                                      "voice": {
+                                        "default": "google",
+                                        "type": "string",
+                                        "enum": [
+                                          "google",
+                                          "hams",
+                                          "none"
+                                        ]
+                                      },
+                                      "googleVoice": {
+                                        "default": "Charon",
+                                        "type": "string",
+                                        "enum": [
+                                          "Charon",
+                                          "Fenrir",
+                                          "Puck",
+                                          "Orus",
+                                          "Kore",
+                                          "Aoede",
+                                          "Leda",
+                                          "Zephyr"
+                                        ]
+                                      },
+                                      "dialect": {
+                                        "default": "egyptian",
+                                        "type": "string",
+                                        "enum": [
+                                          "egyptian",
+                                          "msa"
+                                        ]
+                                      },
+                                      "aspect": {
+                                        "default": "landscape",
+                                        "type": "string",
+                                        "enum": [
+                                          "landscape",
+                                          "portrait",
+                                          "square"
+                                        ]
+                                      },
+                                      "length": {
+                                        "default": "chapters",
+                                        "type": "string",
+                                        "enum": [
+                                          "chapters",
+                                          "short"
+                                        ]
+                                      },
+                                      "captions": {
+                                        "default": true,
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "attachmentId",
+                                  "revision",
+                                  "request"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "request",
+                              "revision",
+                              "requestedAt"
+                            ],
+                            "nullable": true
                           },
                           "phases": {
                             "type": "array",
@@ -35439,6 +38906,71 @@
                                 },
                                 "doneAt": {
                                   "type": "string"
+                                },
+                                "evidence": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "attachmentId": {
+                                        "type": "string"
+                                      },
+                                      "kind": {
+                                        "type": "string",
+                                        "enum": [
+                                          "before",
+                                          "after",
+                                          "video"
+                                        ]
+                                      },
+                                      "caption": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      },
+                                      "mime": {
+                                        "type": "string"
+                                      },
+                                      "width": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991,
+                                        "nullable": true
+                                      },
+                                      "height": {
+                                        "type": "integer",
+                                        "minimum": -9007199254740991,
+                                        "maximum": 9007199254740991,
+                                        "nullable": true
+                                      },
+                                      "addedAt": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                                      },
+                                      "via": {
+                                        "type": "string",
+                                        "enum": [
+                                          "web",
+                                          "mcp"
+                                        ]
+                                      },
+                                      "addedBy": {
+                                        "type": "string",
+                                        "nullable": true
+                                      },
+                                      "thumb": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "attachmentId",
+                                      "kind",
+                                      "mime",
+                                      "addedAt",
+                                      "via"
+                                    ]
+                                  }
                                 }
                               },
                               "required": [
@@ -35447,6 +38979,283 @@
                                 "done"
                               ]
                             }
+                          },
+                          "explainer": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "requested",
+                                  "ready"
+                                ]
+                              },
+                              "request": {
+                                "type": "object",
+                                "properties": {
+                                  "style": {
+                                    "default": "whiteboard",
+                                    "type": "string",
+                                    "enum": [
+                                      "whiteboard",
+                                      "slides",
+                                      "motion",
+                                      "kinetic",
+                                      "data",
+                                      "mixed"
+                                    ]
+                                  },
+                                  "voice": {
+                                    "default": "google",
+                                    "type": "string",
+                                    "enum": [
+                                      "google",
+                                      "hams",
+                                      "none"
+                                    ]
+                                  },
+                                  "googleVoice": {
+                                    "default": "Charon",
+                                    "type": "string",
+                                    "enum": [
+                                      "Charon",
+                                      "Fenrir",
+                                      "Puck",
+                                      "Orus",
+                                      "Kore",
+                                      "Aoede",
+                                      "Leda",
+                                      "Zephyr"
+                                    ]
+                                  },
+                                  "dialect": {
+                                    "default": "egyptian",
+                                    "type": "string",
+                                    "enum": [
+                                      "egyptian",
+                                      "msa"
+                                    ]
+                                  },
+                                  "aspect": {
+                                    "default": "landscape",
+                                    "type": "string",
+                                    "enum": [
+                                      "landscape",
+                                      "portrait",
+                                      "square"
+                                    ]
+                                  },
+                                  "length": {
+                                    "default": "chapters",
+                                    "type": "string",
+                                    "enum": [
+                                      "chapters",
+                                      "short"
+                                    ]
+                                  },
+                                  "captions": {
+                                    "default": true,
+                                    "type": "boolean"
+                                  }
+                                }
+                              },
+                              "revision": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
+                              },
+                              "requestedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "attachmentId": {
+                                "type": "string"
+                              },
+                              "posterId": {
+                                "type": "string"
+                              },
+                              "captionsId": {
+                                "type": "string"
+                              },
+                              "chapters": {
+                                "maxItems": 60,
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "phaseId": {
+                                      "type": "string",
+                                      "nullable": true
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "minLength": 1,
+                                      "maxLength": 200
+                                    },
+                                    "start": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 36000
+                                    }
+                                  },
+                                  "required": [
+                                    "phaseId",
+                                    "start"
+                                  ]
+                                }
+                              },
+                              "hamsProject": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 200
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                    "format": "uri"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "url"
+                                ]
+                              },
+                              "madeAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                              },
+                              "previous": {
+                                "type": "object",
+                                "properties": {
+                                  "attachmentId": {
+                                    "type": "string"
+                                  },
+                                  "posterId": {
+                                    "type": "string"
+                                  },
+                                  "captionsId": {
+                                    "type": "string"
+                                  },
+                                  "chapters": {
+                                    "maxItems": 60,
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "phaseId": {
+                                          "type": "string",
+                                          "nullable": true
+                                        },
+                                        "title": {
+                                          "type": "string",
+                                          "minLength": 1,
+                                          "maxLength": 200
+                                        },
+                                        "start": {
+                                          "type": "number",
+                                          "minimum": 0,
+                                          "maximum": 36000
+                                        }
+                                      },
+                                      "required": [
+                                        "phaseId",
+                                        "start"
+                                      ]
+                                    }
+                                  },
+                                  "revision": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "request": {
+                                    "type": "object",
+                                    "properties": {
+                                      "style": {
+                                        "default": "whiteboard",
+                                        "type": "string",
+                                        "enum": [
+                                          "whiteboard",
+                                          "slides",
+                                          "motion",
+                                          "kinetic",
+                                          "data",
+                                          "mixed"
+                                        ]
+                                      },
+                                      "voice": {
+                                        "default": "google",
+                                        "type": "string",
+                                        "enum": [
+                                          "google",
+                                          "hams",
+                                          "none"
+                                        ]
+                                      },
+                                      "googleVoice": {
+                                        "default": "Charon",
+                                        "type": "string",
+                                        "enum": [
+                                          "Charon",
+                                          "Fenrir",
+                                          "Puck",
+                                          "Orus",
+                                          "Kore",
+                                          "Aoede",
+                                          "Leda",
+                                          "Zephyr"
+                                        ]
+                                      },
+                                      "dialect": {
+                                        "default": "egyptian",
+                                        "type": "string",
+                                        "enum": [
+                                          "egyptian",
+                                          "msa"
+                                        ]
+                                      },
+                                      "aspect": {
+                                        "default": "landscape",
+                                        "type": "string",
+                                        "enum": [
+                                          "landscape",
+                                          "portrait",
+                                          "square"
+                                        ]
+                                      },
+                                      "length": {
+                                        "default": "chapters",
+                                        "type": "string",
+                                        "enum": [
+                                          "chapters",
+                                          "short"
+                                        ]
+                                      },
+                                      "captions": {
+                                        "default": true,
+                                        "type": "boolean"
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "attachmentId",
+                                  "revision",
+                                  "request"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "status",
+                              "request",
+                              "revision",
+                              "requestedAt"
+                            ],
+                            "nullable": true
                           },
                           "phases": {
                             "type": "array",
@@ -36249,6 +40058,75 @@
           }
         }
       },
+      "ExplainerRequestDto": {
+        "type": "object",
+        "properties": {
+          "style": {
+            "default": "whiteboard",
+            "type": "string",
+            "enum": [
+              "whiteboard",
+              "slides",
+              "motion",
+              "kinetic",
+              "data",
+              "mixed"
+            ]
+          },
+          "voice": {
+            "default": "google",
+            "type": "string",
+            "enum": [
+              "google",
+              "hams",
+              "none"
+            ]
+          },
+          "googleVoice": {
+            "default": "Charon",
+            "type": "string",
+            "enum": [
+              "Charon",
+              "Fenrir",
+              "Puck",
+              "Orus",
+              "Kore",
+              "Aoede",
+              "Leda",
+              "Zephyr"
+            ]
+          },
+          "dialect": {
+            "default": "egyptian",
+            "type": "string",
+            "enum": [
+              "egyptian",
+              "msa"
+            ]
+          },
+          "aspect": {
+            "default": "landscape",
+            "type": "string",
+            "enum": [
+              "landscape",
+              "portrait",
+              "square"
+            ]
+          },
+          "length": {
+            "default": "chapters",
+            "type": "string",
+            "enum": [
+              "chapters",
+              "short"
+            ]
+          },
+          "captions": {
+            "default": true,
+            "type": "boolean"
+          }
+        }
+      },
       "HookSessionDto": {
         "type": "object",
         "properties": {
@@ -37007,7 +40885,8 @@
                         "type": "string",
                         "enum": [
                           "work",
-                          "doc"
+                          "doc",
+                          "film"
                         ]
                       },
                       "stage": {
@@ -40644,7 +44523,8 @@
                   "enum": [
                     "task",
                     "plan_step",
-                    "prompt"
+                    "prompt",
+                    "explainer"
                   ]
                 },
                 "title": {
@@ -41059,7 +44939,8 @@
             "enum": [
               "task",
               "plan_step",
-              "prompt"
+              "prompt",
+              "explainer"
             ]
           },
           "cardKey": {
@@ -41211,7 +45092,8 @@
             "enum": [
               "task",
               "plan_step",
-              "prompt"
+              "prompt",
+              "explainer"
             ]
           },
           "title": {

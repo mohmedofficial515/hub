@@ -93,6 +93,77 @@ export const planStepEvidenceSchema = z.object({
 });
 export type PlanStepEvidence = z.infer<typeof planStepEvidenceSchema>;
 
+// ── The explainer video (v5-live-plan, batch 4) ───────────────────────────────────────────────────
+
+/** How Hams explains the plan. `whiteboard` is Hams' hand-drawn board; the rest are its explainer types. */
+export const EXPLAINER_STYLES = ['whiteboard', 'slides', 'motion', 'kinetic', 'data', 'mixed'] as const;
+/** Gemini TTS voices offered; Charon is the default (owner's choice, 2026-11-19). */
+export const EXPLAINER_GOOGLE_VOICES = [
+  'Charon',
+  'Fenrir',
+  'Puck',
+  'Orus',
+  'Kore',
+  'Aoede',
+  'Leda',
+  'Zephyr',
+] as const;
+/** The largest explainer files Hub takes, in bytes: a film up to 120 MB (owner, 2026-11-20; a step's clip stays at 40 MB). */
+export const PLAN_EXPLAINER_LIMITS = {
+  videoBytes: 120 * 1024 * 1024,
+  posterBytes: 8 * 1024 * 1024,
+  captionsBytes: 512 * 1024,
+} as const;
+
+/** What the owner asks Hams for. `voice` google sends the script's text to Google for the voice, and nothing else; `hams` stays on the machine. */
+export const explainerRequestSchema = z.object({
+  style: z.enum(EXPLAINER_STYLES).default('whiteboard'),
+  voice: z.enum(['google', 'hams', 'none']).default('google'),
+  googleVoice: z.enum(EXPLAINER_GOOGLE_VOICES).default('Charon'),
+  dialect: z.enum(['egyptian', 'msa']).default('egyptian'),
+  aspect: z.enum(['landscape', 'portrait', 'square']).default('landscape'),
+  length: z.enum(['chapters', 'short']).default('chapters'),
+  captions: z.boolean().default(true),
+});
+export type ExplainerRequest = z.infer<typeof explainerRequestSchema>;
+
+/** A chapter of the film: the plan's phase it explains (null for the intro and the close), and where it starts in seconds. */
+export const explainerChapterSchema = z.object({
+  phaseId: z.string().nullable(),
+  title: z.string().trim().min(1).max(200).optional(),
+  start: z.number().min(0).max(36_000),
+});
+
+/**
+ * A plan's explainer, Hub's own: `requested` from the page (the agent queue then runs it with Claude on the owner's machine, through Hams'
+ * plan-film), `ready` once the run attached the film. `revision` is the plan revision it explains: a newer one makes it outdated. Its files are
+ * attachments of the plan card. `hamsProject` is set when the run named Hams' project, for "Open in Hams".
+ */
+export const planExplainerSchema = z.object({
+  status: z.enum(['requested', 'ready']),
+  request: explainerRequestSchema,
+  revision: z.number().int().min(1),
+  requestedAt: z.iso.datetime({ offset: true }),
+  attachmentId: z.string().optional(),
+  posterId: z.string().optional(),
+  captionsId: z.string().optional(),
+  chapters: z.array(explainerChapterSchema).max(60).optional(),
+  hamsProject: z.object({ id: z.string().min(1).max(200), url: z.url() }).optional(),
+  madeAt: z.iso.datetime({ offset: true }).optional(),
+  /** The film last attached, kept while a new one is made, so the page still plays it. */
+  previous: z
+    .object({
+      attachmentId: z.string(),
+      posterId: z.string().optional(),
+      captionsId: z.string().optional(),
+      chapters: z.array(explainerChapterSchema).max(60).optional(),
+      revision: z.number().int(),
+      request: explainerRequestSchema,
+    })
+    .optional(),
+});
+export type PlanExplainer = z.infer<typeof planExplainerSchema>;
+
 /** The fields sent beside the file. */
 export const addStepEvidenceSchema = z.object({
   kind: z.enum(PLAN_EVIDENCE_KINDS),

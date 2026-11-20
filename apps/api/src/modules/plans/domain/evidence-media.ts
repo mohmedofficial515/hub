@@ -138,12 +138,14 @@ function cleanWebp(data: Buffer): { data: Buffer; width: number; height: number 
 }
 
 /** The file as Hub keeps it, or why it is refused. */
-export function readEvidenceFile(data: Buffer): EvidenceFile | { refused: EvidenceRefusal } {
+export function readEvidenceFile(
+  data: Buffer,
+  videoMaxBytes: number = EVIDENCE_VIDEO_MAX_BYTES,
+): EvidenceFile | { refused: EvidenceRefusal } {
   const mime = sniff(data);
   if (!mime) return { refused: 'type' };
   const video = mime.startsWith('video/');
-  if (data.length > (video ? EVIDENCE_VIDEO_MAX_BYTES : EVIDENCE_IMAGE_MAX_BYTES))
-    return { refused: 'too_large' };
+  if (data.length > (video ? videoMaxBytes : EVIDENCE_IMAGE_MAX_BYTES)) return { refused: 'too_large' };
   if (video) return { mime, data, width: null, height: null };
   const clean =
     mime === 'image/png' ? cleanPng(data) : mime === 'image/jpeg' ? cleanJpeg(data) : cleanWebp(data);

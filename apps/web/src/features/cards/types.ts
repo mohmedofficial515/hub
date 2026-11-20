@@ -3,7 +3,7 @@
  * @description The card as the web works with it. Field names follow the approved design's kit, whose components read them,
  * and `map.ts` builds them from the API's `CardSummary` and `CardFull` (docs/04 §1.8). Detail shapes follow docs/03 §6.
  */
-import type { CardType, Priority, Role } from '@hub/contracts';
+import type { CardType, PlanExplainer, Priority, Role } from '@hub/contracts';
 
 export type { CardType, Priority, Role } from '@hub/contracts';
 
@@ -314,6 +314,8 @@ export interface PlanDetail {
   steps: PlanStep[];
   /** In order. Empty on a plan saved before phases: its steps read as one list. */
   phases: PlanPhase[];
+  /** The plan explained on video by Hams (v5-live-plan, batch 4); null until asked for. */
+  explainer?: PlanExplainer | null | undefined;
   ideaKey?: string | undefined;
   /** The Plan Studio chat it was saved from, and the reply whose plan it holds (owner decision 9c). */
   sourceChatId?: string | undefined;

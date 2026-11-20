@@ -52,7 +52,7 @@ interface UploadedEvidence {
 
 /** Nothing a served file carries may run or load. */
 const FILE_CSP = "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; sandbox";
-const SERVED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'];
+const SERVED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm', 'text/vtt'];
 
 /** `bytes=a-b`, `bytes=a-` or `bytes=-n` against a length; null for anything else, which is answered whole. */
 export function rangeOf(
