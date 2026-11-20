@@ -288,6 +288,41 @@ export type QueueStateDto = z.infer<typeof queueStateSchema>;
 export const queueSchema = z.object({ state: queueStateSchema, runs: z.array(agentRunSchema) });
 export type QueueDto = z.infer<typeof queueSchema>;
 
+/**
+ * A run on a plan as every member of the project sees it (owner, 2026-11-20): which step, its state, when, who runs it, and the stage reports its
+ * page already shows. Nothing else of the run: no prompt, no folder, no device, no chat. `mine` marks the reader's own runs, whose full rows and
+ * controls come from their queue. `waiting` says it waits for its owner, without the command.
+ */
+export const planRunSchema = z.object({
+  id: z.string(),
+  source: z.enum(RUN_SOURCES),
+  /** The card the run is on: the plan itself, or a step's task. */
+  cardKey: z.string().nullable(),
+  planStep: z.number().int().nullable(),
+  state: z.enum(RUN_STATES),
+  waiting: z.boolean(),
+  mine: z.boolean(),
+  member: z.object({ userId: z.string(), displayName: z.string() }),
+  startedAt: z.string().nullable(),
+  endedAt: z.string().nullable(),
+  createdAt: z.string(),
+  stages: z.array(
+    z.object({
+      protocol: z.enum(['work', 'doc', 'film']),
+      stage: z.string(),
+      state: z.enum(['started', 'done', 'failed']),
+      note: z.string().optional(),
+      at: z.string(),
+    }),
+  ),
+});
+export type PlanRunDto = z.infer<typeof planRunSchema>;
+
+/** A nudge to every member: a run on some plan moved or reported a stage. The page rereads its plan's runs. */
+export interface PlanRunsChanged {
+  readonly runId: string;
+}
+
 /** A durable nudge on the stream, with no text: the page rereads the queue. */
 export interface QueueChanged {
   readonly runId: string | null;

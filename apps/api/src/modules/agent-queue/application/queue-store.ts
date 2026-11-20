@@ -8,6 +8,7 @@ import {
   type ChangedFile,
   inQuietHours,
   isTimezone,
+  type PlanRunsChanged,
   QUEUE_DEFAULTS,
   type QueueIsolation,
   type QueueStateDto,
@@ -330,6 +331,18 @@ export class AgentQueueStore {
         data: { runId },
         audience: { userIds: [userId] },
       });
+    }
+    // A run on a card is seen by every member on its plan's page (owner, 2026-11-20): a nudge with the run's id and nothing else.
+    if (runId) {
+      for (const id of workspaces) {
+        const run = await this.tx.agentRun.findFirst({
+          where: { id: runId, workspaceId: id },
+          select: { cardKey: true },
+        });
+        if (!run?.cardKey) continue;
+        const data: PlanRunsChanged = { runId };
+        await this.realtime.publishEnvelope(id, { event: 'plan.runs.changed', data, audience: 'all' });
+      }
     }
   }
 }

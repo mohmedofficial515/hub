@@ -54,6 +54,7 @@ import {
   completePhases,
   type FeedItem,
   type FeedKind,
+  fromPlanRun,
   planFeed,
   runsOfPlan,
   type Stage,
@@ -61,7 +62,7 @@ import {
   stagesOf,
   type StageView,
 } from '@/features/planning/live-run';
-import { useQueue } from '@/features/queue/queries';
+import { usePlanRuns, useQueue } from '@/features/queue/queries';
 import { isHubError } from '@/lib/api/errors';
 
 import type { PlanningMessages } from './messages';
@@ -85,6 +86,10 @@ export interface LiveRun {
   waiting: { id: string; kind: 'approval' | 'question'; command: string; category: string } | null;
   /** False when the device that runs it is offline, so an answer cannot reach it. Null while unknown. */
   deviceOnline: boolean | null;
+  /** Another member's run: shown, never answered or opened from here. */
+  readOnly: boolean;
+  /** Who runs it, when it is another member's. */
+  member: string | null;
 }
 
 /** The turn the run is on: the run's own message, or the chat's last reply. */
@@ -142,26 +147,53 @@ function useConnection(): [Connection, FeedItem[]] {
  */
 export function usePlanLive(card: PlanCard, steps: readonly JourneyStep[], groups: readonly PhaseGroup[]) {
   const wb = useMaybeWb();
+  // The member's own runs, with their controls, from their queue (where runs can happen) ...
   const queue = useQueue({ enabled: !!wb && !card.archivedAt });
-  const stepRuns = useMemo(
+  // ... and every other member's runs on this plan, read only (owner, 2026-11-20).
+  const shared = usePlanRuns(card.key, { enabled: !card.archivedAt });
+  const ownRuns = useMemo(
     () => runsOfPlan(queue.data?.runs ?? [], card.key, steps),
     [queue.data?.runs, card.key, steps],
   );
-  const current = activeRun(stepRuns);
-  const chat = useChat(current?.run.chatId ?? null);
-  const turn = current ? turnOf(chat.data, current.run.messageId) : null;
+  const otherRuns = useMemo(
+    () => runsOfPlan((shared.data ?? []).filter((dto) => !dto.mine).map(fromPlanRun), card.key, steps),
+    [shared.data, card.key, steps],
+  );
+  const stepRuns = useMemo(() => [...ownRuns, ...otherRuns], [ownRuns, otherRuns]);
+  const own = activeRun(ownRuns);
+  const current = own ?? activeRun(otherRuns);
+  const ownRow = own ? (queue.data?.runs.find((row) => row.id === own.run.id) ?? null) : null;
+  const chat = useChat(ownRow?.chatId ?? null);
+  const turn = ownRow ? turnOf(chat.data, ownRow.messageId) : null;
   const [connection, extra] = useConnection();
   const [celebration, clearCelebration] = useNewlyComplete(groups);
 
   const run: LiveRun | null = useMemo(() => {
     if (!current) return null;
+    if (!ownRow) {
+      // Another member's run: its stages as reported, who runs it, and that it waits, never on what.
+      const { stages, note } = stagesOf(current.run.stages ?? []);
+      return {
+        id: current.run.id,
+        stepId: current.stepId,
+        chatId: null,
+        startedAt: current.run.startedAt,
+        stages,
+        note,
+        waiting:
+          current.run.state === 'waiting' ? { id: '', kind: 'approval', command: '', category: '' } : null,
+        deviceOnline: null,
+        readOnly: true,
+        member: current.run.member?.displayName ?? '',
+      };
+    }
     const { stages, note } = stagesOf(turn?.stages ?? []);
-    const waitingOn = current.run.state === 'waiting' ? current.run.waitingOn : null;
+    const waitingOn = ownRow.state === 'waiting' ? ownRow.waitingOn : null;
     return {
-      id: current.run.id,
+      id: ownRow.id,
       stepId: current.stepId,
-      chatId: current.run.chatId,
-      startedAt: current.run.startedAt,
+      chatId: ownRow.chatId,
+      startedAt: ownRow.startedAt,
       stages,
       note,
       waiting: waitingOn
@@ -173,8 +205,10 @@ export function usePlanLive(card: PlanCard, steps: readonly JourneyStep[], group
           }
         : null,
       deviceOnline: chat.data ? chat.data.deviceOnline : null,
+      readOnly: false,
+      member: null,
     };
-  }, [current, turn, chat.data]);
+  }, [current, ownRow, turn, chat.data]);
 
   const approvals: ChatApprovalDto[] | undefined = turn?.approvals;
   const questions = turn?.questions;
@@ -183,7 +217,7 @@ export function usePlanLive(card: PlanCard, steps: readonly JourneyStep[], group
     [steps, groups, stepRuns, approvals, questions, extra],
   );
 
-  return { run, feed, connection, celebration, clearCelebration, watching: !!wb };
+  return { run, feed, connection, celebration, clearCelebration, watching: !!wb || otherRuns.length > 0 };
 }
 
 /** The stream's state: a dot that breathes while live, amber and turning while it reconnects. */
@@ -390,7 +424,11 @@ export function ClaudeNow({
   const now = useTicking(true);
   const n = num(step?.n ?? 0, locale);
   const anyStage = STAGES.some((s) => run.stages[s] !== 'todo');
-  const heading = fmt(run.waiting ? l.claudeWaiting : l.claudeWorking, { n });
+  const heading = run.waiting
+    ? run.readOnly
+      ? fmt(l.claudeWaitingFor, { n, name: run.member ?? '' })
+      : fmt(l.claudeWaiting, { n })
+    : fmt(l.claudeWorking, { n });
   const note = run.note ?? (anyStage ? null : l.noStage);
   return (
     <motion.div
@@ -428,6 +466,11 @@ export function ClaudeNow({
           </span>
         )}
       </div>
+      {run.readOnly && run.member && (
+        <p data-pj-run-by className="text-caption text-muted-foreground">
+          {fmt(l.runBy, { name: run.member })}
+        </p>
+      )}
       {step && (
         <button
           type="button"
@@ -469,7 +512,18 @@ export function ClaudeNow({
             transition={{ duration: 0.3, ease: EASE }}
             className="overflow-hidden"
           >
-            <ApprovalBox run={{ ...run, waiting: run.waiting }} />
+            {run.readOnly ? (
+              <p
+                role="status"
+                data-pj-waiting="other"
+                className="pj-wait flex items-center gap-1.5 rounded-lg p-3 text-body-sm font-medium"
+              >
+                <Hand aria-hidden className="size-4" strokeWidth={2} />
+                {fmt(l.waitingOther, { name: run.member ?? '' })}
+              </p>
+            ) : (
+              <ApprovalBox run={{ ...run, waiting: run.waiting }} />
+            )}
           </motion.div>
         )}
       </AnimatePresence>

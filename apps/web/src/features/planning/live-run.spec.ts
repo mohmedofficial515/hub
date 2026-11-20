@@ -5,7 +5,7 @@ import type { AgentRunDto, ChatApprovalDto } from '@hub/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { journeySteps, phaseGroups } from './journey';
-import { activeRun, completePhases, planFeed, runsOfPlan, stagesOf } from './live-run';
+import { activeRun, completePhases, fromPlanRun, planFeed, runsOfPlan, stagesOf } from './live-run';
 
 const run = (over: Partial<AgentRunDto>): AgentRunDto => ({
   id: 'r1',
@@ -183,5 +183,30 @@ describe('the feed', () => {
 
   it('a phase is complete when every step in it is done', () => {
     expect(completePhases(groups)).toEqual([0]);
+  });
+});
+
+describe('another member’s run', () => {
+  it('reads as the queue would: waiting when it waits on its owner, next before it starts, with who and its stages', () => {
+    const dto = {
+      id: 'r9',
+      source: 'plan_step' as const,
+      cardKey: 'P-1',
+      planStep: 3,
+      state: 'running' as const,
+      waiting: true,
+      mine: false,
+      member: { userId: 'u2', displayName: 'Sara' },
+      startedAt: '2026-11-20T10:00:00.000Z',
+      endedAt: null,
+      createdAt: '2026-11-20T10:00:00.000Z',
+      stages: [{ protocol: 'work' as const, stage: 'plan', state: 'started' as const, at: '1' }],
+    };
+    const run = fromPlanRun(dto);
+    expect(run).toMatchObject({ state: 'waiting', member: { displayName: 'Sara' } });
+    expect(fromPlanRun({ ...dto, waiting: false }).state).toBe('running');
+    expect(fromPlanRun({ ...dto, state: 'queued', waiting: false }).state).toBe('next');
+    expect(activeRun(runsOfPlan([run], 'P-1', steps))?.stepId).toBe('s4');
+    expect(stagesOf(run.stages ?? []).stages.plan).toBe('started');
   });
 });

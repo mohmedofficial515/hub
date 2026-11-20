@@ -48,6 +48,7 @@ export const BRIDGE_ACTIONS = [
   'folder.status',
   'worktree.prepare',
   'worktree.remove',
+  'file.read',
 ] as const;
 export type BridgeAction = (typeof BRIDGE_ACTIONS)[number];
 
@@ -64,6 +65,9 @@ export const BRIDGE_REFUSALS = [
   'failed',
   'not_a_repository',
   'worktree_dirty',
+  'file_missing',
+  'file_too_large',
+  'file_type',
 ] as const;
 export type BridgeRefusal = (typeof BRIDGE_REFUSALS)[number];
 

@@ -16,6 +16,7 @@ import {
   createReleaseSchema,
   createTaskSchema,
   editTaskDetailSchema,
+  type ErrorCode,
   nestCreateInput,
   PLAN_EVIDENCE_LIMITS,
   PLAN_EXPLAINER_LIMITS,
@@ -45,6 +46,56 @@ async function stepIdOf(context: ToolContext, key: string, step: string | number
  * A file Claude names for evidence: absolute, inside one of the project's registered folders or a Hub worktree of one (after links are followed),
  * a regular file no larger than the largest clip. Read on the machine Hub runs on; a file on another device is not found.
  */
+/** A bridge refusal of `file.read`, in Hub's words for evidence. */
+const FILE_REFUSALS: Record<string, ErrorCode> = {
+  file_type: 'hub.plans.evidence_type',
+  file_too_large: 'hub.plans.evidence_too_large',
+  file_missing: 'hub.plans.evidence_file_not_found',
+  folder_not_allowed: 'hub.plans.evidence_file_not_found',
+  folder_missing: 'hub.plans.evidence_file_not_found',
+};
+
+/**
+ * The file a tool names, read where it is (owner, 2026-11-20): on the device where this Claude run works, through its bridge (`file.read`, the
+ * same folder rule, in pieces), or, for a call from no run of Hub's, on the machine Hub runs on. Hub checks the bytes and redraws a picture
+ * either way.
+ */
+async function readToolFile(
+  context: ToolContext,
+  path: string,
+  repoPaths: readonly string[],
+  maxBytes: number,
+): Promise<{ data: Buffer; name: string }> {
+  const turn = await context.deps.turns.panelTurn(await context.actor(), context.toolUseId);
+  if (!turn) return readEvidencePath(path, repoPaths, maxBytes);
+  const pieces: Buffer[] = [];
+  let size = 0;
+  let offset = 0;
+  try {
+    do {
+      const piece = await context.deps.bridge.request<{ size: number; data: string }>(
+        turn.deviceId,
+        'file.read',
+        { path, offset, maxBytes },
+        { timeoutMs: 30_000 },
+      );
+      const bytes = Buffer.from(piece.data, 'base64');
+      size = piece.size;
+      if (size > maxBytes) throw new AppException('hub.plans.evidence_too_large');
+      if (bytes.length === 0 && offset < size) throw new AppException('hub.plans.evidence_file_not_found');
+      pieces.push(bytes);
+      offset += bytes.length;
+    } while (offset < size);
+  } catch (error) {
+    const reason =
+      error instanceof AppException ? (error.details as { reason?: string } | undefined)?.reason : undefined;
+    const code = reason ? FILE_REFUSALS[reason] : undefined;
+    if (code) throw new AppException(code, { cause: error });
+    throw error;
+  }
+  return { data: Buffer.concat(pieces), name: path.split(/[\\/]/).pop() || 'file' };
+}
+
 async function readEvidencePath(
   path: string,
   repoPaths: readonly string[],
@@ -416,9 +467,11 @@ export const cardToolHandlers = {
     const actor = await context.actor();
     const project = await context.project();
     const stepId = await stepIdOf(context, input.key, input.step);
-    const { data, name } = await readEvidencePath(
+    const { data, name } = await readToolFile(
+      context,
       input.path,
       (await context.deps.projects.get(actor)).repoPaths,
+      PLAN_EVIDENCE_LIMITS.videoBytes,
     );
     const result = await context.deps.evidence.add(actor, project.slug, input.key, stepId, {
       kind: input.kind,
@@ -440,6 +493,17 @@ export const cardToolHandlers = {
       await context.project(),
     );
   },
+  async list_plan_runs(context, input) {
+    const runs = await context.deps.planRuns.runsOf(await context.actor(), input.key);
+    if (runs.length === 0) return `${input.key} has no runs.`;
+    return runs
+      .map((run) => {
+        const where = run.planStep !== null ? `step ${run.planStep + 1}` : (run.cardKey ?? '');
+        const stages = run.stages.map((stage) => `${stage.stage} ${stage.state}`).join(', ');
+        return `- ${run.source} on ${where} · ${run.waiting ? 'waiting for its owner' : run.state} · ${run.member.displayName}${run.mine ? ' (you)' : ''}${stages ? ` · ${stages}` : ''}`;
+      })
+      .join('\n');
+  },
   request_plan_explainer: (context, input) =>
     context.apply('Asked for the explainer video of', input.key, 'plan.request_explainer', {
       request: payloadOf(input),
@@ -448,7 +512,7 @@ export const cardToolHandlers = {
     const actor = await context.actor();
     const project = await context.project();
     const { repoPaths } = await context.deps.projects.get(actor);
-    const read = (path: string, max: number) => readEvidencePath(path, repoPaths, max);
+    const read = (path: string, max: number) => readToolFile(context, path, repoPaths, max);
     const result = await context.deps.explainer.attach(actor, project.slug, input.key, {
       revision: input.revision,
       video: await read(input.video, PLAN_EXPLAINER_LIMITS.videoBytes),

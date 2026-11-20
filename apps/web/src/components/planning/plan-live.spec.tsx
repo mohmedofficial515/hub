@@ -129,6 +129,8 @@ interface Api {
   card: unknown;
   runs: unknown[];
   chat: unknown;
+  /** Every member's runs on the plan, as `GET /plans/{key}/runs` answers. */
+  shared?: unknown[];
 }
 
 function api(state: Api) {
@@ -141,6 +143,7 @@ function api(state: Api) {
     if (path.endsWith('/members')) return page([]);
     if (path.endsWith('/cards/P-1')) return { body: { data: state.card } };
     if (path.endsWith('/queue')) return { body: { data: { state: {}, runs: state.runs } } };
+    if (path.endsWith('/plans/P-1/runs')) return { body: { data: state.shared ?? [] } };
     if (path.endsWith('/chats/c1')) return { body: { data: state.chat } };
     if (path.endsWith('/work-reports')) return { body: { data: [] } };
     if (path.endsWith('/events') || path.endsWith('/comments')) return page([]);
@@ -273,6 +276,51 @@ describe('the plan page, live with Claude', () => {
     await act(() => queryClient.invalidateQueries());
     await waitFor(() => expect(chapter()).toBe('Build'));
     expect(await screen.findByRole('region', { name: 'Claude on step 3' })).toBeTruthy();
+  });
+
+  it('shows another member’s run read only: who runs it, its stages and halo, and that it waits, with no Approve', async () => {
+    api({
+      card: plan(baseSteps),
+      runs: [],
+      chat: chat(),
+      shared: [
+        {
+          id: 'r9',
+          source: 'plan_step',
+          cardKey: 'P-1',
+          planStep: 1,
+          state: 'running',
+          waiting: true,
+          mine: false,
+          member: { userId: 'u2', displayName: 'Sara' },
+          startedAt: new Date(Date.now() - 30_000).toISOString(),
+          endedAt: null,
+          createdAt: new Date(Date.now() - 30_000).toISOString(),
+          stages: [
+            {
+              protocol: 'work',
+              stage: 'understand',
+              state: 'done',
+              at: '2026-11-20T10:00:00.000Z',
+              note: 'Read it',
+            },
+          ],
+        },
+      ],
+    });
+    show(<PlanningPage />);
+    const card = await screen.findByRole('region', { name: 'Claude on step 2' });
+    expect(within(card).getByText('Claude is waiting for Sara on step 2')).toBeTruthy();
+    expect(within(card).getByText('Run by Sara')).toBeTruthy();
+    expect(within(card).getByText('Waiting for Sara to answer. Only they can.')).toBeTruthy();
+    expect(within(card).queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(within(card).getByRole('list', { name: "Stages of Claude's work" }).textContent).toContain(
+      'Understand: done',
+    );
+    expect(document.querySelectorAll('[data-pj-halo]')).toHaveLength(1);
+    expect(
+      within(screen.getByRole('region', { name: 'Live activity' })).getByText('Claude started step 2'),
+    ).toBeTruthy();
   });
 
   it('celebrates a phase that completes while the page is open, once', async () => {

@@ -6,7 +6,7 @@
  * end, an approval's ask and answer, a step's `doneAt`). The queue and the chat are reread by the live stream, so all of it follows the run as it
  * moves, and a reload or a reconnect rebuilds the same picture. Pure.
  */
-import type { AgentRunDto, ChatApprovalDto, ChatStage } from '@hub/contracts';
+import type { AgentRunDto, ChatApprovalDto, ChatStage, PlanRunDto } from '@hub/contracts';
 import { WORK_STAGES } from '@hub/contracts';
 
 import type { JourneyStep, PhaseGroup } from './journey';
@@ -15,10 +15,46 @@ export type Stage = (typeof WORK_STAGES)[number];
 export const STAGES: readonly Stage[] = WORK_STAGES;
 export type StageView = 'todo' | 'started' | 'done' | 'failed';
 
-/** A run of the member's queue tied to one step of this plan. */
+/**
+ * What the page reads of a run: the member's own queue row, or another member's run as every member sees it (`fromPlanRun`), which carries its
+ * stage reports and who runs it, and no controls.
+ */
+export type RunLike = Pick<
+  AgentRunDto,
+  'id' | 'source' | 'cardKey' | 'planStep' | 'state' | 'startedAt' | 'endedAt'
+> & {
+  /** Set on another member's run: read only. */
+  member?: { userId: string; displayName: string } | undefined;
+  stages?: readonly ChatStage[] | undefined;
+};
+
+/** A run of this plan's steps. */
 export interface StepRun {
-  run: AgentRunDto;
+  run: RunLike;
   stepId: string;
+}
+
+/** Another member's run, in the queue's own words: a run waiting on its owner is `waiting`, one not started is `next`. */
+export function fromPlanRun(dto: PlanRunDto): RunLike {
+  const state: AgentRunDto['state'] =
+    dto.state === 'running'
+      ? dto.waiting
+        ? 'waiting'
+        : 'running'
+      : dto.state === 'queued'
+        ? 'next'
+        : dto.state;
+  return {
+    id: dto.id,
+    source: dto.source,
+    cardKey: dto.cardKey,
+    planStep: dto.planStep,
+    state,
+    startedAt: dto.startedAt,
+    endedAt: dto.endedAt,
+    member: dto.member,
+    stages: dto.stages,
+  };
 }
 
 const ACTIVE = new Set<AgentRunDto['state']>(['running', 'waiting']);
@@ -28,7 +64,7 @@ const ACTIVE = new Set<AgentRunDto['state']>(['running', 'waiting']);
  * it into a `task` run), so a run on a step's task is that step's.
  */
 export function runsOfPlan(
-  runs: readonly AgentRunDto[],
+  runs: readonly RunLike[],
   planKey: string,
   steps: readonly Pick<JourneyStep, 'id' | 'taskKey'>[],
 ): StepRun[] {

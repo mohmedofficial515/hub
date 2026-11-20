@@ -271,6 +271,11 @@ export function applyLiveMessage(
     void client.invalidateQueries({ queryKey: qk.queue(ws) });
     return true;
   }
+  if (event === 'plan.runs.changed') {
+    // A run on some plan moved or reported a stage: every plan page open here rereads its runs.
+    void client.invalidateQueries({ queryKey: qk.planRuns(ws) });
+    return true;
+  }
   if (event === 'source.run') {
     // A source's status and its runs moved.
     void client.invalidateQueries({ queryKey: qk.admin(ws, 'sources') });

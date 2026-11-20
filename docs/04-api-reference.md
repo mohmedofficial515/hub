@@ -303,6 +303,7 @@ and `/me/context`.
 | Plan: remove a step's evidence | ✓ | ✓ | C | C | C | C | C |
 | Plan: remove evidence you added | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Plan: ask for or attach its explainer video | ✓ | ✓ | C | C | C | C | C |
+| Plan: see Claude's runs on it | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Project: create (D30) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Members: invite, change roles, remove, GitHub identity (only an owner grants, takes or removes the owner role, or gets an owner's reset link) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | Project: edit details | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |

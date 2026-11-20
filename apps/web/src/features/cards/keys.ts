@@ -26,4 +26,7 @@ export const qk = {
   schema: (ws: string) => ['schema', ws] as const,
   schemaHistory: (ws: string) => ['schema', ws, 'history'] as const,
   queue: (ws: string, card?: string) => (card ? (['queue', ws, card] as const) : (['queue', ws] as const)),
+  /** Every member's runs on one plan, read only. `plan.runs.changed` rereads them. */
+  planRuns: (ws: string, key?: string) =>
+    key ? (['plan-runs', ws, key] as const) : (['plan-runs', ws] as const),
 };

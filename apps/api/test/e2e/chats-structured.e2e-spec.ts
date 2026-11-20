@@ -12,6 +12,7 @@ import { CHAT_TRUNCATED_MARK } from '@hub/contracts';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { INestApplication } from '@nestjs/common';
+import sharp from 'sharp';
 import request from 'supertest';
 import { WebSocket } from 'ws';
 
@@ -64,8 +65,15 @@ class ScriptedDevice {
       const frame = JSON.parse((data as Buffer).toString()) as { type: string } & ActionFrame;
       if (frame.type !== 'action') return;
       this.actions.push(frame);
-      const answer = this.answers[frame.action];
-      if (answer !== undefined) this.result(frame.id, answer);
+      const scripted = this.answers[frame.action];
+      const answer =
+        typeof scripted === 'function' ? (scripted as (args: unknown) => unknown)(frame.args) : scripted;
+      if (answer && typeof answer === 'object' && 'refused' in answer) {
+        const { code } = (answer as { refused: { code: string } }).refused;
+        this.socket.send(
+          JSON.stringify({ type: 'result', id: frame.id, ok: false, error: { code, message: code } }),
+        );
+      } else if (answer !== undefined) this.result(frame.id, answer);
     });
   }
 
@@ -1479,6 +1487,57 @@ describe('structured results', () => {
       expect(JSON.stringify(await prisma().docDraft.findMany())).not.toContain(SECRET);
       device.end(id);
     });
+  });
+
+  it('Claude attaches a screenshot that lives on its own device: Hub reads it through the bridge, in pieces, and redraws it', async () => {
+    const picture = await sharp({ create: { width: 900, height: 500, channels: 3, background: '#3366aa' } })
+      .withExif({ IFD0: { Make: 'Laptop camera' } })
+      .png()
+      .toBuffer();
+    const PIECE = 64 * 1024;
+    device.answers['file.read'] = (args: unknown) => {
+      const { path, offset = 0 } = args as { path: string; offset?: number };
+      if (path.endsWith('notes.txt.png')) return { refused: { code: 'file_type' } };
+      return {
+        size: picture.length,
+        offset,
+        data: picture.subarray(offset, offset + PIECE).toString('base64'),
+      };
+    };
+    const created = await call('create_plan', { title: 'On the laptop', steps: [{ title: 'Screens' }] });
+    const key = /[A-Z][A-Z0-9]*-\d+/.exec(created.text)![0];
+    const { chatId, id } = await aTurn();
+    aToolStep(id, 'toolu_shot', 'mcp__hub__add_step_evidence');
+    await until(async () => (await last(chatId)).steps.some((step) => step.toolUseId === 'toolu_shot'));
+    // A path on the laptop, which the machine Hub runs on does not have.
+    const path = 'D:/laptop/web/shots/after.png';
+    const done = await call('add_step_evidence', { key, step: 1, kind: 'after', path }, 'toolu_shot');
+    expect(done.isError).toBe(false);
+    const reads = device.of('file.read');
+    expect(reads.length).toBe(Math.ceil(picture.length / PIECE));
+    expect(reads[0]!.args).toMatchObject({ path, offset: 0 });
+    const card = (await browser.get(`/workspaces/${slug}/cards/${key}`).expect(200)).body.data as {
+      detail: { steps: { evidence?: { attachmentId: string; via: string; width: number }[] }[] };
+    };
+    const evidence = card.detail.steps[0]!.evidence![0]!;
+    expect(evidence).toMatchObject({ via: 'mcp', width: 900 });
+    const file = await browser
+      .get(`/workspaces/${slug}/cards/${key}/attachments/${evidence.attachmentId}/file`)
+      .expect(200);
+    expect((await sharp(file.body as Buffer).metadata()).exif).toBeUndefined();
+
+    // What the bridge refuses is said in Hub's words.
+    aToolStep(id, 'toolu_bad', 'mcp__hub__add_step_evidence');
+    await until(async () => (await last(chatId)).steps.some((step) => step.toolUseId === 'toolu_bad'));
+    const refused = await call(
+      'add_step_evidence',
+      { key, step: 1, kind: 'after', path: 'D:/laptop/web/notes.txt.png' },
+      'toolu_bad',
+    );
+    expect(refused.isError).toBe(true);
+    expect(refused.text).toContain('hub.plans.evidence_type');
+    device.end(id);
+    await until(async () => (await last(chatId)).status === 'done');
   });
 
   it('a session id is kept as the turn starts', async () => {

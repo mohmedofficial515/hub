@@ -9,6 +9,7 @@ import type {
   AgentRunDto,
   ChatTurnStarted,
   CreateRunInput,
+  PlanRunDto,
   QueueDto,
   QueueSettingsInput,
   QueueStateDto,
@@ -139,4 +140,14 @@ export function quickWhen(choice: QuickWhen, timezone: string, now = new Date())
   }
   if (choice === 'morning') return { kind: 'once', date: nextDay(today), time: '08:00' };
   return { kind: 'weekly', day: 'MON', time: '08:00' };
+}
+
+/** Every member's runs on a plan, read only (owner, 2026-11-20): step, state, who and stages. Reread on `plan.runs.changed`. */
+export function usePlanRuns(key: string, options: { enabled?: boolean | undefined } = {}) {
+  const { ws } = useQueueBase();
+  return useQuery({
+    queryKey: qk.planRuns(ws, key),
+    enabled: options.enabled ?? true,
+    queryFn: () => get<PlanRunDto[]>(`workspaces/${ws}/plans/${encodeURIComponent(key)}/runs`),
+  });
 }

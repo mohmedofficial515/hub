@@ -33,6 +33,13 @@ import {
     SuggestionsService,
     ChatTurnEvents,
   ],
-  exports: [ChatsService, WorkReportsService, DocDraftsService, SuggestionsService, ChatTurnEvents],
+  exports: [
+    ChatsService,
+    WorkReportsService,
+    DocDraftsService,
+    SuggestionsService,
+    ChatTurnEvents,
+    TurnRegistry,
+  ],
 })
 export class ChatsModule {}
