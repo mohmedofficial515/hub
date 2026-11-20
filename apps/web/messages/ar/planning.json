@@ -152,7 +152,22 @@
     "sizeLabel": "الحجم: {size}",
     "whyLabel": "السبب",
     "changesRequested": "طُلبت تعديلات",
-    "changesRequestedBy": "طلبها"
+    "changesRequestedBy": "طلبها",
+    "phases": "المراحل",
+    "phasesHint": "المراحل تجمع الخطوات في الفصول التي تعرضها صفحة الخطة. تكون الخطوة في مرحلة واحدة أو بلا مرحلة.",
+    "phaseTitle": "المرحلة {n}",
+    "phaseNote": "ملاحظة (اختيارية)",
+    "addPhase": "أضف مرحلة",
+    "movePhaseUp": "ارفع المرحلة {n}",
+    "movePhaseDown": "أنزل المرحلة {n}",
+    "removePhase": "احذف المرحلة {n}",
+    "phaseRequired": "اكتب عنوانًا لهذه المرحلة أو احذفها.",
+    "stepPhase": "المرحلة",
+    "noPhase": "بلا مرحلة",
+    "removePhaseTitle": "حذف المرحلة «{title}»؟",
+    "removePhaseBody": "عدد خطوات هذه المرحلة: {n}. اختر أين تذهب، وتنتقل عند الحفظ.",
+    "removePhaseMoveTo": "انقل خطواتها إلى",
+    "removePhaseConfirm": "انقلها واحذف المرحلة"
   },
   "stats": {
     "label": "نظرة سريعة",

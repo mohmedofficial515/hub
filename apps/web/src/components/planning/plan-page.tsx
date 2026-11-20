@@ -440,7 +440,11 @@ function StepsSection({
   const j = d.journey;
   const wb = useMaybeWb();
   const phased = card.plan.phases.length > 0;
-  const [open, setOpen] = useState<Set<number>>(() => new Set());
+  // Only the current phase starts open (owner, 2026-11-20): the rest fold, so the list reads as chapters.
+  const [open, setOpen] = useState<Set<number>>(() => {
+    const current = groups.find((g) => g.hasNext);
+    return new Set(current ? [current.index] : []);
+  });
   const allOpen = groups.length > 0 && groups.every((g) => open.has(g.index));
   const canEdit = !card.archivedAt && card.allowedActions.includes('plan.update');
   const off = wb && engineBlocks(wb.engine);

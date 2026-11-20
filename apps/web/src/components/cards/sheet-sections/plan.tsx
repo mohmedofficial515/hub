@@ -27,6 +27,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { detectSecret, Field, SecretFilterError, Select, TextInput } from '@/components/ui/form';
 import { useMaybeWb } from '@/components/workbench/store';
 import type { PlanCard, PlanStep, Priority, Role } from '@/features/cards/types';
+import { type PhaseDraft, phaseDrafts, phasesToSave } from '@/features/planning/phase-edit';
 import { readPlanText, type StepExtra } from '@/features/planning/plan-text';
 import { linkedOfType, restoreRevision, savePlan, usePlanRevisions } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
@@ -46,13 +47,14 @@ import {
   useEditWords,
   useSaveForm,
 } from './edit-bits';
+import { PhasesEditor, type PhaseWords, StepPhaseSelect } from './plan-phases';
 import { ActionPanel, type SectionProps, SubHeading } from './shared';
 
 const ROLES: Role[] = ['owner', 'pm', 'accountant', 'backend', 'frontend', 'designer', 'qa'];
 const PRIORITIES: Priority[] = ['P0', 'P1', 'P2', 'P3'];
 
 interface PlanWords {
-  plan: {
+  plan: PhaseWords & {
     fromIdea: string;
     stepTitle: string;
     stepRole: string;
@@ -89,16 +91,20 @@ interface StepDraft {
   taskKey?: string | undefined;
   /** Kept as it is: a step done through Claude (update_plan) stays done when the form saves. */
   done: boolean;
-  /** Kept as they are: what the studio proposed for the step (owner decision 9a) and its phase, which this form does not edit. */
-  extra: Pick<PlanStep, 'why' | 'size' | 'after' | 'acceptance' | 'phaseId'>;
+  /** One of the form's phases by id, or '' for none (v5-live-plan). */
+  phaseId: string;
+  /** Kept as they are: what the studio proposed for the step (owner decision 9a), which this form does not edit. */
+  extra: Pick<PlanStep, 'why' | 'size' | 'after' | 'acceptance'>;
 }
 
 function StepsEditor({
   steps,
+  phases,
   onChange,
   tried,
 }: {
   steps: StepDraft[];
+  phases: PhaseDraft[];
   onChange: (next: StepDraft[]) => void;
   tried: boolean;
 }) {
@@ -155,6 +161,15 @@ function StepsEditor({
                     ))}
                   </Select>
                 </Field>
+                {phases.length > 0 && (
+                  <StepPhaseSelect
+                    id={`${id}-${step.uid}-phase`}
+                    value={step.phaseId}
+                    phases={phases}
+                    words={p}
+                    onChange={(phaseId) => set(step.uid, { phaseId })}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-1">
                 {step.taskKey && <CardChip k={step.taskKey} type="task" className="me-auto" />}
@@ -191,7 +206,15 @@ function StepsEditor({
           nextUid.current += 1;
           onChange([
             ...steps,
-            { uid: `new-${nextUid.current}`, title: '', role: '', done: false, extra: {} },
+            {
+              uid: `new-${nextUid.current}`,
+              title: '',
+              role: '',
+              done: false,
+              // A new step joins the last phase, where a writer adding steps usually is.
+              phaseId: phases.at(-1)?.id ?? '',
+              extra: {},
+            },
           ]);
         }}
       >
@@ -204,6 +227,7 @@ function StepsEditor({
 
 function PlanEditForm({ card }: { card: PlanCard }) {
   const w = useEditWords();
+  const p = useT<PlanWords>('planning').plan;
   const s = useT(kitMessages).sections.plan;
   const id = useId();
   const { busy, failure, save } = useSaveForm();
@@ -220,33 +244,45 @@ function PlanEditForm({ card }: { card: PlanCard }) {
       role: step.role ?? '',
       taskKey: step.taskKey,
       done: step.done,
+      phaseId: step.phaseId ?? '',
       extra: {
         ...(step.why ? { why: step.why } : {}),
         ...(step.size ? { size: step.size } : {}),
         ...(step.after?.length ? { after: step.after } : {}),
         ...(step.acceptance ? { acceptance: step.acceptance } : {}),
-        ...(step.phaseId ? { phaseId: step.phaseId } : {}),
       },
     })),
   );
+  const [phases, setPhases] = useState<PhaseDraft[]>(() => phaseDrafts(card.plan.phases));
   const [tried, setTried] = useState(false);
   const [baseSteps] = useState(steps);
+  const [basePhases] = useState(phases);
   useUnsavedGuard(
     title !== card.title ||
       body !== baseBody ||
       priority !== card.priority ||
       tags !== card.tags.join(', ') ||
-      JSON.stringify(steps) !== JSON.stringify(baseSteps),
+      JSON.stringify(steps) !== JSON.stringify(baseSteps) ||
+      JSON.stringify(phases) !== JSON.stringify(basePhases),
   );
 
   const noTitle = !title.trim();
   const blankStep = steps.some((step) => !step.title.trim());
+  const blankPhase = phases.some((phase) => !phase.title.trim());
   const secret =
-    [title, body, tags, ...steps.map((step) => step.title)].map(detectSecret).find(Boolean) ?? null;
+    [
+      title,
+      body,
+      tags,
+      ...steps.map((step) => step.title),
+      ...phases.flatMap((phase) => [phase.title, phase.note]),
+    ]
+      .map(detectSecret)
+      .find(Boolean) ?? null;
 
   const submit = () => {
     setTried(true);
-    if (noTitle || blankStep || secret) return;
+    if (noTitle || blankStep || blankPhase || secret) return;
     void save(() =>
       savePlan(card.key, {
         title: title.trim(),
@@ -260,7 +296,10 @@ function PlanEditForm({ card }: { card: PlanCard }) {
           ...(step.taskKey ? { taskKey: step.taskKey } : {}),
           done: step.done,
           ...step.extra,
+          ...(step.phaseId ? { phaseId: step.phaseId } : {}),
         })),
+        // The whole list, so a renamed, moved or removed phase saves with the steps that moved out of it.
+        phases: phasesToSave(phases),
       }),
     );
   };
@@ -283,7 +322,18 @@ function PlanEditForm({ card }: { card: PlanCard }) {
         />
       </Field>
       <MarkdownField label={s.body} rows={12} value={body} onChange={setBody} />
-      <StepsEditor steps={steps} onChange={setSteps} tried={tried} />
+      <PhasesEditor
+        phases={phases}
+        steps={steps}
+        taken={basePhases.map((phase) => phase.id)}
+        tried={tried}
+        words={p}
+        onChange={(next) => {
+          setPhases(next.phases);
+          setSteps(next.steps);
+        }}
+      />
+      <StepsEditor steps={steps} phases={phases} onChange={setSteps} tried={tried} />
       <div className="grid gap-3 sm:grid-cols-2">
         <Field id={`${id}-priority`} label={w.priority}>
           <Select

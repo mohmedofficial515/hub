@@ -90,8 +90,11 @@ the celebration), batch 3 (evidence on steps and the compare slider) and batch 4
 
 - **Phases are data** (`plan.phases[] { id, title, note? }`, `step.phaseId`, migration `0015_plan_phases`). Claude writes them with
   `create_plan` / `update_plan`; `get_plan` lists the steps under them. A step must name a phase of the plan, and a phase that steps still name
-  cannot be removed in a save that leaves them there (`hub.plans.unknown_phase`, `hub.plans.phase_in_use`). The sheet's form does not edit
-  phases and keeps each step's `phaseId`.
+  cannot be removed in a save that leaves them there (`hub.plans.unknown_phase`, `hub.plans.phase_in_use`). The sheet's form edits phases
+  (`sheet-sections/plan-phases.tsx`, `features/planning/phase-edit.ts`): add, rename, a note, reorder, remove, and each step's phase. Removing a
+  phase that steps use asks where they go (another phase or none) and moves them in the same save, so the form never meets the 409. A new step
+  joins the last phase.
+- **All phases** starts folded except the phase holding the next step (owner, 2026-11-20).
 - **A plan saved before phases** shows the head and one plain list, with no ring, map or roles chart, and a line saying how phases come.
 - **Files:** `plan-page.tsx` (the page and its head), `journey-map.tsx`, `phase-focus.tsx` (the chapter, waffle, size and lock chips),
   `phase-list.tsx` (every phase, folding, around the existing `StepsTimeline`), `plan-charts.tsx` (ring, roles), `step-drawer.tsx`,

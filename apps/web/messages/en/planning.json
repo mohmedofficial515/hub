@@ -143,7 +143,22 @@
     "sizeLabel": "Size: {size}",
     "whyLabel": "Why",
     "changesRequested": "Changes requested",
-    "changesRequestedBy": "Asked by"
+    "changesRequestedBy": "Asked by",
+    "phases": "Phases",
+    "phasesHint": "Phases group the steps into the chapters the plan page shows. A step can sit in one phase, or in none.",
+    "phaseTitle": "Phase {n}",
+    "phaseNote": "Note (optional)",
+    "addPhase": "Add a phase",
+    "movePhaseUp": "Move phase {n} up",
+    "movePhaseDown": "Move phase {n} down",
+    "removePhase": "Remove phase {n}",
+    "phaseRequired": "Give this phase a title, or remove it.",
+    "stepPhase": "Phase",
+    "noPhase": "No phase",
+    "removePhaseTitle": "Remove the phase “{title}”?",
+    "removePhaseBody": "Steps in this phase: {n}. Choose where they go; they move when you save.",
+    "removePhaseMoveTo": "Move its steps to",
+    "removePhaseConfirm": "Move them and remove"
   },
   "stats": {
     "label": "At a glance",

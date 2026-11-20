@@ -164,15 +164,28 @@ describe('a plan with phases', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
-  it('lists every phase folded, and opens one', async () => {
+  it('lists every phase folded except the current one, and opens one', async () => {
     search = 'plan=P-1';
     api({ 'P-1': plan('P-1', { phases, steps }) });
     show(<PlanningPage />);
     const all = await screen.findByRole('region', { name: 'All phases' });
     const toggle = within(all).getByRole('button', { name: /Phase 0: Setup/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    // The phase holding the next step starts open (owner, 2026-11-20).
+    const current = within(all).getByRole('button', { name: /Phase 1: Build/ });
+    expect(current.getAttribute('aria-expanded')).toBe('true');
     fireEvent.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('a finished plan starts with every phase folded', async () => {
+    search = 'plan=P-1';
+    api({ 'P-1': plan('P-1', { phases, steps: steps.map((step) => ({ ...step, done: true })) }) });
+    show(<PlanningPage />);
+    const all = await screen.findByRole('region', { name: 'All phases' });
+    for (const toggle of within(all).getAllByRole('button', { name: /^Phase \d/ })) {
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    }
   });
 
   it('keeps all twenty phases on the map', async () => {
@@ -201,8 +214,84 @@ describe('a plan with phases', () => {
       phases?: unknown;
     };
     expect(sent.steps.map((s) => s.phaseId)).toEqual(['p0', 'p0', 'p1', 'p1', 'p1']);
-    // The form does not edit phases, so it leaves them as they are.
-    expect(sent.phases).toBeUndefined();
+    // The phases go back as they were: an unchanged list writes no event.
+    expect(sent.phases).toEqual(phases);
+  });
+});
+
+describe('editing phases in the plan’s form', () => {
+  const patched = async (calls: { method: string; body?: unknown }[]) => {
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(calls.some((c) => c.method === 'PATCH')).toBe(true));
+    return calls.find((c) => c.method === 'PATCH')?.body as {
+      steps: { id?: string; phaseId?: string }[];
+      phases: { id: string; title: string; note?: string }[];
+    };
+  };
+
+  it('renames a phase, gives it a note, adds one and puts a step in it', async () => {
+    search = 'plan=P-1&action=edit';
+    const { calls } = api({ 'P-1': plan('P-1', { phases, steps }) });
+    show(<PlanningPage />);
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Phase 1' }), {
+      target: { value: 'Build it' },
+    });
+    const notes = screen.getAllByRole('textbox', { name: 'Note (optional)' });
+    fireEvent.change(notes[1]!, { target: { value: 'Front end' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add a phase' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Phase 2' }), { target: { value: 'Ship' } });
+    const stepPhases = screen.getAllByRole('combobox', { name: 'Phase' });
+    expect(stepPhases).toHaveLength(5);
+    fireEvent.change(stepPhases[4]!, { target: { value: 'p2' } });
+    const sent = await patched(calls);
+    expect(sent.phases).toEqual([
+      { id: 'p0', title: 'Setup', note: 'The owner' },
+      { id: 'p1', title: 'Build it', note: 'Front end' },
+      { id: 'p2', title: 'Ship' },
+    ]);
+    expect(sent.steps.map((s) => s.phaseId ?? null)).toEqual(['p0', 'p0', 'p1', 'p1', 'p2']);
+  });
+
+  it('reorders phases with their move buttons', async () => {
+    search = 'plan=P-1&action=edit';
+    const { calls } = api({ 'P-1': plan('P-1', { phases, steps }) });
+    show(<PlanningPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Move phase 1 up' }));
+    const sent = await patched(calls);
+    expect(sent.phases.map((p) => p.id)).toEqual(['p1', 'p0']);
+  });
+
+  it('removing a phase in use asks where its steps go, and moves them in the same save', async () => {
+    search = 'plan=P-1&action=edit';
+    const { calls } = api({ 'P-1': plan('P-1', { phases, steps }) });
+    show(<PlanningPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove phase 0' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Remove the phase “Setup”?' });
+    expect(within(dialog).getByText(/Steps in this phase: 2/)).toBeTruthy();
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Move its steps to' }), {
+      target: { value: 'p1' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Move them and remove' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const sent = await patched(calls);
+    expect(sent.phases.map((p) => p.id)).toEqual(['p1']);
+    expect(sent.steps.map((s) => s.phaseId ?? null)).toEqual(['p1', 'p1', 'p1', 'p1', 'p1']);
+  });
+
+  it('removing a phase no step uses takes it away at once, and a blank title stops the save', async () => {
+    search = 'plan=P-1&action=edit';
+    const { calls } = api({ 'P-1': plan('P-1', { phases, steps }) });
+    show(<PlanningPage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Add a phase' }));
+    expect(screen.getAllByRole('textbox', { name: /^Phase \d$/ })).toHaveLength(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Give this phase a title, or remove it.')).toBeTruthy();
+    expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove phase 2' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getAllByRole('textbox', { name: /^Phase \d$/ })).toHaveLength(2);
+    const sent = await patched(calls);
+    expect(sent.phases).toEqual(phases);
   });
 });
 
