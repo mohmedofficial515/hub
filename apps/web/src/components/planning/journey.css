@@ -306,7 +306,9 @@
   display: flex;
   flex-direction: column;
   width: min(36rem, 100vw);
-  background: var(--popover);
+  /* The kit's popover is frosted glass (translucent, for a surface with a backdrop blur). The drawer has no blur and covers the chat panel, so
+     the same tint is laid over the opaque page colour: nothing behind it shows through, in either theme. */
+  background: linear-gradient(var(--popover), var(--popover)), var(--background);
   color: var(--popover-foreground);
   border-inline-start: 1px solid var(--border);
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.28);

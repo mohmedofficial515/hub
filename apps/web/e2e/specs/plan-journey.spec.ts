@@ -73,6 +73,13 @@ test('a plan with phases draws its journey, dates a finished step and opens a st
   const drawer = page.getByRole('dialog', { name: 'Build the page' });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByText('Nobody can book without it.')).toBeVisible();
+  // The drawer's surface is opaque in both themes: the chat panel behind it never shows through.
+  for (const dark of [false, true]) {
+    await page.evaluate((on) => document.documentElement.classList.toggle('dark', on), dark);
+    const colour = await drawer.evaluate((el) => getComputedStyle(el).backgroundColor);
+    expect(colour, `drawer surface ${dark ? 'dark' : 'light'}`).toMatch(/^rgb\(\d+, \d+, \d+\)$/);
+  }
+  await page.evaluate(() => document.documentElement.classList.toggle('dark', false));
   await page.keyboard.press('Escape');
   await expect(drawer).toHaveCount(0);
 
