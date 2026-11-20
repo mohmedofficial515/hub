@@ -13,6 +13,9 @@ import { renderWithApp, stubFetch } from '@/test/render';
 
 import { SchemaPage } from './schema-page';
 
+// The dictionary's paging with a few rows: the same rule as 600 at a time, without rendering hundreds of rows in jsdom.
+vi.mock('./paging', () => ({ PAGE_ROWS: 20 }));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(''),
@@ -250,15 +253,15 @@ describe('SchemaPage', () => {
   });
 
   it('shows the dictionary a page at a time, saying how many of how many (review M11)', async () => {
-    api(studio({}, 650));
+    api(studio({}, 30));
     show();
     await userEvent.click(await screen.findByRole('button', { name: 'Dictionary' }));
-    const count = await screen.findByText('Showing 600 of 652');
+    const count = await screen.findByText('Showing 20 of 32');
     expect(count).toBeTruthy();
-    expect(document.querySelectorAll('.schema-table tbody tr')).toHaveLength(600);
-    await userEvent.click(screen.getByRole('button', { name: 'Show 52 more' }));
-    expect(await screen.findByText('652 columns')).toBeTruthy();
-    expect(document.querySelectorAll('.schema-table tbody tr')).toHaveLength(652);
+    expect(document.querySelectorAll('.schema-table tbody tr')).toHaveLength(20);
+    await userEvent.click(screen.getByRole('button', { name: 'Show 12 more' }));
+    expect(await screen.findByText('32 columns')).toBeTruthy();
+    expect(document.querySelectorAll('.schema-table tbody tr')).toHaveLength(32);
   });
 
   it('keeps a refused Arabic name in the field and says why, and never sends a secret (review M12)', async () => {
