@@ -80,7 +80,7 @@ export function saveIdea(key: string, input: UpdateIdeaInput) {
 
 export function savePlan(key: string, input: UpdatePlanInput) {
   const { ws } = currentRoute();
-  const { title, body, priority, tags, steps, sourceChatId, sourceMessageId } = input;
+  const { title, body, priority, tags, steps, phases, sourceChatId, sourceMessageId } = input;
   return writeCard(
     {
       key,
@@ -97,6 +97,7 @@ export function savePlan(key: string, input: UpdatePlanInput) {
               plan: {
                 ...card.plan,
                 ...(steps ? { steps: mergeSteps(card.plan.steps, steps) } : {}),
+                ...(phases ? { phases } : {}),
                 ...(sourceChatId ? { sourceChatId } : {}),
                 ...(sourceMessageId ? { sourceMessageId } : {}),
               },

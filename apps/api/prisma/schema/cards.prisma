@@ -131,6 +131,20 @@ model CardAttachment {                                   // lab screenshots and 
   height    Int?
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   card      Card     @relation(fields: [cardId], references: [id])
+  file      CardAttachmentFile?
   @@index([cardId])
   @@map("card_attachments")
+}
+
+/// The bytes of an uploaded attachment (v5-live-plan, batch 3: a plan step's evidence). Kept in the database, so a backup holds them with the card.
+/// A picture is drawn again by sharp (so no metadata survives) and gets a thumbnail; a clip is kept as it came. Removing the evidence removes this row.
+model CardAttachmentFile {
+  attachmentId String          @id @map("attachment_id") @db.Uuid
+  data         Bytes
+  size         Int
+  sha256       String
+  /// A small WebP of a picture, for a grid of thumbnails. None for a clip.
+  thumb        Bytes?
+  attachment   CardAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  @@map("card_attachment_files")
 }

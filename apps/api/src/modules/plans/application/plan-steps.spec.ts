@@ -1,7 +1,7 @@
 /**
  * @file Plan step normalisation.
  */
-import { normalizeSteps, specialtyOfStep } from './plan-steps';
+import { canonicalStep, normalizeSteps, phaseProblem, specialtyOfStep, withDone } from './plan-steps';
 
 describe('normalizeSteps', () => {
   it('gives each new step an id', () => {
@@ -124,5 +124,112 @@ describe('normalizeSteps with a step’s details (owner decision 9a)', () => {
     const adr = steps[0]?.id;
     expect(adr).not.toBe('s1');
     expect(steps[1]).toMatchObject({ id: 's1', after: [adr] });
+  });
+});
+
+describe('phases (v5-live-plan)', () => {
+  const phases = [
+    { id: 'p0', title: 'Setup' },
+    { id: 'p1', title: 'Build' },
+  ];
+
+  it('keeps the phase a writer gives a step, and none when it gives none', () => {
+    const steps = normalizeSteps([
+      { title: 'Decide', done: false, phaseId: 'p0' },
+      { title: 'Loose', done: false },
+    ]);
+    expect(steps.map((step) => step.phaseId ?? null)).toEqual(['p0', null]);
+  });
+
+  it('a plan with no phases and steps with none has no problem', () => {
+    expect(phaseProblem(normalizeSteps([{ title: 'One', done: false }]), [])).toBeNull();
+  });
+
+  it('refuses a step that names a phase the plan does not have', () => {
+    const steps = normalizeSteps([{ title: 'One', done: false, phaseId: 'p9' }]);
+    expect(phaseProblem(steps, phases)).toEqual({ code: 'hub.plans.unknown_phase', phase: 'p9' });
+  });
+
+  it('refuses removing a phase that steps still name, by its title', () => {
+    const steps = normalizeSteps([{ title: 'One', done: false, phaseId: 'p1' }]);
+    expect(phaseProblem(steps, [phases[0]!], phases)).toEqual({
+      code: 'hub.plans.phase_in_use',
+      phase: 'Build',
+    });
+  });
+
+  it('removing a phase is fine once its steps moved or left it in the same save', () => {
+    const steps = normalizeSteps([
+      { title: 'One', done: false, phaseId: 'p0' },
+      { title: 'Two', done: false },
+    ]);
+    expect(phaseProblem(steps, [phases[0]!], phases)).toBeNull();
+  });
+});
+
+describe('doneAt', () => {
+  const now = new Date('2026-11-19T12:00:00.000Z');
+  const later = new Date('2026-11-20T12:00:00.000Z');
+
+  it('is set when a step that was not done becomes done, and kept while it stays done', () => {
+    const [first] = normalizeSteps(
+      [{ id: 's1', title: 'One', done: true }],
+      [{ id: 's1', title: 'One', done: false }],
+      now,
+    );
+    expect(first?.doneAt).toBe(now.toISOString());
+    const [again] = normalizeSteps([{ id: 's1', title: 'Renamed', done: true }], [first!], later);
+    expect(again?.doneAt).toBe(now.toISOString());
+  });
+
+  it('is never invented for a step that arrives done, and goes when the step is not done', () => {
+    expect(normalizeSteps([{ title: 'Imported', done: true }], [], now)[0]).not.toHaveProperty('doneAt');
+    const done = { id: 's1', title: 'One', done: true, doneAt: now.toISOString() };
+    expect(normalizeSteps([{ id: 's1', title: 'One', done: false }], [done], later)[0]).not.toHaveProperty(
+      'doneAt',
+    );
+  });
+
+  it('follows a task: dated when it finishes, undated when it reopens', () => {
+    const open = { id: 's1', title: 'One', taskKey: 'GTV-1', done: false };
+    const done = withDone(open, true, now);
+    expect(done).toMatchObject({ done: true, doneAt: now.toISOString() });
+    expect(withDone(done, true, later).doneAt).toBe(now.toISOString());
+    expect(withDone(done, false, later)).toEqual(open);
+  });
+});
+
+describe('canonicalStep', () => {
+  it('puts a step read back from JSONB in the order normalizeSteps writes it, so the same steps compare equal', () => {
+    const [first, second] = normalizeSteps([
+      {
+        id: 's1',
+        title: 'Schema',
+        role: 'backend',
+        why: 'Read by all',
+        size: 'M',
+        acceptance: 'Runs',
+        phaseId: 'p0',
+        done: false,
+      },
+      { id: 's2', title: 'Screen', size: 'S', after: ['s1'], done: true },
+    ]);
+    // Postgres orders JSONB keys by length, then bytes.
+    const fromJsonb = [
+      {
+        id: 's1',
+        why: 'Read by all',
+        done: false,
+        role: 'backend',
+        size: 'M',
+        title: 'Schema',
+        phaseId: 'p0',
+        acceptance: 'Runs',
+      },
+      { id: 's2', done: true, size: 'S', after: ['s1'], title: 'Screen' },
+    ];
+    expect(JSON.stringify(fromJsonb.map((step) => canonicalStep(step as never)))).toBe(
+      JSON.stringify([first, second]),
+    );
   });
 });

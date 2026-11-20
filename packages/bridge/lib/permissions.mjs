@@ -173,6 +173,7 @@ export const HUB_ASK_TOOLS = [
   'delete_source',
   'delete_chat',
   'delete_prompt_template',
+  'remove_step_evidence',
 ];
 
 /** The rest of the table, for the read-only deny list, so a write is refused by rule even under an allow the owner holds. */
@@ -209,6 +210,9 @@ export const HUB_OTHER_TOOLS = [
   'create_plan',
   'update_plan',
   'plan_to_tasks',
+  'add_step_evidence',
+  'request_plan_explainer',
+  'attach_plan_explainer',
   'update_card',
   'move_card',
   'comment',

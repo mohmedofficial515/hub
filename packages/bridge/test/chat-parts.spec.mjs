@@ -469,12 +469,17 @@ describe('the bridge log', () => {
   it('rotates at the limit, keeps one old file, and never grows past twice the limit', () => {
     const system = fakeSystem();
     const file = join(system.home, 'logs', 'bridge.log');
-    const log = createLog(file, { limitBytes: 1000 });
-    for (let index = 0; index < 500; index += 1) log(`line ${index} ${'x'.repeat(50)}`);
+    // Every line is a real stat and append (and every rotation a remove and rename), which is slow on a busy Windows disk,
+    // so the lines are few: 80 bytes each against a 1000-byte limit still rotates five times.
+    const at = new Date('2026-11-20T00:00:00.000Z');
+    const log = createLog(file, { limitBytes: 1000, now: () => at });
+    for (let index = 0; index < 60; index += 1) log(`line ${index} ${'x'.repeat(50)}`);
     expect(statSync(file).size).toBeLessThanOrEqual(1100);
     expect(statSync(`${file}.1`).size).toBeLessThanOrEqual(1100);
+    expect(statSync(`${file}.1`).size).toBeGreaterThan(1000);
     expect(readdirSync(join(system.home, 'logs')).sort()).toEqual(['bridge.log', 'bridge.log.1']);
-    expect(readFileSync(file, 'utf8')).toContain('line 499');
+    expect(readFileSync(file, 'utf8')).toContain('line 59');
+    expect(readFileSync(file, 'utf8')).not.toContain('line 0 ');
   });
 
   it('cuts one enormous line, and the default limit is small', () => {

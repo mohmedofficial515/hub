@@ -3,7 +3,7 @@
  * @description The card as the web works with it. Field names follow the approved design's kit, whose components read them,
  * and `map.ts` builds them from the API's `CardSummary` and `CardFull` (docs/04 §1.8). Detail shapes follow docs/03 §6.
  */
-import type { CardType, Priority, Role } from '@hub/contracts';
+import type { CardType, PlanExplainer, Priority, Role } from '@hub/contracts';
 
 export type { CardType, Priority, Role } from '@hub/contracts';
 
@@ -276,12 +276,46 @@ export interface PlanStep {
   size?: 'S' | 'M' | 'L' | undefined;
   after?: string[] | undefined;
   acceptance?: string | undefined;
+  /** One of the plan's `phases`, by id (v5-live-plan). Absent on a step outside any phase. */
+  phaseId?: string | undefined;
+  /** When the step last became done, set by Hub. */
+  doneAt?: string | undefined;
+  /** Pictures and clips that show the step done (v5-live-plan, batch 3). Hub's: the form never sends them. */
+  evidence?: StepEvidence[] | undefined;
+}
+
+/** One file of a step's evidence: an attachment of the plan card, served at `evidenceUrl`. */
+export interface StepEvidence {
+  attachmentId: string;
+  kind: 'before' | 'after' | 'video';
+  caption?: string | undefined;
+  mime: string;
+  width?: number | null | undefined;
+  height?: number | null | undefined;
+  addedAt: string;
+  /** How it came: `mcp` when Claude attached it. */
+  via: 'web' | 'mcp';
+  /** Who added it: they may remove it again. */
+  addedBy?: string | null | undefined;
+  /** A picture has a small WebP for a grid, at `…/file?size=thumb`. */
+  thumb?: boolean | undefined;
+}
+
+/** A named part of a plan's steps, in the order of `PlanDetail.phases` (v5-live-plan). */
+export interface PlanPhase {
+  id: string;
+  title: string;
+  note?: string | undefined;
 }
 
 /** docs/15 §4. */
 export interface PlanDetail {
   body: string;
   steps: PlanStep[];
+  /** In order. Empty on a plan saved before phases: its steps read as one list. */
+  phases: PlanPhase[];
+  /** The plan explained on video by Hams (v5-live-plan, batch 4); null until asked for. */
+  explainer?: PlanExplainer | null | undefined;
   ideaKey?: string | undefined;
   /** The Plan Studio chat it was saved from, and the reply whose plan it holds (owner decision 9c). */
   sourceChatId?: string | undefined;

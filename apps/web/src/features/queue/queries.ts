@@ -30,11 +30,12 @@ function useQueueBase() {
   return { ws, base, reread, client };
 }
 
-/** This project's runs and the member's limits. `card` narrows it to one card's runs. */
-export function useQueue(options: { card?: string | undefined } = {}) {
+/** This project's runs and the member's limits. `card` narrows it to one card's runs. `enabled: false` reads nothing (a page with no device to run on). */
+export function useQueue(options: { card?: string | undefined; enabled?: boolean | undefined } = {}) {
   const { ws, base } = useQueueBase();
   return useQuery({
     queryKey: qk.queue(ws, options.card),
+    enabled: options.enabled ?? true,
     queryFn: () => get<QueueDto>(base, options.card ? { card: options.card } : undefined),
   });
 }

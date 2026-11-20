@@ -50,14 +50,17 @@ export function capText(text: string, limit: number): { text: string; truncated:
 
 export const WORK_STAGES = ['understand', 'plan', 'execute', 'verify', 'report'] as const;
 export const DOC_STAGES = ['search', 'propose', 'draft', 'save', 'link'] as const;
-export const CHAT_PROTOCOLS = { work: WORK_STAGES, doc: DOC_STAGES } as const;
+/** A plan's explainer video made with Hams' plan-film engine (v5-live-plan, batch 4): the plan's page shows these as the making stages. */
+export const FILM_STAGES = ['script', 'voice', 'scenes', 'render', 'attach'] as const;
+export const CHAT_PROTOCOLS = { work: WORK_STAGES, doc: DOC_STAGES, film: FILM_STAGES } as const;
+export const CHAT_PROTOCOL_NAMES = ['work', 'doc', 'film'] as const;
 export type ChatProtocol = keyof typeof CHAT_PROTOCOLS;
 export const STAGE_STATES = ['started', 'done', 'failed'] as const;
 export type StageState = (typeof STAGE_STATES)[number];
 
 export const stageReportSchema = z.object({
-  protocol: z.enum(['work', 'doc']),
-  stage: z.enum([...WORK_STAGES, ...DOC_STAGES]),
+  protocol: z.enum(CHAT_PROTOCOL_NAMES),
+  stage: z.enum([...WORK_STAGES, ...DOC_STAGES, ...FILM_STAGES]),
   state: z.enum(STAGE_STATES),
   note: z.string().max(500).optional(),
 });
@@ -536,7 +539,7 @@ export const turnEventSchema = z.discriminatedUnion('kind', [
   /** `/hub:work` and `/hub:doc` report their stages through the `report_stage` tool (§7.1). */
   z.object({
     kind: z.literal('stage'),
-    protocol: z.enum(['work', 'doc']),
+    protocol: z.enum(CHAT_PROTOCOL_NAMES),
     stage: z.string().max(40),
     state: z.enum(STAGE_STATES),
     note: z.string().max(500).optional(),
@@ -910,7 +913,7 @@ export const chatNoticeSchema = z.discriminatedUnion('kind', [
 export type ChatNotice = z.infer<typeof chatNoticeSchema>;
 
 export const chatStageSchema = z.object({
-  protocol: z.enum(['work', 'doc']),
+  protocol: z.enum(CHAT_PROTOCOL_NAMES),
   stage: z.string(),
   state: z.enum(STAGE_STATES),
   note: z.string().optional(),

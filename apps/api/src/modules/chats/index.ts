@@ -9,3 +9,4 @@ export {
 } from './application/turn-events';
 export { WorkReportsService } from './application/work-reports.service';
 export { ChatsModule } from './chats.module';
+export { folderIsRegistered } from './domain/folders';

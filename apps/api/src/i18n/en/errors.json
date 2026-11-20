@@ -114,7 +114,19 @@
     },
     "plans": {
       "step_not_found": "That step is not on this plan.",
-      "revision_not_found": "That revision does not exist."
+      "revision_not_found": "That revision does not exist.",
+      "unknown_phase": "A step names a phase this plan does not have: {phase}. Add the phase, or leave the step without one.",
+      "phase_in_use": "Steps still belong to the phase {phase}. Move them to another phase, or leave them without one, in the same save.",
+      "evidence_type": "Hub keeps PNG, JPEG or WebP pictures and MP4 or WebM clips. This file is none of them.",
+      "evidence_too_large": "The file is too large: a picture up to 8 MB, a clip up to 40 MB.",
+      "evidence_damaged": "The picture cannot be read. Save it again and send it once more.",
+      "evidence_kind": "A clip is the kind video, and a picture is before or after.",
+      "evidence_full": "This step already has {max} files of evidence. Remove one first.",
+      "evidence_not_found": "That evidence is not on this step.",
+      "evidence_file_not_found": "Hub cannot read that file. It must be inside one of the project's folders on the machine Hub runs on.",
+      "explainer_not_requested": "No explainer video was asked for on this plan. Ask for one from the plan's page first.",
+      "explainer_stale": "This film explains revision {revision}, but the plan asked for revision {asked}. Make it again from the plan as it is.",
+      "explainer_captions": "The captions file is not WebVTT text. It must start with WEBVTT."
     },
     "docs": {
       "not_found": "Document not found.",

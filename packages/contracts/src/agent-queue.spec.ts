@@ -88,7 +88,61 @@ describe('a run', () => {
     expect(
       runPrompt({ source: 'plan_step', cardKey: 'GTV-9', planStep: 1, stepTitle: 'Add a test' }),
     ).toMatch(/^Carry out step 2 of plan GTV-9: Add a test/);
+    expect(
+      runPrompt({ source: 'plan_step', cardKey: 'GTV-9', planStep: 1, stepTitle: 'Add a test' }),
+    ).toContain('report_stage with protocol work');
+    expect(
+      runPrompt({ source: 'plan_step', cardKey: 'GTV-9', planStep: 1, stepTitle: 'Add a test' }),
+    ).toContain('add_step_evidence');
     expect(runPrompt({ source: 'prompt', prompt: 'Tidy the README' })).toBe('Tidy the README');
+    const film = runPrompt({
+      source: 'explainer',
+      cardKey: 'GTV-9',
+      explainer: {
+        request: {
+          style: 'slides',
+          voice: 'google',
+          googleVoice: 'Kore',
+          dialect: 'egyptian',
+          aspect: 'portrait',
+          length: 'short',
+          captions: false,
+        },
+        revision: 3,
+      },
+    });
+    expect(film).toMatch(
+      /^Make the explainer video of plan GTV-9 \(revision 3\) with Hams' plan-film engine/,
+    );
+    expect(film).toContain('style slides, voice google (Gemini TTS), voice Kore');
+    expect(film).toContain('node engine/plan-film/build.mjs gtv-9 voice');
+    expect(film).toContain('attach_plan_explainer');
+    expect(film).toContain('protocol film');
+    expect(film).toContain('no captions');
+    expect(film).toContain('In FILM write voiceMode: "google" and voice: "Kore"');
+    const local = (voice: 'hams' | 'none') =>
+      runPrompt({
+        source: 'explainer',
+        cardKey: 'GTV-9',
+        explainer: {
+          request: {
+            style: 'whiteboard',
+            voice,
+            googleVoice: 'Charon',
+            dialect: 'egyptian',
+            aspect: 'landscape',
+            length: 'chapters',
+            captions: true,
+          },
+          revision: 1,
+        },
+      });
+    expect(local('hams')).toContain('In FILM write voiceMode: "hams"');
+    expect(local('hams')).toContain('ports.tts in hams.config.json');
+    expect(local('hams')).not.toContain('Google');
+    expect(local('none')).toContain('In FILM write voiceMode: "none"');
+    expect(local('none')).toContain('music only');
+    expect(local('none')).not.toContain('stop and say so');
   });
 
   it('sits in one of four sections', () => {

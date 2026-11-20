@@ -29,7 +29,7 @@ import { BriefsService } from '@/modules/digests';
 import { DocsReadService, DocsWriteService } from '@/modules/docs';
 import { ActorService, InviteService, MeService } from '@/modules/identity';
 import { InboxService } from '@/modules/notifications';
-import { PlanReadService } from '@/modules/plans';
+import { PlanEvidenceService, PlanExplainerService, PlanReadService } from '@/modules/plans';
 import { ReleaseNotesService } from '@/modules/releases';
 import { SchemaStudioService } from '@/modules/schema-studio';
 import { SearchService } from '@/modules/search';
@@ -55,6 +55,8 @@ export class McpDeps {
     readonly query: CardQueryService,
     readonly tasks: TasksReadService,
     readonly plans: PlanReadService,
+    readonly evidence: PlanEvidenceService,
+    readonly explainer: PlanExplainerService,
     readonly releaseNotes: ReleaseNotesService,
     readonly projects: ProjectsService,
     readonly members: MembersService,

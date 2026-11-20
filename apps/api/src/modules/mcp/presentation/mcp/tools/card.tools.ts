@@ -3,6 +3,10 @@
  * @description Each calls `CardService.apply` with the action the REST route uses (docs/15 §6), so REST and MCP cannot
  * behave differently. Flat inputs are put back into the REST payload here.
  */
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { platform } from 'node:os';
+import { basename, isAbsolute } from 'node:path';
+
 import {
   createDecisionSchema,
   createHandoffSchema,
@@ -13,16 +17,60 @@ import {
   createTaskSchema,
   editTaskDetailSchema,
   nestCreateInput,
+  PLAN_EVIDENCE_LIMITS,
+  PLAN_EXPLAINER_LIMITS,
   updateCardSchema,
 } from '@hub/contracts';
 
 import { transitionActionFor } from '@/modules/cards';
+import { folderIsRegistered } from '@/modules/chats';
 import { AppException } from '@/shared/errors';
 
 import { cardSheet, cardTable, written } from '../render';
-import type { ToolHandlers } from '../tool-context';
+import type { ToolContext, ToolHandlers } from '../tool-context';
 
 type Rest = Readonly<Record<string, unknown>>;
+
+/** A step named by its id or by its number from 1. */
+async function stepIdOf(context: ToolContext, key: string, step: string | number): Promise<string> {
+  const card = await context.deps.query.full(await context.actor(), key);
+  if (card.type !== 'plan') throw new AppException('hub.cards.type_mismatch');
+  const steps = ((card.detail as { steps?: { id: string }[] } | null)?.steps ?? []) as { id: string }[];
+  const found = typeof step === 'number' ? steps[step - 1] : steps.find((item) => item.id === step);
+  if (!found) throw new AppException('hub.plans.step_not_found');
+  return found.id;
+}
+
+/**
+ * A file Claude names for evidence: absolute, inside one of the project's registered folders or a Hub worktree of one (after links are followed),
+ * a regular file no larger than the largest clip. Read on the machine Hub runs on; a file on another device is not found.
+ */
+async function readEvidencePath(
+  path: string,
+  repoPaths: readonly string[],
+  maxBytes: number = PLAN_EVIDENCE_LIMITS.videoBytes,
+): Promise<{ data: Buffer; name: string }> {
+  const allowed = (candidate: string) =>
+    isAbsolute(candidate) && folderIsRegistered(candidate, repoPaths, platform());
+  if (!allowed(path)) throw new AppException('hub.plans.evidence_file_not_found');
+  let real: string;
+  try {
+    real = await realpath(path);
+  } catch (cause) {
+    throw new AppException('hub.plans.evidence_file_not_found', { cause });
+  }
+  // A folder may be registered under another spelling of the same place (a short name, a link): compare real paths with real paths.
+  const realRoots = (await Promise.all(repoPaths.map((root) => realpath(root).catch(() => null)))).filter(
+    (root): root is string => root !== null,
+  );
+  if (!folderIsRegistered(real, realRoots, platform())) {
+    throw new AppException('hub.plans.evidence_file_not_found');
+  }
+  const info = await stat(real);
+  if (!info.isFile()) throw new AppException('hub.plans.evidence_file_not_found');
+  if (info.size > maxBytes) throw new AppException('hub.plans.evidence_too_large');
+  return { data: await readFile(real), name: basename(real) };
+}
 
 /** The input without what is not the payload. */
 function payloadOf(input: Rest, ...drop: readonly string[]): Record<string, unknown> {
@@ -363,6 +411,56 @@ export const cardToolHandlers = {
       { ...card, event: { id: '', seq: 0, kind: 'field_changed' } },
       await context.project(),
     );
+  },
+  async add_step_evidence(context, input) {
+    const actor = await context.actor();
+    const project = await context.project();
+    const stepId = await stepIdOf(context, input.key, input.step);
+    const { data, name } = await readEvidencePath(
+      input.path,
+      (await context.deps.projects.get(actor)).repoPaths,
+    );
+    const result = await context.deps.evidence.add(actor, project.slug, input.key, stepId, {
+      kind: input.kind,
+      ...(input.caption ? { caption: input.caption } : {}),
+      data,
+      name,
+      via: 'mcp',
+    });
+    const card = await context.deps.query.written(actor, result);
+    return written(`Attached ${input.kind} evidence to step ${String(input.step)} of`, card, project);
+  },
+  async remove_step_evidence(context, input) {
+    const actor = await context.actor();
+    const stepId = await stepIdOf(context, input.key, input.step);
+    const result = await context.deps.evidence.remove(actor, input.key, stepId, input.attachmentId);
+    return written(
+      'Removed evidence from',
+      await context.deps.query.written(actor, result),
+      await context.project(),
+    );
+  },
+  request_plan_explainer: (context, input) =>
+    context.apply('Asked for the explainer video of', input.key, 'plan.request_explainer', {
+      request: payloadOf(input),
+    }),
+  async attach_plan_explainer(context, input) {
+    const actor = await context.actor();
+    const project = await context.project();
+    const { repoPaths } = await context.deps.projects.get(actor);
+    const read = (path: string, max: number) => readEvidencePath(path, repoPaths, max);
+    const result = await context.deps.explainer.attach(actor, project.slug, input.key, {
+      revision: input.revision,
+      video: await read(input.video, PLAN_EXPLAINER_LIMITS.videoBytes),
+      ...(input.poster ? { poster: await read(input.poster, PLAN_EXPLAINER_LIMITS.posterBytes) } : {}),
+      ...(input.captions
+        ? { captions: await read(input.captions, PLAN_EXPLAINER_LIMITS.captionsBytes) }
+        : {}),
+      chapters: input.chapters,
+      ...(input.hamsProject ? { hamsProject: input.hamsProject } : {}),
+    });
+    const card = await context.deps.query.written(actor, result);
+    return written('Attached the explainer video to', card, project);
   },
   plan_to_tasks: (context, input) =>
     context.apply('Created the tasks of', input.key, 'plan.to_tasks', payloadOf(input), (_card, others) =>

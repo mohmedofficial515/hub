@@ -439,6 +439,12 @@ export type CreateCardDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+        }>;
+        phases?: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         sourceIdeaKey?: string;
         sourceChatId?: string;
@@ -699,6 +705,72 @@ export type CardWrittenResponseDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+            doneAt?: string;
+            evidence?: Array<{
+                attachmentId: string;
+                kind: 'before' | 'after' | 'video';
+                caption?: string;
+                mime: string;
+                width?: number | null;
+                height?: number | null;
+                addedAt: string;
+                via: 'web' | 'mcp';
+                addedBy?: string | null;
+                thumb?: boolean;
+            }>;
+        }>;
+        explainer?: {
+            status: 'requested' | 'ready';
+            request: {
+                style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                voice?: 'google' | 'hams' | 'none';
+                googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                dialect?: 'egyptian' | 'msa';
+                aspect?: 'landscape' | 'portrait' | 'square';
+                length?: 'chapters' | 'short';
+                captions?: boolean;
+            };
+            revision: number;
+            requestedAt: string;
+            attachmentId?: string;
+            posterId?: string;
+            captionsId?: string;
+            chapters?: Array<{
+                phaseId: string | null;
+                title?: string;
+                start: number;
+            }>;
+            hamsProject?: {
+                id: string;
+                url: string;
+            };
+            madeAt?: string;
+            previous?: {
+                attachmentId: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                revision: number;
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+            };
+        } | null;
+        phases: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
@@ -1048,6 +1120,72 @@ export type CardFullResponseDto = {
             size?: 'S' | 'M' | 'L';
             after?: Array<string>;
             acceptance?: string;
+            phaseId?: string;
+            doneAt?: string;
+            evidence?: Array<{
+                attachmentId: string;
+                kind: 'before' | 'after' | 'video';
+                caption?: string;
+                mime: string;
+                width?: number | null;
+                height?: number | null;
+                addedAt: string;
+                via: 'web' | 'mcp';
+                addedBy?: string | null;
+                thumb?: boolean;
+            }>;
+        }>;
+        explainer?: {
+            status: 'requested' | 'ready';
+            request: {
+                style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                voice?: 'google' | 'hams' | 'none';
+                googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                dialect?: 'egyptian' | 'msa';
+                aspect?: 'landscape' | 'portrait' | 'square';
+                length?: 'chapters' | 'short';
+                captions?: boolean;
+            };
+            revision: number;
+            requestedAt: string;
+            attachmentId?: string;
+            posterId?: string;
+            captionsId?: string;
+            chapters?: Array<{
+                phaseId: string | null;
+                title?: string;
+                start: number;
+            }>;
+            hamsProject?: {
+                id: string;
+                url: string;
+            };
+            madeAt?: string;
+            previous?: {
+                attachmentId: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                revision: number;
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+            };
+        } | null;
+        phases: Array<{
+            id: string;
+            title: string;
+            note?: string;
         }>;
         revision: number;
         sourceIdeaId: string | null;
@@ -1472,6 +1610,72 @@ export type TimelineRowDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -1743,6 +1947,72 @@ export type InboxItemDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -2944,6 +3214,72 @@ export type TodayDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -3206,6 +3542,72 @@ export type TodayDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -3538,6 +3940,72 @@ export type TodayDto = {
                         size?: 'S' | 'M' | 'L';
                         after?: Array<string>;
                         acceptance?: string;
+                        phaseId?: string;
+                        doneAt?: string;
+                        evidence?: Array<{
+                            attachmentId: string;
+                            kind: 'before' | 'after' | 'video';
+                            caption?: string;
+                            mime: string;
+                            width?: number | null;
+                            height?: number | null;
+                            addedAt: string;
+                            via: 'web' | 'mcp';
+                            addedBy?: string | null;
+                            thumb?: boolean;
+                        }>;
+                    }>;
+                    explainer?: {
+                        status: 'requested' | 'ready';
+                        request: {
+                            style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                            voice?: 'google' | 'hams' | 'none';
+                            googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                            dialect?: 'egyptian' | 'msa';
+                            aspect?: 'landscape' | 'portrait' | 'square';
+                            length?: 'chapters' | 'short';
+                            captions?: boolean;
+                        };
+                        revision: number;
+                        requestedAt: string;
+                        attachmentId?: string;
+                        posterId?: string;
+                        captionsId?: string;
+                        chapters?: Array<{
+                            phaseId: string | null;
+                            title?: string;
+                            start: number;
+                        }>;
+                        hamsProject?: {
+                            id: string;
+                            url: string;
+                        };
+                        madeAt?: string;
+                        previous?: {
+                            attachmentId: string;
+                            posterId?: string;
+                            captionsId?: string;
+                            chapters?: Array<{
+                                phaseId: string | null;
+                                title?: string;
+                                start: number;
+                            }>;
+                            revision: number;
+                            request: {
+                                style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                                voice?: 'google' | 'hams' | 'none';
+                                googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                                dialect?: 'egyptian' | 'msa';
+                                aspect?: 'landscape' | 'portrait' | 'square';
+                                length?: 'chapters' | 'short';
+                                captions?: boolean;
+                            };
+                        };
+                    } | null;
+                    phases: Array<{
+                        id: string;
+                        title: string;
+                        note?: string;
                     }>;
                     revision: number;
                     sourceIdeaId: string | null;
@@ -4473,6 +4941,72 @@ export type TreeDtoSchema0 = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -4861,6 +5395,72 @@ export type LabPageDto = {
                 size?: 'S' | 'M' | 'L';
                 after?: Array<string>;
                 acceptance?: string;
+                phaseId?: string;
+                doneAt?: string;
+                evidence?: Array<{
+                    attachmentId: string;
+                    kind: 'before' | 'after' | 'video';
+                    caption?: string;
+                    mime: string;
+                    width?: number | null;
+                    height?: number | null;
+                    addedAt: string;
+                    via: 'web' | 'mcp';
+                    addedBy?: string | null;
+                    thumb?: boolean;
+                }>;
+            }>;
+            explainer?: {
+                status: 'requested' | 'ready';
+                request: {
+                    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                    voice?: 'google' | 'hams' | 'none';
+                    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                    dialect?: 'egyptian' | 'msa';
+                    aspect?: 'landscape' | 'portrait' | 'square';
+                    length?: 'chapters' | 'short';
+                    captions?: boolean;
+                };
+                revision: number;
+                requestedAt: string;
+                attachmentId?: string;
+                posterId?: string;
+                captionsId?: string;
+                chapters?: Array<{
+                    phaseId: string | null;
+                    title?: string;
+                    start: number;
+                }>;
+                hamsProject?: {
+                    id: string;
+                    url: string;
+                };
+                madeAt?: string;
+                previous?: {
+                    attachmentId: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    revision: number;
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                };
+            } | null;
+            phases: Array<{
+                id: string;
+                title: string;
+                note?: string;
             }>;
             revision: number;
             sourceIdeaId: string | null;
@@ -5127,6 +5727,72 @@ export type CompareDto = {
                     size?: 'S' | 'M' | 'L';
                     after?: Array<string>;
                     acceptance?: string;
+                    phaseId?: string;
+                    doneAt?: string;
+                    evidence?: Array<{
+                        attachmentId: string;
+                        kind: 'before' | 'after' | 'video';
+                        caption?: string;
+                        mime: string;
+                        width?: number | null;
+                        height?: number | null;
+                        addedAt: string;
+                        via: 'web' | 'mcp';
+                        addedBy?: string | null;
+                        thumb?: boolean;
+                    }>;
+                }>;
+                explainer?: {
+                    status: 'requested' | 'ready';
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                    revision: number;
+                    requestedAt: string;
+                    attachmentId?: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    hamsProject?: {
+                        id: string;
+                        url: string;
+                    };
+                    madeAt?: string;
+                    previous?: {
+                        attachmentId: string;
+                        posterId?: string;
+                        captionsId?: string;
+                        chapters?: Array<{
+                            phaseId: string | null;
+                            title?: string;
+                            start: number;
+                        }>;
+                        revision: number;
+                        request: {
+                            style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                            voice?: 'google' | 'hams' | 'none';
+                            googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                            dialect?: 'egyptian' | 'msa';
+                            aspect?: 'landscape' | 'portrait' | 'square';
+                            length?: 'chapters' | 'short';
+                            captions?: boolean;
+                        };
+                    };
+                } | null;
+                phases: Array<{
+                    id: string;
+                    title: string;
+                    note?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
@@ -5398,6 +6064,72 @@ export type CompareDto = {
                     size?: 'S' | 'M' | 'L';
                     after?: Array<string>;
                     acceptance?: string;
+                    phaseId?: string;
+                    doneAt?: string;
+                    evidence?: Array<{
+                        attachmentId: string;
+                        kind: 'before' | 'after' | 'video';
+                        caption?: string;
+                        mime: string;
+                        width?: number | null;
+                        height?: number | null;
+                        addedAt: string;
+                        via: 'web' | 'mcp';
+                        addedBy?: string | null;
+                        thumb?: boolean;
+                    }>;
+                }>;
+                explainer?: {
+                    status: 'requested' | 'ready';
+                    request: {
+                        style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                        voice?: 'google' | 'hams' | 'none';
+                        googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                        dialect?: 'egyptian' | 'msa';
+                        aspect?: 'landscape' | 'portrait' | 'square';
+                        length?: 'chapters' | 'short';
+                        captions?: boolean;
+                    };
+                    revision: number;
+                    requestedAt: string;
+                    attachmentId?: string;
+                    posterId?: string;
+                    captionsId?: string;
+                    chapters?: Array<{
+                        phaseId: string | null;
+                        title?: string;
+                        start: number;
+                    }>;
+                    hamsProject?: {
+                        id: string;
+                        url: string;
+                    };
+                    madeAt?: string;
+                    previous?: {
+                        attachmentId: string;
+                        posterId?: string;
+                        captionsId?: string;
+                        chapters?: Array<{
+                            phaseId: string | null;
+                            title?: string;
+                            start: number;
+                        }>;
+                        revision: number;
+                        request: {
+                            style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+                            voice?: 'google' | 'hams' | 'none';
+                            googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+                            dialect?: 'egyptian' | 'msa';
+                            aspect?: 'landscape' | 'portrait' | 'square';
+                            length?: 'chapters' | 'short';
+                            captions?: boolean;
+                        };
+                    };
+                } | null;
+                phases: Array<{
+                    id: string;
+                    title: string;
+                    note?: string;
                 }>;
                 revision: number;
                 sourceIdeaId: string | null;
@@ -5551,6 +6283,12 @@ export type UpdateDto = {
         size?: 'S' | 'M' | 'L';
         after?: Array<string>;
         acceptance?: string;
+        phaseId?: string;
+    }>;
+    phases?: Array<{
+        id: string;
+        title: string;
+        note?: string;
     }>;
     sourceChatId?: string;
     sourceMessageId?: string;
@@ -5582,6 +6320,16 @@ export type RestoreDto = {
 
 export type ToTasksDto = {
     defaultSpecialty?: 'backend' | 'frontend' | 'design' | 'qa' | 'ops' | 'docs';
+};
+
+export type ExplainerRequestDto = {
+    style?: 'whiteboard' | 'slides' | 'motion' | 'kinetic' | 'data' | 'mixed';
+    voice?: 'google' | 'hams' | 'none';
+    googleVoice?: 'Charon' | 'Fenrir' | 'Puck' | 'Orus' | 'Kore' | 'Aoede' | 'Leda' | 'Zephyr';
+    dialect?: 'egyptian' | 'msa';
+    aspect?: 'landscape' | 'portrait' | 'square';
+    length?: 'chapters' | 'short';
+    captions?: boolean;
 };
 
 export type HookSessionDto = {
@@ -5750,7 +6498,7 @@ export type ChatFullDto = {
             utilization?: number;
         } | null;
         stages: Array<{
-            protocol: 'work' | 'doc';
+            protocol: 'work' | 'doc' | 'film';
             stage: string;
             state: 'started' | 'done' | 'failed';
             note?: string;
@@ -6429,7 +7177,7 @@ export type QueueDto = {
     };
     runs: Array<{
         id: string;
-        source: 'task' | 'plan_step' | 'prompt';
+        source: 'task' | 'plan_step' | 'prompt' | 'explainer';
         title: string;
         cardKey: string | null;
         planStep: number | null;
@@ -6497,7 +7245,7 @@ export type QueueDto = {
 };
 
 export type CreateRunDto = {
-    source: 'task' | 'plan_step' | 'prompt';
+    source: 'task' | 'plan_step' | 'prompt' | 'explainer';
     cardKey?: string;
     planStep?: number;
     prompt?: string;
@@ -6521,7 +7269,7 @@ export type CreateRunDto = {
 
 export type AgentRunDto = {
     id: string;
-    source: 'task' | 'plan_step' | 'prompt';
+    source: 'task' | 'plan_step' | 'prompt' | 'explainer';
     title: string;
     cardKey: string | null;
     planStep: number | null;
@@ -9814,6 +10562,110 @@ export type PlansControllerToTasksResponses = {
 };
 
 export type PlansControllerToTasksResponse = PlansControllerToTasksResponses[keyof PlansControllerToTasksResponses];
+
+export type PlanEvidenceControllerAddData = {
+    body: {
+        file: Blob | File;
+        kind: 'before' | 'after' | 'video';
+        caption?: string;
+    };
+    path: {
+        ws: string;
+        key: string;
+        stepId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence';
+};
+
+export type PlanEvidenceControllerAddErrors = {
+    /**
+     * hub.plans.evidence_full (10 files on a step)
+     */
+    409: unknown;
+    /**
+     * hub.plans.evidence_too_large
+     */
+    413: unknown;
+    /**
+     * hub.plans.evidence_type (SVG, HTML and anything not a picture or clip)
+     */
+    415: unknown;
+    /**
+     * hub.plans.evidence_kind · hub.plans.evidence_damaged
+     */
+    422: unknown;
+};
+
+export type PlanEvidenceControllerAddResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlanEvidenceControllerAddResponse = PlanEvidenceControllerAddResponses[keyof PlanEvidenceControllerAddResponses];
+
+export type PlanEvidenceControllerRemoveData = {
+    body?: never;
+    path: {
+        key: string;
+        stepId: string;
+        attachmentId: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/steps/{stepId}/evidence/{attachmentId}';
+};
+
+export type PlanEvidenceControllerRemoveResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlanEvidenceControllerRemoveResponse = PlanEvidenceControllerRemoveResponses[keyof PlanEvidenceControllerRemoveResponses];
+
+export type PlanEvidenceControllerFileData = {
+    body?: never;
+    path: {
+        key: string;
+        attachmentId: string;
+    };
+    query?: {
+        size?: 'full' | 'thumb';
+    };
+    url: '/api/v1/workspaces/{ws}/cards/{key}/attachments/{attachmentId}/file';
+};
+
+export type PlanEvidenceControllerFileErrors = {
+    /**
+     * hub.plans.evidence_not_found
+     */
+    404: unknown;
+};
+
+export type PlanEvidenceControllerFileResponses = {
+    /**
+     * The bytes, with nosniff, a CSP that runs nothing and an ETag
+     */
+    200: Blob | File;
+    /**
+     * The asked range
+     */
+    206: unknown;
+};
+
+export type PlanEvidenceControllerFileResponse = PlanEvidenceControllerFileResponses[keyof PlanEvidenceControllerFileResponses];
+
+export type PlanExplainerControllerRequestData = {
+    body: ExplainerRequestDto;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/explainer';
+};
+
+export type PlanExplainerControllerRequestResponses = {
+    200: CardWrittenResponseDto;
+};
+
+export type PlanExplainerControllerRequestResponse = PlanExplainerControllerRequestResponses[keyof PlanExplainerControllerRequestResponses];
 
 export type HealthControllerLiveData = {
     body?: never;

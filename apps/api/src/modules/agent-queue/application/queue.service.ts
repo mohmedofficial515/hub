@@ -10,6 +10,7 @@ import {
   firstRunAt,
   isTimezone,
   type MemberActor,
+  type PlanExplainer,
   QUEUE_LIMITS,
   type QueueDto,
   type QueueSettingsInput,
@@ -185,6 +186,25 @@ export class AgentQueueService {
       };
     }
     if (card.type !== 'plan' || card.archivedAt) throw new AppException('hub.queue.card_not_runnable');
+    if (input.source === 'explainer') {
+      // The plan's explainer video (v5-live-plan, batch 4): only once asked for, made for the revision it was asked for.
+      const explainer = (card.detail as { explainer?: PlanExplainer | null } | null)?.explainer ?? null;
+      if (!explainer || explainer.status !== 'requested') {
+        throw new AppException('hub.plans.explainer_not_requested');
+      }
+      return {
+        source: 'explainer',
+        cardKey: card.key,
+        planStep: null,
+        prompt: runPrompt({
+          source: 'explainer',
+          cardKey: card.key,
+          explainer: { request: explainer.request, revision: explainer.revision },
+        }),
+        title: `${card.title} · video`,
+        roles: [],
+      };
+    }
     const steps =
       (card.detail as { steps?: { title: string; taskKey?: string; role?: Role }[] } | null)?.steps ?? [];
     const step = steps[input.planStep ?? -1];

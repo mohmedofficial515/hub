@@ -1,0 +1,626 @@
+/*
+ * A plan's own page as a journey (apps/lab/hub/plan-page/v5-live-plan, approved 2026-11-19): phase tones, the journey map, the plan ring, the
+ * waffle and the step drawer. Only the plan page uses these classes (`pj-`).
+ *
+ * Phase tones. Each phase carries one hue, cycled over eight, so the ring, the map, the chapter and the waffle speak the same colour for the same
+ * phase. Colour is never the only signal: every state is also a shape (filled, ringed, hollow) and words. Tones are oklch from one hue, so
+ * lightness stays even across phases, and are tuned for the card surface of each theme.
+ * - `--pj-tone`       solid marks: filled nodes, done cells, finished stretches (3:1 or more on card)
+ * - `--pj-tone-fg`    text and icons in the tone (4.5:1 or more on card and on --pj-tone-soft)
+ * - `--pj-tone-soft`  quiet surfaces: the chapter band, the next-step callout
+ * - `--pj-tone-line`  tracks, and the part of a phase not done yet
+ * Amber is kept for "waiting" (the kit warning), so tone 2 is olive.
+ */
+
+[data-pj-tone] {
+  --pj-tone: oklch(0.515 0.125 var(--pj-h));
+  --pj-tone-fg: oklch(0.45 0.12 var(--pj-h));
+  --pj-tone-soft: oklch(0.965 0.022 var(--pj-h));
+  --pj-tone-line: oklch(0.88 0.045 var(--pj-h));
+  --pj-tone-on: oklch(0.99 0.01 var(--pj-h));
+}
+.dark [data-pj-tone] {
+  --pj-tone: oklch(0.74 0.12 var(--pj-h));
+  --pj-tone-fg: oklch(0.83 0.1 var(--pj-h));
+  --pj-tone-soft: oklch(0.26 0.04 var(--pj-h));
+  --pj-tone-line: oklch(0.38 0.055 var(--pj-h));
+  --pj-tone-on: oklch(0.18 0.03 var(--pj-h));
+}
+[data-pj-tone='0'] {
+  --pj-h: 192;
+}
+[data-pj-tone='1'] {
+  --pj-h: 272;
+}
+[data-pj-tone='2'] {
+  --pj-h: 108;
+}
+[data-pj-tone='3'] {
+  --pj-h: 14;
+}
+[data-pj-tone='4'] {
+  --pj-h: 312;
+}
+[data-pj-tone='5'] {
+  --pj-h: 148;
+}
+[data-pj-tone='6'] {
+  --pj-h: 236;
+}
+[data-pj-tone='7'] {
+  --pj-h: 44;
+}
+
+.pj-tone-bg {
+  background-color: var(--pj-tone);
+  color: var(--pj-tone-on);
+}
+.pj-tone-soft {
+  background-color: var(--pj-tone-soft);
+}
+.pj-tone-fg {
+  color: var(--pj-tone-fg);
+}
+.pj-tone-border {
+  border-color: var(--pj-tone);
+}
+.pj-tone-line-border {
+  border-color: var(--pj-tone-line);
+}
+
+/* ---------- Journey map ---------- */
+
+.pj-map {
+  position: relative;
+  width: 100%;
+}
+.pj-map > svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.pj-seg {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 4;
+  transition:
+    opacity 200ms ease,
+    stroke-width 200ms ease;
+}
+.pj-seg-base {
+  stroke: var(--border);
+}
+.pj-seg-todo {
+  stroke: var(--border);
+  stroke-dasharray: 2 8;
+}
+.pj-seg-fill {
+  stroke: var(--pj-tone);
+}
+.pj-seg-draw {
+  stroke-dashoffset: 1;
+  animation: pj-draw 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes pj-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.pj-stop {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  transform: translateX(-50%);
+  transition: opacity 200ms ease;
+}
+.pj-stop[data-dim='true'] {
+  opacity: 0.55;
+}
+.pj-stop.pj-stop-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.pj-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--pj-tone-fg);
+  font-weight: 700;
+  cursor: pointer;
+}
+.pj-node > .pj-node-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.pj-node[data-state='done'] {
+  background: var(--pj-tone);
+  color: var(--pj-tone-on);
+}
+.pj-node[data-state='now']::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid var(--pj-tone);
+  opacity: 0;
+  animation: pj-pulse 2.4s ease-out infinite;
+}
+@keyframes pj-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+.pj-node-finish {
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 2px dashed var(--border);
+  cursor: default;
+}
+.pj-node-finish[data-state='done'] {
+  color: var(--success-foreground);
+  background: var(--success);
+  border: 0;
+}
+/* The selection ring moves between stops (framer `layoutId`). */
+.pj-sel-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid var(--pj-tone);
+  pointer-events: none;
+}
+
+.pj-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  text-align: center;
+}
+.pj-stop-row .pj-label {
+  align-items: flex-start;
+  text-align: start;
+}
+.pj-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---------- Plan ring (hero) ---------- */
+
+.pj-arc {
+  fill: none;
+  stroke-width: 12;
+  cursor: pointer;
+  transition:
+    stroke-dasharray 700ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    stroke-width 180ms ease,
+    opacity 200ms ease;
+}
+.pj-arc-rest {
+  stroke: var(--pj-tone-line);
+}
+.pj-arc-done {
+  stroke: var(--pj-tone);
+}
+.pj-arc[data-hot='true'] {
+  stroke-width: 16;
+}
+.pj-arc[data-dim='true'] {
+  opacity: 0.35;
+}
+
+/* ---------- Waffle and steps ---------- */
+
+.pj-waffle {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
+  gap: 0.375rem;
+}
+.pj-cell {
+  aspect-ratio: 1;
+  border-radius: 0.375rem;
+  border: 2px solid var(--pj-tone-line);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--pj-tone-fg);
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    background-color 150ms ease;
+}
+.pj-cell:hover {
+  transform: translateY(-2px);
+}
+.pj-cell[data-state='done'] {
+  background: var(--pj-tone);
+  border-color: var(--pj-tone);
+  color: var(--pj-tone-on);
+}
+.pj-cell[data-state='next'] {
+  border-color: var(--pj-tone);
+  box-shadow: inset 0 0 0 2px var(--pj-tone-soft);
+}
+.pj-cell[data-hot='true'] {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--pj-tone);
+}
+.pj-cell[data-dep='true'] {
+  outline: 2px dashed var(--foreground);
+  outline-offset: 2px;
+}
+.pj-cell[data-blocked='true'] {
+  opacity: 0.5;
+}
+.pj-step[data-hot='true'] {
+  background: var(--pj-tone-soft);
+}
+
+.pj-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.pj-swatch-line {
+  border: 2px dashed var(--border);
+  background: transparent;
+}
+
+/* ---------- Step drawer ---------- */
+
+.pj-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 74;
+  background: var(--scrim);
+}
+.pj-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, 100vw);
+  /* The kit's popover is frosted glass (translucent, for a surface with a backdrop blur). The drawer has no blur and covers the chat panel, so
+     the same tint is laid over the opaque page colour: nothing behind it shows through, in either theme. */
+  background: linear-gradient(var(--popover), var(--popover)), var(--background);
+  color: var(--popover-foreground);
+  border-inline-start: 1px solid var(--border);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.28);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-cell,
+  .pj-arc,
+  .pj-seg,
+  .pj-stop {
+    transition: none;
+  }
+  .pj-node[data-state='now']::after {
+    animation: none;
+    opacity: 0.5;
+    transform: none;
+  }
+  .pj-seg-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+  .pj-cell:hover {
+    transform: none;
+  }
+}
+
+/*
+ * The live layer (v5-live-plan, batch 2): Claude's run on a step. Claude's own colour is the kit primary (the halo, the stage stepper and the live
+ * row); waiting for the owner is the kit warning (amber). Phase tones stay for phases only. Every loop stops under reduced motion.
+ */
+.pj-live-dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--success);
+}
+.pj-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border: 2px solid var(--success);
+  border-radius: inherit;
+  animation: pj-pulse 2s ease-out infinite;
+}
+.pj-live-dot[data-state='reconnecting'] {
+  background: var(--warning);
+}
+.pj-live-dot[data-state='reconnecting']::after {
+  border-color: var(--warning);
+  border-top-color: transparent;
+  animation: pj-spin 0.9s linear infinite;
+}
+.pj-live-dot[data-state='unavailable'] {
+  background: var(--muted-foreground);
+}
+.pj-live-dot[data-state='unavailable']::after {
+  display: none;
+}
+@keyframes pj-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The halo around the stop Claude works in: a dashed ring turning slowly, with a small Claude badge. */
+.pj-halo {
+  position: absolute;
+  inset: -9px;
+  border: 2px dashed var(--primary);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: pj-spin 6s linear infinite;
+}
+.pj-halo-badge {
+  position: absolute;
+  top: -10px;
+  inset-inline-end: -10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+/* The five stages, joined by a track that fills as each finishes. */
+.pj-stages {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+.pj-stage {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+}
+.pj-stage-dot {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--border);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.pj-stage[data-state='started'] .pj-stage-dot {
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+.pj-stage[data-state='done'] .pj-stage-dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.pj-stage[data-state='failed'] .pj-stage-dot {
+  border-color: var(--destructive);
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+.pj-stage-line {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0.75rem;
+  height: 2px;
+  margin-inline: 0.375rem;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--border);
+}
+.pj-stage-line > span {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  background: var(--primary);
+}
+/* On a phone only the running stage keeps its word on screen; the others stay for screen readers. */
+@media (max-width: 40rem) {
+  .pj-stage:not([data-state='started']):not([data-state='failed']) .pj-stage-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* Claude's card, with a soft sweep while it works (in the reading direction), the waiting box and the live row. */
+.pj-claude {
+  border: 1px solid color-mix(in oklch, var(--primary) 40%, var(--border));
+  background: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+.pj-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.pj-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--primary) 9%, transparent),
+    transparent
+  );
+  animation: pj-sweep 2.4s ease-in-out infinite;
+}
+[dir='rtl'] .pj-shimmer::after {
+  animation-name: pj-sweep-rtl;
+}
+@keyframes pj-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes pj-sweep-rtl {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+.pj-wait {
+  border: 1px solid color-mix(in oklch, var(--warning) 45%, transparent);
+  background: var(--warning-soft);
+  color: var(--warning-soft-foreground);
+}
+.pj-step[data-live='true'] {
+  background: color-mix(in oklch, var(--primary) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+[dir='rtl'] .pj-step[data-live='true'] {
+  box-shadow: inset -3px 0 0 var(--primary);
+}
+.pj-step[data-wait='true'] {
+  background: var(--warning-soft);
+}
+.pj-cell[data-live='true'] {
+  border-color: var(--primary);
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--primary);
+}
+
+/* A phase completed: confetti in the phases' tones, under a banner that leaves by itself. */
+.pj-burst {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+.pj-confetti {
+  position: absolute;
+  width: 0.5rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  background: var(--pj-tone);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pj-live-dot::after,
+  .pj-halo,
+  .pj-shimmer::after {
+    animation: none;
+  }
+}
+
+/* Evidence (v5-live-plan, batch 3): before and after on one frame, and a step's clip. */
+.pj-compare {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--muted);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: pan-y;
+}
+.pj-compare img {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+}
+.pj-compare-top {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.pj-compare-handle {
+  position: absolute;
+  inset-block: 0;
+  display: grid;
+  width: 2.75rem;
+  margin-inline-start: -1.375rem;
+  place-items: center;
+  cursor: ew-resize;
+  outline: none;
+}
+.pj-compare-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 1px);
+  width: 2px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+.pj-compare-knob {
+  position: relative;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+.pj-compare-handle:focus-visible .pj-compare-knob {
+  box-shadow:
+    0 0 0 2px var(--card),
+    0 0 0 4px var(--ring);
+}
+.pj-compare-tag {
+  position: absolute;
+  top: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.65);
+  color: rgb(255 255 255);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.pj-video {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  background: rgb(0 0 0);
+}

@@ -64,7 +64,12 @@
     "propose": "Propose",
     "draft": "Draft",
     "save": "Save",
-    "link": "Link"
+    "link": "Link",
+    "script": "Script",
+    "voice": "Voice",
+    "scenes": "Scenes",
+    "render": "Render",
+    "attach": "Attach"
   },
   "suggestions": {
     "explain_card": {
@@ -733,7 +738,12 @@
         "propose": "Propose",
         "draft": "Draft",
         "save": "Save",
-        "link": "Link"
+        "link": "Link",
+        "script": "Script",
+        "voice": "Voice",
+        "scenes": "Scenes",
+        "render": "Render",
+        "attach": "Attach"
       },
       "plan": {
         "title": "Proposed plan",

@@ -7,6 +7,7 @@
 @import '../components/workbench/workbench.css';
 @import '../components/schema/schema.css';
 @import '../components/planning/studio/studio.css';
+@import '../components/planning/journey.css';
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant rtl (&:is([dir=rtl] *));

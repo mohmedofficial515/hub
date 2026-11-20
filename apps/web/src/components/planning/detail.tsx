@@ -3,56 +3,27 @@
 /**
  * @file detail.tsx
  * @description A plan's or an idea's own page on Planning, at `?plan=KEY`, in place of the side sheet. It reads the card live: what Claude saves while it works
- * shows here at once, a new step slides in and a changed text glows for a moment. From here the owner develops the plan with Claude, or runs it. Why it looks
- * this way: NOTES.md beside this file.
+ * shows here at once, a new step slides in and a changed text glows for a moment. From here the owner develops the plan with Claude, or runs it. An idea's
+ * page is here; a plan's is `plan-page.tsx` (the approved v5-live-plan). Why it looks this way: NOTES.md beside this file.
  */
-import {
-  Archive,
-  ArchiveRestore,
-  ArrowLeft,
-  ArrowRight,
-  Compass,
-  FileText,
-  Gauge,
-  Lightbulb,
-  Link2,
-  ListOrdered,
-  ListTree,
-  MessageCircleQuestion,
-  MoreHorizontal,
-  PenLine,
-  Play,
-  Route as RouteIcon,
-  Sparkles,
-  StickyNote,
-  Tags,
-} from 'lucide-react';
-import { DropdownMenu, Tabs } from 'radix-ui';
-import { type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Compass, FileText, Lightbulb, Route as RouteIcon, StickyNote } from 'lucide-react';
+import { Tabs } from 'radix-ui';
+import { type ReactNode, useEffect, useMemo, useRef } from 'react';
 
-import { ActionBar, CommentsTab, Evidence, HistoryTab, LinksTab } from '@/components/cards/card-sheet';
+import { ActionBar, CommentsTab, HistoryTab, LinksTab } from '@/components/cards/card-sheet';
 import { EditButton } from '@/components/cards/sheet-sections/edit-bits';
-import { Revisions } from '@/components/cards/sheet-sections/plan';
 import {
   ActorChip,
-  AppLink,
   Bidi,
-  Button,
   type CardAction,
   CardChip,
   cn,
-  ConfirmDialog,
-  copyText,
   EmptyState,
   ErrorState,
   fill,
   fmt,
-  focusRing,
   focusRingInset,
-  getCard,
-  headingsOf,
   type HubCard,
-  IconButton,
   type IdeaCard,
   kitMessages,
   LoadingRegion,
@@ -62,21 +33,14 @@ import {
   num,
   openCard,
   PageContainer,
-  type PlanCard,
-  portalRoot,
   PriorityBadge,
   RelativeTime,
-  RoleBadge,
-  setArchived,
   setQuery,
   sheetSections,
   type SheetTab,
-  showToast,
   Skeleton,
   SkeletonRows,
   tabTriggerClass,
-  Tip,
-  Tooltip,
   TypeBadge,
   typeClass,
   useCardComments,
@@ -88,225 +52,21 @@ import {
   useSession,
   useT,
 } from '@/components/kit';
-import { CardRuns } from '@/components/queue/run-entry';
-import { engineBlocks, fillComposer, useMaybeWb } from '@/components/workbench/store';
-import type { ChatMessages } from '@/components/workbench/words';
-import { studioChatOfIdea } from '@/features/planning/idea-studio';
-import { guideOf, isMineHere, nextStepOf, planFacts, progressOf } from '@/features/planning/model';
-import { studioChatOfPlan } from '@/features/planning/plan-studio';
-import { readPlanText, sectionCount, splitPlanText } from '@/features/planning/plan-text';
+import { guideOf, isMineHere, progressOf } from '@/features/planning/model';
+import { sectionCount } from '@/features/planning/plan-text';
 import { linkedOfType } from '@/features/planning/queries';
 import { isHubError } from '@/lib/api/errors';
 
-import { ChangeRequestNote } from './change-request';
-import {
-  DetailRow,
-  LivePill,
-  Outline,
-  Panel,
-  PathStrip,
-  ProgressMeter,
-  StagePill,
-  StageTrack,
-  StepsTimeline,
-  type StepTask,
-  useChangeGlow,
-} from './detail-parts';
-import { sendAndShow, useClaudeOn, workOn } from './live';
+import { LivePill, Panel, PathStrip, StagePill, StageTrack, useChangeGlow } from './detail-parts';
+import { Aside, BackLink, ClaudeActions, MoreMenu, type Shaped } from './detail-shared';
+import { useClaudeOn } from './live';
 import type { PlanningMessages } from './messages';
-
-type Shaped = IdeaCard | PlanCard;
+import { PlanDetail } from './plan-page';
 
 const IDEA_STATUS_MENU: readonly CardAction[] = ['accept', 'park', 'reject'];
 
 const isShaped = (card: HubCard | undefined): card is Shaped =>
   card?.type === 'plan' || card?.type === 'idea';
-
-/** Back to the lists, keeping their filters. A real link, so it opens in a new tab too. */
-function BackLink() {
-  const d = useT<PlanningMessages>('planning').detail;
-  const locale = useLocale();
-  const Back = locale === 'ar' ? ArrowRight : ArrowLeft;
-  return (
-    <AppLink
-      view="planning"
-      query={{ plan: null, action: null, tab: null }}
-      className={cn(
-        'inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-body-sm font-medium text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground max-md:h-11',
-        focusRing,
-      )}
-    >
-      <Back aria-hidden className="size-4" strokeWidth={1.75} />
-      {d.back}
-    </AppLink>
-  );
-}
-
-function MoreMenu({ card }: { card: HubCard }) {
-  const t = useT(kitMessages);
-  const locale = useLocale();
-  const [confirm, setConfirm] = useState(false);
-  const canArchive = card.allowedActions.includes(card.archivedAt ? 'card.restore' : 'card.delete');
-  const refused = (error: unknown) =>
-    showToast({ tone: 'error', message: isHubError(error) ? error.message : t.actionFailed });
-  const item =
-    'flex min-h-11 cursor-pointer items-center gap-2 rounded-md px-2.5 text-body-sm text-foreground outline-none select-none data-[highlighted]:bg-accent md:min-h-9';
-  return (
-    <>
-      <DropdownMenu.Root dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-        <DropdownMenu.Trigger asChild>
-          <IconButton label={t.sheet.more}>
-            <MoreHorizontal aria-hidden className="size-4" strokeWidth={1.75} />
-          </IconButton>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Portal container={portalRoot()}>
-          <DropdownMenu.Content
-            align="end"
-            sideOffset={4}
-            collisionPadding={12}
-            className="z-75 min-w-44 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
-          >
-            <DropdownMenu.Item
-              onSelect={() => void copyText(location.href).then(() => showToast({ message: t.copy.copied }))}
-              className={item}
-            >
-              <Link2 aria-hidden className="size-4" strokeWidth={1.75} />
-              {t.sheet.copyLink}
-            </DropdownMenu.Item>
-            {canArchive && (
-              <DropdownMenu.Item
-                onSelect={() =>
-                  card.archivedAt ? void setArchived(card.key, false).catch(refused) : setConfirm(true)
-                }
-                className={item}
-              >
-                {card.archivedAt ? (
-                  <ArchiveRestore aria-hidden className="size-4" strokeWidth={1.75} />
-                ) : (
-                  <Archive aria-hidden className="size-4" strokeWidth={1.75} />
-                )}
-                {card.archivedAt ? t.sheet.restore : t.sheet.archive}
-              </DropdownMenu.Item>
-            )}
-          </DropdownMenu.Content>
-        </DropdownMenu.Portal>
-      </DropdownMenu.Root>
-      <ConfirmDialog
-        open={confirm}
-        onOpenChange={setConfirm}
-        title={fmt(t.sheet.archiveTitle, { key: card.key })}
-        description={t.sheet.archiveBody}
-        confirmLabel={t.sheet.archive}
-        onConfirm={() => {
-          setQuery({ plan: null, action: null, tab: null }, { replace: false });
-          setArchived(card.key, true)
-            .then(() =>
-              showToast({
-                message: fmt(t.sheet.deleted, { key: card.key }),
-                onUndo: () => void setArchived(card.key, false).catch(refused),
-              }),
-            )
-            .catch(refused);
-        }}
-      />
-    </>
-  );
-}
-
-/** What Claude can do from this page. Develop fills the chat and waits for the owner's words (D51); Explain and Run start at once, as the sheet's do. */
-function ClaudeActions({ card }: { card: Shaped }) {
-  const d = useT<PlanningMessages>('planning').detail;
-  const chat = useT<ChatMessages>('chat').panel;
-  const wb = useMaybeWb();
-  const locale = useLocale();
-  const labelId = useId();
-  if (!wb) return null;
-  const off = engineBlocks(wb.engine) ? (wb.engine as 'offline') : null;
-  const device = wb.deviceName;
-  const closed = !!card.archivedAt;
-  const explain = () =>
-    void sendAndShow(fmt(chat.context.prompt.explain, { target: card.key }), 'ask', { card: card.key });
-
-  const next = card.type === 'plan' ? nextStepOf(card) : null;
-  const nextTask = next?.step.taskKey;
-  const runWhy =
-    card.type !== 'plan' ? null : !next ? d.claude.allDone : !nextTask ? d.claude.runNextNoTask : null;
-
-  return (
-    <div role="group" aria-labelledby={labelId} className="flex flex-wrap items-center gap-1.5">
-      {/* The group is named by its mark, so the row stays short and a screen reader still hears "With Claude". */}
-      <Tooltip content={d.claude.label}>
-        <span
-          id={labelId}
-          role="img"
-          aria-label={d.claude.label}
-          className="me-0.5 inline-flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary"
-        >
-          <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
-        </span>
-      </Tooltip>
-      {card.type === 'plan' ? (
-        <Tip content={{ what: d.claude.developTip }} off={off} vars={{ device }}>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!!off || closed}
-            data-plan-develop
-            onClick={() =>
-              fillComposer(fmt(d.claude.developPrompt, { key: card.key }), 'execute', { show: true })
-            }
-          >
-            <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
-            {d.claude.develop}
-          </Button>
-        </Tip>
-      ) : (
-        <Tip content={{ what: d.claude.draftTip }} off={off} vars={{ device }}>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!!off || closed || card.status === 'accepted'}
-            data-idea-draft
-            onClick={() =>
-              setQuery({ studio: 'plan', chat: null, plan: null, idea: card.key }, { replace: false })
-            }
-          >
-            <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
-            {d.claude.draft}
-          </Button>
-        </Tip>
-      )}
-      {card.type === 'plan' && (
-        <Tip
-          content={{
-            what:
-              runWhy ??
-              fmt(d.claude.runNextTip, { task: nextTask ?? '', n: num((next?.index ?? 0) + 1, locale) }),
-          }}
-          off={off}
-          vars={{ device }}
-        >
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={!!off || closed || !!runWhy}
-            data-plan-run-next
-            onClick={() => nextTask && void workOn(nextTask)}
-          >
-            <Play aria-hidden className="size-3.5" strokeWidth={2} />
-            {d.claude.runNext}
-          </Button>
-        </Tip>
-      )}
-      <Tip content={{ what: d.claude.explain }} off={off} vars={{ device }}>
-        <Button size="sm" variant="ghost" disabled={!!off} onClick={explain}>
-          <MessageCircleQuestion aria-hidden className="size-3.5" strokeWidth={1.75} />
-          {d.claude.explain}
-        </Button>
-      </Tip>
-    </div>
-  );
-}
 
 /** The top of the page: what it is, where it stands, what comes next, and the buttons that move it. */
 function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
@@ -443,117 +203,6 @@ function Hero({ card, action }: { card: Shaped; action: CardAction | null }) {
   );
 }
 
-/**
- * A plan's text with its steps' list taken out when the list is the plan's own steps: the page shows them once, on the timeline. Each step's details come
- * from the step itself (owner decision 9a); an older plan's are read from its text.
- */
-function usePlanText(card: PlanCard) {
-  const body = card.body ?? '';
-  return useMemo(() => readPlanText(body, card.plan.steps), [body, card.plan.steps]);
-}
-
-/** Each step's task as the page knows it, without asking the API: the cache's card, or the summary on the plan's own link. */
-function useStepTasks(card: PlanCard): Map<string, StepTask> {
-  const map = new Map<string, StepTask>();
-  for (const step of card.plan.steps) {
-    if (!step.taskKey) continue;
-    const known = getCard(step.taskKey) ?? card.links.find((l) => l.key === step.taskKey)?.card;
-    if (known) map.set(step.taskKey, known);
-  }
-  return map;
-}
-
-function PlanBody({ card }: { card: PlanCard }) {
-  const d = useT<PlanningMessages>('planning').detail;
-  const wb = useMaybeWb();
-  const locale = useLocale();
-  const glow = useChangeGlow(card.body);
-  const { steps } = card.plan;
-  const next = nextStepOf(card);
-  const { done, total } = progressOf(card);
-  const canEdit = !card.archivedAt && card.allowedActions.includes('plan.update');
-  const canRestore = !card.archivedAt && card.allowedActions.includes('plan.restore_revision');
-  const { rest, extras } = usePlanText(card);
-  const tasks = useStepTasks(card);
-  const off = wb && engineBlocks(wb.engine);
-  const develop = () =>
-    fillComposer(fmt(d.claude.developPrompt, { key: card.key }), 'execute', { show: true });
-  return (
-    <div className="flex min-w-0 flex-col gap-5">
-      <ChangeRequestNote card={card} />
-      <Panel
-        id={`steps-${card.key}`}
-        title={d.steps}
-        icon={ListOrdered}
-        aside={
-          <span className="flex items-center gap-2">
-            {total > 0 && (
-              <span className="text-caption text-muted-foreground tabular-nums">
-                {fmt(d.progressLine, { done: num(done, locale), total: num(total, locale) })}
-              </span>
-            )}
-            {canEdit && <EditButton />}
-          </span>
-        }
-      >
-        {steps.length === 0 ? (
-          <div className="flex flex-col items-start gap-3">
-            <p className="text-body-sm text-muted-foreground">{d.stepsEmpty}</p>
-            <div className="flex flex-wrap gap-2">
-              {canEdit && (
-                <Button size="sm" variant="outline" onClick={() => setQuery({ action: 'edit' })}>
-                  <PenLine aria-hidden className="size-3.5" strokeWidth={1.75} />
-                  {d.addSteps}
-                </Button>
-              )}
-              {wb && !card.archivedAt && (
-                <Button size="sm" variant="ghost" disabled={!!off} onClick={develop}>
-                  <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
-                  {d.claude.develop}
-                </Button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {/* The progress, here too: on a phone the side panel is far below. */}
-            <ProgressMeter done={done} total={total} />
-            <StepsTimeline
-              steps={steps}
-              nextIndex={next?.index ?? null}
-              run={card.archivedAt || !wb ? undefined : { cardKey: card.key }}
-              tasks={tasks}
-              extras={extras}
-              anchor={`step-${card.key}`}
-            />
-          </div>
-        )}
-      </Panel>
-
-      <Panel
-        id={`approach-${card.key}`}
-        title={sectionCount(rest) >= 2 ? d.planText : d.approach}
-        icon={FileText}
-        aside={canEdit && <EditButton />}
-      >
-        <div
-          className={cn('-m-2 rounded-lg p-2 transition-[box-shadow,background-color] duration-500', glow)}
-        >
-          {rest ? (
-            <MarkdownView source={rest} dir="auto" headingOffset={2} />
-          ) : (
-            <p className="text-body-sm text-muted-foreground">{d.approachEmpty}</p>
-          )}
-        </div>
-      </Panel>
-
-      <Evidence cardKey={card.key} />
-      {wb && <CardRuns cardKey={card.key} />}
-      <Revisions card={card} canRestore={canRestore} />
-    </div>
-  );
-}
-
 function IdeaBody({ card }: { card: IdeaCard }) {
   const t = useT<PlanningMessages>('planning');
   const d = t.detail;
@@ -590,128 +239,6 @@ function IdeaBody({ card }: { card: IdeaCard }) {
         </Panel>
       )}
     </div>
-  );
-}
-
-/**
- * The studio chat this card came from, named on the card itself (owner decision 9c), and still in the member's chats: the way back to the full report, in
- * any of their browsers. A card saved before that is found from what this browser kept.
- */
-function useStudioChatOf(card: Shaped) {
-  const wb = useMaybeWb();
-  const id =
-    card.type === 'idea'
-      ? studioChatOfIdea(card.key, card.idea.sourceChatId)
-      : studioChatOfPlan(card.key, card.plan.sourceChatId);
-  if (!id || !wb?.chats.some((c) => c.id === id && !c.deletedAt)) return null;
-  return id;
-}
-
-/** The side column: progress, the text's outline, and the facts. It stays in view beside a long plan. */
-function Aside({ card, onOutlineMissing }: { card: Shaped; onOutlineMissing: () => void }) {
-  const d = useT<PlanningMessages>('planning').detail;
-  const locale = useLocale();
-  const { me } = useSession();
-  const body = card.body ?? '';
-  const steps = card.type === 'plan' ? card.plan.steps : null;
-  // The outline is of the text the page shows: a plan's without its steps' list, which the timeline holds.
-  const outline = useMemo(() => headingsOf(steps ? splitPlanText(body, steps).rest : body), [body, steps]);
-  const progress = card.type === 'plan' ? progressOf(card) : null;
-  const facts = card.type === 'plan' ? planFacts(card) : {};
-  const studioChat = useStudioChatOf(card);
-  return (
-    <aside className="flex min-w-0 flex-col gap-4 @page-xl:sticky @page-xl:top-4">
-      {progress && progress.total > 0 && (
-        <Panel title={d.progress} icon={Gauge} id={`progress-${card.key}`}>
-          <div className="flex flex-col gap-2.5">
-            <p className="flex items-baseline gap-1.5 text-foreground">
-              <span className="text-headline font-semibold tabular-nums">{num(progress.done, locale)}</span>
-              <span className="text-body-sm text-muted-foreground tabular-nums">
-                / {num(progress.total, locale)}
-              </span>
-            </p>
-            <ProgressMeter done={progress.done} total={progress.total} />
-            <p className="text-caption text-muted-foreground">
-              {fmt(d.progressLine, { done: num(progress.done, locale), total: num(progress.total, locale) })}
-              {' · '}
-              {progress.withoutTask > 0
-                ? fmt(d.noTask, { n: num(progress.withoutTask, locale) })
-                : d.allTasks}
-            </p>
-          </div>
-        </Panel>
-      )}
-
-      {outline.length > 1 && (
-        // On a narrow page this column falls below the text, where an outline of it helps nobody.
-        <Panel
-          title={card.type === 'plan' ? d.outline : d.outlineIdea}
-          icon={ListTree}
-          id={`outline-${card.key}`}
-          bodyClassName="p-2"
-          className="@max-page-xl:hidden"
-        >
-          <Outline
-            headings={outline}
-            label={card.type === 'plan' ? d.outline : d.outlineIdea}
-            onMissing={onOutlineMissing}
-          />
-        </Panel>
-      )}
-
-      <Panel title={d.facts} icon={Tags} id={`facts-${card.key}`}>
-        <dl className="flex flex-col divide-y divide-border">
-          <DetailRow label={d.priority}>
-            <PriorityBadge priority={card.priority} />
-          </DetailRow>
-          <DetailRow label={d.role}>
-            {card.ownerRole ? (
-              <RoleBadge role={card.ownerRole} routed={me.roles.includes(card.ownerRole)} />
-            ) : (
-              <span className="text-muted-foreground">{d.none}</span>
-            )}
-          </DetailRow>
-          <DetailRow label={d.tags}>
-            {card.tags.length ? (
-              card.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-muted px-2 py-0.5 text-caption text-muted-foreground"
-                >
-                  <Bidi>{tag}</Bidi>
-                </span>
-              ))
-            ) : (
-              <span className="text-muted-foreground">{d.none}</span>
-            )}
-          </DetailRow>
-          {facts.approvedById && (
-            <DetailRow label={d.approvedBy}>
-              <ActorChip kind="user" memberId={facts.approvedById} />
-              {facts.approvedAt && <RelativeTime iso={facts.approvedAt} className="text-muted-foreground" />}
-            </DetailRow>
-          )}
-          {facts.revision && (
-            <DetailRow label={d.revisionLabel}>
-              <Ltr className="tabular-nums">{num(facts.revision, locale)}</Ltr>
-            </DetailRow>
-          )}
-        </dl>
-        {studioChat && (
-          <AppLink
-            view="planning"
-            query={{ studio: card.type, chat: studioChat, plan: null, action: null, tab: null }}
-            className={cn(
-              'hit-44 mt-3 inline-flex items-center gap-1.5 rounded-sm text-body-sm font-medium text-primary underline-offset-4 hover:underline',
-              focusRing,
-            )}
-          >
-            <Sparkles aria-hidden className="size-3.5" strokeWidth={1.75} />
-            {d.openStudio}
-          </AppLink>
-        )}
-      </Panel>
-    </aside>
   );
 }
 
@@ -794,10 +321,22 @@ export function PlanningDetail({
   }
   if (!isShaped(card)) return <DetailSkeleton cardKey={cardKey} />;
 
-  const Section = sheetSections[card.type];
   const commentCount = comments.data ? card.comments.length : card.commentCount;
+  if (card.type === 'plan') {
+    return (
+      <PlanDetail
+        card={card}
+        action={action}
+        tab={tab}
+        commentCount={commentCount}
+        historyCount={events.data ? card.events.length : null}
+      />
+    );
+  }
+
+  const Section = sheetSections[card.type];
   const tabs = [
-    ['details', card.type === 'plan' ? d.tabs.plan : d.tabs.idea, null],
+    ['details', d.tabs.idea, null],
     ['comments', d.tabs.comments, commentCount],
     ['history', d.tabs.history, events.data ? card.events.length : null],
     ['links', d.tabs.links, card.links.length],
@@ -853,8 +392,6 @@ export function PlanningDetail({
                   perform={(a, payload) => perform(card.key, a, payload)}
                 />
               </Panel>
-            ) : card.type === 'plan' ? (
-              <PlanBody card={card} />
             ) : (
               <IdeaBody card={card} />
             )}

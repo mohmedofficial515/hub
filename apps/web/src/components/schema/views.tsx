@@ -40,10 +40,8 @@ import { useAnnotate, useSchemaHistory } from '@/features/schema/queries';
 import { isHubError } from '@/lib/api/errors';
 
 import { dictionaryMarkdown, enumTarget, fieldTarget, modelTarget, toneStyle } from './model';
+import { PAGE_ROWS } from './paging';
 import { useSchemaWords, useStudio } from './studio';
-
-/** Rows shown at once; "Show more" adds as many again. */
-export const PAGE_ROWS = 600;
 
 /** The Arabic name in place. A refused save keeps what was typed and says why (review M12); a secret is never sent. */
 function InlineName({ target, placeholder, label }: { target: string; placeholder: string; label: string }) {

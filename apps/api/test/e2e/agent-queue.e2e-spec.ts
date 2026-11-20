@@ -106,6 +106,7 @@ class ScriptedDevice {
 
 interface Run {
   id: string;
+  title: string;
   state: string;
   worktree: { folder: string; branch: string; base: string; removed: boolean } | null;
   dirtyFiles: number | null;
@@ -232,6 +233,47 @@ describe('the agent queue', () => {
   const read = async (): Promise<Queue> => (await browser.get(base()).expect(200)).body.data as Queue;
   const runOf = async (id: string): Promise<Run> => (await read()).runs.find((run) => run.id === id)!;
   const settings = (body: Record<string, unknown>) => browser.patch(`${base()}/settings`, body).expect(200);
+
+  it('an explainer run makes a plan’s video in its folder with the film stages, only once one was asked for', async () => {
+    const created = await browser
+      .post(`/workspaces/${slug}/cards`, {
+        type: 'plan',
+        title: 'Video plan',
+        detail: { steps: [{ title: 'One' }] },
+      })
+      .expect(201);
+    const key = created.body.data.key as string;
+    // Nothing asked for yet: there is nothing to make.
+    await browser
+      .post(`${base()}/runs`, {
+        device: deviceId,
+        folder: FOLDER,
+        when: { kind: 'now' },
+        source: 'explainer',
+        cardKey: key,
+      })
+      .expect(409)
+      .expect(({ body }) => expect(body.error.code).toBe('hub.plans.explainer_not_requested'));
+    await browser
+      .post(`/workspaces/${slug}/plans/${key}/explainer`, {
+        voice: 'google',
+        googleVoice: 'Kore',
+        aspect: 'portrait',
+      })
+      .expect(200);
+    const run = await addRun({ source: 'explainer', cardKey: key });
+    expect(run.title).toBe('Video plan · video');
+    await until(() => device.turns().length === 1);
+    const prompt = String(device.turns()[0]!.args['prompt']);
+    expect(prompt).toContain(
+      `Make the explainer video of plan ${key} (revision 1) with Hams' plan-film engine`,
+    );
+    expect(prompt).toContain('voice google (Gemini TTS), voice Kore');
+    expect(prompt).toContain('aspect portrait');
+    expect(prompt).toContain('protocol film');
+    device.end(device.turns()[0]!.id, { status: 'done', changedFiles: [] });
+    await until(async () => ((await runOf(run.id)).state === 'done' ? true : null));
+  });
 
   it('Run now on a task starts a panel chat turn in Execute with the work protocol, and its result lands on the run', async () => {
     const key = await aTask();

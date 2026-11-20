@@ -6,7 +6,13 @@
 import {
   type CreatePlanInput,
   createPlanSchema,
+  explainerChapterSchema,
+  explainerRequestSchema,
+  PLAN_STEP_EVIDENCE_MAX,
+  type PlanExplainer,
+  type PlanPhase,
   type PlanStep,
+  planStepEvidenceSchema,
   type PlanToTasksInput,
   planToTasksSchema,
   type ReasonInput,
@@ -33,11 +39,40 @@ import {
 } from '@/modules/cards';
 import { AppException } from '@/shared/errors';
 
-import { normalizeSteps, specialtyOfStep } from './plan-steps';
+import {
+  canonicalEvidence,
+  canonicalStep,
+  normalizeSteps,
+  phaseProblem,
+  specialtyOfStep,
+  withDone,
+} from './plan-steps';
 import { StudioSourceCheck } from './studio-source.check';
 
+/** The plan's steps, each with its keys in one order (see `canonicalStep`), so a compare with normalised steps does not depend on JSONB. */
 function stepsOf(card: CardView): PlanStep[] {
-  return ((card.detail?.['steps'] ?? []) as PlanStep[]).map((step) => ({ ...step }));
+  return ((card.detail?.['steps'] ?? []) as PlanStep[]).map(canonicalStep);
+}
+
+/** Each phase with its keys in one order: Postgres keeps JSONB keys in its own order, so a compare must not depend on it. */
+const canonicalPhase = (phase: PlanPhase): PlanPhase => ({
+  id: phase.id,
+  title: phase.title,
+  ...(phase.note ? { note: phase.note } : {}),
+});
+
+function phasesOf(card: CardView): PlanPhase[] {
+  return ((card.detail?.['phases'] ?? []) as PlanPhase[]).map(canonicalPhase);
+}
+
+/** Refuses steps that name a phase the plan does not have, or a phase being removed while steps still name it. */
+function assertPhases(
+  steps: readonly PlanStep[],
+  phases: readonly PlanPhase[],
+  before?: readonly PlanPhase[],
+) {
+  const problem = phaseProblem(steps, phases, before);
+  if (problem) throw new AppException(problem.code, { params: { phase: problem.phase } });
 }
 
 @Injectable()
@@ -59,10 +94,14 @@ export class PlanCreateAction implements CardActionDefinition<CreatePlanInput> {
       : null;
     if (detail.sourceIdeaKey && !idea) throw new AppException('hub.cards.not_found');
     const followUps = linkFollowUps(payload.links);
+    const steps = normalizeSteps(detail.steps);
+    const phases = detail.phases ?? [];
+    assertPhases(steps, phases);
     return {
       create: { ...baseCreateFields(payload) },
       detail: {
-        steps: normalizeSteps(detail.steps),
+        steps,
+        phases,
         sourceIdeaId: idea?.id ?? null,
         sourceChatId: detail.sourceChatId ?? null,
         sourceMessageId: detail.sourceMessageId ?? null,
@@ -80,7 +119,7 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
 
   constructor(private readonly sources: StudioSourceCheck) {}
 
-  async plan({ actor, card, payload }: CardActionContext<UpdatePlanInput>): Promise<CardActionPlan> {
+  async plan({ actor, card, payload, now }: CardActionContext<UpdatePlanInput>): Promise<CardActionPlan> {
     if (!card) throw new Error('plan.update needs a card');
     const header = card as unknown as Record<string, unknown>;
     const fields = (['title', 'priority', 'tags'] as const).filter(
@@ -90,14 +129,19 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
     );
     const bodyChanged = payload.body !== undefined && payload.body !== card.body;
     const current = stepsOf(card);
-    const steps = payload.steps ? normalizeSteps(payload.steps, current) : current;
+    const steps = payload.steps ? normalizeSteps(payload.steps, current, now) : current;
     const stepsChanged = JSON.stringify(steps) !== JSON.stringify(current);
+    const currentPhases = phasesOf(card);
+    const phases = payload.phases?.map(canonicalPhase) ?? currentPhases;
+    const phasesChanged = JSON.stringify(phases) !== JSON.stringify(currentPhases);
+    if (stepsChanged || phasesChanged) assertPhases(steps, phases, currentPhases);
     // The studio chat a save came from (owner decision 9c): only the writer's own chat, and named on the event, so the
     // history says who tied the card to a session.
     const source = (['sourceChatId', 'sourceMessageId'] as const).filter(
       (field) => payload[field] !== undefined && payload[field] !== (card.detail?.[field] ?? null),
     );
-    if (fields.length === 0 && !bodyChanged && !stepsChanged && source.length === 0) return { noop: true };
+    if (fields.length === 0 && !bodyChanged && !stepsChanged && !phasesChanged && source.length === 0)
+      return { noop: true };
     if (source.length > 0) {
       await this.sources.assertOwn(actor, {
         ...(source.includes('sourceChatId') ? { sourceChatId: payload.sourceChatId } : {}),
@@ -115,6 +159,7 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
     const revision = Number(card.detail?.['revision'] ?? 1) + 1;
     const detail: JsonObject = {
       ...(stepsChanged ? { steps } : {}),
+      ...(phasesChanged ? { phases } : {}),
       ...(bodyChanged ? { revision } : {}),
       ...Object.fromEntries(source.map((field) => [field, payload[field] ?? null])),
     };
@@ -136,10 +181,18 @@ export class PlanUpdateAction implements CardActionDefinition<UpdatePlanInput> {
               previousBody: card.body,
               ...(changes.length > 0 ? { changes } : {}),
               ...(stepsChanged ? { steps } : {}),
+              ...(phasesChanged ? { phases } : {}),
             },
           }
-        : stepsChanged
-          ? { kind: 'plan_steps_changed', data: { steps, ...(changes.length > 0 ? { changes } : {}) } }
+        : stepsChanged || phasesChanged
+          ? {
+              kind: 'plan_steps_changed',
+              data: {
+                steps,
+                ...(phasesChanged ? { phases } : {}),
+                ...(changes.length > 0 ? { changes } : {}),
+              },
+            }
           : { kind: 'field_changed', data: { changes } },
     };
   }
@@ -235,6 +288,7 @@ export class PlanToTasksAction implements CardActionDefinition<PlanToTasksInput>
     const pending = steps.filter((step) => !step.taskKey);
     if (pending.length === 0) return { noop: true };
     const fallback = payload.defaultSpecialty ?? 'ops';
+    const phaseTitle = new Map(phasesOf(card).map((phase) => [phase.id, phase.title]));
     return {
       event: { kind: 'plan_to_tasks' },
       prepare: () =>
@@ -250,6 +304,11 @@ export class PlanToTasksAction implements CardActionDefinition<PlanToTasksInput>
               specialty: specialtyOfStep(step, fallback),
               origin: 'plan',
               prompt: `Step of plan ${card.key} (${card.title}): ${step.title}${
+                step.phaseId && phaseTitle.has(step.phaseId)
+                  ? `
+Phase: ${phaseTitle.get(step.phaseId)}`
+                  : ''
+              }${
                 step.why
                   ? `
 Why: ${step.why}`
@@ -289,12 +348,196 @@ export class PlanSyncStepAction implements CardActionDefinition<SyncInput> {
   readonly action = 'plan.sync_step';
   readonly payload = syncSchema;
 
-  plan({ card, payload }: CardActionContext<SyncInput>): CardActionPlan {
+  plan({ card, payload, now }: CardActionContext<SyncInput>): CardActionPlan {
     if (!card) throw new Error('plan.sync_step needs a card');
-    const steps = stepsOf(card);
-    const step = steps.find((item) => item.taskKey === payload.taskKey);
+    const found = stepsOf(card);
+    const step = found.find((item) => item.taskKey === payload.taskKey);
     if (!step || step.done === payload.done) return { noop: true };
-    step.done = payload.done;
+    const steps = found.map((item) => (item === step ? withDone(item, payload.done, now) : item));
     return { detail: { steps }, event: { kind: 'plan_steps_changed', data: { steps } } };
+  }
+}
+
+const addEvidenceSchema = z.object({ stepId: z.string().min(1).max(64), evidence: planStepEvidenceSchema });
+type AddEvidenceInput = z.infer<typeof addEvidenceSchema>;
+
+/**
+ * A file of evidence joins a step (v5-live-plan, batch 3). Applied only by `PlanEvidenceService`, after it stored the file as an attachment of
+ * this card, so the attachment id and its facts are Hub's own.
+ */
+@Injectable()
+@CardActionHandler()
+export class PlanAddEvidenceAction implements CardActionDefinition<AddEvidenceInput> {
+  readonly action = 'plan.add_evidence';
+  readonly payload = addEvidenceSchema;
+
+  plan({ card, payload }: CardActionContext<AddEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.add_evidence needs a card');
+    const found = stepsOf(card);
+    const step = found.find((item) => item.id === payload.stepId);
+    if (!step) throw new AppException('hub.plans.step_not_found');
+    const had = step.evidence ?? [];
+    if (had.length >= PLAN_STEP_EVIDENCE_MAX) {
+      throw new AppException('hub.plans.evidence_full', { params: { max: String(PLAN_STEP_EVIDENCE_MAX) } });
+    }
+    const evidence = canonicalEvidence(payload.evidence);
+    const steps = found.map((item) => (item === step ? { ...item, evidence: [...had, evidence] } : item));
+    return {
+      detail: { steps },
+      event: {
+        kind: 'plan_steps_changed',
+        data: { steps, evidence: { stepId: step.id, added: evidence.attachmentId, kind: evidence.kind } },
+      },
+    };
+  }
+}
+
+const removeEvidenceSchema = z.object({ stepId: z.string().min(1).max(64), attachmentId: z.string().min(1) });
+type RemoveEvidenceInput = z.infer<typeof removeEvidenceSchema>;
+
+/** The step without one file of its evidence. `own` refuses a file the actor did not add. */
+function withoutEvidence(card: CardView, payload: RemoveEvidenceInput, own: string | null): CardActionPlan {
+  const found = stepsOf(card);
+  const step = found.find((item) => item.id === payload.stepId);
+  if (!step) throw new AppException('hub.plans.step_not_found');
+  const target = (step.evidence ?? []).find((item) => item.attachmentId === payload.attachmentId);
+  if (!target) throw new AppException('hub.plans.evidence_not_found');
+  if (own !== null && target.addedBy !== own) {
+    throw new AppException('hub.common.forbidden', { details: { action: 'plan.remove_own_evidence' } });
+  }
+  const left = (step.evidence ?? []).filter((item) => item !== target);
+  const steps = found.map((item) => {
+    if (item !== step) return item;
+    const { evidence: _evidence, ...rest } = item;
+    return left.length > 0 ? { ...rest, evidence: left } : rest;
+  });
+  return {
+    detail: { steps },
+    event: {
+      kind: 'plan_steps_changed',
+      data: { steps, evidence: { stepId: step.id, removed: payload.attachmentId } },
+    },
+  };
+}
+
+/** A file of evidence leaves its step; `PlanEvidenceService` then removes its bytes. The event keeps which one it was. */
+@Injectable()
+@CardActionHandler()
+export class PlanRemoveEvidenceAction implements CardActionDefinition<RemoveEvidenceInput> {
+  readonly action = 'plan.remove_evidence';
+  readonly payload = removeEvidenceSchema;
+
+  plan({ card, payload }: CardActionContext<RemoveEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.remove_evidence needs a card');
+    return withoutEvidence(card, payload, null);
+  }
+}
+
+/** The same, for whoever added the file (owner's answer, 2026-11-20): any other file is refused. */
+@Injectable()
+@CardActionHandler()
+export class PlanRemoveOwnEvidenceAction implements CardActionDefinition<RemoveEvidenceInput> {
+  readonly action = 'plan.remove_own_evidence';
+  readonly payload = removeEvidenceSchema;
+
+  plan({ actor, card, payload }: CardActionContext<RemoveEvidenceInput>): CardActionPlan {
+    if (!card) throw new Error('plan.remove_own_evidence needs a card');
+    return withoutEvidence(card, payload, actor.userId ?? '');
+  }
+}
+
+function explainerOf(card: CardView): PlanExplainer | null {
+  return (card.detail?.['explainer'] as PlanExplainer | null | undefined) ?? null;
+}
+
+const requestExplainerSchema = z.object({ request: explainerRequestSchema });
+type RequestExplainerInput = z.infer<typeof requestExplainerSchema>;
+
+/**
+ * The owner asks for the plan's explainer video (v5-live-plan, batch 4), for the plan as it is now. A film already made stays playable as
+ * `previous` until the new one is attached.
+ */
+@Injectable()
+@CardActionHandler()
+export class PlanRequestExplainerAction implements CardActionDefinition<RequestExplainerInput> {
+  readonly action = 'plan.request_explainer';
+  readonly payload = requestExplainerSchema;
+
+  plan({ card, payload, now }: CardActionContext<RequestExplainerInput>): CardActionPlan {
+    if (!card) throw new Error('plan.request_explainer needs a card');
+    const before = explainerOf(card);
+    const made = before?.status === 'ready' && before.attachmentId ? before : null;
+    const keep = made
+      ? {
+          attachmentId: made.attachmentId!,
+          ...(made.posterId ? { posterId: made.posterId } : {}),
+          ...(made.captionsId ? { captionsId: made.captionsId } : {}),
+          ...(made.chapters ? { chapters: made.chapters } : {}),
+          revision: made.revision,
+          request: made.request,
+        }
+      : before?.previous;
+    const explainer: PlanExplainer = {
+      status: 'requested',
+      request: payload.request,
+      revision: Number(card.detail?.['revision'] ?? 1),
+      requestedAt: now.toISOString(),
+      ...(keep ? { previous: keep } : {}),
+    };
+    return {
+      detail: { explainer },
+      event: {
+        kind: 'field_changed',
+        data: { changes: [{ field: 'explainer', from: before?.status ?? null, to: 'requested' }] },
+      },
+    };
+  }
+}
+
+const attachExplainerSchema = z.object({
+  revision: z.number().int().min(1),
+  attachmentId: z.string(),
+  posterId: z.string().optional(),
+  captionsId: z.string().optional(),
+  chapters: z.array(explainerChapterSchema).max(60),
+  hamsProject: z.object({ id: z.string().min(1).max(200), url: z.url() }).optional(),
+});
+type AttachExplainerInput = z.infer<typeof attachExplainerSchema>;
+
+/** The film made for the request joins the plan. Applied only by `PlanExplainerService`, after it stored the files as this card's attachments. */
+@Injectable()
+@CardActionHandler()
+export class PlanAttachExplainerAction implements CardActionDefinition<AttachExplainerInput> {
+  readonly action = 'plan.attach_explainer';
+  readonly payload = attachExplainerSchema;
+
+  plan({ card, payload, now }: CardActionContext<AttachExplainerInput>): CardActionPlan {
+    if (!card) throw new Error('plan.attach_explainer needs a card');
+    const before = explainerOf(card);
+    if (!before || before.status !== 'requested') throw new AppException('hub.plans.explainer_not_requested');
+    if (payload.revision !== before.revision) {
+      throw new AppException('hub.plans.explainer_stale', {
+        params: { revision: String(payload.revision), asked: String(before.revision) },
+      });
+    }
+    const explainer: PlanExplainer = {
+      status: 'ready',
+      request: before.request,
+      revision: before.revision,
+      requestedAt: before.requestedAt,
+      attachmentId: payload.attachmentId,
+      ...(payload.posterId ? { posterId: payload.posterId } : {}),
+      ...(payload.captionsId ? { captionsId: payload.captionsId } : {}),
+      chapters: payload.chapters,
+      ...(payload.hamsProject ? { hamsProject: payload.hamsProject } : {}),
+      madeAt: now.toISOString(),
+    };
+    return {
+      detail: { explainer },
+      event: {
+        kind: 'field_changed',
+        data: { changes: [{ field: 'explainer', from: 'requested', to: 'ready' }] },
+      },
+    };
   }
 }

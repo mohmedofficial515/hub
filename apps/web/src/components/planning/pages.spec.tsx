@@ -280,7 +280,8 @@ describe('PlanningPage', () => {
     expect(screen.getByText('Write it')).toBeTruthy();
     expect(screen.getByText('The approach')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Planning' })).toBeTruthy();
-    expect(document.querySelector('[aria-current="step"]')?.textContent).toContain('Waiting for approval');
+    // The head names the stage in words (v5-live-plan has no stage track: the status pill says it).
+    expect(screen.getAllByText('Waiting for approval').length).toBeGreaterThan(0);
   });
 
   it('draws no coloured edge on any card', async () => {

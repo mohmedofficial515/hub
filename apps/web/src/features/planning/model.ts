@@ -49,6 +49,7 @@ export function mergeSteps(
     size?: PlanStep['size'];
     after?: string[] | undefined;
     acceptance?: string | undefined;
+    phaseId?: string | undefined;
   }[],
 ): PlanStep[] {
   const byId = new Map(existing.map((s) => [s.id, s]));
@@ -67,6 +68,10 @@ export function mergeSteps(
       ...(step.size ? { size: step.size } : {}),
       ...(step.after?.length ? { after: step.after } : {}),
       ...(step.acceptance ? { acceptance: step.acceptance } : {}),
+      ...(step.phaseId ? { phaseId: step.phaseId } : {}),
+      ...(before?.done && before.doneAt ? { doneAt: before.doneAt } : {}),
+      // Hub keeps a step's evidence across a save; the copy shown meanwhile keeps it too.
+      ...(before?.evidence?.length ? { evidence: before.evidence } : {}),
     };
   });
 }

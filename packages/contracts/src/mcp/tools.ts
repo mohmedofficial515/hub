@@ -36,6 +36,7 @@ import {
   editDecisionOptionsSchema,
   editReleaseSchema,
   editTaskDetailSchema,
+  explainerRequestSchema,
   HANDOFF_STATUSES,
   IDEA_STATUSES,
   ideaToPlanSchema,
@@ -43,6 +44,7 @@ import {
   markPortedSchema,
   NEED_STATUSES,
   optionalReasonSchema,
+  PLAN_EVIDENCE_KINDS,
   PLAN_STATUSES,
   planToTasksSchema,
   reasonSchema,
@@ -633,14 +635,14 @@ const TOOL_TABLE = {
     readOnly: true,
   },
   get_plan: {
-    description: 'A plan: its full Markdown, ordered steps with their tasks, and its revisions.',
+    description: 'A plan: its full Markdown, its phases, ordered steps with their tasks, and its revisions.',
     input: key.extend({ includeRevisions: z.boolean().optional() }),
     actions: ['card.read'],
     readOnly: true,
   },
   create_plan: {
     description:
-      'Save a written plan: full Markdown `body` and ordered `steps`. It starts as a draft. Then plan_to_tasks creates its tasks.',
+      'Save a written plan: full Markdown `body` and ordered `steps`. Group the steps in `phases` (`{id, title, note?}` in order, at most 20) and give each step its `phaseId`; a plan without phases reads as one list. It starts as a draft. Then plan_to_tasks creates its tasks.',
     input: flatCreate(createPlanSchema),
     actions: ['plan.create'],
     routes: ['POST /workspaces/:ws/cards'],
@@ -648,7 +650,7 @@ const TOOL_TABLE = {
   },
   update_plan: {
     description:
-      'Edit a plan: body, steps, title. Each step may carry `why`, `size` (S, M, L), `after` (ids of earlier steps) and `acceptance`. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, request_changes (owner or pm, back to draft, `reason` required), start, finish, abandon.',
+      'Edit a plan: body, steps, phases, title. Each step may carry `why`, `size` (S, M, L), `after` (ids of earlier steps), `acceptance` and `phaseId` (one of the `phases` of the plan). `phases` is the whole ordered list `{id, title, note?}`: a phase that steps still name cannot be removed, so move those steps in the same call. A new body adds a revision, and `restoreRevision` brings an old one back. `move` changes its status: submit_review, approve, request_changes (owner or pm, back to draft, `reason` required), start, finish, abandon.',
     input: key.extend({
       ...updatePlanSchema.shape,
       restoreRevision: z.number().int().min(1).optional(),
@@ -675,6 +677,57 @@ const TOOL_TABLE = {
       `POST ${W}/plans/:key/finish`,
       `POST ${W}/plans/:key/abandon`,
     ],
+  },
+  add_step_evidence: {
+    description:
+      "Attach a screenshot or a clip to a plan step as its evidence, when you finish the step: `kind` before or after for a picture (PNG, JPEG or WebP, up to 8 MB), video for a clip (MP4 or WebM, up to 40 MB), and a one-line `caption`. `path` is the file's absolute path; it must lie inside one of the project's registered folders (or a Hub worktree of one) on the machine Hub runs on. Hub keeps a picture without its metadata. `step` is the step's id, or its number from 1.",
+    input: key.extend({
+      step: z.union([z.string().min(1).max(64), z.number().int().min(1).max(200)]),
+      kind: z.enum(PLAN_EVIDENCE_KINDS),
+      caption: z.string().trim().min(1).max(200).optional(),
+      path: z.string().min(1).max(500),
+    }),
+    actions: ['plan.add_evidence'],
+    routes: [`POST ${W}/plans/:key/steps/:stepId/evidence`],
+  },
+  remove_step_evidence: {
+    description:
+      "Remove a file from a plan step's evidence, by its attachment id (get_plan lists them). The plan's owner, a pm and its creator may remove any; anyone may remove what they added. Its bytes are deleted.",
+    input: key.extend({
+      step: z.union([z.string().min(1).max(64), z.number().int().min(1).max(200)]),
+      attachmentId: z.uuid(),
+    }),
+    actions: ['plan.remove_evidence', 'plan.remove_own_evidence'],
+    routes: [`DELETE ${W}/plans/:key/steps/:stepId/evidence/:attachmentId`],
+    destructive: true,
+  },
+  request_plan_explainer: {
+    description:
+      "Ask for the plan's explainer video, made by Hams: `style`, `voice` (google, the default, sends only the script's text to Google; hams stays on the machine; none), `googleVoice` (Charon by default), `dialect`, `aspect`, `length`, `captions`. It records the request for the plan's current revision; the owner's agent queue makes it in Hams' folder.",
+    input: key.extend(explainerRequestSchema.shape),
+    actions: ['plan.request_explainer'],
+    routes: [`POST ${W}/plans/:key/explainer`],
+  },
+  attach_plan_explainer: {
+    description:
+      "Attach the explainer film made for a plan with Hams' plan-film: the absolute paths of the exported mp4, its poster and its captions (.vtt), each inside one of the project's registered folders on the machine Hub runs on; `chapters` from plan-explainer.chapters.json (`phase` is the plan's phase number, null for the intro and the close; `start` in seconds); `revision` the plan revision it explains (as the run was told); and `hamsProject` {id, url} to open it in Hams.",
+    input: key.extend({
+      revision: z.number().int().min(1),
+      video: z.string().min(1).max(500),
+      poster: z.string().min(1).max(500).optional(),
+      captions: z.string().min(1).max(500).optional(),
+      chapters: z
+        .array(
+          z.object({
+            phase: z.number().int().min(0).max(99).nullable(),
+            title: z.string().trim().min(1).max(200).optional(),
+            start: z.number().min(0).max(36_000),
+          }),
+        )
+        .max(60),
+      hamsProject: z.object({ id: z.string().min(1).max(200), url: z.url() }).optional(),
+    }),
+    actions: ['plan.attach_explainer'],
   },
   plan_to_tasks: {
     description: 'Create one task per step with no task yet, and move the plan to in progress.',
@@ -901,7 +954,7 @@ const TOOL_TABLE = {
   },
   report_stage: {
     description:
-      'Say which stage of /hub:work or /hub:doc you are in, so the panel shows a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.',
+      "Say which stage of /hub:work (protocol work), /hub:doc (doc) or a plan's explainer video (film: script, voice, scenes, render, attach) you are in, so the panel and the plan's page show a live checklist. Call it as each stage starts, and as it ends or fails. It stores nothing and changes nothing.",
     input: stageReportSchema,
     actions: ['chat.read'],
     readOnly: true,

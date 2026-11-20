@@ -160,7 +160,9 @@ model IdeaDetail {
 
 model PlanDetail {
   cardId       String    @id @map("card_id") @db.Uuid
-  steps        Json      @default("[]")               // ordered { id, title, role?, taskKey?, done, why?, size?, after?, acceptance? }[]
+  steps        Json      @default("[]")               // ordered { id, title, role?, taskKey?, done, why?, size?, after?, acceptance?, phaseId?, doneAt? }[]
+  phases       Json      @default("[]")               // ordered { id, title, note? }[]; a step names one by phaseId (v5-live-plan)
+  explainer    Json?                                  // the plan explained on video by Hams (v5-live-plan, batch 4); null until asked for
   revision     Int       @default(1)                  // bumped by each body save; history is in plan_revised events
   sourceIdeaId String?   @map("source_idea_id") @db.Uuid
   approvedById String?   @map("approved_by_id") @db.Uuid
