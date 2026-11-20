@@ -319,6 +319,7 @@ describe('MCP over HTTP', () => {
       expect(sheet).toContain('### Phase 1: Build (Frontend) · id p1');
       expect(sheet).not.toContain('### No phase');
 
+      expect(await hub.ok('list_plan_runs', { key })).toBe(`${key} has no runs.`);
       const refused = await hub.call('update_plan', { key, phases: [{ id: 'p0', title: 'Setup' }] });
       expect(refused.isError).toBe(true);
       expect(refused.content[0]?.text).toContain('Build');

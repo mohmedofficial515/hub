@@ -701,6 +701,14 @@ const TOOL_TABLE = {
     routes: [`DELETE ${W}/plans/:key/steps/:stepId/evidence/:attachmentId`],
     destructive: true,
   },
+  list_plan_runs: {
+    description:
+      "Claude's runs on a plan from every member of the project: step, state, who and the stages reported. No prompt, folder or chat.",
+    input: key,
+    actions: ['plan.read_runs'],
+    routes: [`GET ${W}/plans/:key/runs`],
+    readOnly: true,
+  },
   request_plan_explainer: {
     description:
       "Ask for the plan's explainer video, made by Hams: `style`, `voice` (google, the default, sends only the script's text to Google; hams stays on the machine; none), `googleVoice` (Charon by default), `dialect`, `aspect`, `length`, `captions`. It records the request for the plan's current revision; the owner's agent queue makes it in Hams' folder.",

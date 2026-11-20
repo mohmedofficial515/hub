@@ -14,6 +14,7 @@ import {
   type ChatNotice,
   type ChatStage,
   createStreamRedactor,
+  type PlanRunsChanged,
   redactDeep,
   redactSecrets,
   type TurnEvent,
@@ -192,6 +193,22 @@ export class TurnRecorder {
     });
   }
 
+  /** A stage of a run on a card reaches every member's view of that plan (owner, 2026-11-20): the run's id, nothing of the chat. */
+  private async nudgePlanRuns(): Promise<void> {
+    const run = await this.deps.txHost.tx.agentRun.findFirst({
+      where: { workspaceId: this.turn.workspaceId, chatId: this.turn.chatId, cardKey: { not: null } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (!run) return;
+    const data: PlanRunsChanged = { runId: run.id };
+    await this.deps.realtime.publishEnvelope(this.turn.workspaceId, {
+      event: 'plan.runs.changed',
+      data,
+      audience: 'all',
+    });
+  }
+
   private async nudge(reason: ChatChanged['reason']): Promise<void> {
     const data: ChatChanged = { chatId: this.turn.chatId, reason };
     await this.deps.realtime.publishEnvelope(this.turn.workspaceId, {
@@ -209,6 +226,7 @@ export class TurnRecorder {
       return this.bump();
     });
     await this.publish(seq, event);
+    if (raw.kind === 'stage') await this.nudgePlanRuns();
     if (
       raw.kind === 'approval.requested' ||
       raw.kind === 'approval.resolved' ||

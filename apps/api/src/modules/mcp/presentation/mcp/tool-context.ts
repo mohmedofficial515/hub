@@ -19,7 +19,7 @@ import { APP_CONFIG, type AppConfig } from '@/config/config.module';
 import { CLOCK, type Clock } from '@/infra/clock/clock';
 import { QueueService } from '@/infra/queue/queue.service';
 import { RedisClients } from '@/infra/redis/redis.module';
-import { AgentQueueService } from '@/modules/agent-queue';
+import { AgentQueueService, PlanRunsService } from '@/modules/agent-queue';
 import { AuditQueryService } from '@/modules/audit';
 import { SessionContextService, SessionsService } from '@/modules/capture';
 import { CardQueryService, CardService } from '@/modules/cards';
@@ -56,6 +56,7 @@ export class McpDeps {
     readonly tasks: TasksReadService,
     readonly plans: PlanReadService,
     readonly evidence: PlanEvidenceService,
+    readonly planRuns: PlanRunsService,
     readonly explainer: PlanExplainerService,
     readonly releaseNotes: ReleaseNotesService,
     readonly projects: ProjectsService,

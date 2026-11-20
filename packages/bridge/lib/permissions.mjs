@@ -95,6 +95,7 @@ const POWERSHELL_ASK = [
 
 /** Hub's read tools: the `readOnly` rows of `TOOL_TABLE`, and `report_stage`, which writes nothing. */
 export const HUB_READ_TOOLS = [
+  'list_plan_runs',
   'get_project_brief',
   'whats_new',
   'search_docs',

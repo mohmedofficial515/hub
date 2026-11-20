@@ -424,7 +424,10 @@
         "resync": "عاد الاتصال وحُدّثت الخطة"
       },
       "phaseComplete": "اكتملت المرحلة {n}",
-      "phaseCompleteBody": "{title}. أُنجزت كل خطواتها."
+      "phaseCompleteBody": "{title}. أُنجزت كل خطواتها.",
+      "claudeWaitingFor": "Claude ينتظر {name} في الخطوة {n}",
+      "waitingOther": "ينتظر ردّ {name}، وهو وحده من يجيب.",
+      "runBy": "يشغّله {name}"
     },
     "evidence": {
       "title": "الأدلة",

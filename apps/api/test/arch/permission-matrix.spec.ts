@@ -57,6 +57,7 @@ const NOT_APPLIED = new Set<PermissionAction>([
   'card.comment_edit',
   'card.edit_routing',
   'task.review',
+  'plan.read_runs',
 ]);
 
 /** Rows `apply` asks for depend on the card or payload here; the row under test is forced through `permissions`. */
@@ -258,6 +259,7 @@ describe('permission matrix', () => {
       ["Plan: remove a step's evidence", ['plan.remove_evidence']],
       ['Plan: remove evidence you added', ['plan.remove_own_evidence']],
       ['Plan: ask for or attach its explainer video', ['plan.request_explainer', 'plan.attach_explainer']],
+      ["Plan: see Claude's runs on it", ['plan.read_runs']],
       ['Audit log: read', ['audit.read']],
     ];
 

@@ -407,7 +407,10 @@
         "resync": "Back online; the plan is up to date"
       },
       "phaseComplete": "Phase {n} complete",
-      "phaseCompleteBody": "{title}. Every step in it is done."
+      "phaseCompleteBody": "{title}. Every step in it is done.",
+      "claudeWaitingFor": "Claude is waiting for {name} on step {n}",
+      "waitingOther": "Waiting for {name} to answer. Only they can.",
+      "runBy": "Run by {name}"
     },
     "evidence": {
       "title": "Evidence",

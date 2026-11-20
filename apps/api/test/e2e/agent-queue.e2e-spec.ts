@@ -234,6 +234,75 @@ describe('the agent queue', () => {
   const runOf = async (id: string): Promise<Run> => (await read()).runs.find((run) => run.id === id)!;
   const settings = (body: Record<string, unknown>) => browser.patch(`${base()}/settings`, body).expect(200);
 
+  it('every member sees a run on a plan, read only: its step, state, who and stages, and nothing of the chat, folder or prompt', async () => {
+    const created = await browser
+      .post(`/workspaces/${slug}/cards`, {
+        type: 'plan',
+        title: 'Seen by all',
+        detail: { steps: [{ title: 'Schema' }, { title: 'Page' }] },
+      })
+      .expect(201);
+    const key = created.body.data.key as string;
+    const run = await addRun({ source: 'plan_step', cardKey: key, planStep: 1 });
+    await until(() => device.turns().length === 1);
+    const turn = device.turns()[0]!;
+    device.say(turn.id, {
+      kind: 'stage',
+      protocol: 'work',
+      stage: 'understand',
+      state: 'started',
+      note: 'Reading the step',
+    });
+
+    // Another member of the project, with no queue of their own here.
+    const other = await anAccount(prisma());
+    await joinProject(prisma(), workspaceId, other.id, ['qa']);
+    const qa = new Browser(app);
+    await qa.post('/auth/sign-in', { email: other.email, password: PASSWORD }).expect(200);
+    const seen = await until(async () => {
+      const rows = (await qa.get(`/workspaces/${slug}/plans/${key}/runs`).expect(200)).body.data as {
+        id: string;
+        stages: unknown[];
+        member: { userId: string };
+      }[];
+      return rows[0]?.stages.length ? rows : null;
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toMatchObject({
+      id: run.id,
+      source: 'plan_step',
+      planStep: 1,
+      state: 'running',
+      waiting: false,
+      mine: false,
+      stages: [{ protocol: 'work', stage: 'understand', state: 'started', note: 'Reading the step' }],
+    });
+    expect(seen[0]!.member.userId).toBe(userId);
+    for (const field of [
+      'prompt',
+      'folder',
+      'chatId',
+      'messageId',
+      'deviceId',
+      'deviceName',
+      'waitingOn',
+      'decisions',
+    ]) {
+      expect(seen[0]).not.toHaveProperty(field);
+    }
+    const mine = (await browser.get(`/workspaces/${slug}/plans/${key}/runs`).expect(200)).body.data as {
+      mine: boolean;
+    }[];
+    expect(mine[0]?.mine).toBe(true);
+    // Every member's stream is told, with the run's id only.
+    const entries = await maintenanceClients().redis.xrange(`ws:${workspaceId}:stream`, '-', '+');
+    const nudges = entries.filter(([, fields]) => fields.join(' ').includes('plan.runs.changed'));
+    expect(nudges.length).toBeGreaterThan(0);
+    expect(nudges.some(([, fields]) => fields.join(' ').includes('"all"'))).toBe(true);
+    device.end(turn.id, { status: 'done', changedFiles: [] });
+    await until(async () => ((await runOf(run.id)).state === 'done' ? true : null));
+  });
+
   it('an explainer run makes a plan’s video in its folder with the film stages, only once one was asked for', async () => {
     const created = await browser
       .post(`/workspaces/${slug}/cards`, {

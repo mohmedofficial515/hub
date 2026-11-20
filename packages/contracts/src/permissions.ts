@@ -135,6 +135,8 @@ const MATRIX = {
   'plan.remove_evidence': OWNER_PM_CREATOR,
   'plan.remove_own_evidence': EVERYONE,
   // The explainer video (v5-live-plan, batch 4): asked for and attached by the plan's owners (a run attaches as the member who asked).
+  // Every member sees Claude's runs on a plan, read only: stages, state and who (owner, 2026-11-20).
+  'plan.read_runs': EVERYONE,
   'plan.request_explainer': OWNER_PM_CREATOR,
   'plan.attach_explainer': OWNER_PM_CREATOR,
 

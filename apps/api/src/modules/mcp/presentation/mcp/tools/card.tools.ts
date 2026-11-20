@@ -440,6 +440,17 @@ export const cardToolHandlers = {
       await context.project(),
     );
   },
+  async list_plan_runs(context, input) {
+    const runs = await context.deps.planRuns.runsOf(await context.actor(), input.key);
+    if (runs.length === 0) return `${input.key} has no runs.`;
+    return runs
+      .map((run) => {
+        const where = run.planStep !== null ? `step ${run.planStep + 1}` : (run.cardKey ?? '');
+        const stages = run.stages.map((stage) => `${stage.stage} ${stage.state}`).join(', ');
+        return `- ${run.source} on ${where} · ${run.waiting ? 'waiting for its owner' : run.state} · ${run.member.displayName}${run.mine ? ' (you)' : ''}${stages ? ` · ${stages}` : ''}`;
+      })
+      .join('\n');
+  },
   request_plan_explainer: (context, input) =>
     context.apply('Asked for the explainer video of', input.key, 'plan.request_explainer', {
       request: payloadOf(input),

@@ -190,9 +190,11 @@ function StepRow({ step, all, run, isNext, hot, justDone, showRole, onHot, onOpe
             >
               <Bidi>
                 {run.waiting
-                  ? run.waiting.kind === 'question'
-                    ? t.liveRun.questionTitle
-                    : t.liveRun.waitingTitle
+                  ? run.readOnly
+                    ? fmt(t.liveRun.waitingOther, { name: run.member ?? '' })
+                    : run.waiting.kind === 'question'
+                      ? t.liveRun.questionTitle
+                      : t.liveRun.waitingTitle
                   : (run.note ?? fmt(t.liveRun.claudeWorking, { n: num(step.n, locale) }))}
               </Bidi>
             </p>

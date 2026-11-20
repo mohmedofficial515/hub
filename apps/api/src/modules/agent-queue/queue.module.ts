@@ -11,9 +11,11 @@ import { IdentityModule } from '@/modules/identity';
 import { NotificationsModule } from '@/modules/notifications';
 import { WorkspacesModule } from '@/modules/workspaces';
 
+import { PlanRunsService } from './application/plan-runs.service';
 import { AgentQueueService } from './application/queue.service';
 import { AgentQueueDispatcher } from './application/queue-dispatcher';
 import { AgentQueueStore } from './application/queue-store';
+import { PlanRunsController } from './presentation/http/plan-runs.controller';
 import { AgentQueueController } from './presentation/http/queue.controller';
 
 @Module({
@@ -26,8 +28,8 @@ import { AgentQueueController } from './presentation/http/queue.controller';
     NotificationsModule,
     WorkspacesModule,
   ],
-  controllers: [AgentQueueController],
-  providers: [AgentQueueStore, AgentQueueDispatcher, AgentQueueService],
-  exports: [AgentQueueService, AgentQueueDispatcher],
+  controllers: [AgentQueueController, PlanRunsController],
+  providers: [AgentQueueStore, AgentQueueDispatcher, AgentQueueService, PlanRunsService],
+  exports: [AgentQueueService, AgentQueueDispatcher, PlanRunsService],
 })
 export class AgentQueueModule {}

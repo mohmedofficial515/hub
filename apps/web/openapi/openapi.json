@@ -9059,6 +9059,37 @@
         ]
       }
     },
+    "/api/v1/workspaces/{ws}/plans/{key}/runs": {
+      "get": {
+        "operationId": "PlanRunsController_list",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanRunsDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Claude's runs on a plan, from every member: step, state, times, who, and the stage reports. No prompt, folder, device, chat or command",
+        "tags": [
+          "plans"
+        ]
+      }
+    },
     "/api/v1/workspaces/{ws}/schema": {
       "get": {
         "operationId": "SchemaStudioController_get",
@@ -45678,6 +45709,133 @@
               "folder"
             ]
           }
+        }
+      },
+      "PlanRunsDto": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string",
+              "enum": [
+                "task",
+                "plan_step",
+                "prompt",
+                "explainer"
+              ]
+            },
+            "cardKey": {
+              "type": "string",
+              "nullable": true
+            },
+            "planStep": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991,
+              "nullable": true
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "queued",
+                "running",
+                "done",
+                "failed",
+                "stopped",
+                "interrupted",
+                "cancelled"
+              ]
+            },
+            "waiting": {
+              "type": "boolean"
+            },
+            "mine": {
+              "type": "boolean"
+            },
+            "member": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "userId",
+                "displayName"
+              ]
+            },
+            "startedAt": {
+              "type": "string",
+              "nullable": true
+            },
+            "endedAt": {
+              "type": "string",
+              "nullable": true
+            },
+            "createdAt": {
+              "type": "string"
+            },
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "protocol": {
+                    "type": "string",
+                    "enum": [
+                      "work",
+                      "doc",
+                      "film"
+                    ]
+                  },
+                  "stage": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "started",
+                      "done",
+                      "failed"
+                    ]
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "at": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "protocol",
+                  "stage",
+                  "state",
+                  "at"
+                ]
+              }
+            }
+          },
+          "required": [
+            "id",
+            "source",
+            "cardKey",
+            "planStep",
+            "state",
+            "waiting",
+            "mine",
+            "member",
+            "startedAt",
+            "endedAt",
+            "createdAt",
+            "stages"
+          ]
         }
       },
       "SchemaStudioDto": {

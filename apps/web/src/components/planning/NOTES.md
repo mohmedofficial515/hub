@@ -125,8 +125,7 @@ Built only on what Hub already has, with no new event (`plan-live.tsx`, `feature
   following Claude whenever the running step or its phase changes (owner, 2026-11-20; never scrolling), the done-count running up, and a celebration when a phase completes while the page is open.
   Every loop and the confetti stop under reduced motion; the banner stays.
 - **Not here:** the lab's simulation bar, Claude's per-step file and commit lines (Hub has no such event), a run's live note beyond the stage
-  note, and other members' runs (the queue is each member's own; project-wide visibility of runs is a later batch, owner
-  2026-11-20).
+  note, and nothing of another member's run beyond what is below.
 - **Owner's answers (2026-11-20):** Approve and Deny keep equal weight, every phase completion celebrates, a new step joins the last phase.
 
 ## Evidence on steps (v5-live-plan, batch 3 of 4, 2026-11-20)
@@ -148,7 +147,7 @@ Built only on what Hub already has, with no new event (`plan-live.tsx`, `feature
 - **Page:** the drawer's Evidence section, with its own picker (drop a file, or choose it; its name and size; a wrong type or size said at once) (before and after on one slider, by pointer or by keys in reading direction; each clip in a player;
   every picture in the lightbox; add and remove for who may), and the count on the step's row in the chapter.
 - **Later batches:** reading evidence files from the team's paired machines through the bridge (today `add_step_evidence` reads only on the
-  machine Hub runs on), and project-wide visibility of runs. A one-off failure of the plans, MCP and queue API e2e run together was seen once
+  machine Hub runs on). A one-off failure of the plans, MCP and queue API e2e run together was seen once
   and not again in eight runs; it is noted, not chased further.
 
 ## The plan on video (v5-live-plan, batch 4 of 4, 2026-11-20, for review)
@@ -171,3 +170,11 @@ render | export`), to report the five film stages through `report_stage` (protoc
   the map, "Open in Hams" only with a Hams project, and an outdated note when the plan's revision moved past the film's. The film before a
   new request keeps playing until the new one is in, then its files are removed.
 - **Not in tests:** no Claude run makes a film and no Gemini request is ever sent; the e2e attaches an export through MCP as the run would.
+
+## Every member sees Claude's runs on a plan (2026-11-20)
+
+- `GET /plans/{key}/runs` (`plan.read_runs`, everyone) answers every member's runs on the plan (its `plan_step` and `explainer` runs, and the
+  `task` runs on its steps' tasks) with the step, state, times, who runs it, whether it waits, and its stage reports. Nothing else: no prompt,
+  folder, device, chat or approval command. `plan.runs.changed { runId }` goes to every member when such a run moves or reports a stage.
+- The page keeps the member's own runs and controls on their queue; another member's run shows the same card, halo, live row and feed,
+  read only: "Run by", and "Waiting for {name} to answer" with no Approve, Deny or chat.

@@ -7377,6 +7377,30 @@ export type QueueSettingsDto = {
     isolation?: 'worktree' | 'folder';
 };
 
+export type PlanRunsDto = Array<{
+    id: string;
+    source: 'task' | 'plan_step' | 'prompt' | 'explainer';
+    cardKey: string | null;
+    planStep: number | null;
+    state: 'queued' | 'running' | 'done' | 'failed' | 'stopped' | 'interrupted' | 'cancelled';
+    waiting: boolean;
+    mine: boolean;
+    member: {
+        userId: string;
+        displayName: string;
+    };
+    startedAt: string | null;
+    endedAt: string | null;
+    createdAt: string;
+    stages: Array<{
+        protocol: 'work' | 'doc' | 'film';
+        stage: string;
+        state: 'started' | 'done' | 'failed';
+        note?: string;
+        at: string;
+    }>;
+}>;
+
 export type SchemaStudioDto = {
     source: {
         id: string;
@@ -11346,6 +11370,21 @@ export type AgentQueueControllerSettingsResponses = {
 };
 
 export type AgentQueueControllerSettingsResponse = AgentQueueControllerSettingsResponses[keyof AgentQueueControllerSettingsResponses];
+
+export type PlanRunsControllerListData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/api/v1/workspaces/{ws}/plans/{key}/runs';
+};
+
+export type PlanRunsControllerListResponses = {
+    200: PlanRunsDto;
+};
+
+export type PlanRunsControllerListResponse = PlanRunsControllerListResponses[keyof PlanRunsControllerListResponses];
 
 export type SchemaStudioControllerGetData = {
     body?: never;
