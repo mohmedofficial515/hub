@@ -1,0 +1,272 @@
+/*
+ * v5-live-plan: the live layer on top of story.css (phase tones, map, ring, waffle).
+ * Claude's own colour is the kit primary (eye cyan): the halo, the stage stepper and the live row. Waiting for the owner is the kit
+ * warning (amber). Phase colours stay for phases only.
+ */
+
+/* Live badge: a dot that breathes while the stream is open, amber and turning while it reconnects. */
+.peacock-app .ps-live-dot { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--success); flex-shrink: 0; }
+.peacock-app .ps-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--success);
+  animation: ps-pulse 2s ease-out infinite;
+}
+.peacock-app .ps-live-dot[data-state='reconnecting'] { background: var(--warning); }
+.peacock-app .ps-live-dot[data-state='reconnecting']::after {
+  border-color: var(--warning);
+  border-top-color: transparent;
+  animation: ps-spin 0.9s linear infinite;
+}
+@keyframes ps-spin {
+  from { transform: rotate(0deg); opacity: 1; }
+  to { transform: rotate(360deg); opacity: 1; }
+}
+
+/* Claude's halo around the stop it is working on: a dashed ring turning slowly, with a small Claude badge. */
+.peacock-app .ps-halo {
+  position: absolute;
+  inset: -9px;
+  border-radius: 9999px;
+  pointer-events: none;
+  border: 2px dashed var(--primary);
+  animation: ps-spin 6s linear infinite;
+}
+.peacock-app .ps-halo-badge {
+  position: absolute;
+  inset-inline-end: -10px;
+  top: -10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 0 0 2px var(--card);
+}
+.peacock-app .ps-sel-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 2px solid var(--tone);
+  pointer-events: none;
+}
+
+/* Stage stepper: five dots joined by a track that fills as stages finish. */
+.peacock-app .ps-stages { display: flex; align-items: center; min-width: 0; }
+.peacock-app .ps-stage { display: inline-flex; align-items: center; gap: 0.375rem; flex-shrink: 0; }
+.peacock-app .ps-stage-dot {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 2px solid var(--border);
+  background: var(--card);
+  color: var(--muted-foreground);
+}
+.peacock-app .ps-stage[data-state='started'] .ps-stage-dot { border-color: var(--primary); color: var(--primary-text); }
+.peacock-app .ps-stage[data-state='done'] .ps-stage-dot { border-color: var(--primary); background: var(--primary); color: var(--primary-foreground); }
+.peacock-app .ps-stage[data-state='failed'] .ps-stage-dot { border-color: var(--destructive); background: var(--destructive); color: var(--destructive-foreground); }
+.peacock-app .ps-stage-line {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0.75rem;
+  height: 2px;
+  margin-inline: 0.375rem;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--border);
+}
+.peacock-app .ps-stage-line > span { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--primary); }
+
+/* On a phone only the running stage keeps its word on screen; the others stay for screen readers. */
+@media (max-width: 40rem) {
+  .peacock-app .ps-stage:not([data-state='started']):not([data-state='failed']) .ps-stage-word {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+}
+
+/* A soft sweep over the card while Claude works (reading direction follows the page). */
+.peacock-app .ps-shimmer { position: relative; overflow: hidden; }
+.peacock-app .ps-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--primary) 9%, transparent), transparent);
+  animation: ps-sweep 2.4s ease-in-out infinite;
+}
+.peacock-app [dir='rtl'] .ps-shimmer::after,
+[dir='rtl'] .peacock-app .ps-shimmer::after { animation-name: ps-sweep-rtl; }
+@keyframes ps-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@keyframes ps-sweep-rtl {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-100%); }
+}
+
+/* Claude card, the waiting state and the live row. */
+.peacock-app .ps-claude {
+  border: 1px solid color-mix(in oklch, var(--primary) 40%, var(--border));
+  background: color-mix(in oklch, var(--primary) 7%, var(--card));
+}
+.peacock-app .ps-wait {
+  background: var(--warning-soft);
+  color: var(--warning-soft-foreground);
+  border: 1px solid color-mix(in oklch, var(--warning) 45%, transparent);
+}
+.peacock-app .ps-step[data-live='true'] {
+  background: color-mix(in oklch, var(--primary) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.peacock-app [dir='rtl'] .ps-step[data-live='true'],
+[dir='rtl'] .peacock-app .ps-step[data-live='true'] { box-shadow: inset -3px 0 0 var(--primary); }
+.peacock-app .ps-step[data-wait='true'] { background: var(--warning-soft); }
+.peacock-app .ps-cell[data-live='true'] { border-color: var(--primary); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--primary); }
+.peacock-app .ps-cell[data-dep='true'] { outline: 2px dashed var(--foreground); outline-offset: 2px; }
+.peacock-app .ps-cell[data-blocked='true'] { opacity: 0.5; }
+
+/* Celebration confetti. */
+.peacock-app .ps-burst { position: fixed; inset: 0; z-index: 80; overflow: hidden; pointer-events: none; }
+.peacock-app .ps-confetti { position: absolute; width: 0.5rem; height: 0.75rem; border-radius: 2px; background: var(--tone); }
+
+/* Drawer. */
+.peacock-app .ps-scrim { position: fixed; inset: 0; z-index: 74; background: var(--scrim); }
+.peacock-app .ps-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, 100vw);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border-inline-start: 1px solid var(--border);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.28);
+  outline: none;
+}
+
+/* Before and after. */
+.peacock-app .ps-compare {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  user-select: none;
+  touch-action: pan-y;
+  cursor: ew-resize;
+}
+.peacock-app .ps-compare img { display: block; width: 100%; height: auto; pointer-events: none; }
+.peacock-app .ps-compare-top { position: absolute; inset: 0; overflow: hidden; }
+.peacock-app .ps-compare-handle {
+  position: absolute;
+  inset-block: 0;
+  width: 2.75rem;
+  margin-inline-start: -1.375rem;
+  display: grid;
+  place-items: center;
+  cursor: ew-resize;
+  outline: none;
+}
+.peacock-app .ps-compare-handle::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: calc(50% - 1px);
+  width: 2px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.25);
+}
+.peacock-app .ps-compare-knob {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+.peacock-app .ps-compare-handle:focus-visible .ps-compare-knob { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--ring); }
+.peacock-app .ps-compare-tag {
+  position: absolute;
+  top: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.65);
+  color: rgb(255 255 255);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Video. */
+.peacock-app .ps-video-grid { display: grid; gap: 1rem; align-items: start; }
+@media (min-width: 64rem) {
+  .peacock-app .ps-video-grid { grid-template-columns: minmax(0, 1fr) 17rem; }
+}
+.peacock-app .ps-video { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 0.75rem; background: rgb(0 0 0); }
+.peacock-app .ps-chapter-btn[aria-current='true'] { background: var(--tone-soft); }
+.peacock-app .ps-progress { height: 0.375rem; overflow: hidden; border-radius: 9999px; background: var(--muted); }
+.peacock-app .ps-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+
+/* Lab simulation bar: fixed at the bottom, clearly a lab control. */
+.peacock-app .ps-sim {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 1rem;
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+  width: fit-content;
+  max-width: calc(100vw - 1.5rem);
+  margin-inline: auto;
+  padding: 0.5rem 0.625rem;
+  border-radius: 1rem;
+  border: 1px dashed var(--input);
+  background: var(--popover);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.3);
+}
+
+/* Layout helpers Tailwind may not emit for a new folder. */
+.peacock-app .ps-hero-grid { display: flex; flex-direction: column; align-items: center; gap: 1.25rem; min-width: 0; }
+@media (min-width: 40rem) {
+  .peacock-app .ps-hero-grid { flex-direction: row; align-items: center; gap: 2rem; }
+}
+.peacock-app .ps-page-bottom { padding-bottom: 6rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .peacock-app .ps-live-dot::after,
+  .peacock-app .ps-halo,
+  .peacock-app .ps-shimmer::after { animation: none; }
+}
+
+/* v5: the selection ring moves between stops (framer layoutId), so the CSS ring of v4 is off. */
+.peacock-app .ps-node[aria-pressed='true'] { box-shadow: none; }
+.peacock-app .ps-node:hover { transform: none; }
+
+/* Hams request: the choice cards and segments draw their own state, in case the utilities are not emitted for a new folder. */
+.peacock-app label:has(> input[type='radio']:focus-visible),
+.peacock-app label:has(> input[type='checkbox']:focus-visible) { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring); }
+.peacock-app input[type='checkbox'] { accent-color: var(--primary); }
+.peacock-app .ps-choice:has(> input:checked) {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 9%, var(--card));
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
