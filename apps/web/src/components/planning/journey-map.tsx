@@ -177,6 +177,7 @@ export function JourneyMap({
           const state = phaseState(g);
           const title = g.phase?.title ?? j.noPhase;
           const frac = g.total ? g.done / g.total : 0;
+          const reviewFrac = g.total ? g.review / g.total : 0;
           const roving = itemProps(i);
           const words = state === 'done' ? j.stateDone : state === 'now' ? j.stateNow : j.stateTodo;
           return (
@@ -208,7 +209,7 @@ export function JourneyMap({
                 aria-label={`${fmt(j.phaseOfN, { n: num(g.index, locale), last: num(last, locale) })}: ${title}. ${fmt(
                   j.progressLabel,
                   { done: num(g.done, locale), total: num(g.total, locale) },
-                )}. ${words}${state === 'now' ? `. ${j.here}` : ''}${active === i ? `. ${j.claudeHere}` : ''}`}
+                )}${g.review > 0 ? `. ${fmt(j.inReview, { n: num(g.review, locale) })}` : ''}. ${words}${state === 'now' ? `. ${j.here}` : ''}${active === i ? `. ${j.claudeHere}` : ''}`}
                 data-state={state}
                 className={cn('pj-node shrink-0 text-body', focusRing)}
               >
@@ -268,6 +269,19 @@ export function JourneyMap({
                           transition: 'stroke-dasharray 700ms cubic-bezier(0.2, 0.7, 0.2, 1)',
                         }}
                       />
+                      {/* In review: the arc after the done part, dashed, so it reads as a shape and not only a colour. */}
+                      <circle
+                        cx="22"
+                        cy="22"
+                        r="20"
+                        fill="none"
+                        strokeWidth="3"
+                        pathLength={1}
+                        strokeDasharray={`${reviewFrac} 1`}
+                        strokeDashoffset={-frac}
+                        className="pj-node-review"
+                        style={{ opacity: reviewFrac > 0 ? 0.5 : 0 }}
+                      />
                     </svg>
                     <span aria-hidden className="relative">
                       <Ltr className="tabular-nums">{num(g.index, locale)}</Ltr>
@@ -302,6 +316,12 @@ export function JourneyMap({
                   </span>
                   {state === 'now' && <span className="pj-tone-fg font-semibold">· {j.here}</span>}
                 </span>
+                {state !== 'done' && g.review > 0 && (
+                  <span className="flex items-center gap-1 text-caption text-foreground tabular-nums">
+                    <span aria-hidden className="pj-swatch pj-swatch-review" />
+                    {fmt(j.inReview, { n: num(g.review, locale) })}
+                  </span>
+                )}
               </motion.span>
             </div>
           );

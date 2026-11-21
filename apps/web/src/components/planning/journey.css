@@ -223,6 +223,13 @@
 .pj-arc-done {
   stroke: var(--pj-tone);
 }
+.pj-arc-review {
+  stroke: var(--pj-tone);
+  opacity: 0.45;
+}
+.pj-arc-review[data-dim='true'] {
+  opacity: 0.15;
+}
 .pj-arc[data-hot='true'] {
   stroke-width: 16;
 }
@@ -258,6 +265,12 @@
   border-color: var(--pj-tone);
   color: var(--pj-tone-on);
 }
+/* In review: its work is in, the owner has not closed it. Hatched, so it is a shape apart from done (filled) and to do (hollow). */
+.pj-cell[data-state='review'] {
+  border-color: var(--pj-tone);
+  background: repeating-linear-gradient(135deg, var(--pj-tone-line) 0 3px, transparent 3px 6px);
+  color: var(--pj-tone-fg);
+}
 .pj-cell[data-state='next'] {
   border-color: var(--pj-tone);
   box-shadow: inset 0 0 0 2px var(--pj-tone-soft);
@@ -284,6 +297,15 @@
   height: 0.75rem;
   border-radius: 9999px;
   flex-shrink: 0;
+}
+.pj-swatch-review {
+  border: 2px solid var(--foreground);
+  background: repeating-linear-gradient(135deg, var(--foreground) 0 2px, transparent 2px 4px);
+}
+.pj-node-review {
+  stroke: var(--pj-tone);
+  opacity: 0.5;
+  transition: stroke-dasharray 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .pj-swatch-line {
   border: 2px dashed var(--border);

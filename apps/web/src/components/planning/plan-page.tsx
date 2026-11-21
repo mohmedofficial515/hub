@@ -76,6 +76,7 @@ import {
   finishEstimate,
   type JourneyStep,
   journeySteps,
+  nextStepOf,
   type PhaseGroup,
   phaseGroups,
   toneOf,
@@ -158,6 +159,10 @@ function Legend() {
         {j.legendDone}
       </li>
       <li className="inline-flex items-center gap-1.5">
+        <span aria-hidden className="pj-swatch pj-swatch-review" />
+        {j.legendReview}
+      </li>
+      <li className="inline-flex items-center gap-1.5">
         <span aria-hidden className="pj-swatch border-2 border-foreground" />
         {j.legendNow}
       </li>
@@ -181,6 +186,9 @@ function Stats({ steps }: { steps: readonly JourneyStep[] }) {
         <span tabIndex={0} className={cn('inline-flex items-center gap-1.5 rounded-sm', focusRing)}>
           <Gauge aria-hidden className="size-4" strokeWidth={1.75} />
           {fmt(j.effortLabel, { done: num(effort.done, locale), total: num(effort.total, locale) })}
+          {effort.review > 0 && (
+            <span className="text-foreground">{fmt(j.effortReview, { n: num(effort.review, locale) })}</span>
+          )}
         </span>
       </Tooltip>
       {estimate && (
@@ -308,7 +316,8 @@ function PlanHero({
   usePageTitleFocus(titleRef);
   const phased = card.plan.phases.length > 0;
   const { done, total, withoutTask } = progressOf(card);
-  const next = steps.find((s) => !s.done);
+  const next = nextStepOf(steps);
+  const inReview = steps.filter((s) => s.review).length;
   const nextGroup = groups.find((g) => g.hasNext);
   const guide = guideOf(card, roles, me.id);
   const idea = linkedOfType(card, 'idea');
@@ -410,6 +419,12 @@ function PlanHero({
             </p>
             {!phased && total > 0 && <ProgressMeter done={done} total={total} className="w-40" />}
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body-sm text-muted-foreground">
+              {inReview > 0 && (
+                <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                  <span aria-hidden className="pj-swatch pj-swatch-review" />
+                  {fmt(j.inReview, { n: num(inReview, locale) })}
+                </span>
+              )}
               {phased && <span>{plural(card.plan.phases.length, locale, j.phasesWord)}</span>}
               {total > 0 && (
                 <span>{withoutTask > 0 ? fmt(d.noTask, { n: num(withoutTask, locale) }) : d.allTasks}</span>
@@ -548,7 +563,7 @@ function StepsSection({
               open={open}
               onToggle={toggle}
               all={steps}
-              nextId={steps.find((s) => !s.done)?.id ?? null}
+              nextId={nextStepOf(steps)?.id ?? null}
               run={card.archivedAt || !wb ? undefined : { cardKey: card.key }}
               tasks={tasks}
               anchor={`step-${card.key}`}
@@ -584,14 +599,22 @@ export function PlanDetail({
   const { rest, extras } = useMemo(() => readPlanText(body, card.plan.steps), [body, card.plan.steps]);
   const tasks = useStepTasks(card);
   // The tasks map is rebuilt each render; what the steps read from it is each task's close time.
-  const closed = [...tasks.values()].map((task) => `${task.key}:${task.closedAt ?? ''}`).join();
+  const closed = [...tasks.values()]
+    .map((task) => `${task.key}:${task.closedAt ?? ''}:${task.status}`)
+    .join();
   const steps = useMemo(
-    () => journeySteps(card.plan.steps, extras, (key) => tasks.get(key)?.closedAt),
+    () =>
+      journeySteps(
+        card.plan.steps,
+        extras,
+        (key) => tasks.get(key)?.closedAt,
+        (key) => tasks.get(key)?.status === 'in_review',
+      ),
     [card.plan.steps, extras, closed],
   );
   const groups = useMemo(() => phaseGroups(card.plan.phases, steps), [card.plan.phases, steps]);
   const phased = card.plan.phases.length > 0;
-  const nextId = steps.find((s) => !s.done)?.id ?? null;
+  const nextId = nextStepOf(steps)?.id ?? null;
   const hereIndex = Math.max(
     0,
     groups.findIndex((g) => g.hasNext),

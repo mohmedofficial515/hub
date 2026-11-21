@@ -2,7 +2,8 @@
  * @file journey.ts
  * @description What a plan's own page derives for its journey (apps/lab/hub/plan-page/v5-live-plan, approved 2026-11-19): steps numbered in the
  * whole plan and grouped under their phases, effort by size, what a step waits for, and a finish estimate from the pace so far. Nothing here is
- * stored; each is computed from the card. A plan saved before phases is one unnamed group.
+ * stored; each is computed from the card. A plan saved before phases is one unnamed group. A step whose task waits in review is not done (only the
+ * owner closes a task), but it counts apart as "in review", so work sent for review shows on the journey before the owner closes it (owner, 2026-11-21).
  */
 import type { PlanPhase, PlanStep, Role } from '../cards/types';
 import type { StepExtra, StepSize } from './plan-text';
@@ -14,6 +15,8 @@ export const SIZE_WEIGHT: Record<StepSize, number> = { S: 1, M: 3, L: 8 };
 export interface JourneyStep extends PlanStep {
   /** 1-based position in the whole plan: a step keeps its plan number inside a phase. */
   n: number;
+  /** Its task waits in review: not done yet, but its work is in. */
+  review?: boolean;
 }
 
 export const weightOf = (step: Pick<PlanStep, 'size'>) => SIZE_WEIGHT[step.size ?? 'M'];
@@ -26,6 +29,7 @@ export function journeySteps(
   steps: readonly PlanStep[],
   extras?: readonly StepExtra[] | null,
   closedAt?: (taskKey: string) => string | undefined,
+  inReview?: (taskKey: string) => boolean,
 ): JourneyStep[] {
   return steps.map((step, index) => {
     const extra = extras?.[index];
@@ -37,9 +41,11 @@ export function journeySteps(
     const doneAt = step.done
       ? (step.doneAt ?? (step.taskKey ? closedAt?.(step.taskKey) : undefined))
       : undefined;
+    const review = !step.done && !!step.taskKey && !!inReview?.(step.taskKey);
     return {
       ...step,
       n: index + 1,
+      ...(review ? { review } : {}),
       ...(why ? { why } : {}),
       ...(size ? { size } : {}),
       ...(after?.length ? { after } : {}),
@@ -56,6 +62,8 @@ export interface PhaseGroup {
   index: number;
   steps: JourneyStep[];
   done: number;
+  /** Steps whose task waits in review: counted apart from `done`. */
+  review: number;
   total: number;
   roles: { role: Role; n: number }[];
   /** Holds the plan's next step: the first one not done. */
@@ -68,15 +76,20 @@ function roleMix(steps: readonly JourneyStep[]) {
   return [...counts.entries()].map(([role, n]) => ({ role, n })).sort((a, b) => b.n - a.n);
 }
 
+/** The plan's next step: the first one neither done nor in review, else the first one not done. */
+export const nextStepOf = <T extends Pick<JourneyStep, 'done' | 'review'>>(steps: readonly T[]) =>
+  steps.find((step) => !step.done && !step.review) ?? steps.find((step) => !step.done);
+
 /** Steps under their phase, in phase order. Steps with no known phase go last, in one unnamed group. */
 export function phaseGroups(phases: readonly PlanPhase[], steps: readonly JourneyStep[]): PhaseGroup[] {
-  const nextId = steps.find((step) => !step.done)?.id;
+  const nextId = nextStepOf(steps)?.id;
   const known = new Set(phases.map((phase) => phase.id));
   const build = (phase: PlanPhase | null, index: number, own: JourneyStep[]): PhaseGroup => ({
     phase,
     index,
     steps: own,
     done: own.filter((step) => step.done).length,
+    review: own.filter((step) => step.review).length,
     total: own.length,
     roles: roleMix(own),
     hasNext: !!nextId && own.some((step) => step.id === nextId),
@@ -101,16 +114,18 @@ export function blockersOf(step: Pick<PlanStep, 'after'>, all: readonly JourneyS
   });
 }
 
-/** Effort done and in all, in size points. */
-export function effortOf(steps: readonly Pick<PlanStep, 'size' | 'done'>[]) {
+/** Effort done, in review and in all, in size points. */
+export function effortOf(steps: readonly (Pick<PlanStep, 'size' | 'done'> & { review?: boolean })[]) {
   let done = 0;
+  let review = 0;
   let total = 0;
   for (const step of steps) {
     const weight = weightOf(step);
     total += weight;
     if (step.done) done += weight;
+    else if (step.review) review += weight;
   }
-  return { done, total };
+  return { done, review, total };
 }
 
 export interface FinishEstimate {

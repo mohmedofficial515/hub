@@ -9,6 +9,7 @@ import {
   effortOf,
   finishEstimate,
   journeySteps,
+  nextStepOf,
   phaseGroups,
   phaseState,
   SIZE_WEIGHT,
@@ -102,6 +103,7 @@ describe('effortOf and blockersOf', () => {
     expect(SIZE_WEIGHT).toEqual({ S: 1, M: 3, L: 8 });
     expect(effortOf([step('a', { size: 'S', done: true }), step('b', { size: 'L' }), step('c')])).toEqual({
       done: 1,
+      review: 0,
       total: 12,
     });
   });
@@ -149,5 +151,46 @@ describe('finishEstimate', () => {
   it('is null when nothing is left', () => {
     const steps = [1, 2, 3].map((d) => step(`s${d}`, { done: true, doneAt: day(d) }));
     expect(finishEstimate(steps, now)).toBeNull();
+  });
+});
+
+describe('steps in review', () => {
+  const phases = [
+    { id: 'p0', title: 'Setup' },
+    { id: 'p1', title: 'Build' },
+  ];
+  const plan = [
+    step('a', { phaseId: 'p0', taskKey: 'T-1', role: 'owner' }),
+    step('b', { phaseId: 'p1', taskKey: 'T-2', size: 'L' }),
+    step('c', { phaseId: 'p1', taskKey: 'T-3', done: true }),
+    step('d', { phaseId: 'p1', taskKey: 'T-4' }),
+  ];
+  const reviewing = new Set(['T-2', 'T-3', 'T-4']);
+  const steps = journeySteps(plan, null, undefined, (key) => reviewing.has(key));
+
+  it('marks a step whose task waits in review, but never a done one or one without a task', () => {
+    expect(steps.map((s) => !!s.review)).toEqual([false, true, false, true]);
+    const loose = journeySteps([step('x')], null, undefined, () => true);
+    expect(loose[0]!.review).toBeUndefined();
+  });
+
+  it('counts review apart from done, in steps and in effort', () => {
+    const [p0, p1] = phaseGroups(phases, steps);
+    expect([p0!.done, p0!.review, p1!.done, p1!.review]).toEqual([0, 0, 1, 2]);
+    expect(effortOf(steps)).toEqual({ done: 3, review: 11, total: 17 });
+  });
+
+  it('a phase with only steps in review is not done', () => {
+    const [, p1] = phaseGroups(
+      phases,
+      journeySteps(plan.slice(1, 2), null, undefined, () => true),
+    );
+    expect(phaseState(p1!)).not.toBe('done');
+  });
+
+  it('the next step skips steps in review, and falls back to them when nothing else is left', () => {
+    expect(nextStepOf(steps)?.id).toBe('a');
+    const onlyReview = journeySteps(plan.slice(1), null, undefined, (key) => reviewing.has(key));
+    expect(nextStepOf(onlyReview)?.id).toBe('b');
   });
 });

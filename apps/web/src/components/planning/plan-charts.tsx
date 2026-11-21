@@ -37,8 +37,13 @@ export function PlanRing({
   const all = groups.flatMap((g) => g.steps);
   const effort = effortOf(all);
   const total = effort.total;
-  const steps = { done: all.filter((s) => s.done).length, total: all.length };
+  const steps = {
+    done: all.filter((s) => s.done).length,
+    review: all.filter((s) => s.review).length,
+    total: all.length,
+  };
   const percent = total ? Math.round((effort.done / total) * 100) : 0;
+  const reviewPercent = total ? Math.round((effort.review / total) * 100) : 0;
   let start = 0;
 
   return (
@@ -58,6 +63,7 @@ export function PlanRing({
           start += length;
           const visible = Math.max(length - GAP, 0.002);
           const filled = Math.min(e.done / total, visible);
+          const reviewing = Math.min(e.review / total, Math.max(visible - filled, 0));
           const hot = hover === i || selected === i;
           const dim = hover !== null && hover !== i;
           return (
@@ -92,6 +98,20 @@ export function PlanRing({
                 className="pj-arc pj-arc-done"
                 style={{ transition: MOVE }}
               />
+              {reviewing > 0 && (
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="50"
+                  pathLength={1}
+                  strokeDasharray={`${reviewing} ${1 - reviewing}`}
+                  strokeDashoffset={-(from + filled)}
+                  data-hot={hot}
+                  data-dim={dim}
+                  className="pj-arc pj-arc-review"
+                  style={{ transition: MOVE }}
+                />
+              )}
             </g>
           );
         })}
@@ -106,10 +126,16 @@ export function PlanRing({
         <span aria-hidden className="text-caption text-muted-foreground">
           {j.ringEffort}
         </span>
+        {reviewPercent > 0 && (
+          <span aria-hidden className="text-caption font-medium text-foreground tabular-nums">
+            {fmt(j.ringReview, { p: num(reviewPercent, locale) })}
+          </span>
+        )}
       </div>
       <p className="sr-only">
         {j.ringLabel}:{' '}
         {fmt(j.progressLabel, { done: num(steps.done, locale), total: num(steps.total, locale) })}.{' '}
+        {steps.review > 0 && `${fmt(j.inReview, { n: num(steps.review, locale) })}. `}
         {fmt(j.effortLabel, { done: num(effort.done, locale), total: num(total, locale) })}
       </p>
     </div>

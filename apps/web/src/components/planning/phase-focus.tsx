@@ -298,6 +298,12 @@ export function PhaseFocus({
               <h4 className="text-body-sm font-semibold text-foreground">{j.stepsGrid}</h4>
               <span className="pj-tone-fg text-body-sm font-semibold tabular-nums">
                 {fmt(j.percentDone, { p: num(percent, locale) })}
+                {group.review > 0 && (
+                  <span className="font-medium text-foreground">
+                    {' · '}
+                    {fmt(j.inReview, { n: num(group.review, locale) })}
+                  </span>
+                )}
               </span>
             </div>
             {/* A pointer shortcut to the steps beside it, which say all of this in words. */}
@@ -309,8 +315,8 @@ export function PhaseFocus({
                 return (
                   <motion.span
                     key={s.id}
-                    title={`${fmt(j.stepNo, { n: num(s.n, locale) })}: ${s.title}`}
-                    data-state={s.done ? 'done' : s.id === nextId ? 'next' : 'todo'}
+                    title={`${fmt(j.stepNo, { n: num(s.n, locale) })}: ${s.title}${s.review ? ` · ${j.legendReview}` : ''}`}
+                    data-state={s.done ? 'done' : s.review ? 'review' : s.id === nextId ? 'next' : 'todo'}
                     data-hot={hot === s.id}
                     data-blocked={blocked}
                     data-live={liveCell}
