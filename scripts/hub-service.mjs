@@ -48,7 +48,7 @@ function build() {
         ...env,
         NODE_ENV: 'production',
         NEXT_DIST_DIR: WEB_DIST,
-        HUB_API_ORIGIN: `http://localhost:${apiPort}`,
+        HUB_API_ORIGIN: `http://127.0.0.1:${apiPort}`,
         HUB_LAB_ORIGIN: `http://127.0.0.1:${labPort}`,
       },
     ],

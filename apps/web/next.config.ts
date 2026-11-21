@@ -7,7 +7,8 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-const API_ORIGIN = process.env.HUB_API_ORIGIN ?? 'http://localhost:7310';
+// 127.0.0.1, not localhost: Hub listens on IPv4 only, and on Windows localhost tries ::1 first, adding 200 ms to 2 s to every request.
+const API_ORIGIN = process.env.HUB_API_ORIGIN ?? 'http://127.0.0.1:7310';
 // Fixed at `next build`, as the API's is. `middleware.ts` guards what passes through.
 const LAB_ORIGIN = process.env.HUB_LAB_ORIGIN ?? 'http://127.0.0.1:7320';
 

@@ -10,6 +10,7 @@
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, rmSync, writeFileSync } from 'node:fs';
+import { connect, createServer } from 'node:net';
 import { join } from 'node:path';
 
 import {
@@ -177,7 +178,7 @@ async function main() {
     ...env,
     NODE_ENV: 'production',
     NEXT_DIST_DIR: WEB_DIST,
-    HUB_API_ORIGIN: `http://localhost:${apiPort}`,
+    HUB_API_ORIGIN: `http://127.0.0.1:${apiPort}`,
     HUB_LAB_ORIGIN: `http://127.0.0.1:${labPort}`,
   };
   const add = (name, args, cwd, partEnv) =>
@@ -212,7 +213,30 @@ async function main() {
     log('The lab has no packages (`pnpm install`), so Hub runs without it and Redesign says so.');
   }
   for (const part of parts.values()) startPart(part);
+  if (host === '127.0.0.1') for (const port of [webPort, apiPort]) loopbackIpv6(port);
   log(`Hub is running: http://localhost:${webPort}${host ? ` (listening on ${host})` : ''}.`);
+}
+
+/**
+ * Hub on 127.0.0.1 only, while Windows resolves `localhost` to ::1 first: a browser or Claude Code on http://localhost:7300 waited for ::1 to
+ * be refused on every new connection (200 ms to 2 s, 2026-11-21). This answers on [::1] for the same port and passes the bytes on to
+ * 127.0.0.1, so `localhost` connects at once. Loopback only, so nothing on the network reaches it; a machine without IPv6 just logs it.
+ */
+function loopbackIpv6(port) {
+  const server = createServer((client) => {
+    const upstream = connect({ host: '127.0.0.1', port });
+    client.pipe(upstream).pipe(client);
+    const close = () => {
+      client.destroy();
+      upstream.destroy();
+    };
+    client.on('error', close);
+    upstream.on('error', close);
+  });
+  server.on('error', (error) =>
+    log(`localhost on [::1]:${port} is not served (${error.code ?? error.message}).`),
+  );
+  server.listen({ host: '::1', port, ipv6Only: true });
 }
 
 process.on('SIGINT', () => stopAll(0));
