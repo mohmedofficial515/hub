@@ -1,0 +1,25 @@
+{
+  "name": "@hub/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "hub-bridge: the local service that connects a device out to Hub. Plain Node with no dependencies, so Hub can serve it to a new device.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "hub-bridge": "./bin/hub-bridge.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "bin",
+    "lib"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@hub/contracts": "workspace:*",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,280 @@
+/**
+ * @file The stack the browser tests run on: real Postgres and Redis in throwaway containers, the built API, the built web.
+ * @description It never reads the local Hub database: every variable the API needs is set below, and real variables win over the root
+ * `.env` (`apps/api/src/config/load-env.ts`). The lab is a temp fixture with the real lab's code, so Approve writes there and never to a real lab.
+ * `E2E_SKIP_BUILD=1` reuses the last builds while writing tests.
+ */
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import {
+  closeSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
+
+import { API_PORT, API_URL, LAB_PORT, WEB_PORT, WEB_URL } from './ports';
+import { API_ENTRY, API_FILE } from './state';
+
+const WEB_DIR = resolve(__dirname, '../..');
+const API_DIR = resolve(WEB_DIR, '../api');
+const ROOT = resolve(WEB_DIR, '../..');
+const LAB_DIR = resolve(WEB_DIR, '../lab');
+const DIST_DIR = process.env['E2E_NEXT_DIST'] ?? '.next-e2e';
+
+export interface RunningStack {
+  postgres: StartedPostgreSqlContainer;
+  redis: StartedRedisContainer;
+  processes: ChildProcess[];
+  labRoot: string;
+  /** What a script on this stack needs, as `pnpm start:local` has from `.env`. Throwaway values. */
+  scriptEnv: Record<string, string>;
+}
+
+function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv) {
+  const shell = command === 'pnpm' && process.platform === 'win32';
+  const result = spawnSync(command, args, { cwd, env, encoding: 'utf8', shell });
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} failed\n${result.stdout}\n${result.stderr}`);
+  }
+}
+
+function start(script: string[], cwd: string, env: NodeJS.ProcessEnv, logFile: string): ChildProcess {
+  const log = openSync(logFile, 'w');
+  const child = spawn(process.execPath, script, { cwd, env, stdio: ['ignore', log, log] });
+  closeSync(log);
+  return child;
+}
+
+/** One app with one version in review per project of the run, in the shape docs/10 §1 describes, and a baseline with no README. */
+function aLab(): string {
+  // The long name: Windows may hand out 8.3 temp paths, and the dev server compares real paths.
+  const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'hub-e2e-lab-')));
+  for (const locale of ['ar', 'en']) {
+    const page = join(root, 'web', `wallet-${locale}`);
+    const version = join(page, 'v2-flight-path');
+    mkdirSync(version, { recursive: true });
+    mkdirSync(join(page, 'v1-baseline'));
+    writeFileSync(join(page, 'v1-baseline', 'components.md'), '# Components\n\nThe page as it is today.\n');
+    writeFileSync(
+      join(page, 'README.md'),
+      '---\nstatus: active\nroute: /wallet\nlive-url: https://example.test/wallet\n---\n# Wallet\n',
+    );
+    writeFileSync(
+      join(version, 'README.md'),
+      '---\nstatus: review\nbase: v1-baseline\ntitle: Flight path\ntouches-components:\n  - WalletCard\n---\n# Flight path\n\nA new wallet.\n',
+    );
+  }
+  return withFrames(root);
+}
+
+/** The real lab's code around fixture versions: one that renders, one that does not compile, and a baseline of pictures. */
+function withFrames(root: string): string {
+  for (const part of ['lab', 'shared']) cpSync(join(LAB_DIR, part), join(root, part), { recursive: true });
+  for (const file of ['vite.config.ts', 'package.json', 'tsconfig.json']) {
+    cpSync(join(LAB_DIR, file), join(root, file));
+  }
+  symlinkSync(join(LAB_DIR, 'node_modules'), join(root, 'node_modules'), 'junction');
+  const project = join(root, '.sibling');
+  mkdirSync(join(project, 'app'), { recursive: true });
+  mkdirSync(join(project, 'components/ui'), { recursive: true });
+  writeFileSync(join(project, 'app/globals.css'), "@import 'tailwindcss';\n");
+
+  const page = join(root, 'hub', 'frames');
+  const good = join(page, 'v2-good');
+  const broken = join(page, 'v3-broken');
+  const baseline = join(page, 'v1-baseline');
+  for (const folder of [good, broken, baseline]) mkdirSync(folder, { recursive: true });
+  writeFileSync(
+    join(page, 'README.md'),
+    '---\nstatus: designing\n---\n# Frames\n\nThe brief of this page.\n',
+  );
+  writeFileSync(
+    join(good, 'README.md'),
+    '---\nstatus: review\nbase: v1-baseline\ntitle: Good\ncreated: 2026-10-27\ntokens: inherit\n---\n# Good\n\nThe notes of the good version.\n',
+  );
+  writeFileSync(
+    join(good, 'page.tsx'),
+    'import { useLocale } from \'@lab/i18n\';\n\nexport default function Page() {\n  return <main data-testid="fixture">Frame works: {useLocale()}</main>;\n}\n',
+  );
+  writeFileSync(join(broken, 'README.md'), '---\nstatus: draft\ntitle: Broken\n---\n# Broken\n');
+  writeFileSync(join(broken, 'page.tsx'), 'export default function Page( { return <main>;\n');
+  writeFileSync(join(baseline, 'components.md'), '# Components\n');
+  // The smallest PNG: one transparent pixel.
+  writeFileSync(
+    join(baseline, '1440-ltr-light.png'),
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      'base64',
+    ),
+  );
+  return root;
+}
+
+/** A copy of the team pack and a personal skills folder with skills to move, one per language, and one whose name Hub already has. */
+function aSkillsPlace(labRoot: string): { teamPack: string; personal: string } {
+  const teamPack = join(labRoot, '.team-pack');
+  for (const entry of ['.claude-plugin', 'plugin', 'package.json']) {
+    cpSync(join(ROOT, 'packages', 'team-pack', entry), join(teamPack, entry), { recursive: true });
+  }
+  const personal = join(labRoot, '.personal-skills');
+  const skill = (name: string, files: Record<string, string>) => {
+    for (const [path, text] of Object.entries(files)) {
+      mkdirSync(join(personal, name, path, '..'), { recursive: true });
+      writeFileSync(join(personal, name, path), text);
+    }
+  };
+  for (const locale of ['ar', 'en']) {
+    skill(`notes-${locale}`, {
+      'SKILL.md': `---\nname: notes-${locale}\ndescription: Keep daily notes in the repository\nuser-invocable: true\n---\n\nWrite today's notes.\n`,
+      'references/format.md': '# Format\n',
+    });
+  }
+  skill('suggest', { 'SKILL.md': '---\nname: suggest\ndescription: My own way to suggest\n---\n\nMine.\n' });
+  return { teamPack, personal };
+}
+
+async function waitFor(url: string, name: string, log: string) {
+  const deadline = Date.now() + 180_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.status < 500) return;
+    } catch {
+      /* Not up yet. */
+    }
+    await new Promise((done) => setTimeout(done, 500));
+  }
+  throw new Error(`${name} did not come up at ${url}. Its log: ${log}`);
+}
+
+export const OWNER = { email: 'owner@e2e.test', password: 'Owner-pass-e2e-12345', name: 'Owner' };
+
+export async function startStack(): Promise<RunningStack> {
+  const [postgres, redis] = await Promise.all([
+    new PostgreSqlContainer('pgvector/pgvector:pg16')
+      .withDatabase('hub_e2e_web')
+      .withUsername('hub')
+      .withPassword('hub')
+      .start(),
+    new RedisContainer('redis:7-alpine').start(),
+  ]);
+  const labRoot = aLab();
+  const skills = aSkillsPlace(labRoot);
+  const logs = join(WEB_DIR, 'test-results');
+  mkdirSync(logs, { recursive: true });
+
+  const apiEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    NODE_ENV: 'development',
+    PROCESS_ROLE: 'all',
+    PORT: String(API_PORT),
+    HUB_RATE_LIMIT_USER: '6000',
+    LOG_LEVEL: 'warn',
+    TZ: 'Europe/Istanbul',
+    HUB_PUBLIC_URL: WEB_URL,
+    HUB_ALLOWED_HOSTS: 'localhost,127.0.0.1',
+    // 127.0.0.1, not the container's `localhost`: Prisma's schema engine on Windows can fail to reach Docker's port by that name (P1001).
+    DATABASE_URL: `${postgres.getConnectionUri().replace('@localhost:', '@127.0.0.1:')}?schema=public`,
+    REDIS_URL: redis.getConnectionUrl(),
+    HUB_SECRET_KEY: randomBytes(32).toString('base64'),
+    HUB_JWT_SECRET: randomBytes(48).toString('base64url'),
+    HUB_OWNER_EMAIL: OWNER.email,
+    HUB_OWNER_PASSWORD: OWNER.password,
+    HUB_OWNER_NAME: OWNER.name,
+    LAB_ROOT: labRoot,
+    REPOS_ROOT: join(labRoot, '.repos'),
+    // Backups go to a temp folder, never F:/HubBackups, and no nightly run starts by itself (docs/16 D61 to D63).
+    HUB_BACKUP_DIR: join(labRoot, '.backups'),
+    HUB_BACKUP_SCHEDULE: 'off',
+    // Skills go to a copy of the team pack and come from a scratch personal folder, never the repository or `~/.claude` (docs/16 §11). The plugin syncs only on Sync now.
+    HUB_TEAM_PACK_DIR: skills.teamPack,
+    HUB_PERSONAL_SKILLS_DIR: skills.personal,
+    HUB_PLUGIN_SYNC: 'manual',
+    // The real path: an invite must not wait for this, and a mail server that is absent is only a warning. Nothing listens on this port:
+    // never the owner's Mailpit (7342). Every mail variable is set, so a Gmail login in the owner's `.env` never reaches a test.
+    MAIL_PROVIDER: 'smtp',
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: process.env['E2E_SMTP_PORT'] ?? '7349',
+    SMTP_SECURE: 'false',
+    SMTP_USER: '',
+    SMTP_PASS: '',
+    MAIL_FROM: 'Hub <hub@e2e.test>',
+  };
+
+  const prisma = join(API_DIR, 'node_modules/prisma/build/index.js');
+  run(process.execPath, [prisma, 'migrate', 'deploy'], API_DIR, apiEnv);
+  run(process.execPath, ['-r', './scripts/swc-register.cjs', 'scripts/seed-owner.ts'], API_DIR, apiEnv);
+
+  const webEnv: NodeJS.ProcessEnv = {
+    ...process.env,
+    NODE_ENV: 'production',
+    NEXT_DIST_DIR: DIST_DIR,
+    HUB_API_ORIGIN: API_URL,
+    HUB_LAB_ORIGIN: `http://127.0.0.1:${LAB_PORT}`,
+  };
+  if (!process.env['E2E_SKIP_BUILD']) {
+    run('pnpm', ['--filter', '@hub/contracts', 'build'], ROOT, process.env);
+    // Into `.e2e-dist`, not `dist`, which the owner's running HubServer uses (state.ts `API_ENTRY`).
+    run(
+      'pnpm',
+      ['exec', 'nest', 'build', '-c', 'nest-cli.e2e.json', '-p', 'tsconfig.e2e-build.json'],
+      API_DIR,
+      process.env,
+    );
+    run('pnpm', ['exec', 'next', 'build'], WEB_DIR, webEnv);
+  }
+
+  const apiLog = join(logs, 'e2e-api.log');
+  const webLog = join(logs, 'e2e-web.log');
+  const labLog = join(logs, 'e2e-lab.log');
+  const nextBin = join(WEB_DIR, 'node_modules/next/dist/bin/next');
+  const processes = [
+    start([API_ENTRY], API_DIR, apiEnv, apiLog),
+    start([nextBin, 'start', '-p', String(WEB_PORT)], WEB_DIR, webEnv, webLog),
+    start(
+      [join(labRoot, 'node_modules/vite/bin/vite.js')],
+      labRoot,
+      {
+        ...process.env,
+        LAB_PORT: String(LAB_PORT),
+        LAB_WEB_SRC: join(labRoot, '.sibling'),
+        LAB_DASH_SRC: join(labRoot, '.sibling'),
+      },
+      labLog,
+    ),
+  ];
+  await waitFor(`${API_URL}/api/v1/health/ready`, 'API', apiLog);
+  mkdirSync(join(API_FILE, '..'), { recursive: true });
+  writeFileSync(API_FILE, JSON.stringify({ pid: processes[0]!.pid, cwd: API_DIR, env: apiEnv, log: apiLog }));
+  await waitFor(WEB_URL, 'web', webLog);
+  await waitFor(`http://127.0.0.1:${LAB_PORT}/lab/frame-hub.html`, 'lab', labLog);
+  const scriptEnv = {
+    NODE_ENV: 'development',
+    DATABASE_URL: String(apiEnv['DATABASE_URL']),
+    REDIS_URL: String(apiEnv['REDIS_URL']),
+    HUB_SECRET_KEY: String(apiEnv['HUB_SECRET_KEY']),
+    HUB_JWT_SECRET: String(apiEnv['HUB_JWT_SECRET']),
+    HUB_OWNER_EMAIL: OWNER.email,
+    HUB_PUBLIC_URL: WEB_URL,
+  };
+  return { postgres, redis, processes, labRoot, scriptEnv };
+}
+
+export async function stopStack(stack: RunningStack) {
+  for (const child of stack.processes) child.kill();
+  await Promise.all([stack.postgres.stop(), stack.redis.stop()]);
+  // The link first, so removing the folder never reaches the real packages.
+  rmSync(join(stack.labRoot, 'node_modules'), { recursive: true, force: true });
+  rmSync(stack.labRoot, { recursive: true, force: true });
+}

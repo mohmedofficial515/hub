@@ -11,9 +11,9 @@ wins. Wireframes in both documents are drawn left-to-right; the Arabic UI is the
 | P1 | **The timeline is the product.** Everything else is a filtered view of it. | Every list row in Hub is a card or an event, rendered by the same `TimelineItem`/`CardChip` components. No page invents its own row design. |
 | P2 | **Calm, dense, readable.** The team reads Hub many times a day; it must look like a well-set document, not a dashboard of widgets. | Default density `comfortable` (row ≥ 44 px); one accent colour (`primary`) for actions; type colours are used only on the type dot, badge and the card sheet header stripe — never on whole rows or backgrounds. No gradients, no drop shadows deeper than `shadow-sm`, no decorative illustration. |
 | P3 | **What waits for me comes first.** Cards routed to my roles always outrank everything else. | "Today" and "Inbox" open on the awaiting-me block; every list has an "awaiting me" quick filter; every card routed to one of my roles shows a `RoleBadge` with a filled dot. |
-| P4 | **Machines write, people decide.** The UI makes clear who wrote what. | Author chips show `user`, `agent (name)` or `system (adapter)` with distinct icons; human-only actions are visibly disabled for agent tokens in the token page; no action in the UI is ever hidden because it is machine-created. |
+| P4 | **Machines write, people decide.** The UI makes clear who wrote what. | Author chips show `user`, `agent (name)` or `system (adapter)` with distinct icons; the actor's kind is recorded and shown, and never used to refuse (D27): an action depends on the member's roles only; no action in the UI is ever hidden because it is machine-created. |
 | P5 | **Arabic is the first language, not a translation.** | Layout is designed RTL first; English is the mirror. Arabic digits are not used (Latin digits everywhere, per the Goteav sites). Card keys, paths, commands and code are always LTR isolates. |
-| P6 | **Nothing disappears.** | No delete buttons. "Archive" and "Restore" only; archived items are reachable through a filter; redacted comments keep their slot ("redacted by owner"). |
+| P6 | **Nothing disappears.** | Delete («حذف») is recoverable (D28): it hides a card everywhere, and the Deleted view («المحذوفات») restores it. There is no hard delete; redacted comments keep their slot ("redacted by owner"). |
 | P7 | **Every action is reachable by keyboard and from the command palette.** | Every primary action has a shortcut listed in §12; `Ctrl/Cmd+K` finds every page, card and action. |
 
 ## 2. Information architecture
@@ -24,25 +24,35 @@ Sidebar (per workspace)                       Counters (badge on the item)
 Today                                         —
 Inbox                                         unread count
 ───────────── Work ────────────
-Timeline                                      new events since last visit (pill, not badge)
+Planning                                      open ideas and plans (15 §4)
 Tasks                                         tasks ready for my roles
 Decisions                                     open decisions routed to my roles (red if overdue)
 Needs                                         needs routed to my roles
 Handoffs                                      pending handoffs to my roles (red if stale)
+───────────── Follow ──────────
+Timeline                                      new events since last visit (pill, not badge)
+Agent queue                                   — (its "Running now" tab is the old Live page)
+───────────── Delivery ────────
 Redesign                                      versions in `review` (owner only)
 Releases                                      —
 ───────────── Knowledge ───────
 Docs                                          —
-Ask                                           —
-Onboarding                                    unfinished items (new members only; hides when done)
-───────────── Workspace ───────
+Search                                        —
+Getting started                               steps left (shown only while some are left)
+Skills                                        —
+Database                                      —
+───────────── Project ─────────
 Members                                       pending invites (owner/pm)
 Settings                                      sources with errors (owner/pm)
 ───────────────────────────
-Workspace switcher · Locale · Theme · Me (profile, tokens, sign out)
+Workspace switcher · Locale · Theme · Me (Profile → Settings › Account, Tokens, Getting started, Shortcuts, Sign out)
 ```
 
-- The sidebar is per workspace; switching workspace reloads counters. The URL always carries
+- As built (owner's decision, 2026-11-19): there is no Admin group and no Live item. Getting started shows only while `/counters` reports steps
+  left, or while the member is on it; it stays in the Me menu and the palette. A view with `nav: false` in `components/shell/views.tsx` has no
+  sidebar item, and `to` sends its palette entry and `g` key elsewhere (Live opens `queue?show=live`).
+
+- The sidebar is per project (D30: the UI says Project, «مشروع»; routes and code keep `workspace`); switching reloads counters. The URL always carries
   `/[locale]/[workspace]/…`.
 - Counters are computed by `GET /api/v1/workspaces/{ws}/counters` (cached 30 s, invalidated by SSE).
 - Top bar: breadcrumb (`Goteav › Decisions › GTV-231`), global search input (opens the palette),
@@ -102,7 +112,7 @@ the threshold.
   --info-soft:        oklch(0.95 0.03 245);  --info-soft-foreground:        oklch(0.38 0.11 245);
   --destructive-soft: oklch(0.95 0.04 27);   --destructive-soft-foreground: oklch(0.42 0.16 27);
 
-  /* card types — dot / badge border / sheet stripe. *-fg is the badge text on *-soft. */
+  /* card types — dot / icon / badge. *-fg is the badge text on *-soft. */
   --type-task:        oklch(0.52 0.16 255);  --type-task-soft:     oklch(0.94 0.03 255);  --type-task-fg:     oklch(0.36 0.14 255);
   --type-decision:    oklch(0.58 0.15 60);   --type-decision-soft: oklch(0.95 0.05 70);   --type-decision-fg: oklch(0.40 0.13 55);
   --type-need:        oklch(0.55 0.18 345);  --type-need-soft:     oklch(0.95 0.04 345);  --type-need-fg:     oklch(0.40 0.16 345);
@@ -174,8 +184,9 @@ attribute on `<html>`); `@custom-variant dark (&:is(.dark *))`, `rtl`, `ltr` are
 
 Rules of use:
 
-- Type colours: only on `TypeDot`, `StatusBadge`/`TypeBadge` (soft background + fg text), the 3 px
-  stripe at the top of `CardSheet`, and the board column header underline. Never as row background.
+- Type colours: only on `TypeDot`, the type icon and `StatusBadge`/`TypeBadge` (soft background + fg text). Never as row
+  background, and **never as a coloured side or top edge on any card, panel or sheet, in any form (D31)**: a card is one
+  neutral surface with one uniform neutral border.
 - `primary` is reserved for the one primary action per view and for links. Secondary buttons are
   `outline`; destructive actions (`reject`, `cancel`, `revoke`) use `destructive` outline and a
   confirmation.
@@ -185,15 +196,15 @@ Rules of use:
 ### 3.2 Typography
 
 ```css
---font-sans-ar: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+--font-sans-ar: "Cairo", "Segoe UI", Tahoma, sans-serif;
 --font-sans-en: "Inter", "Segoe UI", system-ui, sans-serif;
 --font-mono:    "JetBrains Mono", ui-monospace, Consolas, monospace;
 ```
 
 `<html lang="ar" dir="rtl">` sets `font-family: var(--font-sans-ar)`; `lang="en"` sets
-`var(--font-sans-en)`. Mixed content: Latin runs inside Arabic text inherit IBM Plex Sans Arabic
+`var(--font-sans-en)`. Mixed content: Latin runs inside Arabic text inherit Cairo
 (its Latin glyphs are acceptable); card keys, paths and code always use `--font-mono`. Fonts are
-loaded with `next/font/google` (`IBM_Plex_Sans_Arabic` weights 400/500/600/700, `Inter` 400/500/600,
+loaded with `next/font/google` (`Cairo` weights 400/500/600/700, the owner's choice in the approved design, D31; `Inter` 400/500/600,
 `JetBrains_Mono` 400/500) and self-hosted by Next so the app works with the internet down.
 
 Named sizes (Tailwind `--text-*` tokens; literal sizes forbidden):
@@ -319,8 +330,8 @@ Per-type renderer rules:
 | type | bold | muted | inline actions (when routed to me / permitted) |
 | --- | --- | --- | --- |
 | task | title | specialty · effort · claimer | `Claim` (ready + my specialty role), `Copy prompt`, `Open` |
-| decision | question (title) | decider role · due (warning if < 24 h) · "blocks n" | `Decide…` (human, decider role), `Open` |
-| need | title | kind · responsible role · "blocks n" | `Deliver…` / `Verify` (human), `Open` |
+| decision | question (title) | decider role · due (warning if < 24 h) · "blocks n" | `Decide…` (decider role), `Open` |
+| need | title | kind · responsible role · "blocks n" | `Deliver…` / `Verify`, `Open` |
 | change (commits) | branch (mono) + "n commits" | author · files/+/- | expand commits list (events) |
 | change (PR) | PR title | `#number` · state | `Open PR` (external) |
 | change (session) | "Session: <changed first line>" | member · duration · `no summary` warning badge | expand remaining/handoffs |
@@ -328,6 +339,11 @@ Per-type renderer rules:
 | redesign | `app/page · version` (mono) + concept title | status · review score | `Open in lab`, `Compare`, `Approve…` (owner) |
 | doc | path (mono) | kind · changed headings count | `Open` |
 | release | version | included count | `Open` |
+
+As built (owner's decision, 2026-11-19): only an event that asks for action gets the full card above: the newest event of its card when an
+action is open to me or the card awaits me, an escalation, or a breaking handoff. Every other event is one line (time, actor, verb, type icon
+and title, key, `+n` that opens in place), and the events that follow on the same card hang under the first as smaller lines with no title.
+Each hour gets a mark on the rail; Copy prompt, Open PR and Open in lab sit on full cards only (and stay in the sheet).
 
 **`TimelineFilters`** — segmented chips row (roles, types), then popover filters (repo, module,
 member, date range), "awaiting me" toggle; all in URL (`09-pages.md` §Timeline). **`DayDivider`**
@@ -341,7 +357,7 @@ screen under 768 px. Opens on any card click; `Esc` closes; URL updates to `?car
 so refresh keeps it; full page at `/cards/GTV-123` renders the same component inline.
 
 ```
- ┌─ 3px stripe in type-<t> ───────────────────────────────────────────┐
+ ┌──────────────────────────────────────────────────────────────────┐
  │ [TypeBadge] GTV-123   [StatusBadge] [PriorityBadge]     ⋯  ✕       │  header (sticky)
  │ Title (title, editable inline for creator/owner/pm)                │
  │ RoleBadge · ActorChip created · RelativeTime · repo/branch         │
@@ -357,32 +373,37 @@ so refresh keeps it; full page at `/cards/GTV-123` renders the same component in
  └────────────────────────────────────────────────────────────────────┘
 ```
 
-Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Archive/Restore
+Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Delete/Restore
 (owner/pm), Copy link, Open full page.
 
 ### 5.4 Type sections inside CardSheet
 
 | Component | Spec |
 | --- | --- |
-| `TaskSection` | Specialty, effort, acceptance checklist (read-only markdown checkboxes; ticking is a comment "✔ item" by the claimer), prompt block (mono, `CopyButton`, "Paste `/hub:next GTV-123` in Claude Code" hint), branch/PR, claimer. Actions: Claim/Unclaim, Start, Submit for review, Mark done, Cancel (with reason). |
-| `DecisionSection` | question (body-lg), `DecisionOptionCard` list, decider role, due with countdown, reminders sent, escalation state, "Blocks" list, ADR block (status, path, PR link, "Draft with `/hub:adr GTV-123`" hint). Actions: Decide… (human + decider role), Withdraw (creator/owner/pm), Edit options (creator before decided). |
+| `TaskSection` | Specialty, effort, acceptance checklist (read-only markdown checkboxes; ticking is a comment "✔ item" by the claimer), prompt block (mono, `CopyButton`, "Paste `/hub:next GTV-123` in Claude Code" hint), branch/PR, claimer. Actions: Claim/Unclaim, Start, Submit for review, Mark done, Cancel (with reason). As built, in this order: stage stepper (backlog → done, cancelled as a badge), one "Next" sentence, the reviewer's note or the cancel reason, the action forms, open blockers (removable), acceptance with a "{done} of {total}" count (any list marker; a block that is not all items renders as Markdown), the start command only while claimed or in progress (or ready with a long prompt), "Came from", then the facts. With the chat panel open the agent's live stages show under the evidence. |
+| `DecisionSection` | `action=decide` on a decision with no options shows why it cannot be decided, with "Add options" for `decision.edit_options` or who can add them, and Cancel. question (body-lg), `DecisionOptionCard` list, decider role, due with countdown, reminders sent, escalation state, "Blocks" list, ADR block (status, path, PR link, "Draft with `/hub:adr GTV-123`" hint). Actions: Decide… (human + decider role), Withdraw (creator/owner/pm), Edit options (creator before decided). |
 | `DecisionOptionCard` | bordered card: title (title-sm), two columns pros/cons (body-sm lists), cost line, "recommended" tag. Selected state after decision: `success` border + "Chosen" badge; others dim to 70 %. In the decide dialog each card becomes a radio. |
 | `NeedSection` | `NeedStatusStepper` (requested → in progress → delivered → verified; cancelled as a side state), kind, responsible role, requester, location (mono text, shown after delivered), verification note, blocks list. Actions: Start, Deliver… (location text + optional note; `SecretFilterError`), Verify… (note), Cancel. |
 | `HandoffSection` | from → to (RoleBadges with mirrored arrow), kind, severity, pending age (`warning` after `handoffs.stale_hours`), summary, `HandoffDiffList`, prompt block with `CopyButton`, source change card chip, applied task chip. Actions: Acknowledge, Apply… (optionally create/link task), Dismiss (reason). |
 | `HandoffDiffList` | for `kind=contract`: grouped by `breaking` / `non-breaking`; each row `METHOD /path` (mono) + change text from oasdiff; schema changes listed separately; "View raw" expands JSON. For `component`: file list with repo links. |
 | `RedesignSection` | header `app/page/version` (mono), concept title, base, status (mirrors lab), review score + 2-line summary + "Open review.md", touches-components list (mono chips), screenshots grid (click → lightbox), `Open in lab` (external, `/lab/#/<app>/<page>/<version>`), `Compare` → `RedesignCompare`. Actions (owner): Approve…, Reject… (note required), Request changes… (note required); Mark ported (porter/pm, ref required). Port task chip when created. |
 | `RedesignCompare` | full-screen dialog: two iframes side by side (base/baseline vs version, or any two versions via selects), toolbar: device (390 / 768 / 1440 / fill), lang (ar/en), theme (light/dark), notes on/off; iframes load `/lab/frame-<app>.html#/<page>/<version>?w=…&lang=…&theme=…` (lab contract). Synchronised scroll toggle. |
-| `DocSection` / `DocViewer` | path breadcrumb (mono, copy), kind badge, source repo + commit (short SHA, link), "Open in GitHub"; markdown rendered (headings with anchors, tables, code with copy, task lists read-only, Mermaid rendered client-side if present), heading outline rail on ≥ 1280 px; "Referenced by" list of cards linking the doc. |
+| `DocSection` / `DocViewer` | path breadcrumb (mono, copy), kind badge, source repo + commit (short SHA, link), "Open in GitHub"; markdown rendered (headings with anchors, tables, code with copy, task lists read-only, Mermaid rendered client-side if present, as below), heading outline rail on ≥ 1280 px; "Referenced by" list of cards linking the doc. As built: a "source › folders › file" trail in the header and Previous / Next by tree order at the end; the doc title is the h1 under 1024 px; the outline follows the section in view, and under 1280 px it is a collapsed `details` above the text. Heading anchors match the API's slugger (keep `_` and marks, duplicates `-1`, `-2`). A code block has a header bar with its language (or "Mermaid diagram"), a wrap toggle and Copy, so nothing covers the code. A `mermaid` block is drawn as a diagram (decision 13a, `components/common/mermaid-diagram.tsx`): Mermaid 12 is loaded by a dynamic `import()` only when the page holds such a block, so it is never in the main bundle; `securityLevel: 'strict'`, the `base` theme filled from Hub's tokens (hex values of `--background`, `--foreground`, `--info-soft`, `--input`, `--muted-foreground`, `--warning-soft` …) and drawn again on a theme change; the diagram is a focusable `role="img"` labelled by the block's `accTitle`/`accDescr`, else "{type} diagram"; a "Show source" toggle swaps in the code block; a block Mermaid cannot parse shows the code block with a one-line note. GitHub alerts (`> [!NOTE]` …) render as a titled note with an icon. Images: in `DocViewer` an image with a relative address is drawn from the doc's own source folder through `GET /docs/{key}/image?src=` (decision 13b) and opens in the kit's `Lightbox`, which steps through the doc's local images in reading order; a file the API cannot serve becomes a dashed note with its name. A remote (`http(s)`) image, and every image outside `DocViewer` (card bodies, `MarkdownView` without `renderImage`), stays a dashed placeholder with alt text and "Open the image", so no request leaves Hub; project card keys in text link to the card; each table cell takes its own direction; an ordered list keeps its start number. The doc section shows "Indexed" and a 7-character SHA with copy. |
 | `ReleaseSection` | version, repo/tag, released date, included cards list (grouped by type), notes tabs (team / owner / accountant) with `CopyButton`, "Regenerate skeleton" (pm/owner). |
+
+An idea's or plan's command bar (`ActionBar` in `cards/card-sheet.tsx`) has one filled button, the next step in its cycle (Start exploring,
+Turn into a plan); the status moves (Accept, Park, Reject) sit in a "Change status" menu (`statusMenu`), and the "With Claude" group is
+named by a Sparkles icon with an `aria-label`. On a task in review the row button is Review and opens the sheet, where Mark done is filled
+beside Back to work.
 
 ### 5.5 Inbox and palette
 
 | Component | Spec |
 | --- | --- |
 | `InboxItem` | unread dot (`primary`), kind icon, title (body, 600 when unread), body line (muted), `CardChip`, `RelativeTime`; quick action button per `data.action` (`Decide`, `Acknowledge`, `Deliver`, `Claim`) opening the card sheet positioned on that action; "mark read" on open; grouped items show "+n more on this card". Swipe-to-archive on touch. |
-| `CommandPalette` | `cmdk`; `Ctrl/Cmd+K` or `/` when no input focused. Groups: **Cards** (search `GET /search?scope=cards&q=`, debounce 150 ms, shows `CardChip`), **Pages** (static list), **Actions** (New task/decision/need/handoff, Toggle theme, Switch workspace, Switch language, Copy my MCP setup), **Recent** (last 10 opened cards, local). `GTV-123` exact key jumps immediately. |
+| `CommandPalette` | `cmdk`; `Ctrl/Cmd+K` or `/` when no input focused. Groups: **Cards** (search `GET /search?scope=cards&q=`, debounce 150 ms, shows `CardChip`), **Pages** (static list), **Actions** (New task/decision/need/handoff, Toggle theme, Switch workspace, Switch language, Copy my MCP setup), **Recent** (last 10 opened cards, local). `GTV-123` exact key jumps immediately. As built: one request after typing settles, the last results stay while it runs and "Searching…" (`role="status"`) replaces "No results" until it answers; Actions also hold New idea / New plan (by grant); the MCP command is the one the API returns for this server. |
 | `KeyboardShortcutsDialog` | `?` opens; lists §12. |
-| `Toast` (`sonner`) | bottom-end; success 3 s, error sticky until dismissed with "Retry" when the mutation can be retried; never for live timeline events (those use the pill). |
+| `Toast` (`sonner`) | bottom-end; success 3 s, error sticky until dismissed with "Retry" when the mutation can be retried; never for live timeline events (those use the pill). As built: every error toast stays until × or `Esc` (or the next notice) and is announced once as `role="alert"`, outside the polite status region. |
 
 ### 5.6 States
 
@@ -390,9 +411,9 @@ Overflow menu `⋯`: Edit, Change priority, Change role, Set due, Add tag, Archi
 | --- | --- |
 | Loading | skeletons shaped like the final rows (same heights) for ≤ 3 s; after 3 s a muted line "Still loading…"; never spinners inside lists; buttons show an inline spinner and keep their width. |
 | Empty | `EmptyState`: icon (type or page icon, muted), title (title-sm), one sentence, one primary action when the user can act (e.g. "New decision"), otherwise a hint ("Decisions appear here when a teammate or an agent opens one"). |
-| Error | `ErrorState`: title "Couldn't load <thing>", the error code (mono) and a Retry button; the request id in a tooltip for support. 403 → "You don't have access to this" with the required role named. |
+| Error | `ErrorState`: title "Couldn't load <thing>", the error code (mono) and a Retry button; the request id is a copyable line for support. 403 and 404 use `kind="forbidden"` / `kind="notFound"`: neutral (lock or question icon on muted, no red) and `role="status"`. 403 → "You don't have access to this" with the required role named. |
 | Offline / SSE down | top bar indicator turns `warning` with "Reconnecting…"; lists stay interactive from cache; mutations queue is **not** implemented — buttons disable with tooltip "Offline". |
-| No permission on an action | the button is rendered disabled with a tooltip naming the role or "Humans only" (for agent tokens this is only relevant in the Tokens page preview). |
+| No permission on an action | the button is rendered disabled with a tooltip naming the role. Permissions depend on the role only (D27). |
 
 ### 5.7 Forms
 
@@ -402,7 +423,7 @@ messages from `messages/<locale>.json` (`errors.*`), never raw Zod messages. Req
 with a dot, not an asterisk. Long text fields are markdown with a small toolbar (bold, list, code,
 link, `GTV-` reference) and a preview toggle. Every form that posts free text shows
 `SecretFilterError` on `hub.security.secret_detected`. Submit with `Ctrl+Enter`; unsaved-changes
-guard on sheets.
+guard on sheets. As built: in the card sheet `Esc`, × and Back ask "Discard what you wrote?" when a form or comment has a draft, and the first `Esc` in a clean field moves focus to the title. A `Modal` with `dirty` ignores a press outside it. Settings drafts (General, Backups, Account's name and language; never a password) survive tab changes for the visit, marked by a dot on the tab.
 
 ## 6. Accessibility checklist (CI: `axe-core` in Playwright on the five critical flows)
 
@@ -464,7 +485,7 @@ is synced to the server.
 ## 11. Copy tone
 
 Short, factual, present tense. Arabic uses the neutral formal register used across the Goteav
-dashboard (no dialect, no exclamation marks). Buttons are verbs ("قرّر", "استلم", "سلّم", "احجز",
+dashboard (no dialect, no exclamation marks). Buttons are verbs ("قرّر", "استلم", "سلّم" for a Need's delivery only, since a Handoff is «إحالة» per D23, "احجز",
 "وافق"). System events read as facts ("3 commits على feat/refunds"). Error messages say what to do
 next.
 
@@ -475,7 +496,9 @@ next.
 | `Ctrl/Cmd+K`, `/` | command palette |
 | `?` | shortcuts dialog |
 | `g t` / `g i` / `g l` / `g d` / `g n` / `g h` / `g k` / `g r` | go to Today / Inbox / Timeline / Decisions / Needs / Handoffs / Tasks / Redesign |
+| `g p` / `g e` / `g q` / `g v` / `g o` / `g a` / `g w` / `g c` / `g m` / `g s` / `g b` | go to Planning / Releases / Queue / Running now (`queue?show=live`) / Docs / Search / Getting started / Skills / Members / Settings / Database (every page has its own letter) |
 | `n` then `t/d/n/h` | new task / decision / need / handoff |
+| `n` then `i/p` | new idea / new plan (opens `planning?studio=idea` or `plan`) |
 | `j` / `k` | next / previous row (lists, timeline, inbox) |
 | `Enter` / `o` | open focused row (sheet) |
 | `Esc` | close sheet / dialog / clear search |

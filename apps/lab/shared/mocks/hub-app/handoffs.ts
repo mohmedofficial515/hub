@@ -1,0 +1,168 @@
+// Handoffs beyond GTV-244 and GTV-255. Pending stays at the 2 `counters.handoffsPending` promises (GTV-244, GTV-238),
+// and GTV-238 goes to `designer`, so "mine" stays 1 for the owner and for Sara.
+
+import { adapter, base, evt, l, person, T } from './card-base';
+import type { HandoffCard, TaskCard } from './index';
+
+export const extraHandoffs: HandoffCard[] = [
+  {
+    ...base({
+      key: 'GTV-238',
+      title: l('المكوّن المشترك DataGrid: تغيّر اسم خاصية الكثافة', 'Shared DataGrid: the density prop was renamed'),
+      status: 'pending',
+      priority: 'P2',
+      ownerRole: 'designer',
+      severity: 'notable',
+      flags: { stale: true },
+      createdAt: T('11-01', '14:10'),
+      lastEventAt: T('11-03', '14:10'),
+      createdById: 'u-karim',
+      body: l('صارت الخاصية size بدل density، والقيم نفسها. ملف Figma يحتاج أن يطابقها.', 'The prop is now size rather than density, with the same values. The Figma component should match.'),
+      watchers: ['u-karim', 'u-layla'],
+      events: [
+        evt('h238-1', 1, 'created', T('11-01', '14:10'), person('u-karim'), { title: 'DataGrid density', status: 'pending', priority: 'P2' }),
+        evt('h238-2', 2, 'reminder_sent', T('11-03', '14:10'), adapter('scheduler'), { afterHours: 48, channels: 'inbox' }),
+      ],
+    }),
+    type: 'handoff',
+    handoff: {
+      fromRole: 'frontend',
+      toRole: 'designer',
+      kind: 'component',
+      severity: 'notable',
+      summary: l('صارت الخاصية size بدل density في DataGrid. لا تغيير في القيم، لكن اسم الخاصية في ملف التصميم يجب أن يطابقها.', 'DataGrid now takes size rather than density. The values did not change, but the design file should use the same name.'),
+      prompt: 'Rename the density variant to size on the DataGrid component in the shared Figma library, then note it in the changelog.',
+      payload: { files: ['components/ui/data-grid/data-grid.tsx', 'components/ui/data-grid/data-grid.stories.tsx'] },
+    },
+  } as HandoffCard,
+  {
+    ...base({
+      key: 'GTV-220',
+      title: l('العقد: أُضيف PricesDto.truncated', 'Contract: PricesDto.truncated added'),
+      status: 'applied',
+      priority: 'P2',
+      ownerRole: 'frontend',
+      repo: 'backend',
+      severity: 'info',
+      createdAt: T('10-31', '10:20'),
+      lastEventAt: T('11-02', '09:15'),
+      createdByKind: 'system',
+      createdVia: 'adapter',
+      watchers: ['u-sara'],
+      links: [{ kind: 'relates', key: 'GTV-222' }],
+      events: [
+        evt('h220-1', 1, 'created', T('10-31', '10:20'), adapter('oasdiff'), { title: 'PricesDto.truncated', status: 'pending', priority: 'P2' }),
+        evt('h220-2', 2, 'acknowledged', T('10-31', '12:05'), person('u-sara')),
+        evt('h220-3', 3, 'applied', T('11-02', '09:15'), person('u-sara'), { task: 'GTV-222' }),
+      ],
+    }),
+    type: 'handoff',
+    handoff: {
+      fromRole: 'backend',
+      toRole: 'frontend',
+      kind: 'contract',
+      severity: 'info',
+      summary: l('حقل اختياري جديد يخبر الواجهة أن قائمة الأسعار مقتطعة.', 'A new optional field tells the UI the price list was cut short.'),
+      prompt: 'Run pnpm api:sync, then show a "more results" hint when PricesDto.truncated is true.',
+      payload: {
+        oasdiff: [{ endpoint: 'GET /flights/prices', severity: 'non-breaking', change: l('حقل استجابة اختياري جديد', 'New optional response field'), after: 'truncated?: boolean' }],
+        schemas: ['PricesDto'],
+      },
+      acknowledgedById: 'u-sara',
+      acknowledgedAt: T('10-31', '12:05'),
+      appliedById: 'u-sara',
+      appliedAt: T('11-02', '09:15'),
+      appliedTaskKey: 'GTV-222',
+    },
+  } as HandoffCard,
+  {
+    ...base({
+      key: 'GTV-216',
+      title: l('مواصفات قائمة الحجوزات الكثيفة', 'The dense bookings list spec'),
+      status: 'applied',
+      priority: 'P2',
+      ownerRole: 'frontend',
+      severity: 'info',
+      createdAt: T('10-27', '15:00'),
+      lastEventAt: T('10-29', '11:00'),
+      createdById: 'u-layla',
+      watchers: ['u-karim', 'u-layla'],
+      links: [{ kind: 'relates', key: 'GTV-261' }],
+      events: [
+        evt('h216-1', 1, 'created', T('10-27', '15:00'), person('u-layla'), { title: 'Bookings spec', status: 'pending', priority: 'P2' }),
+        evt('h216-2', 2, 'acknowledged', T('10-27', '16:30'), person('u-karim')),
+        evt('h216-3', 3, 'applied', T('10-29', '11:00'), person('u-karim'), { note: 'Used in the lab version.' }),
+      ],
+    }),
+    type: 'handoff',
+    handoff: {
+      fromRole: 'designer',
+      toRole: 'frontend',
+      kind: 'design',
+      severity: 'info',
+      summary: l('القياسات وحالات الصف لنسخة قائمة الحجوزات الكثيفة.', 'Measurements and row states for the dense bookings list.'),
+      payload: { files: ['redesign/dashboard/bookings-list/v2-dense-list/README.md'] },
+      sourceCardKey: 'GTV-261',
+      acknowledgedById: 'u-karim',
+      acknowledgedAt: T('10-27', '16:30'),
+      appliedById: 'u-karim',
+      appliedAt: T('10-29', '11:00'),
+    },
+  } as HandoffCard,
+  {
+    ...base({
+      key: 'GTV-209',
+      title: l('العقد: إعادة تسمية booking.ref', 'Contract: booking.ref renamed'),
+      status: 'dismissed',
+      priority: 'P2',
+      ownerRole: 'frontend',
+      repo: 'backend',
+      severity: 'breaking',
+      createdAt: T('10-21', '17:40'),
+      lastEventAt: T('10-22', '09:05'),
+      createdByKind: 'system',
+      createdVia: 'adapter',
+      watchers: ['u-sara', 'u-yousef'],
+      events: [
+        evt('h209-1', 1, 'created', T('10-21', '17:40'), adapter('oasdiff'), { title: 'booking.ref', status: 'pending', priority: 'P2' }),
+        evt('h209-2', 2, 'dismissed', T('10-22', '09:05'), person('u-sara'), { reason: 'The backend reverted the rename in PR #402.' }),
+      ],
+    }),
+    type: 'handoff',
+    handoff: {
+      fromRole: 'backend',
+      toRole: 'frontend',
+      kind: 'contract',
+      severity: 'breaking',
+      summary: l('أعاد الباك إند التسمية بعد ساعات، فلم يعد هناك ما يُطبَّق.', 'The backend reverted the rename hours later, so nothing is left to apply.'),
+      payload: {
+        oasdiff: [{ endpoint: 'GET /admin/bookings/{id}', severity: 'breaking', change: l('حقل استجابة أعيدت تسميته', 'Response field renamed'), before: 'ref: string', after: 'reference: string' }],
+      },
+    },
+  } as HandoffCard,
+];
+
+/** The task GTV-220 was applied through, so its chip opens a real card. */
+export const handoffTasks: TaskCard[] = [
+  {
+    ...base({
+      key: 'GTV-222',
+      title: l('إظهار تلميح «نتائج أكثر» عند اقتطاع الأسعار', 'Show a "more results" hint when prices are cut short'),
+      status: 'done',
+      priority: 'P2',
+      ownerRole: 'frontend',
+      repo: 'web',
+      assigneeId: 'u-sara',
+      createdAt: T('10-31', '12:10'),
+      lastEventAt: T('11-02', '09:10'),
+      createdById: 'u-sara',
+      links: [{ kind: 'relates', key: 'GTV-220' }],
+      events: [
+        evt('t222-1', 1, 'created', T('10-31', '12:10'), person('u-sara'), { title: 'More results hint', status: 'ready', priority: 'P2' }),
+        evt('t222-2', 2, 'status_changed', T('11-02', '09:10'), person('u-sara'), { from: 'in_review', to: 'done' }),
+      ],
+    }),
+    type: 'task',
+    task: { specialty: 'frontend', effort: 'S', origin: 'handoff', claimedById: 'u-sara', claimedAt: T('10-31', '12:10'), startedAt: T('10-31', '12:30'), doneAt: T('11-02', '09:10'), prompt: '/hub:next GTV-222' },
+  } as TaskCard,
+];

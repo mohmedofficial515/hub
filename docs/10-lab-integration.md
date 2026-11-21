@@ -1,5 +1,7 @@
 # 10 — Lab integration
 
+> **Workbench release (docs/16 §6) wins over this document.** The lab is `apps/lab`, run by `pnpm start:local` on 7320 and served by Hub's own proxy at `/lab`, same origin, for signed-in members. There is no `LAB_URL`, no `.hub/lab.config.json` and no Caddy stage yet. A write changes the file with no commit. §2 and §3 below stay as the plan for a later hosted setup. The path table in §7 is applied by the owner, from the diff the Workbench slice prepared.
+
 How the redesign lab (`F:\Goteav\redesign`) becomes `apps/lab` inside the Hub monorepo, how Hub
 reads versions into `redesign` cards, how decisions flow back into the lab's front-matter, and how
 the existing redesign agents keep working. The scanner algorithm itself is specified in
@@ -239,7 +241,7 @@ The redesign card gets `portTaskId`; the task sheet shows the redesign chip and 
 - Gallery grouped by page, versions as cards with screenshot, status badge, review score, concept
   title; "Compare" selects two; sheet shows attachments, touches-components, review summary, and
   the owner's actions with required notes.
-- Approve/Reject/Request changes are owner-only and human-only; all other members see them
+- Approve/Reject/Request changes are owner-only (permission depends on the role, not the actor kind, D27); all other members see them
   disabled with a tooltip.
 - The lab itself (`/lab/`) stays the place to *look* at a version at real size; Hub embeds it only
   in the compare dialog.

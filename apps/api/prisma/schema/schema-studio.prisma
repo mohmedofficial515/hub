@@ -1,0 +1,87 @@
+// Schema Studio (docs/17): a project's database design read from its Prisma files, the Arabic names the team gives it, and drafts of changes reviewed and applied in a chat.
+
+/// Where a project's Prisma schema is read from (docs/17 §3). One per project for now; `name` leaves room for more (the Hub's own schema, D61).
+model SchemaSource {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  name        String
+  /// The repository folder, one of the project's `repoPaths`.
+  path        String
+  /// The folder of `.prisma` files inside it, or one `.prisma` file.
+  schemaDir   String   @default("prisma/schema") @map("schema_dir")
+  /// The paired device holding the folder, when the API cannot read it itself. Read through the bridge's `schema.read`.
+  deviceId    String?  @map("device_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([workspaceId, name])
+  @@map("schema_sources")
+}
+
+/// The design as parsed at one moment. A refresh keeps a new row only when the files' hash changed, so the history is the list of real changes.
+model SchemaSnapshot {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  sourceId    String   @map("source_id") @db.Uuid
+  hash        String
+  /// The parsed `SchemaDoc`.
+  parsed      Json
+  stats       Json
+  /// Against the snapshot before it; null for the first.
+  changes     Json?
+  /// manual | mcp | after_apply
+  trigger     String
+  takenById   String?  @map("taken_by_id") @db.Uuid
+  /// The draft this snapshot applied.
+  draftId     String?  @map("draft_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([sourceId, createdAt])
+  @@map("schema_snapshots")
+}
+
+/// An Arabic name, description, notes, tags and sensitivity for a model, field, enum or enum value (D62). Kept by target name, so it survives every refresh.
+model SchemaAnnotation {
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  sourceId      String    @map("source_id") @db.Uuid
+  /// `model:Booking`, `field:Booking.status`, `enum:X`, `enumValue:X.Y`
+  target        String
+  nameAr        String?   @map("name_ar")
+  descriptionAr String?   @map("description_ar")
+  notes         String?
+  tags          String[]  @default([])
+  /// none | pii | money | secret
+  sensitivity   String    @default("none")
+  updatedById   String?   @map("updated_by_id") @db.Uuid
+  /// When it was last written into the files as a `///` comment.
+  syncedAt      DateTime? @map("synced_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([sourceId, target])
+  @@map("schema_annotations")
+}
+
+/// A draft of database changes (D63): proposed on the page, reviewed and applied in a panel chat.
+model SchemaDraft {
+  id                String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId       String   @map("workspace_id") @db.Uuid
+  sourceId          String   @map("source_id") @db.Uuid
+  title             String
+  /// editing | in_review | applying | applied | discarded
+  status            String   @default("editing")
+  /// `SchemaChange[]`
+  changes           Json     @default("[]")
+  /// Claude's review, in Markdown.
+  review            String?
+  chatId            String?  @map("chat_id") @db.Uuid
+  baseSnapshotId    String?  @map("base_snapshot_id") @db.Uuid
+  appliedSnapshotId String?  @map("applied_snapshot_id") @db.Uuid
+  createdById       String?  @map("created_by_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([sourceId, status])
+  @@map("schema_drafts")
+}

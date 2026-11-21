@@ -1,0 +1,390 @@
+{
+  "title": "Database",
+  "subtitle": "The design of {source}, read from its Prisma files",
+  "views": {
+    "label": "View",
+    "diagram": "Diagram",
+    "dictionary": "Dictionary",
+    "enums": "Enums",
+    "history": "History"
+  },
+  "stats": {
+    "models": {
+      "zero": "no tables",
+      "one": "# table",
+      "other": "# tables"
+    },
+    "fields": {
+      "zero": "no columns",
+      "one": "# column",
+      "other": "# columns"
+    },
+    "enums": {
+      "zero": "no enums",
+      "one": "# enum",
+      "other": "# enums"
+    },
+    "named": "named in Arabic",
+    "unsynced": {
+      "one": "# name not in the files yet",
+      "other": "# names not in the files yet"
+    },
+    "readAt": "Read {when}",
+    "hash": "Version {hash}",
+    "coverageTip": "{named} of {total} tables and columns have an Arabic name",
+    "relationsPair": "Relations: {declared} declared · {implied} implied",
+    "pct": "{pct}%"
+  },
+  "actions": {
+    "refresh": "Refresh design",
+    "refreshing": "Reading the files…",
+    "refreshTip": "Read the Prisma files again. A new version is kept only when they changed.",
+    "suggestNames": "Suggest Arabic names",
+    "suggestNamesTip": "Claude fills in the names and descriptions that are missing. You can edit every one after.",
+    "search": "Search tables and columns",
+    "fit": "Fit to screen",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "relayout": "Arrange again",
+    "relayoutTip": "Forget the places you dragged tables to",
+    "detail": "Columns",
+    "detailKeys": "Keys only",
+    "detailAll": "All columns",
+    "labels": "Names",
+    "labelsAr": "Arabic",
+    "labelsEn": "Code",
+    "implied": "Implied relations",
+    "focus": "Focus",
+    "focusOff": "Show all",
+    "propose": "Propose a change",
+    "exportMarkdown": "Export dictionary",
+    "syncNames": "Write names to the files",
+    "syncNamesTip": "A draft with no changes, so Claude writes the Arabic names as /// comments.",
+    "close": "Close"
+  },
+  "domains": {
+    "title": "Domains",
+    "all": "All",
+    "none": "None",
+    "isolate": "Only this",
+    "tables": {
+      "zero": "no tables",
+      "one": "# table",
+      "other": "# tables"
+    },
+    "coverage": "{pct}% named",
+    "searchPlaceholder": "Search the domains",
+    "show": "Show {name} on the map",
+    "hide": "Hide {name} from the map"
+  },
+  "node": {
+    "more": {
+      "one": "+# column",
+      "other": "+# columns"
+    },
+    "pk": "Primary key",
+    "fk": "Foreign key",
+    "unique": "Unique",
+    "optional": "Optional",
+    "list": "List",
+    "updatedAt": "Updated automatically",
+    "default": "Default: {value}",
+    "unnamed": "No Arabic name yet",
+    "proposed": "Proposed",
+    "view": "View",
+    "markChanged": "Change proposed",
+    "markRemoved": "Removal proposed"
+  },
+  "inspector": {
+    "label": "Details",
+    "overview": "Overview",
+    "fields": "Columns",
+    "relations": "Relations",
+    "prisma": "Prisma",
+    "table": "Table",
+    "column": "Column",
+    "enum": "Enum",
+    "domain": "Domain",
+    "dbName": "Name in the database",
+    "type": "Type",
+    "native": "Database type",
+    "attributes": "Attributes",
+    "fromFiles": "From the files",
+    "noDoc": "No /// comment in the files.",
+    "nameAr": "Arabic name",
+    "nameArHint": "A short name a business reader understands",
+    "descriptionAr": "Arabic description",
+    "descriptionArHint": "What it holds and why it exists",
+    "notes": "Team notes",
+    "notesHint": "Anything worth knowing: rules, history, plans",
+    "tags": "Tags",
+    "tagsHint": "Comma separated",
+    "sensitivity": "Sensitivity",
+    "sensitivities": {
+      "none": "Normal",
+      "pii": "Personal data",
+      "money": "Money",
+      "secret": "Secret"
+    },
+    "saved": "Saved",
+    "saving": "Saving…",
+    "synced": "In the files",
+    "unsynced": "Only in Hub",
+    "unsyncedTip": "It is written into the files as a /// comment when a draft is applied.",
+    "incoming": "Pointing here",
+    "outgoing": "Points to",
+    "noRelations": "No relations.",
+    "impliedRelation": "Implied by the column's name, no foreign key",
+    "oneToOne": "one to one",
+    "manyToOne": "many to one",
+    "onDelete": "On delete: {value}",
+    "line": "{file}, line {line}",
+    "backToTable": "Back to {name}",
+    "indexes": "Indexes and keys",
+    "values": "Values",
+    "updatedBy": "Last edited by {name} {when}",
+    "readOnly": "Your roles can read this design but not name or change it.",
+    "defaultValue": "Default",
+    "file": "File",
+    "saveFailed": "Not saved. What you typed is still in the field.",
+    "saveFailedWhy": "Not saved: {why} What you typed is still in the field.",
+    "secret": "This looks like a secret ({pattern}), so it was not sent."
+  },
+  "dictionary": {
+    "search": "Search the dictionary",
+    "unnamedOnly": "Without a name only",
+    "domain": "Domain",
+    "allDomains": "All domains",
+    "table": "Table",
+    "column": "Column",
+    "type": "Type",
+    "nameAr": "Arabic name",
+    "descriptionAr": "Description",
+    "empty": "Nothing matches.",
+    "count": {
+      "zero": "no columns",
+      "one": "# column",
+      "other": "# columns"
+    },
+    "showing": "Showing {shown} of {total}",
+    "moreHint": "Filter by domain or search to reach a column, or show more.",
+    "showMore": "Show {n} more",
+    "nameOf": "Arabic name of {column}"
+  },
+  "enums": {
+    "search": "Search enums",
+    "values": {
+      "zero": "no values",
+      "one": "# value",
+      "other": "# values"
+    },
+    "usedBy": "Used by {list}",
+    "empty": "No enums match.",
+    "none": "This design has no enums."
+  },
+  "history": {
+    "title": "Versions of the design",
+    "drafts": "Applied and discarded drafts",
+    "empty": "One version so far. Each refresh that finds a change adds one.",
+    "first": "First read",
+    "unchanged": "No change in the tables",
+    "triggers": {
+      "manual": "Refreshed by hand",
+      "mcp": "Read by Claude",
+      "after_apply": "After applying a draft"
+    },
+    "by": "by {name}",
+    "noDrafts": "No closed drafts yet.",
+    "review": "Claude's review",
+    "groups": {
+      "addedModels": "Tables added: {n}",
+      "removedModels": "Tables removed: {n}",
+      "changedModels": "Tables changed: {n}",
+      "addedFields": "Columns added: {n}",
+      "removedFields": "Columns removed: {n}",
+      "changedFields": "Columns changed: {n}",
+      "addedEnums": "Enums added: {n}",
+      "changedEnums": "Enums changed or removed: {n}"
+    }
+  },
+  "draft": {
+    "label": "Draft",
+    "untitled": "Changes of {date}",
+    "empty": "No changes yet. Propose one from a table or a column.",
+    "count": {
+      "zero": "no changes",
+      "one": "# change",
+      "other": "# changes"
+    },
+    "review": "Review and apply with Claude",
+    "reviewTip": "Opens a chat in the Claude panel, in Plan, in the schema's folder: Claude reviews and discusses first; it changes files only when you switch to Execute.",
+    "reopen": "Open the review chat",
+    "discard": "Discard draft",
+    "discardTitle": "Discard this draft?",
+    "discardBody": "Its changes are dropped. The design itself does not change.",
+    "backToEditing": "Back to editing",
+    "rename": "Rename",
+    "remove": "Remove",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "edit": "Edit",
+    "collapse": "Hide draft",
+    "expand": "Show draft",
+    "statuses": {
+      "editing": "Editing",
+      "in_review": "In review with Claude",
+      "applying": "Claude is applying it",
+      "applied": "Applied",
+      "discarded": "Discarded"
+    },
+    "statusHints": {
+      "editing": "Add, edit and order the changes, then send them to review.",
+      "in_review": "Discuss it in the panel. When you agree, switch the chat to Execute.",
+      "applying": "Claude is editing the Prisma files and the migration. The page updates when it finishes.",
+      "applied": "Applied. The diagram shows the new design.",
+      "discarded": "Discarded."
+    },
+    "noPanel": "The Claude panel is not available here. Open the project from the sidebar and try again.",
+    "noFolder": "The schema's folder {folder} is not linked on this device. Add it to the project's folders, or pick it in the panel.",
+    "sent": "Sent to Claude in Plan. The review runs in the panel.",
+    "refused": "The panel could not start the chat. Check the device in the panel."
+  },
+  "change": {
+    "title": "Propose a change",
+    "editTitle": "Edit the change",
+    "kind": "What kind of change",
+    "kinds": {
+      "add_model": "Add a table",
+      "add_field": "Add a column",
+      "change_field": "Change a column",
+      "rename": "Rename",
+      "remove": "Remove",
+      "split_model": "Split a table",
+      "add_relation": "Add a relation",
+      "add_index": "Add an index",
+      "add_enum": "Add an enum",
+      "change_enum": "Change an enum",
+      "note": "A note for the review"
+    },
+    "target": "Target",
+    "targetHint": "A table (Booking), a column (Booking.status), or the new name",
+    "summary": "What to do",
+    "summaryHint": "One line: make status required, add a refunds table…",
+    "detail": "Detail",
+    "detailHint": "Types, attributes or Prisma lines, as precise as you like",
+    "reason": "Why",
+    "reasonHint": "The business reason. It helps Claude review it.",
+    "save": "Add to draft",
+    "update": "Save change",
+    "cancel": "Cancel",
+    "added": "Added to the draft"
+  },
+  "search": {
+    "title": "Search the design",
+    "placeholder": "A table, a column, an Arabic name…",
+    "empty": "Nothing matches.",
+    "models": "Tables",
+    "fields": "Columns",
+    "enums": "Enums",
+    "hint": "{key} opens it in the diagram"
+  },
+  "setup": {
+    "title": "Where is the database design?",
+    "body": "Hub reads the Prisma files of one of the project's folders. Nothing in the folder is changed by reading it.",
+    "name": "Name",
+    "path": "Repository folder",
+    "pathHint": "One of the project's folders, such as F:/Goteav/backend",
+    "schemaDir": "Schema folder inside it",
+    "schemaDirHint": "A folder of .prisma files, or one .prisma file",
+    "device": "Read through",
+    "deviceApi": "Hub's own machine",
+    "deviceHint": "Pick a device when the folder is not on the machine running Hub.",
+    "save": "Read the design",
+    "change": "Change the source",
+    "readOnly": "No schema source is set yet. Ask the owner or the backend to set one.",
+    "nameHint": "Lower-case Latin letters, digits and dashes, 2 to 32, such as backend",
+    "needPath": "Choose the repository folder first.",
+    "needSchemaDir": "Type the schema folder inside it first."
+  },
+  "states": {
+    "loading": "Reading the design",
+    "error": "The design could not be loaded",
+    "notRead": "The design has not been read yet.",
+    "warnings": {
+      "one": "# line could not be read",
+      "other": "# lines could not be read"
+    },
+    "warningsTip": "These lines are skipped in the diagram. Prisma still reads them."
+  },
+  "toasts": {
+    "refreshed": "New version: {summary}",
+    "unchanged": "No change since the last read",
+    "nameSaved": "Name saved",
+    "exported": "Dictionary exported",
+    "namesSent": "Sent to Claude. The names appear here as it saves them.",
+    "sourceSaved": "Source saved. Reading the design…"
+  },
+  "summary": {
+    "tables": {
+      "zero": "no tables",
+      "one": "# table",
+      "other": "# tables"
+    },
+    "columns": {
+      "zero": "no columns",
+      "one": "# column",
+      "other": "# columns"
+    },
+    "enums": {
+      "zero": "no enums",
+      "one": "# enum",
+      "other": "# enums"
+    },
+    "none": "no table changes"
+  },
+  "legend": {
+    "title": "Legend",
+    "declared": "Relation with a foreign key",
+    "implied": "Implied by a column's name",
+    "changed": "Changed in the last version",
+    "proposed": "Proposed in the draft"
+  },
+  "chrome": {
+    "panel": "Details and overview",
+    "fullscreen": "Full screen",
+    "exitFullscreen": "Leave full screen",
+    "tilt": "3D view",
+    "tiltTip": "Tilt the map in perspective, with the tables floating over their domains (T). Dragging tables is off while tilted.",
+    "minimap": "Minimap",
+    "arabicNames": "Arabic names",
+    "showCode": "Show the code names",
+    "showArabic": "Show the Arabic names",
+    "zoomLevel": "Zoom {pct}%, press to fit the map",
+    "zoomTip": "Press to fit the map (Shift+1). 0 is 100%.",
+    "searchShort": "Search",
+    "keys": {
+      "zoomIn": "Zoom in (+)",
+      "zoomOut": "Zoom out (−)",
+      "fit": "Fit the map (Shift+1)",
+      "minimap": "Minimap (M)",
+      "layers": "Domains (L)",
+      "panel": "Details and overview (I)",
+      "search": "Search the design (/)"
+    }
+  },
+  "panel": {
+    "details": "Details",
+    "overview": "Overview",
+    "draft": "Draft",
+    "source": "Source",
+    "numbers": "The design",
+    "coverage": "Arabic names",
+    "connected": "Most connected tables",
+    "links": {
+      "one": "# relation",
+      "other": "# relations"
+    },
+    "emptyTitle": "Nothing selected",
+    "emptyBody": "Select a table on the map, or search with /, to see its columns, relations and Arabic names here."
+  }
+}

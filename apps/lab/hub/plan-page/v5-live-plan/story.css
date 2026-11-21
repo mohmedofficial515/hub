@@ -1,0 +1,240 @@
+/*
+ * v4-plan-story: the version's own layer on top of the v5 Night Peacock tokens.
+ *
+ * Phase tones. Each phase carries one hue (cycled over 8) so the ring, the journey map, the focus panel and the step waffle speak
+ * the same colour for the same phase. Colour is never the only signal: every state is also a shape (filled, ringed, hollow) and words.
+ * - `--tone`       solid marks: filled nodes, done waffle cells, finished segments (3:1 or more on card, both themes)
+ * - `--tone-fg`    text and icons in the tone (4.5:1 or more on card and on --tone-soft)
+ * - `--tone-soft`  quiet surfaces: the focus band, the next-step callout
+ * - `--tone-line`  tracks and the part of a phase not done yet
+ * Hex lives in tokens.css; tones here are oklch from one hue so lightness stays even across phases.
+ */
+
+.peacock-app [data-tone] {
+  --tone: oklch(0.515 0.125 var(--h));
+  --tone-fg: oklch(0.45 0.12 var(--h));
+  --tone-soft: oklch(0.965 0.022 var(--h));
+  --tone-line: oklch(0.88 0.045 var(--h));
+  --tone-on: oklch(0.99 0.01 var(--h));
+}
+.dark .peacock-app [data-tone] {
+  --tone: oklch(0.74 0.12 var(--h));
+  --tone-fg: oklch(0.83 0.1 var(--h));
+  --tone-soft: oklch(0.26 0.04 var(--h));
+  --tone-line: oklch(0.38 0.055 var(--h));
+  --tone-on: oklch(0.18 0.03 var(--h));
+}
+.peacock-app [data-tone='0'] { --h: 192; } /* teal */
+.peacock-app [data-tone='1'] { --h: 272; } /* indigo */
+.peacock-app [data-tone='2'] { --h: 108; } /* olive: amber is kept for "waiting for you" */
+.peacock-app [data-tone='3'] { --h: 14; }  /* rose */
+.peacock-app [data-tone='4'] { --h: 312; } /* violet */
+.peacock-app [data-tone='5'] { --h: 148; } /* green */
+.peacock-app [data-tone='6'] { --h: 236; } /* sky */
+.peacock-app [data-tone='7'] { --h: 44; }  /* orange */
+
+/* Utilities in the tone (plain classes: they do not depend on Tailwind seeing this folder). */
+.peacock-app .ps-tone-bg { background-color: var(--tone); color: var(--tone-on); }
+.peacock-app .ps-tone-soft { background-color: var(--tone-soft); }
+.peacock-app .ps-tone-fg { color: var(--tone-fg); }
+.peacock-app .ps-tone-border { border-color: var(--tone); }
+.peacock-app .ps-tone-line-border { border-color: var(--tone-line); }
+
+/* ---------- Journey map ---------- */
+
+.peacock-app .ps-map {
+  position: relative;
+  width: 100%;
+}
+.peacock-app .ps-map > svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.peacock-app .ps-seg {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 4;
+  transition: opacity 200ms ease, stroke-width 200ms ease;
+}
+.peacock-app .ps-seg-base { stroke: var(--border); }
+.peacock-app .ps-seg-todo { stroke: var(--border); stroke-dasharray: 2 8; }
+.peacock-app .ps-seg-fill { stroke: var(--tone); }
+.peacock-app .ps-seg-draw {
+  stroke-dashoffset: 1;
+  animation: ps-draw 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes ps-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.peacock-app .ps-stop {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  transform: translateX(-50%);
+  transition: opacity 200ms ease;
+}
+.peacock-app .ps-stop[data-dim='true'] { opacity: 0.55; }
+.peacock-app .ps-stop.ps-stop-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.peacock-app .ps-node {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--tone-fg);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 180ms ease;
+}
+.peacock-app .ps-node:hover { transform: scale(1.06); }
+.peacock-app .ps-node > .ps-node-ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+.peacock-app .ps-node[data-state='done'] { background: var(--tone); color: var(--tone-on); }
+.peacock-app .ps-node[aria-pressed='true'] {
+  box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--tone);
+}
+.peacock-app .ps-node[data-state='now']::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 2px solid var(--tone);
+  opacity: 0;
+  animation: ps-pulse 2.4s ease-out infinite;
+}
+@keyframes ps-pulse {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  70%, 100% { transform: scale(1.25); opacity: 0; }
+}
+.peacock-app .ps-node-finish {
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 2px dashed var(--border);
+}
+.peacock-app .ps-node-finish[data-state='done'] {
+  color: var(--success-foreground);
+  background: var(--success);
+  border: 0;
+}
+
+.peacock-app .ps-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  text-align: center;
+}
+.peacock-app .ps-stop-row .ps-label { align-items: flex-start; text-align: start; }
+.peacock-app .ps-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---------- Ring (hero) ---------- */
+
+.peacock-app .ps-arc {
+  fill: none;
+  stroke-width: 12;
+  cursor: pointer;
+  transition: stroke-width 180ms ease, opacity 200ms ease;
+}
+.peacock-app .ps-arc-rest { stroke: var(--tone-line); }
+.peacock-app .ps-arc-done { stroke: var(--tone); }
+.peacock-app .ps-arc[data-hot='true'] { stroke-width: 16; }
+.peacock-app .ps-arc[data-dim='true'] { opacity: 0.35; }
+
+/* ---------- Waffle and bars ---------- */
+
+.peacock-app .ps-waffle {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(1.75rem, 1fr));
+  gap: 0.375rem;
+}
+.peacock-app .ps-cell {
+  aspect-ratio: 1;
+  border-radius: 0.375rem;
+  border: 2px solid var(--tone-line);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--tone-fg);
+  cursor: pointer;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+.peacock-app .ps-cell:hover { transform: translateY(-2px); }
+.peacock-app .ps-cell[data-state='done'] { background: var(--tone); border-color: var(--tone); color: var(--tone-on); }
+.peacock-app .ps-cell[data-state='next'] { border-color: var(--tone); box-shadow: inset 0 0 0 2px var(--tone-soft); }
+.peacock-app .ps-cell[data-hot='true'] { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--tone); }
+
+.peacock-app .ps-step[data-hot='true'] { background: var(--tone-soft); }
+
+.peacock-app .ps-bar {
+  position: relative;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.peacock-app .ps-bar > span {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: inherit;
+  transition: width 500ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.peacock-app .ps-bar-total { background: var(--foreground); opacity: 0.22; }
+.peacock-app .ps-bar-done { background: var(--foreground); }
+
+.peacock-app .ps-swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+.peacock-app .ps-swatch-ring { border: 2px solid var(--tone); background: transparent; }
+.peacock-app .ps-swatch-line { border: 2px dashed var(--border); background: transparent; }
+
+/* Sizes Tailwind may not emit for a new folder. */
+.peacock-app .ps-ring-box { width: 10.5rem; height: 10.5rem; flex-shrink: 0; }
+@media (max-width: 47.99rem) {
+  .peacock-app .ps-ring-box { width: 8.5rem; height: 8.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peacock-app .ps-node,
+  .peacock-app .ps-cell,
+  .peacock-app .ps-arc,
+  .peacock-app .ps-seg,
+  .peacock-app .ps-stop,
+  .peacock-app .ps-bar > span { transition: none; }
+  .peacock-app .ps-node[data-state='now']::after { animation: none; opacity: 0.5; transform: none; }
+  .peacock-app .ps-seg-draw { animation: none; stroke-dashoffset: 0; }
+  .peacock-app .ps-node:hover,
+  .peacock-app .ps-cell:hover { transform: none; }
+}
+
+/* ---------- Chapter layout ---------- */
+
+.peacock-app .ps-chapter-grid {
+  display: grid;
+  align-items: start;
+  gap: 1.25rem;
+}
+@media (min-width: 48rem) {
+  .peacock-app .ps-chapter-grid { grid-template-columns: minmax(0, 17rem) minmax(0, 1fr); gap: 1.75rem; }
+}

@@ -1,0 +1,4 @@
+<tr>
+  <td class="stub-muted" style="padding:6px 0;vertical-align:top;font-size:14px;line-height:1.5;color:#566378;text-align:{{@root.textStart}};">{{label}}</td>
+  <td style="padding:6px 0;vertical-align:top;font-size:14px;line-height:1.5;font-weight:700;text-align:{{@root.textEnd}};">{{#if rule}}{{#if rule.allowed}}{{#if rule.fee}}{{t 'emails.design.rule_fee'}} <span dir="ltr">{{rule.fee}} {{rule.currency}}</span>{{else}}{{t 'emails.design.rule_free'}}{{/if}}{{else}}{{t 'emails.design.rule_no'}}{{/if}}{{else}}{{t 'emails.design.rule_unknown'}}{{/if}}</td>
+</tr>

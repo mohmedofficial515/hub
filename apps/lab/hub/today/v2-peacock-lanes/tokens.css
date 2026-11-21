@@ -1,0 +1,230 @@
+/*
+ * v2-peacock-lanes — "Night Peacock" token set (research/references.md §3 B), scoped to `.peacock`.
+ * Dark-first: the jewel hues of the Indian peafowl read luminous on green-black plumage.
+ * Every hex below comes from the research table; only the neutrals' in-between steps, the
+ * priority/avatar/heat ramps and hover/hover-press steps are new (OKLCH, lightness moved only).
+ *
+ * Rule of use on this page: colour carries meaning (card type, status). Chrome stays neutral
+ * green-black / green-white. Type colours appear on dots, stripes, badges, the awaiting-me tints,
+ * the flow bars and the single gradient line under the morning letter's header.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap');
+
+.peacock {
+  /* ── Neutrals: plumage green-white (light) ─────────────────────────────────────────── */
+  --background: #f4f8f3; /* page: pale feather-shaft green-white */
+  --foreground: #141a15; /* 16.5:1 on background */
+  --card: #fdfffd; /* surface */
+  --card-foreground: #141a15;
+  --popover: #fdfffd;
+  --popover-foreground: #141a15;
+  --secondary: #e8efe7;
+  --secondary-foreground: #141a15;
+  --muted: #e8efe7; /* skeletons, chips, inline code */
+  --muted-foreground: #5a635b; /* 5.8:1 on background */
+  --accent: #e3ece2; /* hover rows */
+  --accent-foreground: #141a15;
+  --border: #d9e1d8;
+  --input: #d9e1d8;
+
+  /* ── Primary: eye cyan, deepened for light (#006f83 + white = 5.8:1) ────────────────── */
+  --primary: #006f83;
+  --primary-foreground: #ffffff;
+  --primary-text: #006f83;
+  --primary-hover: #005d6e;
+  --ring: #006f83;
+
+  /* ── Status: tail green / copper barb / rust ───────────────────────────────────────── */
+  --success: #308639; /* tail green, deepened — dot */
+  --success-foreground: #ffffff;
+  --success-soft: #def9de;
+  --success-soft-foreground: #277e32; /* 4.5 on soft */
+  --warning: #b86a35; /* copper barb — dot */
+  --warning-foreground: #1a0e05;
+  --warning-strong: #a45821; /* text on light */
+  --warning-soft: #ffece1;
+  --warning-soft-foreground: #a45821;
+  --destructive: #b94839; /* rust */
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #ffebe7;
+  --destructive-soft-foreground: #b94839;
+  --info: #2463d4; /* neck blue */
+  --info-foreground: #ffffff;
+  --info-soft: #e8f1ff;
+  --info-soft-foreground: #2463d4;
+
+  /* ── Card types: dot / stripe (both themes) · soft tint · badge text on the tint ───── */
+  --type-task: #2463d4; /* neck blue */
+  --type-task-soft: #e8f1ff;
+  --type-task-fg: #2463d4;
+  --type-decision: #a98844; /* eye-ring bronze */
+  --type-decision-soft: #ffeecf;
+  --type-decision-fg: #876720;
+  --type-need: #c0609a; /* dusk magenta (extended: not in the bird) */
+  --type-need-soft: #ffe9f4;
+  --type-need-fg: #a94b85;
+  --type-change: #636b60; /* green-grey down, quiet */
+  --type-change-soft: #eaf3e7;
+  --type-change-fg: #636b60;
+  --type-handoff: #009abc; /* eye cyan, made a dot */
+  --type-handoff-soft: #dbf6ff;
+  --type-handoff-fg: #007893;
+  --type-redesign: #9171cf; /* twilight violet (extended: not in the bird) */
+  --type-redesign-soft: #f2edff;
+  --type-redesign-fg: #7b5ab6;
+  --type-doc: #16a081; /* tail teal */
+  --type-doc-soft: #d3fbed;
+  --type-doc-fg: #007d64;
+  --type-release: #829539; /* tail lime-olive */
+  --type-release-soft: #ecf5d4;
+  --type-release-fg: #647510;
+
+  /* ── Priority (text colours; P0 reuses rust) ───────────────────────────────────────── */
+  --prio-p0: var(--destructive);
+  --prio-p1: #a45821; /* copper barb text */
+  --prio-p2: var(--muted-foreground);
+  --prio-p3: #687168;
+
+  /* ── Avatars: 12 hues, step 30°, white initials (≥ 5:1) ─────────────────────────────── */
+  --avatar-fg: #ffffff;
+  --avatar-1: oklch(0.5 0.11 20);
+  --avatar-2: oklch(0.5 0.11 50);
+  --avatar-3: oklch(0.5 0.1 80);
+  --avatar-4: oklch(0.5 0.11 110);
+  --avatar-5: oklch(0.5 0.11 140);
+  --avatar-6: oklch(0.5 0.1 170);
+  --avatar-7: oklch(0.5 0.1 200);
+  --avatar-8: oklch(0.5 0.12 230);
+  --avatar-9: oklch(0.5 0.13 260);
+  --avatar-10: oklch(0.5 0.13 290);
+  --avatar-11: oklch(0.5 0.13 320);
+  --avatar-12: oklch(0.5 0.12 350);
+
+  /* ── Activity heatmap: ONE ramp of eye cyan → deep tail (5 steps) ──────────────────── */
+  --heat-0: #e4ebe3; /* zero events: neutral */
+  --heat-1: oklch(0.9 0.05 212);
+  --heat-2: oklch(0.79 0.09 214);
+  --heat-3: oklch(0.63 0.11 217);
+  --heat-4: oklch(0.47 0.09 220);
+  --heat-ring: #141a15; /* today outline */
+
+  /* ── Motion: the "living" source dot breathes once every 4 s (motion-safe only) ───── */
+  --animate-breathe: peacock-breathe 4s ease-in-out infinite;
+
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* ── Neutrals: green-black plumage (dark, the first theme) ─────────────────────────────── */
+.dark .peacock {
+  --background: #0b100c;
+  --foreground: #e4eae2; /* 15.7:1 */
+  --card: #131914;
+  --card-foreground: #e4eae2;
+  --popover: #18201a;
+  --popover-foreground: #e4eae2;
+  --secondary: #1a211b;
+  --secondary-foreground: #e4eae2;
+  --muted: #1a211b;
+  --muted-foreground: #9ea89f; /* 7.8:1 */
+  --accent: #1d251e;
+  --accent-foreground: #e4eae2;
+  --border: #29302a;
+  --input: #29302a;
+
+  /* Eye cyan at full voice: #02d0fd with #001218 text = 10.4:1 */
+  --primary: #02d0fd;
+  --primary-foreground: #001218;
+  --primary-text: #02d0fd;
+  --primary-hover: #4bdcfe;
+  --ring: #02d0fd;
+
+  --success: #4ea254;
+  --success-foreground: #04120a;
+  --success-soft: #172e18;
+  --success-soft-foreground: #4ea254;
+  --warning: #c97945;
+  --warning-foreground: #1a0e05;
+  --warning-strong: #c97945;
+  --warning-soft: #3b200f;
+  --warning-soft-foreground: #c97945;
+  --destructive: #df6a59;
+  --destructive-foreground: #1a0705;
+  --destructive-soft: #3d1e19;
+  --destructive-soft-foreground: #df6a59;
+  --info: #4a8bff;
+  --info-foreground: #050d1c;
+  --info-soft: #192740;
+  --info-soft-foreground: #4a8bff;
+
+  /* Dark soft tints are kept at L≈0.27, C≤0.05 (research §4: no glowing tints). */
+  --type-task: #2463d4;
+  --type-task-soft: #192740;
+  --type-task-fg: #4a8bff;
+  --type-decision: #a98844;
+  --type-decision-soft: #332506;
+  --type-decision-fg: #ab8a46;
+  --type-need: #c0609a;
+  --type-need-soft: #391d2d;
+  --type-need-fg: #cd6ca6;
+  --type-change: #636b60;
+  --type-change-soft: #232a21;
+  --type-change-fg: #899186;
+  --type-handoff: #009abc;
+  --type-handoff-soft: #002d39;
+  --type-handoff-fg: #069cbe;
+  --type-redesign: #9171cf;
+  --type-redesign-soft: #2b223d;
+  --type-redesign-fg: #9c7cdb;
+  --type-doc: #16a081;
+  --type-doc-soft: #042f25;
+  --type-doc-fg: #1aa282;
+  --type-release: #829539;
+  --type-release-soft: #252b0c;
+  --type-release-fg: #83973b;
+
+  --prio-p1: #c97945;
+  --prio-p3: #848d85;
+
+  --avatar-fg: #0b100c;
+  --avatar-1: oklch(0.74 0.1 20);
+  --avatar-2: oklch(0.74 0.1 50);
+  --avatar-3: oklch(0.74 0.1 80);
+  --avatar-4: oklch(0.74 0.1 110);
+  --avatar-5: oklch(0.74 0.1 140);
+  --avatar-6: oklch(0.74 0.09 170);
+  --avatar-7: oklch(0.74 0.09 200);
+  --avatar-8: oklch(0.74 0.1 230);
+  --avatar-9: oklch(0.74 0.11 260);
+  --avatar-10: oklch(0.74 0.11 290);
+  --avatar-11: oklch(0.74 0.11 320);
+  --avatar-12: oklch(0.74 0.1 350);
+
+  --heat-0: #19201a;
+  --heat-1: oklch(0.33 0.05 222);
+  --heat-2: oklch(0.47 0.08 220);
+  --heat-3: oklch(0.63 0.11 218);
+  --heat-4: oklch(0.8 0.14 216); /* ≈ eye cyan #02d0fd */
+  --heat-ring: #e4eae2;
+}
+
+/* The morning letter's voice: Noto Naskh Arabic for ar, Newsreader for en (16 / 1.8). */
+.peacock .peacock-letter {
+  font-family: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  font-optical-sizing: auto;
+}
+[lang='ar'] .peacock .peacock-letter {
+  font-family: 'Noto Naskh Arabic', 'Traditional Arabic', serif;
+}
+
+@keyframes peacock-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

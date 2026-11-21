@@ -1,0 +1,61 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<!-- Hero: the sky above the clouds. Where images or backgrounds are off, solid navy keeps the white text readable. -->
+<tr>
+<td class="pad hero-pad" bgcolor="#0d1f44" style="background-color:#0d1f44;background-image:linear-gradient(180deg,rgba(13,31,68,.62) 0%,rgba(13,31,68,.30) 55%,rgba(13,31,68,.55) 100%),url('{{heroUrl}}');background-size:cover;background-position:center bottom;padding:30px 32px 44px;color:#ffffff;">
+  <a href="{{url webUrl}}"><img src="{{logoOnDark}}" height="28" alt="{{siteName}}" style="display:inline-block;height:28px;width:auto;border:0;color:#ffffff;font-size:18px;font-weight:700;"></a>
+  <p style="margin:54px 0 0;font-size:20px;font-weight:600;color:#ffffff;text-align:{{textStart}};">{{t 'emails.design.to_word'}}</p>
+  <h1 class="city" style="margin:0 0 10px;font-size:76px;line-height:1.08;font-weight:800;color:#ffffff;text-align:{{textStart}};">{{outboundCity}}</h1>
+  <p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#ffffff;text-align:{{textStart}};">{{day slices.0.departingAt}} <span dir="ltr" style="font-weight:700;">{{clock slices.0.departingAt}}</span></p>
+  {{> button url=link label=(t 'emails.bookings.confirmed.cta')}}
+</td>
+</tr>
+
+<tr>
+<td class="sheet ink pad" bgcolor="#ffffff" style="background-color:#ffffff;padding:30px 32px 30px;color:#1f2a44;">
+  <h2 class="ink" style="margin:0 0 8px;font-size:22px;line-height:1.35;font-weight:800;color:#1f325c;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.title'}}</h2>
+  <p style="margin:0 0 6px;font-size:15px;line-height:1.7;text-align:{{textStart}};">{{#if firstName}}{{t 'emails.layout.greeting' name=firstName}}{{else}}{{t 'emails.layout.greeting_anonymous'}}{{/if}} {{t 'emails.bookings.confirmed.body' siteName=siteName reference=reference}}</p>
+  <p style="margin:0 0 22px;font-size:15px;line-height:1.7;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.ticket_soon'}}</p>
+
+  {{#each slices}}
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e0e6ed;">
+  <tr>
+    <td style="padding:14px 0;vertical-align:top;text-align:{{@root.textStart}};">
+      <div style="font-size:17px;font-weight:800;"><span dir="ltr">{{origin}}</span> {{t 'emails.design.arrow'}} <span dir="ltr">{{destination}}</span></div>
+      <div class="muted" style="font-size:13px;color:#566378;">{{day departingAt}}</div>
+    </td>
+    <td dir="ltr" style="padding:14px 0;vertical-align:top;text-align:{{@root.textEnd}};">
+      <div style="font-size:17px;font-weight:800;">{{clock departingAt}} - {{clock arrivingAt}}</div>
+      <div class="muted" style="font-size:13px;color:#566378;">{{#each flights}}{{this}}{{#unless @last}} / {{/unless}}{{/each}}</div>
+    </td>
+  </tr>
+  </table>
+  {{/each}}
+
+  <table role="presentation" class="rule" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e0e6ed;">
+  {{#if pnr}}<tr>
+    <td class="muted" style="padding:14px 0 8px;font-size:14px;color:#566378;vertical-align:baseline;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.pnr'}}</td>
+    <td dir="ltr" style="padding:14px 0 8px;font-size:24px;font-weight:800;letter-spacing:3px;vertical-align:baseline;text-align:{{textEnd}};">{{pnr}}</td>
+  </tr>{{/if}}
+  <tr>
+    <td class="muted" style="padding:6px 0;font-size:14px;color:#566378;vertical-align:top;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.reference'}}</td>
+    <td dir="ltr" style="padding:6px 0;font-size:15px;font-weight:700;vertical-align:top;text-align:{{textEnd}};">{{reference}}</td>
+  </tr>
+  {{#if airline}}<tr>
+    <td class="muted" style="padding:6px 0;font-size:14px;color:#566378;vertical-align:top;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.airline'}}</td>
+    <td style="padding:6px 0;font-size:15px;font-weight:700;vertical-align:top;text-align:{{textEnd}};">{{airline}}</td>
+  </tr>{{/if}}
+  <tr>
+    <td class="muted" style="padding:6px 0;font-size:14px;color:#566378;vertical-align:top;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.passengers'}}</td>
+    <td dir="ltr" style="padding:6px 0;font-size:14px;font-weight:600;line-height:1.6;vertical-align:top;text-align:{{textEnd}};">{{#each passengers}}{{this}}{{#unless @last}}<br>{{/unless}}{{/each}}</td>
+  </tr>
+  {{#if amount}}<tr>
+    <td class="muted" style="padding:6px 0;font-size:14px;color:#566378;vertical-align:top;text-align:{{textStart}};">{{t 'emails.bookings.confirmed.total'}}</td>
+    <td dir="ltr" style="padding:6px 0;font-size:15px;font-weight:700;vertical-align:top;text-align:{{textEnd}};">{{amount}} {{currency}}</td>
+  </tr>{{/if}}
+  </table>
+
+  {{> link_fallback url=link}}
+  {{> signature}}
+</td>
+</tr>
+</table>

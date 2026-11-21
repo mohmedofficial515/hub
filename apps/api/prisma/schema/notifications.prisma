@@ -1,0 +1,67 @@
+model Notification {                                     // inbox item (in-app); channels fan out through jobs
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  kind        String                                    // routed_decision | routed_need | routed_handoff | mention | watch_update | deadline_reminder | escalation | unblocked | task_ready | brief | system
+  cardId      String?   @map("card_id") @db.Uuid
+  groupKey    String?   @map("group_key")               // "card:<id>" — later items with the same key within 30 min merge in the UI
+  title       String                                    // rendered at creation in the member's locale (immutable); `data.i18n` keeps { key, params } for re-rendering in the other locale
+  body        String?
+  data        Json      @default("{}")                  // { cardKey, action?: "decide" | "acknowledge" | "deliver" | "claim", i18n: { key, params } }
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  readAt      DateTime? @map("read_at") @db.Timestamptz(3)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(3)
+  jobs        NotificationJob[]
+  @@index([userId, workspaceId, readAt, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationJob {                                  // outbox row per channel
+  id             String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  notificationId String    @map("notification_id") @db.Uuid
+  channel        String                                 // push | telegram | email
+  status         String    @default("pending")          // pending | sent | failed | skipped
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz(3)
+  error          String?
+  notification   Notification @relation(fields: [notificationId], references: [id])
+  @@index([status, nextAttemptAt])
+  @@map("notification_jobs")
+}
+
+model ChannelPreference {
+  userId      String @map("user_id") @db.Uuid
+  workspaceId String @map("workspace_id") @db.Uuid
+  channel     String                                    // push | telegram | email
+  mode        String @default("immediate")              // off | immediate | digest   (digest = batched into the morning brief)
+  kinds       String[] @default([])                     // empty = all kinds; else only these
+  @@id([userId, workspaceId, channel])
+  @@map("channel_preferences")
+}
+
+model PushSubscription {
+  id String @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  endpoint String @unique
+  keys Json
+  userAgent String? @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  failedAt DateTime? @map("failed_at") @db.Timestamptz(3)
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model TelegramLink {
+  userId String @id @map("user_id") @db.Uuid
+  chatId String @unique @map("chat_id")
+  username String?
+  linkedAt DateTime @default(now()) @map("linked_at") @db.Timestamptz(3)
+  @@map("telegram_links")
+}
+model TelegramLinkCode {
+  code String @id
+  userId String @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  @@map("telegram_link_codes")
+}

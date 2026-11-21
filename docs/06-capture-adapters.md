@@ -260,7 +260,7 @@ snapshot (en); externalKey idempotency.
 agent (primary) or, failing that, a facts-only card from Git (fallback), so no work goes
 unrecorded.
 
-**Inputs**: `POST /capture/session` (hook token; 04 §3.16 `HookSessionPayload`), MCP
+**Inputs**: `POST /capture/session` (hook or mcp token; 04 §3.16), MCP
 `hub.log_session` (05), setting `capture.session.hook_grace_minutes`, `SessionLog` rows.
 
 **Algorithm**:
@@ -327,6 +327,11 @@ secret in a commit message → 422; repo resolution from remote URL variants (`g
 version `README.md` front-matter; Hub's approve/reject/submit actions write the front-matter back.
 **The file is the source of truth; the database follows it.**
 
+**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: lab`, with `config.path` inside `LAB_ROOT` when that is set. `pnpm seed:sources` points it at `apps/lab` by default, and `pnpm lab:repoint` moves an existing source there (docs/16 §6). `externalKey` and attachments are relative to the lab root, so a move changes no card. The cursor also says which versions have a `page.tsx`.
+It reads the folder and writes front-matter by a line edit, with no gray-matter and no commit, so comments and key order stay. Apps are the
+root's folders except `_templates`, `lab`, `shared`; a version folder matches `^v\d+-`. A version unchanged by README hash, review and
+screenshot names is skipped. A status from the file bypasses the machine through `plan.status`. Screenshots are served by `GET /lab/file`.
+
 **Inputs**: source `lab` (`config.root` — absolute path of the lab folder inside the hub working
 tree, `config.apps`, `config.publicBase`, `config.pushEnabled`; `cursor.versions[path] = { status, readmeHash }`,
 `cursor.pages[app/page] = { meta, brief, liveUrl }`), the lab folder on disk.
@@ -388,6 +393,11 @@ missing-folder tagging; idempotent re-scan.
 **Purpose**: every Markdown file in a registered docs folder is a `doc` card with searchable
 chunks, so people and agents find the design docs, ADRs and status notes from Hub.
 
+**Local path mode (first release, docs/15 §3):** the source is `kind: local_path`, `purpose: docs`. The file's sha256 replaces the blob oid,
+`externalKey = doc:<sourceId>:<path>`, and `lastCommitSha` stays null. A file the secret filter refuses is left out and counted on the run. Each
+source runs every `capture.docs.interval_sec` from the worker's tick, or now by `POST /sources/{id}/run`. Doc events stay out of the default
+timeline and of "since last visit", and publish no per-card message.
+
 **Inputs**: source `docs_folder` (`config.repoSourceId`, `path`, `include`, `exclude`, `kinds`;
 `cursor.lastIndexedSha`, `cursor.files[path] = blobOid`), the repo mirror, default branch.
 
@@ -435,8 +445,9 @@ returning the Arabic chunk (e2e).
 **Purpose**: seed the Goteav workspace with its existing history so day one of Hub shows the
 project as it is, not an empty timeline. Re-runnable and idempotent.
 
-**What is read from where** (by `scripts/import-goteav.ts` on the owner's machine, then posted to
-`POST /workspaces/goteav/capture/import/goteav`; the API never reads `F:\` itself):
+**What is read from where** (by `apps/api/scripts/import-goteav.ts`, `pnpm import:goteav --workspace goteav --root F:/Goteav
+[--dry-run]`, on the owner's machine. The script reads the files and calls `GoteavImportService` in its own process; there is no
+route, and the service never reads a path):
 
 | Input | Path | Becomes |
 | --- | --- | --- |
@@ -447,7 +458,10 @@ project as it is, not an empty timeline. Re-runnable and idempotent.
 
 The importer is the **only** writer allowed to set `createdAt`, `lastEventAt`, `closedAt` and
 the `created` event's `createdAt` in the past (`actor.via = 'import'`), so the timeline shows real
-dates.
+dates. So it writes through `CardRepository`, one transaction per card, with the secret filter, its events and one audit row for
+the run; `CardService.apply` always uses the clock. A card holding something like a secret is not imported and is listed as a problem.
+On the real files (2026-11-05): 2 decisions, 76 tasks, 13 status docs, 1 release, 87 handoffs; a second run creates nothing. The
+same run seeds `modules.catalogue`, `onboarding.paths` and the project's `repoPaths`, only where still empty.
 
 **Re-run rule**: a card whose last event was written by `via: import` is updated in place; a card
 that has any later human/agent/adapter event is left untouched and listed in the run report
@@ -457,7 +471,7 @@ that has any later human/agent/adapter event is left untouched and listed in the
 
 YAML shape (observed): `decisions[]` with `id, titleAr, status, modules[], lastVerifiedAt, reviewBy,
 questionAr, contextAr[], summaryAr, recommendationAr, planAr[], rules[] { titleAr, bodyAr, impactAr,
-confidence, sources[] }, sources{}`.
+confidence, sources[] }, options[] { id, name, verdict, prosAr[], consAr[], pricingAr }, openQuestions[], sources{}`.
 
 | Card field | From |
 | --- | --- |
@@ -466,7 +480,7 @@ confidence, sources[] }, sources{}`.
 | `body` | Markdown: `## الملخص` summaryAr · `## السياق` bullets contextAr · `## التوصية` recommendationAr · `## الخطة` numbered planAr · `## القواعد` one `###` per rule with body, impact, `confidence` badge and source ids · `## المصادر` from `sources` (name, url, type, reachability, checkedAt) |
 | `DecisionDetail.kind` | `financial` if `modules` ∩ {payments, wallet, invoicing, pricing, loyalty} ≠ ∅, else `product` |
 | `question` | `questionAr` |
-| `options` | the YAML has no option list → two options are synthesised: `{ id: 'recommended', title: first sentence of recommendationAr (≤ 120), pros: [], cons: [], recommended: true }` and `{ id: 'defer', title: 'Defer — revisit before <reviewBy>' }`. The body keeps the full recommendation. |
+| `options` | the YAML's `options` when present (`recommended` from `verdict`). When there are none, two are synthesised: `{ id: 'recommended', title: first sentence of recommendationAr (≤ 120), pros: [], cons: [], recommended: true }` and `{ id: 'defer', title: 'Defer — revisit before <reviewBy>' }`. The body keeps the full recommendation. |
 | `deciderRole` / `ownerRole` | `owner` |
 | `status` / dates | `proposed` → `open`, `dueAt = importedAt + 14 d` · `approved`, `done` → `decided`, `chosenOptionId = recommended`, `rationale = summaryAr` (≤ 2 000), `decidedAt = lastVerifiedAt`, `decidedById = owner` · `deferred` → `open`, `dueAt = reviewBy` · `rejected` → `withdrawn` · unknown → `open` + problem |
 | `createdAt` | `lastVerifiedAt` if present else import time |
@@ -485,12 +499,12 @@ prompt?` (the map renders a prompt when absent).
 | --- | --- |
 | `externalKey` | `import:suggestion:<id>` |
 | `title` | `titleAr` |
-| `body` | `summaryAr` · `## المشكلة` problemAr · `## الأدلة` evidence paths as code |
+| `body` | `summaryAr` · `## المشكلة` problemAr · `## المقترح` proposalAr · `## الفوائد` benefitsAr · `## الحالة` statusNoteAr · `## الأدلة` evidence paths as code |
 | `TaskDetail.specialty` | `backend` → `backend`; `dashboard`, `web` → `frontend`; `both` → `backend` + tag `needs-frontend` (a follow-up frontend task is created only when the owner asks); `mobile` → `backend` + tag `mobile` |
 | `ownerRole` | from specialty |
 | `effort`, `priority` | as given (`priority` default `P2`) |
 | `prompt` | YAML `prompt` if present; else rendered by digests (07 §6.8) from title/body/evidence |
-| `acceptance` | `null` |
+| `acceptance` | `acceptanceAr` as bullets, else `null` |
 | `origin` | `import_suggestion` |
 | `status` | `proposed` → `backlog` · `approved` → `ready` · `in_progress` → `ready` + tag `was-in-progress` (no claimer known) · `done` → `done`, `closedAt = importedAt`, `doneAt` same · `deferred` → `backlog`, priority `P3`, tag `deferred` · `rejected` → `cancelled` |
 | `module` / `tags` | `modules[0]` / `modules` + `category` + `imported` |
@@ -498,7 +512,7 @@ prompt?` (the map renders a prompt when absent).
 ### 7.3 `docs/status/*.md` → backdated status docs and one release
 
 - For each file: upsert the `doc` card with the **same externalKey the indexer uses**
-  (`doc:<backend docs source name>:docs/status/<file>`), `kind status`, `lang` from `.ar.md`,
+  (`doc:backend-docs:docs/status/<file>`, on a `local_path` source named `backend-docs`), `kind status`, `lang` from `.ar.md`,
   `createdAt` = the leading date in the filename (`2026-09-20-m7-progress-ar.md` → 2026-09-20)
   or, for undated files (`integration-gaps.md`, `integration-review.md`), the file's first commit
   date supplied by the script (`git log --diff-filter=A --format=%aI -- <file>`). The indexer later
@@ -523,8 +537,7 @@ may contain `**breaking**` and often ends with `(IR-xxx)`.
 | `ownerRole` | `frontend` |
 | `tags` | `imported`, `contract` |
 
-After the import, the GitHub adapter's commit cards containing those shas get `relates` links from
-a one-off pass at the end of the import (search `change_details.commits @> '[{"sha": "…"}]'`).
+Linking these to commit cards waits for the GitHub adapter (H2-02, deferred by 15 §3).
 
 ### 7.5 Run report
 

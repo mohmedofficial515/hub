@@ -1,0 +1,978 @@
+{
+  "title": "Planning",
+  "errorThing": "ideas and plans",
+  "loading": "Loading ideas and plans",
+  "summary": {
+    "ideas": {
+      "zero": "No ideas open",
+      "one": "1 idea open",
+      "other": "# ideas open"
+    },
+    "plans": {
+      "zero": ", no plans in motion",
+      "one": ", 1 plan in motion",
+      "other": ", # plans in motion"
+    }
+  },
+  "newIdea": "New idea",
+  "newPlan": "New plan",
+  "scope": {
+    "label": "What to show",
+    "active": "Active",
+    "closed": "Closed"
+  },
+  "filters": {
+    "search": "Search by key or title…"
+  },
+  "focal": {
+    "label": "Next up",
+    "open": "Open the plan",
+    "openIdea": "Open the idea",
+    "moving": "Moving now",
+    "moreSteps": {
+      "one": "1 more step",
+      "other": "# more steps"
+    },
+    "noSteps": "No steps yet. Add them, then create tasks from them.",
+    "progress": "{done} of {total} steps done",
+    "noProblem": "The problem has not been written yet.",
+    "waiting": "Waiting for approval"
+  },
+  "lanes": {
+    "ideas": "What we are thinking about",
+    "plans": "What is planned next",
+    "closedIdeas": "Ideas that are settled",
+    "closedPlans": "Plans that ended"
+  },
+  "groups": {
+    "exploring": "Being explored",
+    "open": "Not started",
+    "accepted": "Accepted",
+    "parked": "Parked",
+    "rejected": "Rejected",
+    "in_review": "Waiting for approval",
+    "approved": "Approved, not started",
+    "in_progress": "In progress",
+    "draft": "Drafts",
+    "done": "Done",
+    "abandoned": "Abandoned"
+  },
+  "row": {
+    "progress": "{done} of {total}",
+    "noSteps": "No steps yet",
+    "noText": "Not written yet",
+    "steps": "Step progress",
+    "next": "Next: {n}. {title}",
+    "allDone": "Every step is done",
+    "noTask": "{n} without a task"
+  },
+  "empty": {
+    "firstTitle": "Nothing is being thought about yet",
+    "firstBody": "Write down an idea worth thinking about, or start a plan. Claude Code can draft one too:",
+    "ideasTitle": "No ideas here",
+    "ideasBody": "An idea is a problem worth thinking about before it becomes work.",
+    "plansTitle": "No plans here",
+    "plansBody": "A plan is a written approach with steps. Its steps become tasks.",
+    "noMatch": "Nothing matches these filters",
+    "clear": "Clear filters"
+  },
+  "newPlanForm": {
+    "title": "New plan",
+    "titleLabel": "Plan title",
+    "body": "The approach",
+    "bodyHint": "Markdown works. Every save keeps the previous text.",
+    "steps": "Steps",
+    "stepsHint": "One step per line. You can give each a role later.",
+    "create": "Create plan"
+  },
+  "edit": {
+    "edit": "Edit",
+    "save": "Save",
+    "saved": "Saved",
+    "title": "Title",
+    "titleRequired": "Write a title to continue.",
+    "body": "Description",
+    "priority": "Priority",
+    "tags": "Tags",
+    "tagsHint": "Separate them with commas.",
+    "write": "Write",
+    "preview": "Preview",
+    "nothingToPreview": "Nothing to preview yet.",
+    "changedElsewhere": "Someone changed this card while you were editing. Saving replaces their text with yours."
+  },
+  "idea": {
+    "role": "Role",
+    "noRole": "No role",
+    "body": "Description",
+    "toPlanTitle": "Turn into a plan",
+    "toPlanHint": "This creates a linked plan and marks the idea as accepted.",
+    "planTitle": "Plan title",
+    "planBody": "The plan’s text",
+    "toPlanSave": "Create the plan",
+    "turned": "Created plan {key}",
+    "toPlanStudio": "Or let Claude write its steps in the Plan Studio"
+  },
+  "plan": {
+    "fromIdea": "From idea",
+    "stepTitle": "Step {n}",
+    "stepRole": "Role",
+    "noRole": "No role",
+    "addStep": "Add a step",
+    "moveUp": "Move step {n} up",
+    "moveDown": "Move step {n} down",
+    "removeStep": "Remove step {n}",
+    "stepsHint": "A step with a task follows that task, so it finishes when the task does.",
+    "stepRequired": "Give this step a title, or remove it.",
+    "tasksHint": "{n} with no task yet",
+    "revisions": "Revisions",
+    "revision": "Revision {n}",
+    "current": "Current",
+    "replacedBy": "Replaced by",
+    "show": "Show",
+    "hide": "Hide",
+    "restore": "Restore",
+    "restoreTitle": "Restore revision {n}?",
+    "restoreBody": "Its text becomes the plan’s text, as a new revision. Nothing is lost.",
+    "restored": "Restored revision {n}",
+    "noRevisions": "This is the first text. Saving a change adds a revision.",
+    "revisionsThing": "revisions",
+    "emptyText": "This revision had no text.",
+    "afterStep": "After step {n}",
+    "afterSteps": "After steps {n}",
+    "acceptance": "Done when",
+    "sizeLabel": "Size: {size}",
+    "whyLabel": "Why",
+    "changesRequested": "Changes requested",
+    "changesRequestedBy": "Asked by",
+    "phases": "Phases",
+    "phasesHint": "Phases group the steps into the chapters the plan page shows. A step can sit in one phase, or in none.",
+    "phaseTitle": "Phase {n}",
+    "phaseNote": "Note (optional)",
+    "addPhase": "Add a phase",
+    "movePhaseUp": "Move phase {n} up",
+    "movePhaseDown": "Move phase {n} down",
+    "removePhase": "Remove phase {n}",
+    "phaseRequired": "Give this phase a title, or remove it.",
+    "stepPhase": "Phase",
+    "noPhase": "No phase",
+    "removePhaseTitle": "Remove the phase “{title}”?",
+    "removePhaseBody": "Steps in this phase: {n}. Choose where they go; they move when you save.",
+    "removePhaseMoveTo": "Move its steps to",
+    "removePhaseConfirm": "Move them and remove"
+  },
+  "stats": {
+    "label": "At a glance",
+    "waiting": "Waiting for approval",
+    "moving": "In progress",
+    "ideas": "Open ideas",
+    "steps": "Steps done"
+  },
+  "liveBanner": {
+    "drafting": "Claude is drafting a plan in the chat",
+    "proposed": "Claude proposed a plan in the chat",
+    "open": "Open in the Plan Studio",
+    "dismiss": "Dismiss"
+  },
+  "detail": {
+    "back": "Planning",
+    "loading": "Loading {key}",
+    "notFound": "{key} was not found",
+    "notFoundBody": "It may have been deleted, or it belongs to another project.",
+    "created": "Created by",
+    "updated": "Updated",
+    "road": "Where it stands",
+    "next": {
+      "plan": {
+        "done": "Done. Every step is finished.",
+        "abandoned": "Abandoned. It stays here for the record."
+      },
+      "idea": {
+        "open": "Not explored yet. Explore it, or turn it into a plan.",
+        "exploring": "Being explored. Once it is clear, turn it into a plan.",
+        "accepted": "Accepted: it became a plan.",
+        "parked": "Parked for later. It can reopen.",
+        "rejected": "Rejected. It stays here for the record."
+      }
+    },
+    "tabs": {
+      "plan": "The plan",
+      "idea": "The idea",
+      "comments": "Comments",
+      "history": "History",
+      "links": "Links"
+    },
+    "steps": "Steps",
+    "stepsEmpty": "No steps yet. Add them, or ask Claude to develop the plan.",
+    "approach": "Approach",
+    "approachEmpty": "The approach is not written yet.",
+    "outline": "In this plan",
+    "progress": "Progress",
+    "progressLine": "{done} of {total} steps done",
+    "noTask": "{n} without a task",
+    "allTasks": "Every step has a task",
+    "facts": "Details",
+    "priority": "Priority",
+    "role": "Role",
+    "tags": "Tags",
+    "none": "None",
+    "problem": "The problem",
+    "notes": "Notes",
+    "noProblem": "The problem is not written yet.",
+    "noNotes": "No notes yet.",
+    "live": "Claude is working on this now",
+    "liveHint": "Each change appears here as soon as it is saved.",
+    "step": "Step {n}",
+    "stepNext": "Next",
+    "claude": {
+      "label": "With Claude",
+      "develop": "Develop with Claude",
+      "developTip": "Puts a request in the chat to improve this plan in place. Add what you want, then send it, and watch it change here.",
+      "developPrompt": "Develop the plan {key} in Hub and save it with update_plan: keep what works, fill what is missing in the approach and the steps, and give each step a role. Do not change any code. What I want: ",
+      "draft": "Plan it with Claude",
+      "draftTip": "Opens the Plan Studio on this idea: Claude reads it with what is in Hub and the code, and returns a plan with its steps. Saving it turns the idea into that plan.",
+      "explain": "Explain it",
+      "runNext": "Run the next step",
+      "runNextTip": "Runs /hub:work on {task}, the task of step {n}, in Execute.",
+      "runNextNoTask": "The next step has no task yet. Create tasks from the steps first.",
+      "allDone": "Every step is done."
+    },
+    "guide": {
+      "noSteps": "No steps yet. Add them, or develop the plan with Claude.",
+      "review": "Review it, then send it for approval.",
+      "approve": "Read the steps and the approach, then approve it, or edit it before approving.",
+      "waitApproval": "Waiting for the owner or the project manager to approve it.",
+      "createTasks": "Create tasks from the steps ({n} without a task), then start.",
+      "start": "Start the work.",
+      "step": "Step {n} of {total}: {title}",
+      "stepNoTask": "The next step has no task. Create the tasks first.",
+      "finish": "Every step is done. Finish the plan."
+    },
+    "stage": {
+      "plan": {
+        "draft": "Draft",
+        "in_review": "Waiting for approval",
+        "approved": "Approved",
+        "in_progress": "In progress",
+        "done": "Done",
+        "abandoned": "Abandoned"
+      },
+      "idea": {
+        "open": "Not started",
+        "exploring": "Being explored",
+        "accepted": "Accepted",
+        "parked": "Parked",
+        "rejected": "Rejected"
+      }
+    },
+    "stageOf": "Stage {n} of {total}: {label}",
+    "path": "From idea to work",
+    "pathTasks": "Tasks: {done} of {total} done",
+    "stepNoTask": "No task yet",
+    "stepUnassigned": "Unassigned",
+    "stepBlocked": "Blocked: its task is blocked",
+    "stepEvidence": "Evidence",
+    "stepNoEvidence": "No evidence yet",
+    "addSteps": "Add steps",
+    "planText": "The plan's text",
+    "outlineIdea": "In this idea",
+    "report": "Report",
+    "openStudio": "Open its report in the studio",
+    "approvedBy": "Approved by",
+    "revisionLabel": "Revision",
+    "journey": {
+      "title": "The plan as a journey",
+      "hint": "Each circle is a phase. Pick one to see its steps under the map; arrow keys move between them.",
+      "legendDone": "Done",
+      "legendNow": "In progress",
+      "legendTodo": "Not started",
+      "legendReview": "In review",
+      "inReview": "{n} in review",
+      "effortReview": " · {n} in review",
+      "ringReview": "+{p}% in review",
+      "finishLine": "Finish line",
+      "finishDone": "Plan complete",
+      "remaining": "{n} left",
+      "phase": "Phase {n}",
+      "phaseOfN": "Phase {n} of {last}",
+      "stateNow": "In progress",
+      "stateTodo": "Not started",
+      "stateDone": "Done",
+      "here": "You are here",
+      "unphased": "Steps",
+      "noPhase": "Outside a phase",
+      "prevPhase": "Previous phase",
+      "nextPhase": "Next phase",
+      "chapter": "Current chapter",
+      "stepsGrid": "Steps in this phase",
+      "stepsGridHint": "Each square is a step: filled is done, hatched is in review, outlined is next.",
+      "percentDone": "{p}% done",
+      "phaseRoles": "Roles in this phase",
+      "noNextHere": "No steps left in this phase.",
+      "ringLabel": "Plan progress by phase",
+      "ringEffort": "of the effort",
+      "progress": "{done} of {total}",
+      "progressLabel": "{done} of {total} steps done",
+      "stepsWord": {
+        "one": "1 step",
+        "other": "# steps"
+      },
+      "phasesWord": {
+        "one": "1 phase",
+        "other": "# phases"
+      },
+      "next": "Next",
+      "nextStep": "Step {n}",
+      "nextIn": "in {phase}",
+      "openPhase": "Open the phase",
+      "allDone": "Every step is done. Finish the plan once you are sure.",
+      "effortLabel": "Effort {done} of {total} points",
+      "effortHint": "Step size: S is 1 point, M is 3, L is 8. A step with no size counts as M.",
+      "eta": "Estimated finish {date}",
+      "etaHint": "From the pace so far ({pace} points a day) applied to what is left ({left} points). An estimate, not a date.",
+      "rolesTitle": "Who carries the plan",
+      "rolesHint": "Steps per role, split by phase; the solid part is what is done.",
+      "rolesRow": "{role}: {done} of {total} done",
+      "allPhases": "All phases",
+      "expandAll": "Open all phases",
+      "collapseAll": "Fold all phases",
+      "phaseDone": "Done",
+      "roleMix": "Who carries it",
+      "roleCount": "{role}: {n}",
+      "unphasedHint": "This plan has no phases. Ask Claude to develop it with phases, and its steps group into a journey here.",
+      "blockedBy": "Waits for {list}",
+      "stepRef": "step {n}",
+      "listSep": ", ",
+      "sizes": {
+        "S": "Small: about an hour",
+        "M": "Medium: about a day",
+        "L": "Large: more than a day"
+      },
+      "sizeLabel": "Size",
+      "stepNo": "Step {n}",
+      "done": "done",
+      "openStep": "Open step {n}",
+      "why": "Why this step",
+      "noWhy": "No reason written for this step.",
+      "acceptance": "Acceptance",
+      "noAcceptance": "No acceptance checks written for this step.",
+      "dependsOn": "Depends on",
+      "unlocks": "Opens the way to",
+      "noDeps": "Depends on no other step, and no step waits for it.",
+      "taskLabel": "Task",
+      "closeDrawer": "Close",
+      "doneOn": "Done {date}",
+      "claudeHere": "Claude is working here"
+    },
+    "liveRun": {
+      "live": "Live",
+      "reconnecting": "Reconnecting…",
+      "unavailable": "Not live",
+      "liveHint": "Updates arrive from Hub as they happen: Claude's stages on a step, an approval it waits for, a step done.",
+      "claudeWorking": "Claude is working on step {n}",
+      "claudeWaiting": "Claude is waiting for you on step {n}",
+      "claudeRegion": "Claude on step {n}",
+      "stagesLabel": "Stages of Claude's work",
+      "stageNames": {
+        "understand": "Understand",
+        "plan": "Plan",
+        "execute": "Execute",
+        "verify": "Verify",
+        "report": "Report"
+      },
+      "stageState": {
+        "todo": "not started",
+        "started": "in progress",
+        "done": "done",
+        "failed": "failed"
+      },
+      "noStage": "Claude has not reported a stage yet.",
+      "elapsed": "for {t}",
+      "waitingTitle": "Waiting for you",
+      "waitingBody": "Claude wants to run this command:",
+      "approve": "Approve",
+      "deny": "Deny",
+      "answered": "Your answer is on its way to Claude.",
+      "deviceOffline": "The device running Claude is offline, so an answer cannot reach it now.",
+      "questionTitle": "Claude asked you a question",
+      "questionBody": "Its options are in the chat. Answer it there and the run carries on.",
+      "openChat": "Open the chat",
+      "feedTitle": "Live activity",
+      "feedEmpty": "Nothing yet. Claude's runs on this plan, its approvals and the steps done show here as they happen.",
+      "words": {
+        "started": "Claude started step {n}",
+        "approval": "Waiting for your approval to run {cmd}",
+        "approved": "Approved: {cmd}",
+        "denied": "Not run: {cmd}",
+        "question": "Claude asked a question",
+        "ended": "Claude finished its run on step {n}",
+        "stopped": "Claude's run on step {n} did not finish",
+        "done": "Step {n} done",
+        "phaseDone": "Phase complete: {title}",
+        "resync": "Back online; the plan is up to date"
+      },
+      "phaseComplete": "Phase {n} complete",
+      "phaseCompleteBody": "{title}. Every step in it is done.",
+      "claudeWaitingFor": "Claude is waiting for {name} on step {n}",
+      "waitingOther": "Waiting for {name} to answer. Only they can.",
+      "runBy": "Run by {name}"
+    },
+    "evidence": {
+      "title": "Evidence",
+      "none": "No evidence on this step yet.",
+      "count": "{n} evidence",
+      "countLabel": "Evidence: {n}",
+      "before": "Before",
+      "after": "After",
+      "compareLabel": "Before and after",
+      "compareValue": "After shown on {p}%",
+      "compareHint": "Drag across the picture, or focus the handle and use the arrow keys.",
+      "kinds": {
+        "before": "Before",
+        "after": "After",
+        "video": "Video"
+      },
+      "open": "Open {name}",
+      "add": "Add evidence",
+      "file": "Image or video",
+      "fileHint": "PNG, JPEG or WebP up to 8 MB, MP4 or WebM up to 40 MB. Hub draws a picture again, so none of its hidden data (place, camera) is kept.",
+      "kind": "Kind",
+      "caption": "Caption",
+      "captionHint": "One line on what it shows.",
+      "upload": "Upload",
+      "uploading": "Uploading…",
+      "uploaded": "Evidence added to step {n}",
+      "remove": "Remove {name}",
+      "removeTitle": "Remove this evidence?",
+      "removeBody": "It leaves the step and the plan. The plan's history keeps that it was there.",
+      "removed": "Evidence removed",
+      "chooseFile": "Choose a file first.",
+      "byClaude": "Attached by Claude",
+      "wrongType": "Hub takes PNG, JPEG or WebP pictures and MP4 or WebM clips.",
+      "tooLarge": "Too large: a picture up to 8 MB, a clip up to 40 MB.",
+      "wrongKind": "A clip is Video; a picture is Before or After.",
+      "drop": "Drop a picture or clip here",
+      "dropOr": "or",
+      "choose": "Choose a file",
+      "chosen": "{name} · {size}",
+      "clearFile": "Remove the chosen file",
+      "dropActive": "Drop it to choose it"
+    },
+    "video": {
+      "title": "The plan on video",
+      "hint": "Each chapter lights its phase on the map while it plays.",
+      "none": "No explainer video yet. Hams can make one from the plan and its phases.",
+      "request": "Ask Hams for a video",
+      "askTitle": "Explainer video with Hams",
+      "intro": "Claude writes the script from the plan and its phases on your machine, then Hams makes the video in the style and voice you pick.",
+      "style": "Style",
+      "styles": {
+        "whiteboard": [
+          "Hand-drawn whiteboard",
+          "A hand draws the phases, writes, and circles the spoken word"
+        ],
+        "slides": ["Animated slides", "A slide per phase, points appearing with the narration"],
+        "motion": ["Motion graphics", "Shapes and icons that explain each phase"],
+        "kinetic": ["Kinetic text", "The words are the show, moving to the rhythm"],
+        "data": ["Numbers and charts", "Progress, effort and phases as charts and counters"],
+        "mixed": ["Mixed by scene", "Claude picks the best style for each phase"]
+      },
+      "recommended": "Recommended",
+      "voice": "Voice",
+      "voices": {
+        "google": ["Google voice", "Gemini TTS, the default. High quality and fast; needs the internet."],
+        "hams": [
+          "Hams local voice",
+          "An Egyptian model on the graphics card. Nothing leaves the machine; slower."
+        ],
+        "none": ["No narration", "Music and on-screen text only."]
+      },
+      "googleVoice": "Google voice",
+      "googleVoices": {
+        "Charon": "Charon: deep and calm (male)",
+        "Fenrir": "Fenrir: energetic (male)",
+        "Puck": "Puck: young (male)",
+        "Orus": "Orus: formal (male)",
+        "Kore": "Kore: clear (female)",
+        "Aoede": "Aoede: warm (female)",
+        "Leda": "Leda: young (female)",
+        "Zephyr": "Zephyr: bright (female)"
+      },
+      "dialect": "Dialect",
+      "dialects": {
+        "egyptian": "Egyptian",
+        "msa": "Simple Standard Arabic"
+      },
+      "aspect": "Shape",
+      "aspects": {
+        "landscape": "Landscape 16:9",
+        "portrait": "Portrait 9:16",
+        "square": "Square 1:1"
+      },
+      "length": "Length",
+      "lengths": {
+        "chapters": "A chapter per phase",
+        "short": "Short: about a minute"
+      },
+      "captions": "Captions on screen",
+      "googleNotice": "With the Google voice, the script's text is sent to Google to make the voice. Nothing else leaves your machine.",
+      "localNotice": "With the Hams voice or no narration, nothing leaves your machine.",
+      "folder": "Hams' folder on {device}",
+      "noFolder": "Hams' folder is not one of this project's folders. Add it (for example F:/tools/hams) in the project's settings, then ask again.",
+      "noDevice": "No device runs Claude here. Connect one from the panel first.",
+      "start": "Make the video",
+      "cancel": "Cancel",
+      "asked": "Asked for. It starts when Claude's queue reaches it on {device}.",
+      "making": "Hams is making the video",
+      "stages": {
+        "script": "Claude writes the script from the plan",
+        "voice": "Making the voice with {voice}",
+        "scenes": "Hams builds the scenes",
+        "render": "Rendering the video",
+        "attach": "Adding it to the plan with chapters and captions"
+      },
+      "stagesLabel": "Making the video",
+      "failed": "The video was not made: the run ended without it.",
+      "openChat": "Open the run's chat",
+      "again": "Make it again",
+      "outdated": "The plan changed after this video (revision {n}).",
+      "made": "Hams · {style} · {voice} · {aspect} · revision {n}",
+      "voiceGoogle": "Google: {name}",
+      "voiceHams": "Hams local voice",
+      "voiceNone": "No narration",
+      "chapters": "Chapters",
+      "intro_": "Introduction",
+      "outro": "Close",
+      "openInHams": "Open in Hams",
+      "captionsLabel": "Arabic",
+      "previous": "The video before this request still plays until the new one is ready."
+    }
+  },
+  "draft": {
+    "writing": "Claude is writing the plan",
+    "proposedHint": "Read it, then save it to Planning, develop it in the chat, or run it.",
+    "save": "Save to Planning",
+    "saved": "Saved as {key}",
+    "savedToast": "Saved as {key}. It is a draft plan in Planning now.",
+    "run": "Run this plan",
+    "runTip": "Puts the plan in the chat in Execute. Nothing runs until you send it.",
+    "fallbackTitle": "Plan from the chat",
+    "text": "The plan as written"
+  },
+  "studio": {
+    "back": "Planning",
+    "title": "Idea Studio",
+    "subtitle": "Describe the idea as you would to a colleague. Claude checks whether it already exists in Hub and in the code, researches it, and brings you one organised report: suggestions, a flow, sources and a draft plan.",
+    "label": "Your idea",
+    "placeholder": "For example: let agents see a customer's whole booking history in one place, with refunds, changes and every message we sent them…",
+    "start": "Start the research",
+    "startHint": "Ctrl+Enter to start",
+    "startTip": "Starts a new chat in Plan, which reads only. Nothing is created until you accept the report.",
+    "noDevice": "Choose a device and a folder for Claude first.",
+    "noPanel": "The Idea Studio needs the Claude panel, which is not available on this page.",
+    "examplesLabel": "Or start from one of these",
+    "examples": [
+      "A weekly digest for the owner of what moved, what is stuck and what needs a decision",
+      "Let a customer change their flight date from the site without calling us",
+      "Warn the team before a supplier's credentials expire"
+    ],
+    "how": {
+      "title": "How it works",
+      "describe": {
+        "title": "Describe it",
+        "body": "In your own words, one prompt. No forms."
+      },
+      "check": {
+        "title": "It checks what exists",
+        "body": "Hub's cards and documents, and the code itself, with how much of the idea each one already covers."
+      },
+      "research": {
+        "title": "It researches and suggests",
+        "body": "How others solve it, with sources, then suggestions, alternatives, a flow and a draft plan."
+      },
+      "accept": {
+        "title": "You decide",
+        "body": "Refine it in the conversation, then accept it into Hub as an idea, and turn it into a plan."
+      }
+    },
+    "recent": "Earlier sessions",
+    "untitled": "An idea",
+    "newIdea": "New idea",
+    "yourIdea": "Your idea",
+    "researching": "Claude is researching your idea",
+    "updating": "Claude is updating the report",
+    "researchingHint": "Everything here is something Claude really read or opened. The report appears here when it is done.",
+    "stages": {
+      "understand": "Understand",
+      "hub": "Hub",
+      "code": "The code",
+      "web": "Research",
+      "report": "Report"
+    },
+    "stageState": {
+      "waiting": "Next",
+      "active": "Now",
+      "done": "Done",
+      "skipped": "Not used"
+    },
+    "stopped": "The research stopped before a report",
+    "stoppedHint": "Claude may have asked something in the conversation, or the turn was stopped. You can let it carry on.",
+    "continue": "Carry on with the research",
+    "continuePrompt": "Carry on with the research where you stopped, and send the whole report with propose_idea.",
+    "verdict": {
+      "new": "New idea",
+      "partial": "Partly exists",
+      "exists": "Already exists"
+    },
+    "novelty": "new",
+    "overlapLine": "{n}% already exists",
+    "basis": "How it was judged",
+    "accept": "Accept and add to Hub",
+    "acceptHint": "Saves it as an idea in Planning, linked to the cards it matched. Nothing else is created.",
+    "accepted": "Saved as {key}",
+    "acceptedToast": "Saved as {key}, an idea in Planning.",
+    "openIdea": "Open the idea",
+    "toPlan": "Turn it into a plan",
+    "develop": "Refine with Claude",
+    "discard": "Leave it",
+    "toc": "In this report",
+    "sections": {
+      "matches": "What already exists",
+      "problem": "The problem",
+      "value": "The value",
+      "diagram": "How it works",
+      "findings": "Research",
+      "suggestions": "Suggestions",
+      "steps": "Draft plan",
+      "risks": "Risks",
+      "questions": "Open questions",
+      "sources": "Sources"
+    },
+    "stepCount": {
+      "one": "# step",
+      "other": "# steps"
+    },
+    "stepsHint": "A draft: it becomes a plan only when you turn the accepted idea into one.",
+    "matchKinds": {
+      "card": "Hub card",
+      "doc": "Document",
+      "code": "Code",
+      "external": "Outside"
+    },
+    "noMatches": "Nothing like it was found in Hub or in the code.",
+    "suggestionKinds": {
+      "improve": "Improve",
+      "alternative": "Alternative",
+      "addition": "Add",
+      "simplify": "Simplify"
+    },
+    "shapes": {
+      "actor": "Person or system",
+      "step": "Step",
+      "data": "Data",
+      "decision": "Decision"
+    },
+    "diagramList": "The flow",
+    "to": "to",
+    "source": "Source {n}",
+    "composerPlaceholder": "Ask Claude to change the report…",
+    "send": "Send",
+    "stop": "Stop",
+    "refine": [
+      {
+        "label": "Make it simpler",
+        "prompt": "Make the idea simpler: keep the smallest version that still solves the problem, and send the whole updated report with propose_idea."
+      },
+      {
+        "label": "Research deeper",
+        "prompt": "Research deeper, with more sources and how good products solve this, and send the whole updated report with propose_idea."
+      },
+      {
+        "label": "More alternatives",
+        "prompt": "Give me more alternatives and compare them, then send the whole updated report with propose_idea."
+      },
+      {
+        "label": "Plan in detail",
+        "prompt": "Make the draft plan detailed: smaller steps, each with its role, and send the whole updated report with propose_idea."
+      }
+    ],
+    "note": {
+      "title": "Idea Studio report",
+      "open": "Open in the Idea Studio",
+      "here": "The whole report is on this page."
+    },
+    "chat": {
+      "title": "Conversation",
+      "ready": "Ready for your next request",
+      "idleLine": "Last turn {time} · {steps}",
+      "widen": "Widen the conversation",
+      "narrow": "Narrow the conversation",
+      "tabReport": "Report",
+      "tabChat": "Conversation",
+      "status": {
+        "starting": "Starting",
+        "retrying": "Trying again",
+        "waiting": "Waiting for you",
+        "writing": "Writing",
+        "thinking": "Thinking"
+      },
+      "where": {
+        "hub": "Hub",
+        "code": "Code",
+        "web": "Web"
+      },
+      "workingOn": "Working · {steps}",
+      "failed": "{n} failed",
+      "seconds": "{n} s",
+      "acts": {
+        "brief": ["Reading the project brief", "Read the project brief"],
+        "ideas": ["Reviewing Hub's ideas", "Reviewed Hub's ideas"],
+        "plans": ["Reviewing the plans", "Reviewed the plans"],
+        "plan": ["Reading the plan", "Read the plan"],
+        "cards": ["Searching the cards", "Searched the cards"],
+        "card": ["Reading the card", "Read the card"],
+        "docs": ["Searching the documents", "Searched the documents"],
+        "doc": ["Reading the document", "Read the document"],
+        "report": ["Writing the report", "Wrote the report"],
+        "hubOther": ["Asking Hub", "Asked Hub"],
+        "grep": ["Searching the code", "Searched the code"],
+        "glob": ["Looking for files", "Looked for files"],
+        "read": ["Reading", "Read"],
+        "search": ["Searching the web", "Searched the web"],
+        "fetch": ["Opening", "Opened"],
+        "tools": ["Getting its tools ready", "Got its tools ready"],
+        "ask": ["Asking you", "Asked you"],
+        "agent": ["Handing part to a helper", "Handed part to a helper"],
+        "other": ["Running", "Ran"]
+      },
+      "updated": "The report was updated",
+      "ready2": "The report is ready",
+      "showReport": "Show the report",
+      "change": {
+        "overlap": "Overlap {from}% → {to}%",
+        "matches": "{n} matches",
+        "suggestions": "{n} suggestions",
+        "steps": "{n} steps",
+        "sources": "{n} sources",
+        "title": "New title",
+        "questions": "{n} questions"
+      },
+      "turnEnd": {
+        "done": "Done in {time} · {steps}",
+        "stopped": "Stopped after {time} · {steps}",
+        "failed": "Failed after {time} · {steps}"
+      },
+      "latest": "Latest",
+      "latestLive": "Follow Claude",
+      "typeWhileBusy": "Claude is working… write your next request: it goes as soon as this turn ends",
+      "enterHint": "Enter to send · Shift+Enter for a new line",
+      "escHint": "Esc to stop",
+      "more": "+{n}",
+      "stepCount": {
+        "one": "# step",
+        "other": "# steps"
+      },
+      "earlier": "Show the earlier steps ({n})",
+      "sending": "Sending…",
+      "queued": "Next, when Claude finishes:",
+      "cancelQueued": "Don't send it",
+      "queue": "Send when Claude finishes",
+      "answersSent": "Your answers",
+      "applied": "Apply: «{title}»",
+      "waitingYou": "Claude is waiting for your answer in the conversation before it goes on",
+      "goAnswer": "Answer now"
+    },
+    "board": {
+      "hub": "In Hub",
+      "code": "In the code",
+      "web": "On the web",
+      "nothingYet": "Nothing yet"
+    },
+    "updatedToast": "{key} now holds the latest report.",
+    "updateIdea": "Update {key} with this report",
+    "staleHint": "The report changed after you accepted it. Update the idea so it holds this version.",
+    "apply": "Apply this",
+    "applyLater": "Apply it next",
+    "applyPrompt": "Apply this suggestion to the idea: «{title}». Keep the rest as it is, and send the whole updated report with propose_idea.",
+    "answersPrompt": "My answers to your open questions. Work them into the report, take the answered ones out of the questions, and send the whole updated report with propose_idea:",
+    "deck": {
+      "of": "Question {n} of {total}",
+      "answered": "{n} of {total} answered",
+      "pickOne": "Pick one",
+      "pickMany": "Pick any that apply",
+      "writeOwn": "Write your answer",
+      "recommended": "Recommended",
+      "why": "Why: {why}",
+      "other": "Other",
+      "otherHint": "An answer in your own words",
+      "otherPlaceholder": "Write your answer here…",
+      "note": "A note on this option (optional)…",
+      "addNote": "Add a note",
+      "prev": "Previous question",
+      "next": "Next",
+      "skip": "Skip",
+      "goTo": "Question {n}",
+      "takeRecommended": "Take the recommendations",
+      "takeRecommendedTip": "Picks the recommended option on every question you have not answered, and leaves your answers as they are.",
+      "allAnswered": "Every question is answered. Review them or send them.",
+      "clear": "Clear this answer",
+      "send": "Send answers ({n})",
+      "sendLater": "Send when Claude is done ({n})",
+      "sep": "; ",
+      "dots": "The questions",
+      "goToAnswered": "Question {n}, answered"
+    },
+    "missing": {
+      "title": "This session was not found",
+      "body": "Its chat may have been deleted, or belongs to another member or browser.",
+      "new": "Start a new session"
+    },
+    "queueFull": "One request is already waiting. Cancel it or wait for the turn to end.",
+    "manual": "Write it yourself",
+    "manualHint": "Know the idea and need no research?",
+    "listSep": ", ",
+    "percent": "{n}%"
+  },
+  "planStudio": {
+    "back": "Planning",
+    "title": "Plan Studio",
+    "subtitle": "Say what you want to plan, or pick an idea. Claude reads what Hub and the code already have, weighs the order and the risks, and brings you a plan you can save, refine or run.",
+    "label": "What to plan",
+    "placeholder": "For example: move refunds to the new payment gateway without stopping bookings…",
+    "ideaPlaceholder": "Anything to add to the idea: a deadline, a limit, what matters most… (optional)",
+    "start": "Draft the plan",
+    "startHint": "Ctrl+Enter to start",
+    "startTip": "Starts a new chat in Plan, which reads only. Nothing is saved until you save the plan.",
+    "noDevice": "Choose a device and a folder for Claude first.",
+    "noPanel": "The Plan Studio needs the Claude panel, which is not available on this page.",
+    "fromIdea": "Or start from an open idea",
+    "clearIdea": "Start without the idea",
+    "examplesLabel": "Or start from one of these",
+    "examples": [
+      "Launch hotel bookings with one supplier, in four weeks",
+      "Move the secrets out of the tracked .env and rotate them before launch",
+      "A daily financial close with alerts when money does not add up"
+    ],
+    "how": {
+      "title": "How it works",
+      "describe": {
+        "title": "Say what to plan",
+        "body": "A topic in your words, or an idea from Planning."
+      },
+      "read": {
+        "title": "It reads what exists",
+        "body": "Hub's plans, ideas, cards and documents, and the code the topic touches."
+      },
+      "draft": {
+        "title": "It drafts the plan",
+        "body": "Goal and approach, ordered steps with who and how big, checks, risks and a flow."
+      },
+      "decide": {
+        "title": "You decide",
+        "body": "Answer its questions, refine it in the conversation, then save it to Planning."
+      }
+    },
+    "manual": "Write it yourself",
+    "manualHint": "Already know the steps?",
+    "recent": "Earlier sessions",
+    "untitled": "A plan",
+    "newPlan": "New plan",
+    "yourTopic": "Your topic",
+    "researching": "Claude is drafting your plan",
+    "updating": "Claude is updating the plan",
+    "reportStage": "The plan",
+    "stopped": "Claude stopped before proposing a plan",
+    "stoppedHint": "It may have asked something in the conversation, or the turn was stopped. You can let it carry on.",
+    "continue": "Carry on with the plan",
+    "continuePrompt": "Carry on where you stopped, and propose the whole plan with propose_plan.",
+    "draftLabel": "Draft plan",
+    "stats": {
+      "steps": "steps",
+      "roles": "roles",
+      "effort": "effort points",
+      "noEffort": "no sizes yet",
+      "risks": "risks"
+    },
+    "save": "Save to Planning",
+    "saveFromIdea": "Save as {key}'s plan",
+    "saveHint": "Saves a draft plan with these steps in Planning. Nothing else is created.",
+    "saveFromIdeaHint": "Turns the idea {key} into this plan, so the two stay linked.",
+    "saved": "Saved as {key}",
+    "savedToast": "Saved as {key}, a plan in Planning.",
+    "updatedToast": "{key} now holds the latest plan.",
+    "updatePlan": "Update {key} with this plan",
+    "staleHint": "The plan changed after you saved it. Updating rewrites its text and its steps.",
+    "openPlan": "Open the plan",
+    "develop": "Refine with Claude",
+    "run": "Run this plan",
+    "runTip": "Puts the plan in the panel's box, in Execute. It runs only when you send it.",
+    "sections": {
+      "goal": "The goal",
+      "approach": "The approach",
+      "roles": "Who does what",
+      "steps": "Steps",
+      "diagram": "The flow",
+      "checks": "How we know it works",
+      "risks": "Risks",
+      "outOfScope": "Out of scope",
+      "questions": "Open questions",
+      "sources": "Sources"
+    },
+    "noRole": "No role",
+    "sizes": {
+      "S": "Small",
+      "M": "Medium",
+      "L": "Large"
+    },
+    "sizeHint": "Small is hours, medium a day or two, large most of a week.",
+    "after": "After",
+    "draftNote": "A draft: it becomes a plan in Planning only when you save it.",
+    "composerPlaceholder": "Ask Claude to change the plan…",
+    "change": {
+      "risks": "{n} risks",
+      "checks": "{n} checks"
+    },
+    "refine": [
+      {
+        "label": "Smaller steps",
+        "prompt": "Break the plan into smaller steps, each one task with its role and size, and propose the whole updated plan with propose_plan."
+      },
+      {
+        "label": "Faster path",
+        "prompt": "Find the fastest path that still removes the biggest risk first; cut or defer what can wait. Propose the whole updated plan with propose_plan."
+      },
+      {
+        "label": "More checks",
+        "prompt": "Add the checks that prove each part works, and the risks you did not list yet. Propose the whole updated plan with propose_plan."
+      },
+      {
+        "label": "Draw the flow",
+        "prompt": "Add a small flow diagram of how the plan's parts connect, and propose the whole updated plan with propose_plan."
+      }
+    ],
+    "answersPrompt": "My answers to your open questions. Work them into the plan, take the answered ones out of the questions, and propose the whole updated plan with propose_plan:",
+    "noteReady": "The plan is ready",
+    "noteUpdated": "The plan was updated"
+  },
+  "planText": {
+    "goal": "Goal",
+    "approach": "Approach",
+    "steps": "Steps",
+    "checks": "Checks",
+    "risks": "Risks",
+    "outOfScope": "Out of scope",
+    "questions": "Open questions",
+    "flow": "Flow",
+    "sources": "Sources",
+    "after": "after",
+    "recommended": "recommended"
+  },
+  "newIdeaForm": {
+    "title": "New idea",
+    "titleLabel": "Idea title",
+    "problem": "The problem",
+    "notes": "Notes",
+    "role": "Role",
+    "noRole": "No role",
+    "create": "Create idea"
+  }
+}

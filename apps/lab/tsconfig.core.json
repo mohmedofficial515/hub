@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@lab/*": [
+        "./shared/*"
+      ]
+    }
+  },
+  "include": [
+    "lab/src",
+    "shared/i18n.tsx",
+    "shared/utils.ts"
+  ]
+}

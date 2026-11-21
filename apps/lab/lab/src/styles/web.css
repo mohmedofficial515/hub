@@ -1,0 +1,15 @@
+/* Live tokens from the public site. vite.config.ts fills in __WEB_SRC__. */
+@import '__WEB_SRC__/app/globals.css';
+
+@source '../../../web';
+@source '../../../shared';
+@source '../frame';
+@source '__WEB_SRC__/components/ui';
+
+/* next/font sets these as class variables in the real app. */
+:root {
+  --font-tajawal: 'Tajawal';
+  --font-cairo: 'Cairo';
+  --font-geist-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: ui-monospace, monospace;
+}

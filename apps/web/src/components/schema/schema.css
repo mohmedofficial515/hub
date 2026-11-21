@@ -1,0 +1,1366 @@
+/*
+ * Schema Studio (docs/17 §4), on the app's tokens only: a domain's colour comes in as --dom, --dom-soft and --dom-fg from the type families, and every other colour is a theme token,
+ * so light and dark follow the theme. Surfaces are Hub's (owner's choice on review B3, 2026-11-08): every card and bar is one neutral surface with one neutral border, a domain
+ * shows only as its small coloured dot and a quiet zone, no row is tinted, nothing has a gradient, and no shadow is deeper than shadow-md. Marks are icons and small badges.
+ * Layout (owner's request, 2026-11-09): a full-window workspace in the manner of a design tool. The map fills the window; small bars float over it; the layers and the side panel
+ * float in only when asked for. The zoom is semantic through `data-zoom` and `--schema-zinv` on the canvas, and the 3D view is `data-tilt`.
+ */
+
+.schema-studio {
+  --schema-shadow-sm: 0 1px 2px 0 color-mix(in oklab, var(--foreground) 6%, transparent);
+  --schema-shadow-md:
+    0 4px 6px -1px color-mix(in oklab, var(--foreground) 10%, transparent),
+    0 2px 4px -2px color-mix(in oklab, var(--foreground) 10%, transparent);
+  --schema-mask: color-mix(in oklab, var(--background) 72%, transparent);
+  --schema-edge: color-mix(in oklab, var(--muted-foreground) 50%, transparent);
+  --schema-glass: color-mix(in oklab, var(--card) 90%, transparent);
+  --schema-gap: 0.75rem;
+  --schema-bar-h: 3.25rem;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  block-size: calc(100dvh - 3.5rem);
+  min-block-size: 30rem;
+  overflow: hidden;
+  container: studio / inline-size;
+  background: var(--background);
+}
+/* Full screen: over Hub's sidebar and header, under its dialogs (z 70), toasts (60) and tooltips (80). */
+.schema-studio[data-immersive] {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  block-size: 100dvh;
+}
+
+.schema-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+.schema-view {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 0;
+  flex-direction: column;
+}
+
+/* ── Floating bars ───────────────────────────────────────────────────────────────────────────── */
+
+.schema-topbar,
+.schema-toolbar,
+.schema-layers,
+.schema-panel,
+.schema-focus-pill {
+  border: 1px solid var(--border);
+  background: var(--schema-glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--schema-shadow-md);
+}
+.schema-topbar {
+  position: absolute;
+  inset-block-start: var(--schema-gap);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  block-size: var(--schema-bar-h);
+  max-inline-size: calc(50% - 1.5rem);
+  padding-inline: 0.375rem;
+  border-radius: 0.875rem;
+}
+.schema-topbar[data-side='start'] {
+  inset-inline-start: var(--schema-gap);
+}
+.schema-topbar[data-side='end'] {
+  inset-inline-end: var(--schema-gap);
+}
+.schema-title {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding-inline: 0.375rem 0.25rem;
+}
+.schema-title-icon,
+.schema-hero-icon,
+.schema-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.625rem;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+.schema-hero-icon,
+.schema-empty-icon {
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  border-radius: 1rem;
+}
+.schema-title h1 {
+  line-height: 1.2;
+}
+.schema-title-meta {
+  line-height: 1.2;
+}
+.schema-tool {
+  border-radius: 0.625rem !important;
+}
+.schema-tool[data-pressed] {
+  color: var(--foreground);
+  background: var(--accent);
+}
+.schema-search-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  block-size: 2.25rem;
+  min-inline-size: 2.75rem;
+  padding-inline: 0.75rem 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: var(--text-body-sm);
+  transition:
+    border-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.schema-search-button:hover {
+  color: var(--foreground);
+  border-color: color-mix(in oklab, var(--foreground) 25%, var(--border));
+}
+.schema-search-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.schema-kbd {
+  padding: 0 0.375rem;
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  background: var(--card);
+}
+.schema-toolbar {
+  position: absolute;
+  inset-block-end: var(--schema-gap);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-inline-size: calc(100% - 1.5rem);
+  padding: 0.3125rem;
+  border-radius: 0.875rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.schema-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+.schema-toolbar-gap {
+  inline-size: 1px;
+  block-size: 1.5rem;
+  flex-shrink: 0;
+  margin-inline: 0.25rem;
+  background: var(--border);
+}
+.schema-zoom-level {
+  min-inline-size: 3.5rem;
+  block-size: 2.25rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.625rem;
+  font-size: var(--text-body-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+.schema-zoom-level:hover {
+  background: var(--accent);
+}
+.schema-zoom-level:focus-visible {
+  outline: 2px solid var(--ring);
+}
+.schema-draft-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  block-size: 2.25rem;
+  padding-inline: 0.625rem;
+  border-radius: 0.625rem;
+  font-size: var(--text-body-sm);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+.schema-draft-pill:hover,
+.schema-draft-pill[aria-pressed='true'] {
+  background: var(--accent);
+}
+.schema-draft-pill:focus-visible {
+  outline: 2px solid var(--ring);
+}
+.schema-draft-pill-count {
+  min-inline-size: 1.25rem;
+  padding-inline: 0.375rem;
+  border-radius: 999px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+.schema-draft-pill[data-status='in_review'] .schema-draft-pill-count,
+.schema-draft-pill[data-status='applying'] .schema-draft-pill-count {
+  color: var(--info-soft-foreground);
+  background: var(--info-soft);
+}
+.schema-focus-pill {
+  position: absolute;
+  inset-block-start: calc(var(--schema-gap) + var(--schema-bar-h) + 0.5rem);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  border-radius: 999px;
+  color: var(--foreground);
+  animation: schema-pop 300ms ease-out both;
+}
+
+/* ── Layers and side panel ───────────────────────────────────────────────────────────────────── */
+
+.schema-layers,
+.schema-panel {
+  position: absolute;
+  inset-block: calc(var(--schema-gap) + var(--schema-bar-h) + 0.5rem) var(--schema-gap);
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--card) 96%, transparent);
+}
+.schema-layers {
+  inset-inline-start: var(--schema-gap);
+  inline-size: 18rem;
+}
+.schema-layers-close {
+  position: absolute;
+  inset-block-start: 0.375rem;
+  inset-inline-end: 0.375rem;
+  z-index: 1;
+}
+.schema-layers .schema-rail > div:first-child {
+  padding-inline-end: 3rem;
+}
+.schema-panel {
+  inset-inline-end: var(--schema-gap);
+  inline-size: 24rem;
+}
+.schema-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-block-end: 1px solid var(--border);
+}
+.schema-panel-tabs {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-radius: 0.625rem;
+  background: var(--muted);
+}
+.schema-panel-tab {
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 2rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: var(--text-body-sm);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+.schema-panel-tab[aria-selected='true'] {
+  color: var(--foreground);
+  font-weight: 600;
+  background: var(--card);
+  box-shadow: var(--schema-shadow-sm);
+}
+.schema-panel-tab:focus-visible {
+  outline: 2px solid var(--ring);
+}
+.schema-panel-body {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+}
+.schema-panel-body[data-tab='details'] {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.schema-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted-foreground);
+}
+
+/* ── Rail (the layers' content) ──────────────────────────────────────────────────────────────── */
+
+.schema-rail {
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  min-block-size: 0;
+  flex: 1;
+}
+.schema-rail-item {
+  border-radius: 0.5rem;
+  transition:
+    background-color 150ms ease-out,
+    opacity 150ms ease-out;
+}
+.schema-rail-item:hover {
+  background: color-mix(in oklab, var(--accent) 60%, transparent);
+}
+.schema-rail-item.is-off {
+  opacity: 0.5;
+}
+.schema-rail-main {
+  display: flex;
+  flex: 1;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.375rem 0.25rem;
+  border-radius: 0.5rem;
+  text-align: start;
+}
+.schema-rail-chevron {
+  color: var(--muted-foreground);
+  transform: rotate(-90deg);
+  transition: transform 180ms ease-out;
+}
+[dir='rtl'] .schema-rail-chevron {
+  transform: rotate(90deg);
+}
+.schema-rail-chevron.is-open {
+  transform: none !important;
+}
+.schema-rail-eye {
+  inline-size: 2rem !important;
+  block-size: 2rem !important;
+  border-radius: 0.5rem !important;
+}
+.schema-rail-tables {
+  display: flex;
+  flex-direction: column;
+  padding-inline-start: 1.5rem;
+  padding-block: 0.125rem 0.25rem;
+}
+.schema-rail-table {
+  display: flex;
+  inline-size: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  min-block-size: 2rem;
+  padding-inline: 0.5rem;
+  border-radius: 0.375rem;
+  font-size: var(--text-body-sm);
+  color: var(--foreground);
+}
+.schema-rail-table:hover {
+  background: var(--accent);
+}
+.schema-rail-table[aria-current='true'] {
+  font-weight: 600;
+  background: var(--accent);
+}
+.schema-rail-main:focus-visible,
+.schema-rail-table:focus-visible,
+.schema-list-button:focus-visible,
+.schema-link:focus-visible,
+.schema-tab:focus-visible,
+.schema-back:focus-visible,
+.schema-enum-card:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.schema-rail-swatch {
+  inline-size: 0.625rem;
+  block-size: 0.625rem;
+  flex-shrink: 0;
+  border-radius: 0.2rem;
+  background: var(--dom);
+}
+.schema-rail-actions {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.5rem 0.375rem 2.25rem;
+  min-block-size: 1.75rem;
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+[dir='rtl'] .schema-rail-actions {
+  padding: 0 2.25rem 0.375rem 0.5rem;
+}
+.schema-rail-item:hover .schema-rail-actions,
+.schema-rail-item:focus-within .schema-rail-actions {
+  display: flex;
+  opacity: 1;
+}
+@media (hover: none) {
+  .schema-rail-actions {
+    display: flex;
+    opacity: 1;
+  }
+}
+.schema-ring {
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.schema-ring-track {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 3;
+}
+.schema-ring-fill {
+  fill: none;
+  stroke: var(--dom);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 600ms ease-out;
+}
+
+/* ── Shared bits ─────────────────────────────────────────────────────────────────────────────── */
+
+.schema-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.schema-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.625rem;
+  background: var(--background);
+  white-space: nowrap;
+}
+.schema-stat[data-tone='warning'] {
+  border-color: transparent;
+  background: var(--warning-soft);
+  color: var(--warning-soft-foreground);
+  align-items: center;
+}
+.schema-stat-value {
+  font-size: var(--text-body);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+}
+.schema-stat-label {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+}
+.schema-stat[data-tone='warning'] .schema-stat-label {
+  color: inherit;
+}
+.schema-coverage {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--background);
+}
+.schema-coverage-value {
+  font-size: var(--text-headline);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  grid-row: span 2;
+}
+.schema-meter {
+  display: block;
+  block-size: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.schema-meter > span {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: var(--info);
+}
+.schema-domain-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.schema-domain-bar-track {
+  inline-size: 5rem;
+  block-size: 4px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.schema-domain-bar-track > span {
+  display: block;
+  block-size: 100%;
+  background: var(--dom);
+}
+.schema-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.schema-legend-line {
+  inline-size: 1.5rem;
+  block-size: 0;
+  flex-shrink: 0;
+  border-block-start: 2px solid var(--schema-edge);
+}
+.schema-legend-dashed {
+  border-block-start-style: dashed;
+}
+.schema-scroll {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding-block: calc(var(--schema-gap) + var(--schema-bar-h) + 0.5rem) 6rem;
+}
+.schema-view-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-inline: var(--schema-gap);
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  background: var(--schema-glass);
+  backdrop-filter: blur(14px);
+}
+.schema-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-block-size: 2.25rem;
+  font-size: var(--text-body-sm);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.schema-toggle input {
+  inline-size: 1rem;
+  block-size: 1rem;
+  accent-color: var(--primary);
+}
+.schema-link {
+  color: var(--primary);
+  border-radius: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.schema-link:hover {
+  text-decoration: underline;
+}
+.schema-link:disabled {
+  color: inherit;
+  text-decoration: none;
+  cursor: default;
+}
+.schema-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.0625rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: var(--text-caption);
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  white-space: nowrap;
+}
+.schema-chip[data-tone='success'],
+.schema-chip[data-mark='added'] {
+  color: var(--success-soft-foreground);
+  background: var(--success-soft);
+}
+.schema-chip[data-tone='warning'],
+.schema-chip[data-mark='changed'] {
+  color: var(--warning-soft-foreground);
+  background: var(--warning-soft);
+}
+.schema-chip[data-mark='removed'] {
+  color: var(--destructive-soft-foreground);
+  background: var(--destructive-soft);
+}
+.schema-code {
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────────────────────────────────────── */
+
+.schema-canvas {
+  --schema-zinv: 1;
+  position: relative;
+  flex: 1;
+  min-block-size: 0;
+  overflow: hidden;
+}
+.schema-flow {
+  --xy-background-color: var(--background);
+  --xy-node-border-radius: 0.75rem;
+  --xy-minimap-background-color: var(--card);
+  --xy-selection-background-color: color-mix(in oklab, var(--ring) 10%, transparent);
+  --xy-selection-border: 1px dashed var(--ring);
+}
+.schema-flow .react-flow__node {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+.schema-flow .react-flow__node:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: 0.75rem;
+}
+.schema-flow .react-flow__pane {
+  cursor: grab;
+}
+.schema-flow .react-flow__pane.dragging {
+  cursor: grabbing;
+}
+.schema-bg {
+  --xy-background-pattern-color: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+}
+.schema-minimap {
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  overflow: hidden;
+  box-shadow: var(--schema-shadow-md);
+  margin: 0 var(--schema-gap) calc(var(--schema-gap) + 3.75rem) !important;
+}
+.schema-handle {
+  inline-size: 6px !important;
+  block-size: 6px !important;
+  min-inline-size: 0 !important;
+  min-block-size: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  top: 26px !important;
+}
+
+/* Domains: a quiet zone with its name, which grows against the zoom far out so the overview reads as a labelled map. */
+.schema-domain {
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: 1.5rem;
+  border: 1px dashed var(--border);
+  background: color-mix(in oklab, var(--muted) 42%, transparent);
+  pointer-events: none;
+  transition: background-color 200ms ease-out;
+}
+.schema-domain-title {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1.25rem;
+}
+.schema-domain-name {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-title-sm);
+  font-weight: 600;
+  color: var(--foreground);
+}
+.schema-domain-count {
+  flex-shrink: 0;
+  font-size: var(--text-body-sm);
+  color: var(--muted-foreground);
+}
+.schema-domain-meter {
+  inline-size: 4rem;
+  flex-shrink: 0;
+  block-size: 4px;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.schema-domain-meter > span {
+  display: block;
+  block-size: 100%;
+  background: var(--muted-foreground);
+}
+
+/* Tables. */
+.schema-node {
+  position: relative;
+  inline-size: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: var(--schema-shadow-sm);
+  transition:
+    opacity 180ms ease-out,
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms ease-out,
+    border-color 180ms ease-out;
+  animation: schema-pop 360ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.schema-node:hover {
+  border-color: color-mix(in oklab, var(--foreground) 28%, var(--border));
+  box-shadow: var(--schema-shadow-md);
+}
+.schema-node[data-active] {
+  border-color: var(--ring);
+  box-shadow:
+    0 0 0 1px var(--ring),
+    var(--schema-shadow-md);
+}
+/* A proposed table is drawn dashed, neutral; its badge says what it is. A table the draft changes or removes carries a small badge in its head. */
+.schema-node[data-mark='removed'],
+.schema-node[data-mark='added'],
+.schema-node-ghost {
+  border-style: dashed;
+}
+.schema-node-badge {
+  position: absolute;
+  inset-block-start: -0.6rem;
+  inset-inline-end: 0.75rem;
+  padding: 0 0.4rem;
+  border-radius: 0.375rem;
+  font-size: var(--text-caption);
+  color: var(--success-soft-foreground);
+  background: var(--success-soft);
+}
+.schema-node-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-block-size: 52px;
+  padding: 0.5rem 0.75rem;
+  border-block-end: 1px solid var(--border);
+}
+.schema-node-dot {
+  display: inline-block;
+  inline-size: 0.625rem;
+  block-size: 0.625rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--dom);
+}
+.schema-node-unnamed {
+  display: inline-flex;
+  color: var(--warning-soft-foreground);
+}
+.schema-node-rows {
+  padding-block: 4px;
+}
+.schema-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  block-size: 26px;
+  padding-inline: 0.625rem;
+  font-size: var(--text-caption);
+  color: var(--foreground);
+}
+.schema-row[data-selected] {
+  background: var(--accent);
+  font-weight: 600;
+}
+.schema-row[data-mark='added'] {
+  font-style: italic;
+}
+.schema-row[data-mark='removed'] {
+  text-decoration: line-through;
+}
+.schema-row-icon {
+  display: inline-flex;
+  inline-size: 0.875rem;
+  flex-shrink: 0;
+}
+.schema-row-type {
+  flex-shrink: 0;
+  max-inline-size: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--muted-foreground);
+}
+.schema-row-more {
+  justify-content: center;
+  color: var(--muted-foreground);
+}
+.schema-sensitive {
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--warning);
+}
+.schema-sensitive[data-kind='pii'] {
+  background: var(--info);
+}
+.schema-sensitive[data-kind='secret'] {
+  background: var(--destructive);
+}
+.schema-far-name {
+  display: none;
+}
+
+/* The selection frame: the ring colour all round, four corner handles and a size label above, as a design tool draws one. */
+.schema-select {
+  position: absolute;
+  inset: -5px;
+  border: 1.5px solid var(--ring);
+  border-radius: 0.95rem;
+  pointer-events: none;
+}
+.schema-select i {
+  position: absolute;
+  inline-size: 8px;
+  block-size: 8px;
+  border: 1.5px solid var(--ring);
+  border-radius: 2px;
+  background: var(--card);
+}
+.schema-select i[data-corner='ts'] {
+  inset-block-start: -5px;
+  inset-inline-start: -5px;
+}
+.schema-select i[data-corner='te'] {
+  inset-block-start: -5px;
+  inset-inline-end: -5px;
+}
+.schema-select i[data-corner='bs'] {
+  inset-block-end: -5px;
+  inset-inline-start: -5px;
+}
+.schema-select i[data-corner='be'] {
+  inset-block-end: -5px;
+  inset-inline-end: -5px;
+}
+.schema-select-label {
+  position: absolute;
+  inset-block-end: calc(100% + 6px);
+  inset-inline-start: -1px;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 0.3rem;
+  font-size: var(--text-caption);
+  white-space: nowrap;
+  color: var(--primary-foreground);
+  background: var(--ring);
+}
+
+/* Semantic zoom. Mid: columns stay, quieter. Far: a table is its name, grown against the zoom, and implied relations step back. */
+.schema-canvas[data-zoom='mid'] .schema-row-type {
+  opacity: 0.6;
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  box-shadow: none;
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node-head,
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node-rows,
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node-near,
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node-badge,
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-select-label {
+  display: none;
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-far-name {
+  display: block;
+  max-inline-size: 100%;
+  padding-inline: 0.75rem;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: min(calc(13px * var(--schema-zinv)), 54px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--foreground);
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-node::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 14px;
+  inset-inline-start: 14px;
+  inline-size: 18px;
+  block-size: 18px;
+  border-radius: 999px;
+  background: var(--dom);
+}
+/* Far out, a domain's name stands above its zone, in the gap between rows, at a size that reads on screen whatever the zoom. */
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain-title {
+  position: absolute;
+  inset-block-end: 100%;
+  inset-inline: 0;
+  padding: 0 0 calc(6px * min(var(--schema-zinv), 6));
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain-name {
+  overflow: visible;
+  text-overflow: clip;
+  font-size: min(calc(15px * var(--schema-zinv)), 92px);
+  line-height: 1;
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain {
+  border-style: solid;
+  background: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain-count,
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain-meter {
+  display: none;
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-domain-title .schema-node-dot {
+  inline-size: min(calc(10px * var(--schema-zinv)), 90px);
+  block-size: min(calc(10px * var(--schema-zinv)), 90px);
+}
+.schema-canvas:is([data-zoom='far'], [data-zoom='map']) .schema-edge-implied {
+  opacity: 0;
+}
+
+/* The map, farthest out: tables are plain blocks with their domain's dot, and only the domains are named. */
+.schema-canvas[data-zoom='map'] .schema-far-name {
+  display: none;
+}
+.schema-canvas[data-zoom='map'] .schema-node::before {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+  inline-size: 40px;
+  block-size: 40px;
+}
+[dir='rtl'] .schema-canvas[data-zoom='map'] .schema-node::before {
+  translate: 50% -50%;
+}
+
+/* Relations. Hover and the selection light theirs from the canvas's generated sheet (diagram.tsx). */
+.schema-edge .react-flow__edge-path {
+  stroke: var(--schema-edge);
+  stroke-width: 1.4;
+  transition:
+    stroke 180ms ease-out,
+    stroke-width 180ms ease-out;
+}
+.schema-flow .react-flow__edge {
+  transition: opacity 180ms ease-out;
+}
+.schema-edge-implied .react-flow__edge-path {
+  stroke-dasharray: 5 5;
+}
+.schema-flow .react-flow__arrowhead polyline {
+  stroke: var(--schema-edge);
+  fill: var(--schema-edge);
+}
+
+/* The 3D view: the whole map tilts in perspective; the domains lie flat and the tables float above them, the selected one highest. */
+.schema-canvas .react-flow__renderer,
+.schema-canvas .react-flow__background {
+  transform-origin: 50% 62%;
+  transition: transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.schema-canvas[data-tilt] .react-flow__renderer,
+.schema-canvas[data-tilt] .react-flow__background {
+  transform: perspective(1600px) rotateX(34deg) scale(0.9);
+}
+.schema-canvas[data-tilt] .react-flow__renderer,
+.schema-canvas[data-tilt] .react-flow__pane,
+.schema-canvas[data-tilt] .react-flow__viewport,
+.schema-canvas[data-tilt] .react-flow__nodes,
+.schema-canvas[data-tilt] .react-flow__node {
+  transform-style: preserve-3d;
+}
+.schema-canvas[data-tilt] .react-flow__node-table .schema-node {
+  transform: translateZ(26px);
+  box-shadow: var(--schema-shadow-md);
+}
+.schema-canvas[data-tilt] .react-flow__node-table .schema-node:hover {
+  transform: translateZ(44px);
+}
+.schema-canvas[data-tilt] .react-flow__node-table .schema-node[data-active] {
+  transform: translateZ(64px);
+}
+.schema-canvas[data-tilt] .schema-flow .react-flow__pane {
+  cursor: default;
+}
+
+/* ── Inspector (in the panel's Details tab) ──────────────────────────────────────────────────── */
+
+.schema-inspector {
+  display: flex;
+  flex: 1;
+  min-block-size: 0;
+  flex-direction: column;
+}
+.schema-inspector-head {
+  padding: 1rem;
+  border-block-end: 1px solid var(--border);
+}
+.schema-inspector-body {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: 1rem;
+}
+.schema-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
+  border-block-end: 1px solid var(--border);
+  overflow-x: auto;
+}
+.schema-tab {
+  position: relative;
+  padding: 0.625rem 0.5rem;
+  font-size: var(--text-body-sm);
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  border-radius: 0.25rem;
+}
+.schema-tab[aria-selected='true'] {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.schema-tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0.25rem;
+  inset-block-end: -1px;
+  block-size: 2px;
+  border-radius: 2px;
+  background: var(--foreground);
+}
+.schema-list-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  inline-size: 100%;
+  min-block-size: 2.5rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: var(--text-body-sm);
+}
+.schema-list-button:hover {
+  background: var(--accent);
+}
+.schema-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-caption);
+  color: var(--primary);
+  border-radius: 0.25rem;
+}
+
+/* ── Draft ───────────────────────────────────────────────────────────────────────────────────── */
+
+.schema-change {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.5rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+.schema-change-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+.schema-change[data-mark='added'] .schema-change-index {
+  color: var(--success-soft-foreground);
+  background: var(--success-soft);
+}
+.schema-change[data-mark='removed'] .schema-change-index {
+  color: var(--destructive-soft-foreground);
+  background: var(--destructive-soft);
+}
+.schema-change[data-mark='changed'] .schema-change-index {
+  color: var(--warning-soft-foreground);
+  background: var(--warning-soft);
+}
+
+/* ── Dictionary, enums, history, search ──────────────────────────────────────────────────────── */
+
+.schema-table-wrap {
+  overflow-x: auto;
+  padding: 0.75rem var(--schema-gap) 0;
+}
+.schema-table {
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-body-sm);
+}
+.schema-table th {
+  padding: 0.625rem 0.5rem;
+  text-align: start;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  background: var(--background);
+  border-block-end: 1px solid var(--border);
+}
+.schema-table td {
+  padding: 0.375rem 0.5rem;
+  border-block-end: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  vertical-align: middle;
+}
+.schema-table tr:hover td {
+  background: var(--accent);
+}
+.schema-enum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.75rem;
+  padding: 1rem var(--schema-gap);
+}
+.schema-enum-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.875rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  text-align: start;
+  transition:
+    transform 160ms ease-out,
+    box-shadow 160ms ease-out,
+    border-color 160ms ease-out;
+}
+.schema-enum-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--foreground) 30%, var(--border));
+  box-shadow: var(--schema-shadow-md);
+}
+.schema-enum-card.is-active {
+  border-color: var(--ring);
+  box-shadow:
+    0 0 0 1px var(--ring),
+    var(--schema-shadow-md);
+}
+.schema-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-inline-start: 1.5rem;
+}
+.schema-timeline::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.5rem;
+  inset-inline-start: 0.6875rem;
+  inline-size: 2px;
+  background: var(--border);
+  border-radius: 2px;
+}
+.schema-timeline-item {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.schema-timeline-dot {
+  position: absolute;
+  inset-inline-start: -1.5rem;
+  inset-block-start: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.375rem;
+  block-size: 1.375rem;
+  border-radius: 999px;
+  color: var(--muted-foreground);
+  background: var(--background);
+  border: 2px solid var(--border);
+}
+.schema-timeline-item[data-current] .schema-timeline-dot {
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.schema-history-item {
+  display: flex;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.schema-hit {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.schema-hit.is-active {
+  background: var(--accent);
+}
+.schema-hit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  color: var(--dom-fg);
+  background: var(--dom-soft);
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────────────────────────── */
+
+@keyframes schema-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes schema-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .schema-node,
+  .schema-focus-pill {
+    animation: none;
+  }
+  .schema-node,
+  .schema-enum-card,
+  .schema-edge .react-flow__edge-path,
+  .schema-canvas .react-flow__renderer,
+  .schema-canvas .react-flow__background {
+    transition: none;
+  }
+  .schema-canvas .react-flow__edge-path {
+    animation: none !important;
+  }
+}
+
+/* ── Narrow workspaces ───────────────────────────────────────────────────────────────────────── */
+
+@container studio (max-width: 64rem) {
+  .schema-title-meta,
+  .schema-search-text {
+    display: none;
+  }
+  .schema-panel {
+    inline-size: min(24rem, calc(100% - 2 * var(--schema-gap)));
+  }
+}
+@container studio (max-width: 46rem) {
+  .schema-studio {
+    --schema-gap: 0.5rem;
+  }
+  .schema-title {
+    display: none;
+  }
+  .schema-topbar {
+    max-inline-size: calc(100% - 2 * var(--schema-gap));
+  }
+  /* On a phone the two bars stack: the end bar's tools first, the layers and the views under it. */
+  .schema-topbar[data-side='start'] {
+    inset-block-start: calc(2 * var(--schema-gap) + var(--schema-bar-h));
+  }
+  .schema-scroll {
+    padding-block-start: calc(3 * var(--schema-gap) + 2 * var(--schema-bar-h));
+  }
+  .schema-focus-pill {
+    inset-block-start: calc(3 * var(--schema-gap) + 2 * var(--schema-bar-h));
+  }
+  .schema-search-button kbd {
+    display: none;
+  }
+  .schema-topbar[data-side='start'] > .schema-toolbar-gap {
+    display: none;
+  }
+  .schema-minimap {
+    display: none;
+  }
+  /* The panel and the layers become sheets over the map. */
+  .schema-panel,
+  .schema-layers {
+    inset-inline: var(--schema-gap);
+    inline-size: auto;
+    inset-block-start: 30%;
+  }
+  .schema-toolbar {
+    left: var(--schema-gap);
+    right: var(--schema-gap);
+    translate: none;
+  }
+}

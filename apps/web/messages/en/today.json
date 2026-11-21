@@ -1,0 +1,215 @@
+{
+  "greeting": {
+    "morning": "Good morning, {name}",
+    "summary": {
+      "zero": "Nothing waits for you today.",
+      "one": "1 thing is waiting",
+      "other": "# things are waiting"
+    },
+    "overdue": {
+      "one": ", and 1 is overdue.",
+      "other": ", and # are overdue.",
+      "zero": "."
+    },
+    "afternoon": "Good afternoon, {name}",
+    "evening": "Good evening, {name}"
+  },
+  "refresh": "Refresh",
+  "refreshed": "Page refreshed",
+  "updated": "Updated {when}",
+  "counters": {
+    "label": "At a glance",
+    "tiles": {
+      "inbox": "Inbox unread",
+      "decisions": "My decisions",
+      "needs": "My needs",
+      "handoffs": "My handoffs",
+      "redesigns": "Redesigns in review"
+    },
+    "scope": "of {all} open",
+    "scopeNeeds": "of {all} open or awaiting a check",
+    "overdue": {
+      "one": "1 overdue",
+      "other": "# overdue",
+      "zero": "none overdue"
+    },
+    "quietAll": "A quiet week: nothing is open."
+  },
+  "stack": {
+    "title": "Awaiting me",
+    "groups": {
+      "urgent": "Overdue or escalated",
+      "soon": "Due within 24 hours",
+      "rest": "Everything else"
+    },
+    "overdueBy": "{d} overdue",
+    "escalated": "Escalated to me",
+    "dueSoon": "Due {rel}",
+    "due": "Due {when}",
+    "stale": "Not received for {d}",
+    "breaking": "Breaking change",
+    "seeAll": "See all ({total})",
+    "seeFewer": "See fewer",
+    "emptyTitle": "Nothing is waiting.",
+    "emptyBody": "Decisions, needs and handoffs routed to my roles show up here first.",
+    "metaHandoff": "From {role}, {rel}",
+    "metaDelivered": "Delivered by {name}, awaiting a check",
+    "metaScore": "Review score {n}/100",
+    "subtitle": "Cards that wait on you or your roles: act on these first."
+  },
+  "runway": {
+    "title": "Deadlines in the next 72 hours",
+    "now": "now",
+    "overdue": "Overdue",
+    "day24": "24 h",
+    "later": "later",
+    "empty": "No deadlines in the next 72 hours.",
+    "pin": "{key}, {type}: {title}, due {when}",
+    "pinInStack": "{key}, {type}: {title}, due {when}. Jump to it in Awaiting me.",
+    "inStackNote": {
+      "one": "And 1 more in Awaiting me above.",
+      "other": "And # more in Awaiting me above."
+    }
+  },
+  "ready": {
+    "title": "Ready for my roles",
+    "titleProject": {
+      "zero": "No tasks ready in the project",
+      "one": "1 task ready in the project",
+      "other": "# tasks ready in the project"
+    },
+    "claim": "Claim",
+    "claimTask": "Claim {key}",
+    "effort": "Effort",
+    "specialty": {
+      "backend": "Backend",
+      "frontend": "Frontend",
+      "design": "Design",
+      "qa": "QA",
+      "ops": "Ops",
+      "docs": "Docs"
+    },
+    "emptyTitle": "No ready tasks for my roles.",
+    "emptyBody": "Ready tasks for my specialties appear here, highest priority first.",
+    "emptyTitleProject": "No tasks ready in the project.",
+    "emptyBodyProject": "Every ready task in the project appears here, highest priority first.",
+    "emptyLink": "Check the backlog",
+    "subtitle": {
+      "zero": "Unclaimed tasks you can take now.",
+      "one": "Unclaimed tasks you can take now. 1 more is in Start with these, above.",
+      "other": "Unclaimed tasks you can take now. # more are in Start with these, above."
+    }
+  },
+  "letter": {
+    "title": "Morning letter",
+    "signed": "Written by your agent at {when}",
+    "collapse": "Show less",
+    "expand": "Read the whole letter",
+    "absentTitle": "Your agent has not written today’s letter yet",
+    "absentBody": "Run {cmd} in Claude Code and it writes one from the sections on this page."
+  },
+  "since": {
+    "title": "Since your last visit",
+    "seeAll": "See all in the timeline ({total})",
+    "tide": "You were here {when}",
+    "pinned": "API contract change",
+    "cards": "Cards",
+    "commits": {
+      "one": "1 commit",
+      "other": "# commits"
+    },
+    "viaAgent": "via agent",
+    "empty": "No changes since {when}.",
+    "system": "System",
+    "more": {
+      "one": "1 more event on this card",
+      "other": "# more events on this card"
+    },
+    "eventCount": {
+      "one": "1 event",
+      "other": "# events"
+    }
+  },
+  "sessions": {
+    "title": "Sessions without summary",
+    "noSummary": "No summary",
+    "hint": "Run {cmd} in Claude Code to write the summary.",
+    "minutes": "{n} min",
+    "files": {
+      "one": "1 file",
+      "other": "# files"
+    },
+    "commits": {
+      "one": "1 commit",
+      "other": "# commits"
+    }
+  },
+  "team": {
+    "title": "Team this week",
+    "week": "{from} – {to}",
+    "up": "up {n}",
+    "down": "down {n}",
+    "same": "no change",
+    "activity": "Activity, last 14 days",
+    "activityShort": "Activity, last 7 days",
+    "activityHint": "Sessions, commits and closed cards per day. Members are sorted by name.",
+    "fewer": "Fewer",
+    "more": "More",
+    "cell": {
+      "zero": "{name}, {date}: no activity",
+      "one": "{name}, {date}: 1 event",
+      "other": "{name}, {date}: # events"
+    },
+    "readoutIdle": "Hover a day, or move to it with the arrow keys, to see the exact count.",
+    "lastSeen": "Last seen {rel}",
+    "focus": "Working on",
+    "noFocus": "No claimed task",
+    "today": "today",
+    "member": "Member",
+    "flow": "Card flow by type",
+    "flowHint": "Created against closed this week.",
+    "created": "created",
+    "closed": "closed",
+    "netMore": "{n} more open",
+    "netFewer": "{n} fewer open",
+    "netEven": "even",
+    "totals": {
+      "sessions": "AI sessions",
+      "commits": "Commits",
+      "prsMerged": "PRs merged",
+      "decided": "Decisions made",
+      "handoffs": "Handoffs applied",
+      "closed": "Cards closed"
+    },
+    "noSource": "No source connected",
+    "flowEmpty": "No cards created or closed this week."
+  },
+  "sources": {
+    "title": "Capture sources",
+    "kinds": {
+      "github_repo": "GitHub repo",
+      "openapi": "OpenAPI contract",
+      "lab": "Redesign lab",
+      "docs_folder": "Docs folder",
+      "local_path": "Local folder"
+    },
+    "ok": "Live, synced {rel}",
+    "lagging": "{d} behind",
+    "lastSuccess": "Last success {when}",
+    "runs": "Runs in 24 h",
+    "cards": "Cards in 24 h",
+    "summaryOk": "{n} live",
+    "summaryLag": "{n} behind",
+    "summaryFail": "{n} failing",
+    "allLive": "Every source is live.",
+    "neverRun": "Has not run yet",
+    "emptyTitle": "No sources connected",
+    "emptyBody": "Sources show here once they are connected to this project.",
+    "emptyLink": "Connect a source in Settings"
+  },
+  "loading": "Loading Today",
+  "errorThing": "Today",
+  "next": {
+    "subtitle": "What to start next, ranked from real state. Cards already in Awaiting me are left out."
+  }
+}

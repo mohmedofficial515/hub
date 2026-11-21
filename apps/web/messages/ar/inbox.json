@@ -1,0 +1,121 @@
+{
+  "title": "الوارد",
+  "errorThing": "الوارد",
+  "summary": {
+    "unread": {
+      "zero": "لا شيء غير مقروء",
+      "one": "إشعار واحد غير مقروء",
+      "two": "إشعاران غير مقروءين",
+      "few": "# إشعارات غير مقروءة",
+      "many": "# إشعارًا غير مقروء",
+      "other": "# إشعار غير مقروء"
+    }
+  },
+  "waitingLine": {
+    "one": "بطاقة واحدة تنتظرك في يومي",
+    "two": "بطاقتان تنتظرانك في يومي",
+    "few": "# بطاقات تنتظرك في يومي",
+    "many": "# بطاقة تنتظرك في يومي",
+    "other": "# بطاقة تنتظرك في يومي"
+  },
+  "allRead": "قُرئ كل شيء",
+  "markAll": "علّم الكل مقروءًا",
+  "markedAll": {
+    "one": "عُلّم إشعار واحد مقروءًا",
+    "two": "عُلّم إشعاران مقروءين",
+    "few": "عُلّمت # إشعارات مقروءة",
+    "many": "عُلّم # إشعارًا مقروءًا",
+    "other": "عُلّم # إشعار مقروءًا"
+  },
+  "filters": {
+    "show": "عرض",
+    "unread": "غير المقروء",
+    "all": "الكل",
+    "showAll": "اعرض كل الإشعارات",
+    "kind": "نوع الإشعار",
+    "anyKind": "كل الأنواع",
+    "kinds": {
+      "routed": "موجّه إليّ",
+      "mention": "إشارات",
+      "watch": "ما أتابعه",
+      "reminder": "تذكيرات",
+      "brief": "موجزات",
+      "system": "النظام"
+    },
+    "clear": "امسح الفلاتر"
+  },
+  "rest": {
+    "unread": "غير المقروء",
+    "all": "كل الإشعارات",
+    "earlier": "أقدم",
+    "today": "اليوم",
+    "yesterday": "أمس"
+  },
+  "row": {
+    "unread": "غير مقروء",
+    "more": {
+      "one": "+1 على هذه البطاقة",
+      "two": "+2 على هذه البطاقة",
+      "few": "+# على هذه البطاقة",
+      "many": "+# على هذه البطاقة",
+      "other": "+# على هذه البطاقة"
+    },
+    "markRead": "علّمه مقروءًا",
+    "markUnread": "علّمه غير مقروء",
+    "archive": "أرشفه",
+    "restore": "استعده",
+    "openView": "افتح {view}",
+    "archived": "أُرشف الإشعار",
+    "restored": "استُعيد الإشعار",
+    "swipe": "أرشفة",
+    "readNow": "صار مقروءًا",
+    "unreadNow": "صار غير مقروء",
+    "titles": {
+      "routed_decision": "قرار بانتظارك: {title}",
+      "routed_need": "احتياج بانتظارك: {title}",
+      "routed_handoff": "إحالة بانتظارك: {title}",
+      "routed_review": "بانتظار مراجعتك: {title}",
+      "routed_idea": "فكرة تخص دورك: {title}",
+      "review_requested": "جاهزة للمراجعة: {title}",
+      "mention": "إشارة إليك: {title}",
+      "task_ready": "جاهزة للحجز: {title}",
+      "escalation": "تجاوزت موعدها وصُعّدت: {title}",
+      "watch_update": "تغيّرت: {title}",
+      "watch_comment": "تعليق جديد: {title}",
+      "watch_decided": "حُسم: {title}",
+      "need_delivered": "سُلّم وينتظر التحقق: {title}",
+      "unblocked": "لم تعد محجوبة: {title}",
+      "deadline_reminder": "موعدها خلال {hours}: {title}",
+      "deadline_overdue": "تجاوزت موعدها: {title}",
+      "handoff_stale": "انتظرتك طويلًا: {title}",
+      "need_stale": "بقي مفتوحًا طويلًا: {title}",
+      "task_still_working": "هل ما زلت تعمل عليها؟ {title}",
+      "release_created": "إصدار جديد مخطط له: {title}",
+      "release_released": "صدر: {title}",
+      "session_no_summary": "جلستك بلا ملخص بعد",
+      "member_joined": "انضم {name} إلى المشروع",
+      "source_failing": "فشل المصدر {name} ثلاث مرات متتالية",
+      "brief_ready": "موجزك ليوم {date} جاهز",
+      "weekly_ready": "ملخص الأسبوع {date} جاهز",
+      "run_waiting": "تشغيل من الطابور ينتظر موافقتك: {title}",
+      "backup_failed": "فشل النسخ الاحتياطي الليلي: {reason}"
+    }
+  },
+  "archive": {
+    "show": "اعرض المؤرشف ({n})",
+    "hide": "ارجع إلى الوارد",
+    "title": "المؤرشف",
+    "empty": "لا إشعارات مؤرشفة."
+  },
+  "empty": {
+    "allTitle": "لا إشعارات بعد",
+    "allBody": "تصلك الإشعارات هنا حين تُوجَّه بطاقة إلى أدوارك، أو يشير إليك أحد، أو تتغير بطاقة تتابعها.",
+    "unreadTitle": "قرأت كل شيء",
+    "unreadBody": "يصلك الجديد هنا فور وصوله.",
+    "needsTitle": "لا شيء ينتظرك",
+    "needsBody": "حين تُوجَّه إليك بطاقة تظهر هنا مع إجرائها.",
+    "kindTitle": "لا إشعارات من هذا النوع",
+    "kindBody": "جرّب نوعًا آخر أو امسح الفلاتر."
+  },
+  "older": "حمّل الأقدم"
+}

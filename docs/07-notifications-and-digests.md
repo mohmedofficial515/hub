@@ -29,6 +29,7 @@ notification.
 | `verified` need | creator; watchers; assignees of blocked cards | `watch_update`; `unblocked` | — |
 | `acknowledged` / `applied` / `dismissed` handoff | creator; watchers | `watch_update` | — |
 | `approved` / `rejected` / `changes_requested` redesign | creator; holders of `designer`; watchers | `watch_update` | — |
+| `changes_requested` plan (sent back to draft) | creator; watchers (no role) | `watch_update` | — |
 | `ported` redesign | holders of `owner`; watchers | `watch_update` | — |
 | `done` task (`status_changed` → done) | watchers; assignees of blocked cards | `watch_update`; `unblocked` | — |
 | `pr_merged` on a change linked to a task | watchers of the task | `watch_update` | — |
@@ -47,7 +48,8 @@ Rules:
 
 ## 2. Creation pipeline, grouping, dedupe
 
-1. `CardService.apply` runs the router inside the **same transaction** as the card event and
+1. `CardService.apply` runs its registered hooks inside the **same transaction** as the card event
+   (`modules/notifications` registers through `CardEventHooks`, so the dependency points one way). The hook routes the event and
    inserts `Notification` rows (title/body rendered in the recipient's locale — immutable) plus one
    `NotificationJob` per enabled channel of that recipient (§4 preferences decide `channel` set and
    `nextAttemptAt`). In-app needs no job: the row itself is the inbox item.
@@ -115,7 +117,7 @@ Rules:
   - `acknowledge` → `[✅ Acknowledge] [🔗 Open]`
   - `deliver` → `[📦 Deliver] [🔗 Open]` — pressing asks "Reply with where you put it (never the value)"; the next text message within 10 min (state in Redis `tg:await:<chatId>`) becomes `location`; the secret filter rejects a likely secret with `telegram.secret_rejected` and the message is **not** stored.
   - `claim` → `[🙋 Claim] [🔗 Open]`
-  - `decide`, `verify`, `review` → `[🔗 Open in Hub]` only (human-only actions stay in the web UI; the URL carries `?action=decide`).
+  - `decide`, `verify`, `review` → `[🔗 Open in Hub]` only (these ask for a choice or a written reason, so the link opens the page; the URL carries `?action=decide`. The same actions work through MCP, D27).
   - everything else → `[🔗 Open]`.
 - Callback data: `<action>:<notificationId>` (≤ 64 bytes). Handler: resolve user by `chatId`,
   notification → card; call the same application service as REST with
@@ -157,9 +159,11 @@ Rules:
 
 ## 5. Scheduler — deadlines, reminders, escalation, stale items
 
-Repeatable job `scheduler.tick` on queue `scheduler`, **every 5 minutes per workspace**
-(`jobId: scheduler.tick:<workspaceId>`), idempotent by construction (every rule records what it
-did on the card).
+One repeatable job (`tick` on `hub-reminders`) every 5 minutes walks the projects that are not closed, idempotent by construction
+(every rule records what it did on the card). A decision due inside two windows gets one reminder, the nearest, and spends the wider
+one; `0` in `reminders_sent` is the one overdue notice. A stale reminder's cadence comes from the card's last `reminder_sent` event,
+for every type, instead of `payload.lastStaleReminderAt`. All of it goes through `CardService.apply` as the system (`card.remind`,
+`decision.escalate`, rows with `surface: system`).
 
 ```sql
 -- 5.1 decision reminders (per offset h in decisions.reminder_offsets_hours)
@@ -192,8 +196,11 @@ expressions recomputed on setting change) run on the same queue.
 
 ## 6. Digests and templates
 
-All templates are Handlebars files under `apps/api/src/modules/digests/templates/<kind>.md.hbs`
-with i18n keys resolved before rendering (`{{t "digests.brief.awaiting"}}`). Dates are formatted
+The templates below are written in Handlebars notation to show their shape. Those the card types own are typed functions in
+their module, each with golden files in `apps/api/test/golden`, and hold their `ar` and `en` strings beside the code: `adr.template.ts`
+(decisions), `task-prompt.template.ts` (tasks), `handoff-contract.template.ts` (handoffs), `port-task.template.ts` (redesign),
+`release-notes.template.ts` (releases). A plain function needs no asset copying at build and fails the type check when a
+field goes missing. Briefs and weekly summaries belong to `modules/digests`. Dates are formatted
 in the workspace timezone; card references are rendered as `GTV-123 · title` with links in HTML
 contexts and as plain `GTV-123` in Markdown for agents.
 

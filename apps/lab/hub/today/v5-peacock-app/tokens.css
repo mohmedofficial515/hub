@@ -1,0 +1,322 @@
+/*
+ * v5-peacock-app: Night Peacock tokens (research/references.md §3 B), scoped to `.peacock-app` so a version
+ * never leaks into another. Dark-first: jewel hues read luminous on green-black plumage.
+ *
+ * Differences from v2-peacock-lanes:
+ * - Cards are one neutral surface with one uniform neutral border, and a coloured type icon. No coloured edge. Soft tints exist for small
+ *   badges only, so they were lowered (light L .965 C <= .022, dark L .235 C <= .035, review M10).
+ * - Every coloured text token is at least 4.9:1 on `card`, `background`, `accent` and its own soft tint (M12).
+ * - The heat ramp left the primary's hue (M11). Bright cyan is for the primary action, links and focus.
+ * - Cairo everywhere for Arabic, Inter for English (owner decision 2026-11-04).
+ * Hex lives only in this file. TSX uses token classes.
+ */
+
+/* A page with no scrollbar must not shift the sidebar by the scrollbar's width (review minor). */
+html:has(.peacock-app) {
+  scrollbar-gutter: stable;
+}
+
+.peacock-app {
+  /* Neutrals: plumage green-white */
+  --background: #f4f8f3;
+  --foreground: #141a15;
+  --card: #fdfffd;
+  --card-foreground: #141a15;
+  --popover: #fdfffd;
+  --popover-foreground: #141a15;
+  --secondary: #e8efe7;
+  --secondary-foreground: #141a15;
+  --muted: #e8efe7;
+  --muted-foreground: #535c54; /* 5.7:1 on accent, the darkest surface it sits on */
+  --accent: #e3ece2;
+  --accent-foreground: #141a15;
+  --border: #d9e1d8;
+  --input: #8d978e; /* 3:1 control borders: inputs, search */
+  --sidebar: #edf3ec;
+
+  /* Eye cyan, deepened for light. Primary action, links, focus. */
+  --primary: #006f83;
+  --primary-foreground: #ffffff;
+  --primary-text: #006478;
+  --primary-hover: #005d6e;
+  --ring: #006f83;
+
+  /* Status: tail green, copper barb, rust, neck blue */
+  --success: #308639;
+  --success-foreground: #ffffff;
+  --success-soft: #ebf8eb;
+  --success-soft-foreground: #197327;
+  --warning: #b86a35;
+  --warning-foreground: #1a0e05;
+  --warning-strong: #9a4f15;
+  --warning-soft: #fff0e6;
+  --warning-soft-foreground: #9a4f15;
+  --destructive: #b94839;
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #ffeeeb;
+  --destructive-soft-foreground: #ad3d2f;
+  --info: #2463d4;
+  --info-foreground: #ffffff;
+  --info-soft: #ebf4ff;
+  --info-soft-foreground: #1e5dcd;
+
+  /* Card types: dot, soft badge tint, text and icon colour */
+  --type-task: #2463d4;
+  --type-task-soft: #ebf4ff;
+  --type-task-fg: #1e5dcd;
+  --type-decision: #a98844;
+  --type-decision-soft: #fbf3e3;
+  --type-decision-fg: #7e5e14;
+  --type-need: #c0609a;
+  --type-need-soft: #ffeef7;
+  --type-need-fg: #9e417b;
+  --type-change: #636b60;
+  --type-change-soft: #edf7ea;
+  --type-change-fg: #5d655a;
+  --type-handoff: #009abc;
+  --type-handoff-soft: #e4f7fe;
+  --type-handoff-fg: #006c87;
+  --type-redesign: #9171cf;
+  --type-redesign-soft: #f5f1ff;
+  --type-redesign-fg: #7251ac;
+  --type-doc: #16a081;
+  --type-doc-soft: #e6f9f2;
+  --type-doc-fg: #007159;
+  --type-release: #829539;
+  --type-release-soft: #f1f6e6;
+  --type-release-fg: #5a6b00;
+
+  --prio-p0: #ad3d2f;
+  --prio-p1: #9a4f15;
+  --prio-p2: var(--muted-foreground);
+  --prio-p3: #606960;
+
+  /* Avatars: 12 hues, step 30 degrees, white initials */
+  --avatar-fg: #ffffff;
+  --avatar-1: oklch(0.5 0.11 20);
+  --avatar-2: oklch(0.5 0.11 50);
+  --avatar-3: oklch(0.5 0.1 80);
+  --avatar-4: oklch(0.5 0.11 110);
+  --avatar-5: oklch(0.5 0.11 140);
+  --avatar-6: oklch(0.5 0.1 170);
+  --avatar-7: oklch(0.5 0.1 200);
+  --avatar-8: oklch(0.5 0.12 230);
+  --avatar-9: oklch(0.5 0.13 260);
+  --avatar-10: oklch(0.5 0.13 290);
+  --avatar-11: oklch(0.5 0.13 320);
+  --avatar-12: oklch(0.5 0.12 350);
+
+  /* Activity heatmap: one tail-green ramp, away from the primary's hue */
+  --heat-0: #e4ebe3;
+  --heat-1: #caeadb;
+  --heat-2: #8ccfb1;
+  --heat-3: #4ba280;
+  --heat-4: #236d51;
+  --heat-ring: #141a15;
+
+  /* The tide line and the "you were here" marker: tail teal, not the action colour */
+  --tide: var(--type-doc-fg);
+  --tide-soft: var(--type-doc-soft);
+
+  --scrim: rgb(20 26 21 / 0.42);
+  --animate-alert: peacock-alert 1.4s ease-out 2;
+
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.3125rem;
+}
+
+.dark .peacock-app {
+  --background: #0b100c;
+  --foreground: #e4eae2;
+  --card: #131914;
+  --card-foreground: #e4eae2;
+  --popover: #18201a;
+  --popover-foreground: #e4eae2;
+  --secondary: #1a211b;
+  --secondary-foreground: #e4eae2;
+  --muted: #1a211b;
+  --muted-foreground: #a3ada4;
+  --accent: #1d251e;
+  --accent-foreground: #e4eae2;
+  --border: #29302a;
+  --input: #6c766d;
+  --sidebar: #0f1510;
+
+  --primary: #02d0fd;
+  --primary-foreground: #001218;
+  --primary-text: #38d8fd;
+  --primary-hover: #4bdcfe;
+  --ring: #02d0fd;
+
+  --success: #4ea254;
+  --success-foreground: #04120a;
+  --success-soft: #132214;
+  --success-soft-foreground: #4ea254;
+  --warning: #c97945;
+  --warning-foreground: #1a0e05;
+  --warning-strong: #ce7e4a;
+  --warning-soft: #2b190e;
+  --warning-soft-foreground: #ce7e4a;
+  --destructive: #e26d5c;
+  --destructive-foreground: #1a0705;
+  --destructive-soft: #2d1814;
+  --destructive-soft-foreground: #e88474;
+  --info: #4b8dff;
+  --info-foreground: #050d1c;
+  --info-soft: #151e2f;
+  --info-soft-foreground: #4b8dff;
+
+  --type-task: #2c6bdd;
+  --type-task-soft: #151e2f;
+  --type-task-fg: #5b97ff;
+  --type-decision: #a98844;
+  --type-decision-soft: #241e09;
+  --type-decision-fg: #b5944f;
+  --type-need: #c0609a;
+  --type-need-soft: #2a1722;
+  --type-need-fg: #d271ab;
+  --type-change: #6c7469;
+  --type-change-soft: #1a2017;
+  --type-change-fg: #929a8e;
+  --type-handoff: #009abc;
+  --type-handoff-soft: #07222a;
+  --type-handoff-fg: #1aa7c9;
+  --type-redesign: #9171cf;
+  --type-redesign-soft: #201a2d;
+  --type-redesign-fg: #a688e2;
+  --type-doc: #16a081;
+  --type-doc-soft: #0a231c;
+  --type-doc-fg: #27ac8b;
+  --type-release: #829539;
+  --type-release-soft: #1c200d;
+  --type-release-fg: #8ca144;
+
+  --prio-p0: #e26d5c;
+  --prio-p1: #ce7e4a;
+  --prio-p3: #8f9890;
+
+  --avatar-fg: #0b100c;
+  --avatar-1: oklch(0.74 0.1 20);
+  --avatar-2: oklch(0.74 0.1 50);
+  --avatar-3: oklch(0.74 0.1 80);
+  --avatar-4: oklch(0.74 0.1 110);
+  --avatar-5: oklch(0.74 0.1 140);
+  --avatar-6: oklch(0.74 0.09 170);
+  --avatar-7: oklch(0.74 0.09 200);
+  --avatar-8: oklch(0.74 0.1 230);
+  --avatar-9: oklch(0.74 0.11 260);
+  --avatar-10: oklch(0.74 0.11 290);
+  --avatar-11: oklch(0.74 0.11 320);
+  --avatar-12: oklch(0.74 0.1 350);
+
+  --heat-0: #19201a;
+  --heat-1: #1e392e;
+  --heat-2: #2b5e49;
+  --heat-3: #40876b;
+  --heat-4: #5cb28f; /* capped at L .70, well below the primary's luminance */
+  --heat-ring: #e4eae2;
+
+  --scrim: rgb(0 0 0 / 0.6);
+}
+
+/* ── Type: Cairo for Arabic (owner decision, deviation from doc 08 §3.2), Inter for English ──────────
+ * Weights are deliberate. Cairo regular (400) for reading, medium (500) for labels and badges,
+ * semibold (600) for section heads and card titles, bold (700) for numerals and emphasis inside prose,
+ * extrabold (800) only for the page title. Inter stops at 700 in the frame, so its page title is 700.
+ *
+ * `@theme inline` bakes the named sizes into their utilities, so they cannot be overridden by variable.
+ * These rules restate them for Arabic: Cairo needs one step more size at the caption end (review M12) and
+ * a taller line for its marks. `var(--tw-leading, …)` keeps `leading-*` utilities working. */
+[lang='ar'] .peacock-app {
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 0.9375rem;
+  line-height: 1.5rem;
+}
+[lang='en'] .peacock-app {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+[lang='ar'] .peacock-app .text-caption {
+  font-size: 0.8125rem;
+  line-height: var(--tw-leading, 1.25rem);
+}
+[lang='ar'] .peacock-app .text-body-sm {
+  font-size: 0.875rem;
+  line-height: var(--tw-leading, 1.375rem);
+}
+[lang='ar'] .peacock-app .text-body {
+  font-size: 0.9375rem;
+  line-height: var(--tw-leading, 1.5rem);
+}
+[lang='ar'] .peacock-app .text-body-lg {
+  font-size: 1rem;
+  line-height: var(--tw-leading, 1.625rem);
+}
+[lang='ar'] .peacock-app .text-title-sm {
+  font-size: 1.0625rem;
+  line-height: var(--tw-leading, 1.625rem);
+}
+[lang='ar'] .peacock-app .text-title {
+  font-size: 1.1875rem;
+  line-height: var(--tw-leading, 1.75rem);
+}
+[lang='ar'] .peacock-app .text-headline {
+  font-size: 1.5rem;
+  line-height: var(--tw-leading, 2.125rem);
+}
+[lang='ar'] .peacock-app .text-display {
+  font-size: 1.75rem;
+  line-height: var(--tw-leading, 2.5rem);
+}
+
+/* The page title is the loudest type on any page (review M2). */
+.peacock-app .hub-page-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+[lang='ar'] .peacock-app .hub-page-title {
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+/* The morning letter: Cairo at reading size, generous leading, so prose still sounds different from UI. */
+.peacock-app .hub-letter {
+  font-size: 1rem;
+  line-height: 1.75;
+}
+[lang='ar'] .peacock-app .hub-letter {
+  font-size: 1.0625rem;
+  line-height: 1.95;
+}
+
+.peacock-app button,
+.peacock-app a,
+.peacock-app [role='button'] {
+  touch-action: manipulation;
+}
+
+/* A hit area of 44 px on phones without changing how a small inline control looks (review, touch targets). */
+@media (max-width: 767px) {
+  .peacock-app .hit-44 {
+    position: relative;
+  }
+  .peacock-app .hit-44::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 2.75rem;
+    transform: translateY(-50%);
+  }
+}
+
+/* A failing source pulses twice on load, then holds still. Healthy sources never move (review, minor). */
+@keyframes peacock-alert {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--destructive) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0.5rem transparent;
+  }
+}

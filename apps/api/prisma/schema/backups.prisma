@@ -1,0 +1,39 @@
+/// One backup of the main machine (docs/16 D61 to D63): a folder holding a `pg_dump` of this database, the current text of the documents Hub wrote, and a manifest. Not scoped to a project: one Hub, one history.
+/// A row is never removed. Deleting a backup removes its folder and marks the row, by the owner's press or the retention rule.
+model Backup {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  /// running | done | failed
+  status      String    @default("running")
+  /// scheduled | catch_up | manual
+  trigger     String
+  /// The nightly time this run stands for, so a missed night is caught up once.
+  slotAt      DateTime? @map("slot_at") @db.Timestamptz(3)
+  path        String?
+  sizeBytes   BigInt?   @map("size_bytes")
+  docs        Int?
+  pinned      Boolean   @default(false)
+  failure     String?
+  startedById String?   @map("started_by_id") @db.Uuid
+  startedAt   DateTime  @map("started_at") @db.Timestamptz(3)
+  endedAt     DateTime? @map("ended_at") @db.Timestamptz(3)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(3)
+  /// owner | retention
+  deletedBy   String?   @map("deleted_by")
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+
+  @@index([startedAt])
+  @@map("backups")
+}
+
+/// The owner's backup settings: one row (`id` 1). Absent means the defaults of `BACKUP_DEFAULTS`.
+model BackupSettings {
+  id        Int      @id @default(1)
+  /// Null: the default folder, `HubBackups` at the root of Hub's own drive.
+  folder    String?
+  time      String   @default("03:00")
+  keep      Int      @default(14)
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("backup_settings")
+}

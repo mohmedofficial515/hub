@@ -1,0 +1,387 @@
+{
+ "A. Reef & Sand (coral reef: Palmyra Atoll + Red Sea) - light-first": {
+  "neutrals": {
+   "light_bg": "#F9F6ED",
+   "light_surface": [
+    0.997,
+    0.004,
+    90
+   ],
+   "light_border": [
+    0.9,
+    0.016,
+    88
+   ],
+   "light_text": [
+    0.22,
+    0.012,
+    70
+   ],
+   "light_muted": [
+    0.5,
+    0.02,
+    70
+   ],
+   "dark_bg": [
+    0.17,
+    0.014,
+    285
+   ],
+   "dark_surface": [
+    0.215,
+    0.016,
+    285
+   ],
+   "dark_border": [
+    0.31,
+    0.016,
+    285
+   ],
+   "dark_text": [
+    0.94,
+    0.01,
+    90
+   ],
+   "dark_muted": [
+    0.73,
+    0.015,
+    285
+   ]
+  },
+  "primary": {
+   "light": "#0951DE",
+   "dark": [
+    0.7,
+    0.16,
+    258
+   ],
+   "dark_on": [
+    0.17,
+    0.03,
+    262
+   ]
+  },
+  "slots": {
+   "task": [
+    "#0951DE",
+    "Red Sea open water h262"
+   ],
+   "decision": [
+    "#9D7C35",
+    "Palmyra ochre coral h84"
+   ],
+   "need": [
+    "#AD366F",
+    "Palmyra coral pink h355"
+   ],
+   "change": [
+    "#69625D",
+    "wet rock neutral"
+   ],
+   "handoff": [
+    "#1494AE",
+    "lagoon h215"
+   ],
+   "redesign": [
+    "#2E2054",
+    "deep-water violet h292, lightened",
+    {
+     "L": 0.56,
+     "C": 0.13
+    }
+   ],
+   "doc": [
+    "#369D86",
+    "seagrass teal h172"
+   ],
+   "release": [
+    "#728557",
+    "algae green h128, chroma raised",
+    {
+     "C": 0.12
+    }
+   ],
+   "success": [
+    "#428462",
+    "seagrass green h158"
+   ],
+   "warning": [
+    "#87502C",
+    "sponge orange h52, chroma raised, hue moved to 45",
+    {
+     "L": 0.6,
+     "C": 0.13,
+     "h": 45
+    }
+   ],
+   "danger": [
+    "#852326",
+    "red coral h24"
+   ]
+  }
+ },
+ "B. Night Peacock (Indian peafowl) - dark-first": {
+  "neutrals": {
+   "light_bg": [
+    0.975,
+    0.008,
+    145
+   ],
+   "light_surface": [
+    0.997,
+    0.003,
+    145
+   ],
+   "light_border": [
+    0.9,
+    0.014,
+    145
+   ],
+   "light_text": [
+    0.21,
+    0.012,
+    150
+   ],
+   "light_muted": [
+    0.49,
+    0.018,
+    150
+   ],
+   "dark_bg": [
+    0.165,
+    0.012,
+    150
+   ],
+   "dark_surface": [
+    0.205,
+    0.014,
+    150
+   ],
+   "dark_border": [
+    0.3,
+    0.014,
+    150
+   ],
+   "dark_text": [
+    0.93,
+    0.012,
+    140
+   ],
+   "dark_muted": [
+    0.72,
+    0.016,
+    150
+   ]
+  },
+  "primary": {
+   "light": [
+    0.5,
+    0.1,
+    215
+   ],
+   "dark": "#02D0FD",
+   "dark_on": [
+    0.17,
+    0.03,
+    220
+   ]
+  },
+  "slots": {
+   "task": [
+    "#2463D4",
+    "neck blue h261"
+   ],
+   "decision": [
+    "#AB8A46",
+    "eye-ring bronze h84"
+   ],
+   "need": [
+    "#B26B9B",
+    "**ext** magenta h345 (not in photo)",
+    {
+     "h": 345,
+     "C": 0.14
+    }
+   ],
+   "change": [
+    "#636B60",
+    "green-grey neutral"
+   ],
+   "handoff": [
+    "#02D0FD",
+    "eye cyan h221"
+   ],
+   "redesign": [
+    "#8E77BF",
+    "**ext** violet h300 (not in photo)",
+    {
+     "C": 0.14
+    }
+   ],
+   "doc": [
+    "#4AC3A2",
+    "tail teal h172"
+   ],
+   "release": [
+    "#A1A75A",
+    "tail lime-olive h113, chroma raised, hue 120",
+    {
+     "C": 0.12,
+     "h": 120
+    }
+   ],
+   "success": [
+    "#65A55D",
+    "tail green h142, deepened",
+    {
+     "L": 0.55,
+     "C": 0.14,
+     "h": 145
+    }
+   ],
+   "warning": [
+    "#A97250",
+    "copper barb h53, chroma raised",
+    {
+     "C": 0.12
+    }
+   ],
+   "danger": [
+    "#A35C47",
+    "rust h37, chroma raised",
+    {
+     "C": 0.15,
+     "h": 30
+    }
+   ]
+  }
+ },
+ "C. Mandarin Ink (mandarinfish) - bold editorial": {
+  "neutrals": {
+   "light_bg": [
+    0.968,
+    0.016,
+    90
+   ],
+   "light_surface": [
+    0.995,
+    0.006,
+    90
+   ],
+   "light_border": [
+    0.86,
+    0.02,
+    90
+   ],
+   "light_text": [
+    0.18,
+    0.01,
+    80
+   ],
+   "light_muted": [
+    0.47,
+    0.02,
+    85
+   ],
+   "dark_bg": [
+    0.155,
+    0.012,
+    85
+   ],
+   "dark_surface": [
+    0.2,
+    0.014,
+    85
+   ],
+   "dark_border": [
+    0.3,
+    0.016,
+    85
+   ],
+   "dark_text": [
+    0.95,
+    0.012,
+    90
+   ],
+   "dark_muted": [
+    0.73,
+    0.02,
+    90
+   ]
+  },
+  "primary": {
+   "light": "#0037BF",
+   "dark": [
+    0.7,
+    0.17,
+    262
+   ],
+   "dark_on": [
+    0.16,
+    0.03,
+    262
+   ]
+  },
+  "slots": {
+   "task": [
+    "#0037BF",
+    "electric blue h263"
+   ],
+   "decision": [
+    "#CA9D46",
+    "yellow line h82"
+   ],
+   "need": [
+    "#AB5379",
+    "pink soft coral behind fish h355"
+   ],
+   "change": [
+    "#676355",
+    "olive neutral"
+   ],
+   "handoff": [
+    "#11C3ED",
+    "cyan line h218"
+   ],
+   "redesign": [
+    "#2C2F80",
+    "indigo h278, lifted + nudged",
+    {
+     "L": 0.55,
+     "C": 0.17,
+     "h": 292
+    }
+   ],
+   "doc": [
+    "#009B8B",
+    "**ext** teal h172 (not in photo)",
+    {
+     "h": 172
+    }
+   ],
+   "release": [
+    "#41990E",
+    "green line h138"
+   ],
+   "success": [
+    "#587231",
+    "olive-green h128, chroma raised",
+    {
+     "C": 0.13,
+     "h": 150
+    }
+   ],
+   "warning": [
+    "#AE5F28",
+    "orange body h52"
+   ],
+   "danger": [
+    "#8F393E",
+    "fin red h19",
+    {
+     "C": 0.16
+    }
+   ]
+  }
+ }
+}

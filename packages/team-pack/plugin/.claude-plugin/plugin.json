@@ -1,0 +1,6 @@
+{
+  "name": "hub",
+  "description": "Hub team pack: /hub:start, /hub:next, /hub:work, /hub:done, /hub:ask, /hub:plan and session hooks for the team's Hub.",
+  "version": "0.2.0",
+  "author": { "name": "Alremaal Co" }
+}

@@ -1,0 +1,152 @@
+# The whole of Hub on localhost (docs/15 §3, §9): web, api, worker, postgres, redis. `pnpm setup:env`, then:
+#   docker compose -f infra/compose.yaml --env-file .env up -d --build
+#   infra/scripts/smoke.sh
+#
+# The project is `hub-stack`, so it never touches `compose.dev.yaml`'s `hub-*` containers or volumes. Both publish 7340 and 7341
+# by default: stop the dev one first, or set the HUB_*_PORT values below, as the smoke test of this file does:
+#   HUB_WEB_PORT=7351 HUB_API_PORT=7312 HUB_PG_PORT=7344 HUB_REDIS_PORT=7345 \
+#     docker compose -p hub-smoke -f infra/compose.yaml --env-file .env up -d --build
+# A different `-p` also means different data volumes.
+#
+# Folders. Containers cannot see F:/ unless it is mounted, so the lab and the docs are bound to fixed paths inside:
+#   HUB_LAB_FOLDER   -> /data/lab   (LAB_ROOT). Read and written: approve and reject write the status into README front-matter.
+#   HUB_DOCS_FOLDER  -> /data/docs  (read only). A `local_path` source in Settings names the path inside, such as /data/docs/backend/docs.
+# Both default to an empty folder in this repository, so a fresh stack starts with honest empty states.
+name: hub-stack
+
+x-app: &app # Built once, by `api`. The others run the same image and must not look for it on a registry.
+  image: hub-api:local
+  pull_policy: never
+  env_file: ../.env
+  restart: unless-stopped
+  volumes:
+    - ${HUB_LAB_FOLDER:-../.tmp/empty-lab}:/data/lab
+    - ${HUB_DOCS_FOLDER:-../.tmp/empty-docs}:/data/docs:ro
+
+x-app-env: &app-env
+  NODE_ENV: production
+  TZ: ${TZ:-Europe/Istanbul}
+  DATABASE_URL: postgresql://hub:${POSTGRES_PASSWORD:-hub}@postgres:5432/hub?schema=public
+  REDIS_URL: redis://redis:6379/0
+  HUB_PUBLIC_URL: http://localhost:${HUB_WEB_PORT:-7300}
+  HUB_ALLOWED_HOSTS: localhost,127.0.0.1,api
+  LAB_ROOT: /data/lab
+  REPOS_ROOT: /tmp/repos
+  # The API sits behind the web container's proxy. Without this every request looks like it came from that container, so the
+  # per-address sign-in limit would be shared by everyone and audit rows would hold the wrong address.
+  TRUST_PROXY: uniquelocal
+  # Mail needs a server, and invites work by link without one (docs/15 §3).
+  MAIL_PROVIDER: ${MAIL_PROVIDER:-none}
+
+services:
+  postgres:
+    # postgres:16 with the vector extension; pg_trgm and unaccent ship with it.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hub}
+      POSTGRES_DB: hub
+    ports:
+      - '127.0.0.1:${HUB_PG_PORT:-7340}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hub -d hub']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # BullMQ needs noeviction; AOF keeps queued jobs and "since last visit" across restarts.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '127.0.0.1:${HUB_REDIS_PORT:-7341}:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    restart: 'no'
+    environment:
+      <<: *app-env
+      PROCESS_ROLE: api
+    command: ['sh', '/app/infra/docker/migrate.sh']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *app
+    pull_policy: build
+    build:
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
+    environment:
+      <<: *app-env
+      PROCESS_ROLE: api
+      PORT: '7310'
+    ports:
+      - '127.0.0.1:${HUB_API_PORT:-7310}:7310'
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:7310/api/v1/health/ready').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker:
+    <<: *app
+    environment:
+      <<: *app-env
+      PROCESS_ROLE: worker
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        # Next.js fixes its rewrites at build time. The browser only ever talks to the web origin.
+        HUB_API_ORIGIN: http://api:7310
+        # This stack runs no lab, so Redesign shows the pictures and says the lab is not running. `pnpm start:local` runs it.
+        HUB_LAB_ORIGIN: ${HUB_LAB_ORIGIN:-http://lab:7320}
+    image: hub-web:local
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '7300'
+    ports:
+      - '127.0.0.1:${HUB_WEB_PORT:-7300}:7300'
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:7300/en/sign-in').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  pgdata:
+  redisdata:

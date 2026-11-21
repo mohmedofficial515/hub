@@ -1,0 +1,155 @@
+{
+  "title": "Members",
+  "meta": {
+    "one": "1 active member",
+    "other": "# active members"
+  },
+  "loading": "Loading members",
+  "errorThing": "members",
+  "invite": "Invite member",
+  "you": "You",
+  "online": "Online now",
+  "search": "Search members…",
+  "roster": "Team",
+  "rolesFilter": "Role",
+  "col": {
+    "name": "Member",
+    "roles": "Roles",
+    "github": "GitHub",
+    "lastSeen": "Last seen",
+    "actions": "Actions"
+  },
+  "noGithub": "No login",
+  "noGithubHint": "Commits are not attributed until a login is mapped.",
+  "mapGithub": "Map a login",
+  "twoFactorMissing": "Two-step sign-in is required for this role",
+  "noMatchTitle": "No member matches this search",
+  "noMatchBody": "Try another name, or clear the role filter.",
+  "noMatchAction": "Clear filters",
+  "disabledTitle": "Disabled accounts",
+  "enable": "Enable",
+  "enabled": "Enabled {name}",
+  "invites": {
+    "title": "Waiting to join",
+    "sent": "Invited by {name}",
+    "expires": "Expires {when}",
+    "expiresSoon": "Expires {when}",
+    "resend": "New link",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke the invite to {email}?",
+    "revokeBody": "The link stops working right away. You can invite the same person again later.",
+    "revoked": "Revoked the invite to {email}",
+    "resendTitle": "New invite link",
+    "resendBody": "The previous link to {email} no longer works. This one works once, for 7 days.",
+    "emptyTitle": "No pending invites",
+    "emptyBody": "Everyone you invited has joined. Invite someone when you need to.",
+    "emptyBodySole": "Invite the first member to join you in this project.",
+    "resendLabel": "New link for {email}",
+    "expired": "Expired {when}",
+    "joined": "Joined {when}",
+    "revokedOn": "Revoked {when}",
+    "status": {
+      "pending": "Waiting",
+      "expired": "Expired",
+      "accepted": "Joined",
+      "revoked": "Revoked"
+    },
+    "earlierTitle": "Earlier invites"
+  },
+  "inviteDialog": {
+    "title": "Invite a member",
+    "email": "Email",
+    "emailHint": "Hub emails the link to this address when real email is set up, and you can always copy or share it.",
+    "emailInvalid": "Write a valid email address.",
+    "emailTaken": "An active invite exists for this address.",
+    "emailMember": "This address belongs to a member.",
+    "roles": "Roles",
+    "rolesRequired": "Choose at least one role.",
+    "ownerOnly": "Only an owner can grant the owner role.",
+    "send": "Create invite",
+    "createdTitle": "Invite created",
+    "createdBody": "Send this link to {email}. It opens the join page with the roles you chose, works once, and expires in 7 days."
+  },
+  "once": {
+    "warning": "You won’t see this link again. Copy or share it now.",
+    "linkLabel": "Link",
+    "copy": "Copy the link",
+    "done": "I copied it, close"
+  },
+  "inviteLink": {
+    "share": "Share…",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "sendLabel": "Send the link",
+    "shareTitle": "Invitation to {project} on Hub",
+    "text": "{inviter} invited you to {project} on Hub. Open this link and create your account. It works once, for 7 days:\n{url}",
+    "textTailnet": "How to reach Hub: it runs on {inviter}’s machine inside a private Tailscale network. Install Tailscale from https://tailscale.com/download, sign in with your own account, accept the share of the machine “{machine}” that {inviter} sends you, then open the link.",
+    "mail": {
+      "real": "An email with this link went to {email}.",
+      "local": "No email reached {email}: Hub only has the local test inbox (Mailpit). Send the link yourself.",
+      "off": "Hub has no mail server, so no email went to {email}. Send the link yourself."
+    },
+    "mailSetUp": "Set up real email",
+    "tailnetTitle": "Share this machine with them in Tailscale",
+    "tailnetBody": "Hub opens only inside your tailnet. In the Tailscale admin console, open Machines, choose {machine}, press Share and send them the share link. They install Tailscale, sign in with their own account and accept it.",
+    "tailnetOpen": "Open Tailscale machines"
+  },
+  "menu": {
+    "label": "Options for {name}",
+    "profile": "My profile",
+    "roles": "Change roles",
+    "github": "GitHub logins",
+    "reset": "Password reset link",
+    "disable": "Disable account"
+  },
+  "rolesDialog": {
+    "title": "Roles of {name}",
+    "hint": "MCP tokens pick up the new roles on their next request.",
+    "required": "A member needs at least one role.",
+    "lastOwner": "You can’t remove the owner role from the project’s last owner.",
+    "ownerOnly": "Only an owner can change the owner role.",
+    "save": "Save roles",
+    "saved": "Saved roles of {name}"
+  },
+  "githubDialog": {
+    "title": "GitHub logins of {name}",
+    "label": "Logins",
+    "hint": "Separated by commas. The next capture attributes commits to this member, and older change cards update in the background.",
+    "invalid": "Use valid GitHub logins, separated by commas.",
+    "save": "Save",
+    "saved": "Saved logins of {name}"
+  },
+  "resetDialog": {
+    "title": "Password reset link",
+    "body": "Send it to {name} over a safe channel. It expires in 24 hours."
+  },
+  "disableDialog": {
+    "title": "Disable {name}?",
+    "body": "They can no longer sign in, their sessions and tokens stop, and their claimed tasks are released. Their work stays in the history, and you can enable them later.",
+    "action": "Disable account",
+    "done": "Disabled {name}"
+  },
+  "profile": {
+    "title": "My profile",
+    "displayName": "Display name",
+    "nameRequired": "Write your name.",
+    "locale": "Language",
+    "arabic": "Arabic",
+    "english": "English",
+    "passwordTitle": "Password",
+    "current": "Current password",
+    "next": "New password",
+    "tooShort": "Use at least 12 characters.",
+    "needCurrent": "Write your current password.",
+    "totpTitle": "Two-step sign-in",
+    "totpOn": "On.",
+    "totpOff": "Off.",
+    "totpRequired": "Your role requires it, so it can’t be turned off.",
+    "totpEnable": "Turn on",
+    "totpDisable": "Turn off",
+    "save": "Save",
+    "saved": "Saved your profile",
+    "totpCode": "Code from your app"
+  },
+  "neverSeen": "Not signed in yet"
+}

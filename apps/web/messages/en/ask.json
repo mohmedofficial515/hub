@@ -1,0 +1,58 @@
+{
+  "title": "Search the project",
+  "meta": "Search across docs and cards, with excerpts of the text itself. Hub writes no answers.",
+  "inputLabel": "Search docs and cards",
+  "placeholder": "Search by words such as: refunds, wallet…",
+  "search": "Search",
+  "scope": "Search in",
+  "scopes": {
+    "all": "All",
+    "docs": "Docs",
+    "cards": "Cards"
+  },
+  "docs": "In docs",
+  "cards": "In cards",
+  "resultCount": {
+    "zero": "No results",
+    "one": "1 result",
+    "other": "# results"
+  },
+  "noHeading": "Introduction",
+  "openDoc": "Open {path} at this section",
+  "handoff": {
+    "title": "Want a written answer?",
+    "body": "Claude Code on your machine writes it, and it appears in your terminal, not here.",
+    "noQuery": "Type your question first and the command appears here, ready to copy.",
+    "command": "Command",
+    "what": "What this command does",
+    "steps": [
+      "Searches these same docs and cards, through MCP.",
+      "Reads the best sections, on your own account.",
+      "Answers in your language, citing a path or a card key for each fact."
+    ],
+    "where": "If the docs do not answer, it says so and offers to open a decision.",
+    "setup": "Team pack not installed yet?",
+    "setupLink": "The command is on the tokens page",
+    "decision": "Open a decision"
+  },
+  "empty": {
+    "recent": "Recent searches",
+    "clearRecent": "Clear history",
+    "try": "Try",
+    "tryBody": "It searches the full text in Arabic and English. A card key takes you straight to the card.",
+    "suggestions": ["refund", "TOTP", "Duffel balance"]
+  },
+  "noResults": {
+    "title": "Nothing matched",
+    "body": "Try fewer words, or the same word in Arabic or English."
+  },
+  "emptyWorkspace": {
+    "title": "Nothing to search yet",
+    "body": "Search starts once the first docs source is indexed.",
+    "action": "Open sources"
+  },
+  "errorThing": "the search results",
+  "loading": "Searching",
+  "statusLine": "{count} for “{q}”",
+  "tooShort": "Type at least two characters to search."
+}

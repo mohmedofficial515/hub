@@ -1,0 +1,82 @@
+model Workspace {
+  chats           Chat[]
+  promptTemplates ChatPromptTemplate[]
+  docDrafts       DocDraft[]
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  slug          String    @unique                       // "goteav" — URL segment
+  name          String                                  // "Goteav"
+  keyPrefix     String    @unique @map("key_prefix")    // "GTV" — card keys GTV-1, GTV-2 …
+  cardSeq       Int       @default(0) @map("card_seq")  // bumped with UPDATE … RETURNING inside the create transaction
+  timezone      String    @default("Europe/Istanbul")
+  defaultLocale String    @default("ar") @map("default_locale")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  description   String?                                 // markdown
+  goals         String?                                 // markdown
+  links         Json      @default("[]")                // { label, url }[]
+  repoPaths     String[]  @default([]) @map("repo_paths") // local folders
+  status        String    @default("active")            // active | paused | closed
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships   Membership[]
+  @@map("workspaces")
+}
+
+model Membership {
+  id          String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  roles       String[]                                  // ≥1 role keys; validated against §4.1
+  status      String    @default("active")              // active | removed
+  joinedAt    DateTime  @default(now()) @map("joined_at") @db.Timestamptz(3)
+  removedAt   DateTime? @map("removed_at") @db.Timestamptz(3)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  @@unique([workspaceId, userId])
+  @@map("memberships")
+}
+
+model WorkspaceSetting {
+  workspaceId String   @map("workspace_id") @db.Uuid
+  key         String                                    // catalogue §4.2
+  value       Json
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  @@id([workspaceId, key])
+  @@map("workspace_settings")
+}
+
+model Source {
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  kind          String                                  // github_repo | openapi | lab | docs_folder | local_path
+  name          String                                  // "backend", "web", "dashboard", "lab", "backend docs"
+  config        Json                                    // per kind, §4.3
+  secretEnc     String?   @map("secret_enc")            // AES-256-GCM of JSON { read: string, write?: string } — GitHub tokens, Hub's own operational credential (D19); `write` only on the ADR target repo and the hub repo
+  enabled       Boolean   @default(true)
+  cursor        Json      @default("{}")                // adapter progress, §4.3
+  lastRunAt     DateTime? @map("last_run_at") @db.Timestamptz(3)
+  lastSuccessAt DateTime? @map("last_success_at") @db.Timestamptz(3)
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  runs          CaptureRun[]
+  @@unique([workspaceId, name])
+  @@map("sources")
+}
+
+model GithubIdentity {                                   // maps commit authors to members
+  workspaceId String @map("workspace_id") @db.Uuid
+  login       String                                    // GitHub login, lower-cased
+  userId      String @map("user_id") @db.Uuid
+  @@id([workspaceId, login])
+  @@map("github_identities")
+}
+
+model OnboardingProgress {                               // which reading-path items a member has ticked
+  workspaceId String   @map("workspace_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  itemId      String   @map("item_id")                  // id from settings `onboarding.paths`
+  doneAt      DateTime @default(now()) @map("done_at") @db.Timestamptz(3)
+  @@id([workspaceId, userId, itemId])
+  @@map("onboarding_progress")
+}

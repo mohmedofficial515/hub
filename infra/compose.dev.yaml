@@ -1,0 +1,46 @@
+# Developer machine: postgres, redis, mailpit only; the apps run with `pnpm dev` (docs/02, docs/15 §9).
+# Project name `hub` keeps these apart from the `goteav-*` containers on the same machine.
+# Published on loopback only, on ports that do not collide with Goteav's 5433 and 6379.
+name: hub
+services:
+  postgres:
+    # pgvector's image is postgres:16 with the vector extension; pg_trgm and unaccent ship with it.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: hub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hub}
+      POSTGRES_DB: hub
+    ports:
+      - '127.0.0.1:7340:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hub -d hub']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    # BullMQ needs noeviction, AOF keeps queued jobs across restarts.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '127.0.0.1:7341:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:7342:1025'
+      - '127.0.0.1:7343:8025'
+    restart: unless-stopped
+volumes:
+  pgdata:
+  redisdata:

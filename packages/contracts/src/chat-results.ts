@@ -1,0 +1,222 @@
+/**
+ * @file The pure parts of structured results (docs/16 §7.2): a plan as words, an owner's answers applied to a draft, and a draft's line diff against its base.
+ * @description The API saves with `applyClaimAnswers`, and the panel previews with the same function, so what the owner sees is what is saved. An answer acts on the claim's exact words, and if the owner's own edit already removed them, it changes nothing.
+ */
+import type { ClaimAnswer, DocClaim, ProposedPlan } from './chat';
+import { UNVERIFIED_MARK } from './chat';
+import { questionLine } from './idea-studio';
+
+/** The plan as Markdown: the text fallback, and what Run this plan sends. */
+/** The words a plan's text is written in: English by default, and the page passes its own language's. */
+export interface PlanWords {
+  goal: string;
+  approach: string;
+  steps: string;
+  checks: string;
+  risks: string;
+  outOfScope: string;
+  questions: string;
+  flow: string;
+  sources: string;
+  /** After the option Claude recommends, in an open question. */
+  recommended?: string;
+  /** Before the numbers of the steps that come first: "after 1, 2". */
+  after: string;
+  /** Hub's role names, as the reader says them. A role not here is written as it came. */
+  roles?: Readonly<Record<string, string>>;
+}
+
+export const PLAN_WORDS_EN: PlanWords = {
+  goal: 'Goal',
+  approach: 'Approach',
+  steps: 'Steps',
+  checks: 'Checks',
+  risks: 'Risks',
+  outOfScope: 'Out of scope',
+  questions: 'Open questions',
+  flow: 'Flow',
+  sources: 'Sources',
+  after: 'after',
+};
+
+export function planToMarkdown(plan: ProposedPlan, words: PlanWords = PLAN_WORDS_EN): string {
+  const steps = plan.steps.map((step, index) => {
+    const role = step.role ? ` (${words.roles?.[step.role] ?? step.role})` : '';
+    const size = step.size ? ` [${step.size}]` : '';
+    const after = step.after?.length ? ` (${words.after} ${step.after.join(', ')})` : '';
+    const why = step.why ? `: ${step.why}` : '';
+    return `${index + 1}. ${step.title}${role}${size}${after}${why}`;
+  });
+  const para = (title: string, value?: string) => (value ? [`## ${title}`, '', value, ''] : []);
+  const list = (title: string, items?: readonly string[]) =>
+    items?.length ? ['', `## ${title}`, '', ...items.map((item) => `- ${item}`)] : [];
+  const sources = plan.sources?.length
+    ? ['', `## ${words.sources}`, '', ...plan.sources.map((s, i) => `${i + 1}. [${s.title}](${s.url})`)]
+    : [];
+  const flow =
+    plan.diagram && plan.diagram.edges.length
+      ? (() => {
+          const label = new Map(plan.diagram.nodes.map((n) => [n.id, n.label]));
+          return [
+            '',
+            `## ${plan.diagram.title || words.flow}`,
+            '',
+            ...plan.diagram.edges.map(
+              (e) =>
+                `- ${label.get(e.from) ?? e.from} → ${label.get(e.to) ?? e.to}${e.label ? ` (${e.label})` : ''}`,
+            ),
+          ];
+        })()
+      : [];
+  return [
+    `# ${plan.title}`,
+    '',
+    ...para(words.goal, plan.goal),
+    ...para(words.approach, plan.approach),
+    ...(plan.goal || plan.approach ? [`## ${words.steps}`, ''] : []),
+    ...steps,
+    ...list(words.checks, plan.checks),
+    ...list(words.risks, plan.risks),
+    ...list(words.outOfScope, plan.outOfScope),
+    ...list(
+      words.questions,
+      plan.questions?.map((q) => questionLine(q, words.recommended)),
+    ),
+    ...flow,
+    ...sources,
+  ].join('\n');
+}
+
+/** A plan as the page can draw it: a flow's edges between nodes that exist, and each step's `after` pointing at earlier steps only. */
+export function cleanPlan(plan: ProposedPlan): ProposedPlan {
+  const steps = plan.steps.map((step, index) => {
+    if (!step.after) return step;
+    const after = [...new Set(step.after)].filter((n) => n >= 1 && n <= index);
+    const { after: _drop, ...rest } = step;
+    return after.length ? { ...rest, after } : rest;
+  });
+  const diagram = plan.diagram
+    ? (() => {
+        const ids = new Set(plan.diagram.nodes.map((n) => n.id));
+        return { ...plan.diagram, edges: plan.diagram.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) };
+      })()
+    : undefined;
+  const { diagram: _old, ...rest } = plan;
+  return { ...rest, steps, ...(diagram ? { diagram } : {}) };
+}
+
+/** What pressing Run this plan sends. It stays visible in the composer until the owner sends it (D51). */
+export function planToPrompt(plan: ProposedPlan): string {
+  return `Carry out this plan, step by step, and run its checks.\n\n${planToMarkdown(plan)}`;
+}
+
+/** Flags still waiting for the owner. `save_doc` refuses while there is one. */
+export function openFlags(claims: readonly DocClaim[]): DocClaim[] {
+  return claims.filter((claim) => claim.status === 'unverified' && claim.answer === null);
+}
+
+function escapeForRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function applyOne(text: string, claim: string, answer: ClaimAnswer): string {
+  const escaped = escapeForRegExp(claim);
+  const marked = new RegExp(`^${escapeForRegExp(UNVERIFIED_MARK)}${escaped}[^\\n]*\\n?`, 'm');
+  if (answer === 'remove') {
+    if (marked.test(text)) return text.replace(marked, '');
+    return text
+      .replace(new RegExp(`^${escaped}\\s*\\n?`, 'm'), '')
+      .split(claim)
+      .join('')
+      .replace(/[ \t]+$/gm, '');
+  }
+  if (answer === 'confirm') {
+    return text.replace(new RegExp(`^${escapeForRegExp(UNVERIFIED_MARK)}(${escaped})`, 'm'), '$1');
+  }
+  if (marked.test(text) || !text.includes(claim)) return text;
+  // Kept but not verified: it must read that way in the document, on its own line.
+  const at = text.indexOf(claim);
+  const before = text.slice(0, at).replace(/[ \t]+$/, '');
+  const rest = text.slice(at + claim.length).replace(/^[ \t]+/, '');
+  const opening = before === '' || before.endsWith('\n') ? '' : '\n';
+  const closing = rest === '' || rest.startsWith('\n') ? '' : '\n';
+  return `${before}${opening}${UNVERIFIED_MARK}${claim}${closing}${rest}`;
+}
+
+/** The text that gets saved: the draft, or the owner's edit of it, with each flag's answer applied. */
+export function applyClaimAnswers(text: string, claims: readonly DocClaim[]): string {
+  return claims.reduce(
+    (current, claim) =>
+      claim.status === 'unverified' && claim.answer ? applyOne(current, claim.text, claim.answer) : current,
+    text,
+  );
+}
+
+export interface DiffLine {
+  readonly kind: 'same' | 'added' | 'removed';
+  readonly text: string;
+}
+
+/** Past this many changed lines, a line-by-line search costs more than it tells: everything between shows as replaced. */
+const DIFF_LINE_LIMIT = 4_000;
+
+/** A line diff against the base. Null base means a new document, which is all added. */
+export function lineDiff(base: string | null, draft: string): DiffLine[] {
+  const after = draft.split('\n');
+  if (base === null) return after.map((text) => ({ kind: 'added', text }));
+  const before = base.split('\n');
+  let start = 0;
+  while (start < before.length && start < after.length && before[start] === after[start]) start += 1;
+  let endBefore = before.length;
+  let endAfter = after.length;
+  while (endBefore > start && endAfter > start && before[endBefore - 1] === after[endAfter - 1]) {
+    endBefore -= 1;
+    endAfter -= 1;
+  }
+  const head = before.slice(0, start).map((text): DiffLine => ({ kind: 'same', text }));
+  const tail = before.slice(endBefore).map((text): DiffLine => ({ kind: 'same', text }));
+  const midBefore = before.slice(start, endBefore);
+  const midAfter = after.slice(start, endAfter);
+  if (midBefore.length + midAfter.length > DIFF_LINE_LIMIT) {
+    return [
+      ...head,
+      ...midBefore.map((text): DiffLine => ({ kind: 'removed', text })),
+      ...midAfter.map((text): DiffLine => ({ kind: 'added', text })),
+      ...tail,
+    ];
+  }
+  const lengths: number[][] = Array.from({ length: midBefore.length + 1 }, () =>
+    new Array<number>(midAfter.length + 1).fill(0),
+  );
+  for (let i = midBefore.length - 1; i >= 0; i -= 1) {
+    for (let j = midAfter.length - 1; j >= 0; j -= 1) {
+      const row = lengths[i] as number[];
+      const below = lengths[i + 1] as number[];
+      row[j] =
+        midBefore[i] === midAfter[j]
+          ? (below[j + 1] as number) + 1
+          : Math.max(below[j] as number, row[j + 1] as number);
+    }
+  }
+  const middle: DiffLine[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < midBefore.length || j < midAfter.length) {
+    if (i < midBefore.length && j < midAfter.length && midBefore[i] === midAfter[j]) {
+      middle.push({ kind: 'same', text: midBefore[i] as string });
+      i += 1;
+      j += 1;
+    } else if (
+      i < midBefore.length &&
+      (j === midAfter.length ||
+        ((lengths[i + 1] as number[])[j] as number) >= ((lengths[i] as number[])[j + 1] as number))
+    ) {
+      middle.push({ kind: 'removed', text: midBefore[i] as string });
+      i += 1;
+    } else {
+      middle.push({ kind: 'added', text: midAfter[j] as string });
+      j += 1;
+    }
+  }
+  return [...head, ...middle, ...tail];
+}

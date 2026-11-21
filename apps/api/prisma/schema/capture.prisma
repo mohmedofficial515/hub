@@ -1,0 +1,35 @@
+model CaptureRun {
+  id           String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  sourceId     String    @map("source_id") @db.Uuid
+  kind         String                                   // github_poll | openapi_diff | lab_scan | docs_index | import
+  startedAt    DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(3)
+  status       String    @default("running")            // running | ok | failed
+  created      Int       @default(0)
+  updated      Int       @default(0)
+  error        String?
+  cursorBefore Json?     @map("cursor_before")
+  cursorAfter  Json?     @map("cursor_after")
+  source       Source    @relation(fields: [sourceId], references: [id])
+  @@index([sourceId, startedAt(sort: Desc)])
+  @@map("capture_runs")
+}
+
+model SessionLog {                                       // one row per Claude Code session seen by hook or MCP
+  id                String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId       String    @map("workspace_id") @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  sessionId         String    @map("session_id")        // Claude Code session_id
+  repo              String?
+  branch            String?
+  cwd               String?
+  hookReceivedAt    DateTime? @map("hook_received_at") @db.Timestamptz(3)
+  hookPayload       Json?     @map("hook_payload")      // 05-mcp-and-claude-code §3.2 shape
+  summaryReceivedAt DateTime? @map("summary_received_at") @db.Timestamptz(3)
+  summaryPayload    Json?     @map("summary_payload")   // log_session input
+  cardId            String?   @map("card_id") @db.Uuid  // the change card (kind=session)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  @@unique([workspaceId, sessionId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("session_logs")
+}

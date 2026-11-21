@@ -1,0 +1,212 @@
+/**
+ * @file A fake outside world for the bridge's tests: a temp home, recorded programs, a fake Hub. Nothing real is touched: no Claude Code, no registry, no scheduled task.
+ */
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+export const CREDENTIAL = `hub_abcd1234_${'c'.repeat(80)}`;
+export const HOOK_TOKEN = `hub_efef5678_${'h'.repeat(80)}`;
+export const URL = 'http://hub.test:7310';
+
+/**
+ * `claude` here keeps its config file the way the real one does for the commands the bridge uses, because the tests read that file afterwards.
+ */
+export function fakeSystem(overrides = {}) {
+  const home = mkdtempSync(join(tmpdir(), 'hub-bridge-'));
+  const configDir = join(home, 'claude-config');
+  mkdirSync(configDir, { recursive: true });
+  const configFile = join(configDir, '.claude.json');
+  writeFileSync(configFile, JSON.stringify({ userID: 'keep-me', numStartups: 7, projects: {} }, null, 2));
+  const claudePath = join(home, '.local', 'bin', 'claude.exe');
+  mkdirSync(join(home, '.local', 'bin'), { recursive: true });
+  writeFileSync(claudePath, '');
+
+  const calls = [];
+  const lines = [];
+  const detached = [];
+  const plugins = [];
+  const readConfig = () => JSON.parse(readFileSync(configFile, 'utf8'));
+  /** The version Claude Code would read from the bridge's marketplace folder. */
+  const marketVersion = () => {
+    const file = join(home, '.hub', 'app', 'team-pack', '.claude-plugin', 'marketplace.json');
+    return existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')).plugins?.[0]?.version : '0.1.0';
+  };
+  const writeConfig = (value) => writeFileSync(configFile, JSON.stringify(value, null, 2));
+
+  function claude(args, options) {
+    const line = args.join(' ');
+    if (line === '--help') {
+      return {
+        status: 0,
+        stdout: system.noEffortFlag ? '--model <m>' : '--model <m> --effort <level>',
+        stderr: '',
+      };
+    }
+    if (line === '--version')
+      return { status: 0, stdout: `${system.claudeVersion} (Claude Code)\n`, stderr: '' };
+    if (line === 'auth status') {
+      return { status: 0, stdout: JSON.stringify({ loggedIn: system.signedIn }), stderr: '' };
+    }
+    if (args[0] === 'mcp' && args[1] === 'add-json') {
+      if (system.mcpFails) return { status: 1, stdout: '', stderr: `broke with ${CREDENTIAL}` };
+      const scope = args[args.indexOf('--scope') + 1];
+      const entry = JSON.parse(args[3]);
+      const config = readConfig();
+      if (scope === 'user') config.mcpServers = { ...config.mcpServers, hub: entry };
+      else {
+        const key = options.cwd.replaceAll('\\', '/');
+        config.projects = { ...config.projects };
+        config.projects[key] = {
+          allowedTools: [],
+          ...config.projects[key],
+          mcpServers: { hub: entry },
+        };
+      }
+      writeConfig(config);
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    if (args[0] === 'mcp' && args[1] === 'remove') {
+      const config = readConfig();
+      if (args[args.indexOf('--scope') + 1] === 'user') delete config.mcpServers?.hub;
+      else delete config.projects?.[options.cwd.replaceAll('\\', '/')]?.mcpServers?.hub;
+      writeConfig(config);
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    if (line === 'plugin list --json') return { status: 0, stdout: JSON.stringify(plugins), stderr: '' };
+    if (line.startsWith('plugin install')) {
+      plugins.push({ id: 'hub@hub', enabled: true, version: marketVersion() });
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    if (line.startsWith('plugin update hub@hub')) {
+      if (system.pluginUpdateFails) return { status: 1, stdout: '', stderr: 'update broke' };
+      const entry = plugins.find((plugin) => plugin.id === 'hub@hub');
+      // As 2.1.319 does: a new version in the marketplace is taken, the same one is not.
+      if (entry) entry.version = marketVersion();
+      return { status: 0, stdout: JSON.stringify({ updateOutcome: 'updated' }), stderr: '' };
+    }
+    if (line.startsWith('plugin uninstall')) {
+      plugins.length = 0;
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  }
+
+  const system = {
+    platform: 'win32',
+    home,
+    hostname: 'TEST-PC',
+    env: { CLAUDE_CONFIG_DIR: configDir, PATH: '', HUB_BRIDGE_NO_BROWSER: '1' },
+    nodePath: 'C:\\Program Files\\nodejs\\node.exe',
+    claudeVersion: '2.1.318',
+    signedIn: true,
+    mcpFails: false,
+    pluginUpdateFails: false,
+    plugins,
+    registryHandler: '"C:\\nowhere\\Code.exe" --open-url -- "%1"',
+    taskRegistered: false,
+    taskXml: null,
+    runKeySet: false,
+    taskRefused: false,
+    calls,
+    lines,
+    detached,
+    configFile,
+    claudePath,
+    readConfig,
+    writeConfig,
+    out: (line) => lines.push(line),
+    sleep: async () => {},
+    fetch: async () => {
+      throw new Error('No fetch in this test');
+    },
+    spawnDetached(command, args) {
+      detached.push([command, ...args]);
+      return 4242;
+    },
+    async run(command, args, options = {}) {
+      calls.push({ command, args, cwd: options.cwd });
+      if (command === claudePath) return claude(args, options);
+      if (command === 'reg.exe' && args[0] === 'query' && args[1].startsWith('HKCR')) {
+        return { status: 0, stdout: `(Default)    REG_SZ    ${system.registryHandler}\n`, stderr: '' };
+      }
+      if (command === 'schtasks.exe' && args[0] === '/Create') {
+        if (system.taskRefused) return { status: 1, stdout: '', stderr: 'Access is denied.' };
+        system.taskRegistered = true;
+        // The real schtasks reads the file while it runs, and the caller removes it after.
+        system.taskXml = readFileSync(args[args.indexOf('/XML') + 1], 'utf16le');
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      if (command === 'schtasks.exe' && args[0] === '/Query') {
+        return { status: system.taskXml ? 0 : 1, stdout: system.taskXml ?? '', stderr: '' };
+      }
+      if (command === 'schtasks.exe' && args[0] === '/Delete') {
+        system.taskRegistered = false;
+        system.taskXml = null;
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      if (command === 'reg.exe' && args[0] === 'add') {
+        system.taskRegistered = true;
+        system.runKeySet = true;
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      if (command === 'reg.exe' && args[0] === 'query' && args[1].startsWith('HKCU')) {
+        return { status: system.runKeySet ? 0 : 1, stdout: '', stderr: '' };
+      }
+      if (command === 'reg.exe') return { status: 1, stdout: '', stderr: '' };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+    ...overrides,
+  };
+  return system;
+}
+
+/** A Hub that answers pairing, and says whether a credential is still good. */
+export function fakeHub(system, { answers = [], credentialGood = true, online = true } = {}) {
+  const requests = [];
+  const queue = [...answers];
+  const hub = { requests, credentialGood, online };
+  system.fetch = async (url, init = {}) => {
+    requests.push({ url, method: init.method, body: init.body, authorization: init.headers?.authorization });
+    const json = (status, body) => new Response(JSON.stringify(body), { status });
+    if (url.endsWith('/mcp')) return json(hub.credentialGood ? 200 : 401, {});
+    if (url.endsWith('/api/v1/pairing/start')) {
+      return json(201, {
+        data: {
+          deviceCode: 'd'.repeat(43),
+          userCode: 'ABCD-EFGH',
+          approveUrl: 'http://hub.test:7300/connect?code=ABCD-EFGH',
+          expiresInSeconds: 600,
+          pollSeconds: 3,
+        },
+      });
+    }
+    if (url.endsWith('/api/v1/pairing/poll')) {
+      return json(200, { data: queue.shift() ?? { status: 'pending' } });
+    }
+    if (url.endsWith('/api/v1/bridge/self') && init.method === 'GET') {
+      if (hub.online === undefined) return json(404, {});
+      return hub.credentialGood ? json(200, { data: { online: hub.online } }) : json(401, {});
+    }
+    if (url.endsWith('/api/v1/bridge/self')) return new Response(null, { status: 204 });
+    return json(404, {});
+  };
+  return hub;
+}
+
+export const CLAIMED = {
+  status: 'claimed',
+  deviceId: 'dev-1',
+  credential: CREDENTIAL,
+  hookToken: HOOK_TOKEN,
+};
+
+export function aFolder(system, name = 'project') {
+  const folder = join(system.home, name);
+  mkdirSync(folder, { recursive: true });
+  return folder;
+}
+
+export function exists(path) {
+  return existsSync(path);
+}

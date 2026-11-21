@@ -1,0 +1,48 @@
+/**
+ * @file Test setup: DOM matchers, cleanup, and what jsdom does not have.
+ */
+import '@testing-library/jest-dom/vitest';
+
+import { cleanup, configure } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
+
+// A busy machine must not fail a test for being slow: the default of 1 s is about the wait, not about the page.
+configure({ asyncUtilTimeout: 5000 });
+
+afterEach(() => {
+  cleanup();
+});
+
+if (!window.matchMedia) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
+}
+
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver ??= ResizeObserverStub;
+Object.assign(Element.prototype, { scrollIntoView: () => undefined, hasPointerCapture: () => false });
+
+// jsdom has a page URL but Node's Request does not read it, so a same-origin path needs resolving as a browser would.
+const NativeRequest = globalThis.Request;
+globalThis.Request = class extends NativeRequest {
+  // `clone()` returns a native Request, which is still a Request.
+  static override [Symbol.hasInstance](value: unknown) {
+    return Function.prototype[Symbol.hasInstance].call(NativeRequest, value);
+  }
+
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    const { signal: _signal, ...rest } = init ?? {};
+    super(
+      typeof input === 'string' && input.startsWith('/') ? new URL(input, window.location.href).href : input,
+      rest,
+    );
+  }
+};

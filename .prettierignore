@@ -1,0 +1,26 @@
+# The plan is prose reviewed by hand; it is not reformatted by tooling.
+docs
+patches
+pnpm-lock.yaml
+dist
+.next
+coverage
+apps/api/src/generated
+apps/api/openapi
+apps/web/openapi
+apps/api/prisma/migrations
+next-env.d.ts
+apps/web/src/lib/api/generated
+
+# Golden files are compared byte for byte.
+apps/api/test/golden/
+.next-*
+**/.next-*
+playwright-report
+test-results
+
+# The lab: design versions as they were made, and their bytes matter to the scanner.
+apps/lab
+
+# AM Stylo's local designer state and hook cache: generated and git-ignored.
+.page-companion

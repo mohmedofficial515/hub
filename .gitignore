@@ -4,7 +4,18 @@ node_modules
 !.env.example
 dist
 .next
+.next-*
+next-env.d.ts
+*.tsbuildinfo
 coverage
 *.log
 .playwright-mcp
 .tmp
+apps/api/src/generated
+apps/api/openapi
+test-results
+playwright-report
+
+# AM Stylo (local designer state)
+.page-companion/
+apps/api/.e2e-dist

@@ -43,12 +43,13 @@ endpoint (documented inline). `?cursor` from another endpoint → `400 hub.commo
 ### 1.4 Idempotency
 
 - `POST` routes that **create cards** (`POST /cards`, `/capture/session`, `/handoffs/{key}/apply`
-  with `createTask`, `/redesign/{key}/approve`) accept `Idempotency-Key: <≤128 chars>`. The key is
+  with `createTask`, `/redesign/{key}/approve`, `/ideas/{key}/to-plan`, `/plans/{key}/to-tasks`) accept `Idempotency-Key: <≤128 chars>`. The key is
   stored with the actor id and a SHA-256 of the body for 24 h (Redis). Same key + same body →
-  the original response replayed (`meta.idempotentReplay: true`); same key + different body →
+  the original response replayed (header `Idempotent-Replay: true`); same key + different body →
   `422 hub.common.idempotency_key_reused`.
 - Adapters never go through HTTP; they rely on `Card.externalKey` (03 §5.1).
-- MCP tool calls pass the key automatically (`toolCallId`).
+- An MCP tool has no route, so it calls `IdempotencyService.run(userId, toolName, toolCallId, input, work)` itself, the
+  same rule and store. A failed call stores nothing and may be retried.
 
 ### 1.5 Localisation
 
@@ -63,26 +64,30 @@ endpoint (documented inline). `?cursor` from another endpoint → `400 hub.commo
 Every request resolves to an `Actor`:
 
 ```ts
-type Actor =
-  | { kind: 'user';  userId: string; via: 'web';  workspaceId?: string; roles: Role[] }   // cookie session
-  | { kind: 'agent'; userId: string; via: 'mcp';  workspaceId: string;  roles: Role[]; tokenId: string }  // api token kind=mcp
-  | { kind: 'hook';  userId: string; via: 'hook'; workspaceId: string;  roles: Role[]; tokenId: string }  // api token kind=hook
+// packages/contracts/src/actor.ts. Credentials give a Principal, which belongs to no project.
+type Principal =
+  | { kind: 'user';  userId: string; via: 'web' }                       // cookie session
+  | { kind: 'agent'; userId: string; via: 'mcp';  tokenId: string }     // api token kind=mcp
+  | { kind: 'hook';  userId: string; via: 'hook'; tokenId: string };    // api token kind=hook
+// Choosing a project and reading live roles gives an Actor, which every mutation takes.
+type Actor = (Principal & { workspaceId: string; roles: Role[] })
+  | { kind: 'system'; userId: null; via: 'adapter' | 'import' | 'scheduler'; workspaceId: string; roles: [] };
 ```
 
 | Mechanism | How | Notes |
 | --- | --- | --- |
-| Cookie session | `hub_access` (JWT, 15 min, `jose` HS256 with `HUB_JWT_SECRET`), `hub_refresh` (opaque, 30 days, `Path=/api/v1/auth/refresh`) — both `HttpOnly; Secure; SameSite=Lax` | Refresh rotation per family; reuse of a rotated token revokes the family (`401 hub.identity.refresh_invalid`). |
-| API token | `Authorization: Bearer hub_<prefix8>_<secret>` | Lookup by `prefix`, compare SHA-256. `ApiToken.workspaceId` **must equal** the `{ws}` in the path → else `403 hub.identity.token_scope`. `kind=hook` tokens may only call `/capture/*`, `/me` and `/me/context` → else `403 hub.identity.token_scope`. Roles are resolved live from `Membership.roles` on every call. `lastUsedAt` updated at most once per minute. |
+| Cookie session | `hub_access` (JWT, 15 min, `jose` HS256 with `HUB_JWT_SECRET`), `hub_refresh` (opaque, 30 days, `Path=/api/v1/auth/refresh`), `hub_session` (`1`, no secret, 30 days, `Path=/`, tells the web middleware a session may be alive once `hub_access` has gone) — all `HttpOnly; SameSite=Lax`, and `Secure` when `HUB_PUBLIC_URL` is https (15 D33 runs on plain http://localhost). Signing out, ending a session and disabling a member take effect on the next request, because the session row is read each time. | Refresh rotation per family; reuse of a rotated token revokes the family (`401 hub.identity.refresh_invalid`). |
+| API token | `Authorization: Bearer hub_<prefix8>_<secret>` | Lookup by `prefix`, compare SHA-256. The token belongs to the member. The project is the `{ws}` in the path; on MCP it is the `project` argument, else the `X-Hub-Project` header, else the member's default project (15 §5). A project the member is not in → `404 hub.workspaces.not_found`. `kind=hook` tokens may only call `/capture/*`, `/me` and `/me/context` → else `403 hub.identity.token_scope`. Roles are resolved live from `Membership.roles` on every call. `lastUsedAt` updated at most once per minute. |
 | CSRF | Cookie requests to mutating methods must send `X-Requested-With: hub` (custom header → CORS preflight). Same-origin only (`CORS` allows `https://hub.goteav.lan` and the configured `HUB_PUBLIC_URL`). | |
 | TOTP | Members holding a role in `security.totp_required_roles` must have TOTP enabled; otherwise every workspace route answers `403 hub.identity.totp_setup_required` until they enrol. Sign-in returns `totpRequired` when enabled. | |
 
-`actor.kind === 'user'` is required by **human-only** actions (§2) regardless of roles.
+The actor kind is recorded, never used to refuse (D27).
 
-### 1.7 Rate limits (`@nestjs/throttler`, Redis store)
+### 1.7 Rate limits (`infra/throttler/rate-limit.guard.ts`, one fixed window per scope in Redis)
 
 | Scope | Limit | Code |
 | --- | --- | --- |
-| `/auth/sign-in`, `/auth/password/*`, `/auth/totp/verify` | 10 / min / IP | `429 hub.common.rate_limited` |
+| `/auth/sign-in`, `/auth/password/*`, `/auth/totp/verify`, `/auth/totp/recover`, `/auth/invites/*` | 10 / min / IP, per route | `429 hub.common.rate_limited` |
 | API token (`mcp`) | 120 / min / token | |
 | API token (`hook`) | 60 / min / token | |
 | Cookie session, other routes | 600 / min / user | |
@@ -94,7 +99,7 @@ Response carries `Retry-After` seconds.
 
 ```ts
 type Role = 'owner' | 'pm' | 'accountant' | 'backend' | 'frontend' | 'designer' | 'qa';
-type CardType = 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release';
+type CardType = 'task' | 'decision' | 'need' | 'change' | 'handoff' | 'redesign' | 'doc' | 'release' | 'idea' | 'plan';
 type Priority = 'P0' | 'P1' | 'P2' | 'P3';
 type CardKey = `${string}-${number}`;              // "GTV-123"; regex ^[A-Z]{2,6}-\d+$
 type Markdown = string;                           // secret-filtered on input; limits per field
@@ -109,16 +114,24 @@ type CardSummary = {
   dueAt: string | null; closedAt: string | null; archivedAt: string | null;
   commentCount: number; lastEventAt: string; createdAt: string; createdBy: ActorRef; source: string;
   flags: { blocked: boolean; overdue: boolean; escalated: boolean; stale: boolean; noSummary: boolean };
+  blocksCount: number;                              // open cards waiting on this one
+  awaiting: string | null;                          // the verb waiting on the current member (`awaitedAction` in @hub/contracts)
 };
 type CardFull = CardSummary & {
   body: Markdown | null;
-  detail: TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail;
+  detail: TaskDetail | DecisionDetail | NeedDetail | ChangeDetail | HandoffDetail | RedesignDetail | DocDetail | ReleaseDetail | IdeaDetail | PlanDetail;
   links: { kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates'; card: CardSummary }[];
   watchers: { userId: string; displayName: string; reason: string }[];
   attachments: { id: string; kind: string; name: string; url: string; width: number | null; height: number | null }[];
   watching: boolean;                                // for the current actor
-  allowedActions: string[];                         // computed from §2 for the current actor, e.g. ["claim","comment","link"]
+  allowedActions: string[];                         // the §2 rows the current actor holds on this card, whatever its status
+  actions: AvailableAction[];                       // what the card offers now, in display order: `actionsFor` in @hub/contracts
+  awaitedAction: AvailableAction | null;            // the action that keeps it waiting on this member (review B2)
 };
+// Reads and buttons share one rule, derived from state: a card waits on me while I have an enabled, awaited action in my role.
+type AvailableAction = { action: string /* verb */; permission: string /* §2 row */; enabled: boolean; needsRole?: Role;
+  mode: 'form' | 'confirm' | 'now'; destructive?: boolean; reason?: boolean; selfVerify?: boolean; targetKey?: CardKey /* a redesign's port task */ };
+// A write answers CardFull plus `event: { id, seq, kind }`, the event it produced.
 // detail DTOs mirror 03 §6 column-for-column (camelCase), with user ids expanded to { id, displayName } where *ById exists.
 type Event = { id: string; seq: number; kind: string; actor: ActorRef; via: string; data: Record<string, unknown>; createdAt: string };
 type Comment = { id: string; author: ActorRef; via: string; body: Markdown | null; redacted: boolean; createdAt: string; editedAt: string | null };
@@ -150,8 +163,9 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.identity.totp_already_enabled` / `totp_not_enabled` | 409 | enrolment state |
 | `hub.identity.session_expired` | 401 | access JWT expired/invalid → client calls refresh |
 | `hub.identity.refresh_invalid` | 401 | refresh revoked, expired, or reused |
+| `hub.identity.token_invalid` | 401 | bearer token malformed or unknown |
 | `hub.identity.token_revoked` | 401 | API token revoked |
-| `hub.identity.token_scope` | 403 | token workspace ≠ path workspace, or hook token outside `/capture/*` |
+| `hub.identity.token_scope` | 403 | hook token outside `/capture/*`, `/me`, `/me/context` |
 | `hub.identity.account_disabled` | 403 | `User.status=disabled` |
 | `hub.identity.invite_invalid` | 404 | token unknown |
 | `hub.identity.invite_expired` | 410 | past `expiresAt` |
@@ -160,8 +174,9 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.identity.password_weak` | 400 | < 12 chars or in the 10k common list |
 | `hub.identity.reset_invalid` | 404 | reset token unknown/used/expired |
 | `hub.workspaces.slug_taken` / `key_prefix_taken` | 409 | create workspace |
-| `hub.workspaces.not_member` | 403 | actor not an active member of `{ws}` |
-| `hub.workspaces.archived` | 409 | mutation on an archived workspace |
+| `hub.workspaces.not_found` | 404 | no such project, or the actor is not an active member of it (15 §5) |
+| `hub.workspaces.no_project` | 400 | MCP call with no argument, header or default project |
+| `hub.workspaces.closed` | 409 | mutation on a closed project |
 | `hub.workspaces.last_owner` | 409 | removing/demoting the last active owner |
 | `hub.workspaces.role_invalid` | 400 | unknown role key |
 | `hub.workspaces.member_removed` | 409 | acting on a removed membership |
@@ -174,8 +189,7 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.cards.not_found` | 404 | key unknown in this workspace |
 | `hub.cards.type_mismatch` | 409 | action not valid for the card's type |
 | `hub.cards.invalid_transition` | 409 | `details.from`, `details.to` |
-| `hub.cards.human_only` | 403 | actor is `agent`/`hook` on a human-only action |
-| `hub.cards.archived` | 409 | mutation on an archived card |
+| `hub.cards.archived` | 409 | mutation on a deleted card; restore it first |
 | `hub.cards.link_self` | 400 | |
 | `hub.cards.link_exists` | 409 | |
 | `hub.cards.link_cycle` | 409 | `blocks`/`parent` would form a cycle |
@@ -185,6 +199,7 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.tasks.already_claimed` | 409 | `details.claimedBy` |
 | `hub.tasks.not_claimer` | 403 | start/submit/done by someone else (owner/pm exempt) |
 | `hub.tasks.specialty_role_mismatch` | 403 | claiming outside own specialty (owner/pm exempt) |
+| `hub.tasks.blocked` | 409 | claiming a task an open card blocks |
 | `hub.decisions.not_decider` | 403 | actor lacks `deciderRole` |
 | `hub.decisions.already_decided` | 409 | |
 | `hub.decisions.option_not_found` | 404 | |
@@ -195,6 +210,7 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.decisions.adr_pr_failed` | 502 | GitHub refused; `details.reason` |
 | `hub.needs.not_responsible` | 403 | |
 | `hub.needs.location_required` | 400 | deliver without `location` |
+| `hub.needs.self_verify_note_required` | 400 | verifying your own delivery without a note (D24) |
 | `hub.handoffs.not_recipient` | 403 | actor lacks `toRole` |
 | `hub.handoffs.already_acknowledged` | 409 | |
 | `hub.redesign.owner_only` | 403 | approve/reject by non-owner |
@@ -203,6 +219,10 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.redesign.write_failed` | 500 | front-matter write/commit failed; `details.reason` |
 | `hub.docs.not_found` | 404 | |
 | `hub.docs.reindex_running` | 409 | |
+| `hub.docs.image_not_found` | 404 | the image is missing, in a folder the source leaves out (`.git`, `node_modules`, its `exclude`), behind a link out of the source, or on a paired device |
+| `hub.docs.image_too_large` | 413 | over 10 MB; `details.maxBytes` |
+| `hub.docs.image_type_refused` | 415 | not png, jpg, jpeg, gif, webp or svg |
+| `hub.docs.image_bad_path` | 422 | absolute, a scheme or any `:`, a backslash, a NUL, or a `..` above the source |
 | `hub.capture.payload_invalid` | 400 | hook body fails `HookSessionPayload` |
 | `hub.capture.import_running` | 409 | |
 | `hub.capture.source_disabled` | 409 | |
@@ -214,80 +234,105 @@ filter (`422 hub.security.secret_detected`, `details.pattern`, `details.field`).
 | `hub.github.rate_limited` | 503 | secondary rate limit; `Retry-After` |
 | `hub.github.repo_not_found` | 502 | |
 | `hub.github.clone_failed` | 500 | |
+| `hub.plans.step_not_found` | 404 | |
+| `hub.plans.revision_not_found` | 404 | |
 | `hub.security.secret_detected` | 422 | `details.pattern`, `details.field` |
 
 ## 2. Permission matrix
+
+The executable table is `packages/contracts/src/permissions.ts`. This one explains it, and the code wins.
 
 Legend: `✓` allowed · `R` allowed when the card's routed role (`ownerRole` / `deciderRole` /
 `responsibleRole` / `toRole`) is one of the actor's roles · `S` allowed when the task's
 `specialty` maps to the actor's role (`backend→backend`, `frontend→frontend`, `design→designer`,
 `qa→qa`, `ops`/`docs`→`backend|frontend`) · `A` assignee/claimer only · `C` creator only ·
-`✗` not allowed. Column **HO** = human-only (`actor.kind === 'user'` required). Column **MCP** =
-reachable through an `mcp` token (same role rules apply, `HO` wins). `owner` implies every `pm`
-right.
+`V` the need's routed role, its requester, or whoever delivered it (D24) · `✗` not allowed. `owner` implies every `pm` right, except where a row says otherwise.
 
-| Action | owner | pm | accountant | backend | frontend | designer | qa | HO | MCP |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Create task | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create decision | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create need | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create handoff | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Create release | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
-| Create change / redesign / doc | system only (adapters, `log_session`) | | | | | | | | `log_session` only |
-| Edit title/body/tags/module | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Edit priority / dueAt / ownerRole / assignee | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ (pm/owner tokens) |
-| Task: claim / unclaim | ✓ | ✓ | ✗ | S | S | S | S | | ✓ |
-| Task: start / submit-review / done | ✓ | ✓ | ✗ | A | A | A | A | | ✓ |
-| Task: cancel / reopen | ✓ | ✓ | ✗ | C | C | C | C | | ✓ |
-| Task: edit specialty/effort/acceptance/prompt | ✓ | ✓ | ✗ | S | S | S | S | | ✓ |
-| Decision: edit options (while open) | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Decision: decide | ✓ | R | R | R | R | R | R | ✓ | ✗ |
-| Decision: withdraw | ✓ | ✓ | C | C | C | C | C | ✓ | ✗ |
-| Decision: supersede | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Decision: draft ADR body | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Decision: open ADR PR | ✓ | ✓ | R | R | R | R | R | ✓ | ✗ |
-| Need: start / deliver | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Need: verify | ✓ | ✓ | R | R | R | R | R | ✓ | ✗ |
-| Need: cancel | ✓ | ✓ | C | C | C | C | C | | ✓ |
-| Handoff: acknowledge / apply / dismiss | ✓ | ✓ | R | R | R | R | R | | ✓ |
-| Redesign: submit for review | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | | ✓ |
-| Redesign: approve / reject | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Redesign: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
-| Redesign: mark ported | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ | | ✓ |
-| Release: edit included / notes / mark released | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ |
-| Archive / restore card | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Comment | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Edit own comment (15 min) | C | C | C | C | C | C | C | | ✓ |
-| Redact comment | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Watch / unwatch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Read any non-archived card, timeline, docs, search | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Read archived cards | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✓ |
-| Members: invite, change roles, remove, GitHub identity | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Workspace: rename, timezone, archive | ✓ | rename/timezone | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Settings: read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
-| Settings: write | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Sources: manage, run-now, import | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| Own API tokens: create/revoke | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ |
-| Own profile, channels, push, Telegram | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✗ |
-| Briefs: read own; save narrative | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ (own) |
-| Audit log: read | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
-| Docs: reindex now | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | | ✗ |
+**Actor kind plays no part (D27):** a member's Claude Code may do whatever the member may do. The only
+actions refused to MCP are those that carry a secret value (own API tokens, own profile and channels, a
+source's secret); they have `surface: web_only` and no tool. Hook tokens stay limited to `/capture/*`, `/me`
+and `/me/context`.
 
-`CardFull.allowedActions` is computed from this table so the UI never guesses.
+| Action | owner | pm | accountant | backend | frontend | designer | qa |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Create task | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create decision | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create need | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create handoff | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create release | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Create change / redesign / doc | system only (adapters, `log_session`) | | | | | | |
+| Edit title/body/tags/module | ✓ | ✓ | C | C | C | C | C |
+| Edit priority / dueAt / ownerRole / assignee | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Task: claim / unclaim | ✓ | ✓ | ✗ | S | S | S | S |
+| Task: start / submit-review / done | ✓ | ✓ | ✗ | A | A | A | A |
+| Task: complete or resume from review | ✓ | ✓ | ✗ | A | A | A | ✓ |
+| Task: cancel / reopen | ✓ | ✓ | ✗ | C | C | C | C |
+| Task: edit specialty/effort/acceptance/prompt | ✓ | ✓ | ✗ | S | S | S | S |
+| Decision: edit options (while open) | ✓ | ✓ | C | C | C | C | C |
+| Decision: decide | ✓ | R | R | R | R | R | R |
+| Decision: withdraw | ✓ | ✓ | C | C | C | C | C |
+| Decision: supersede | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Decision: draft ADR body | ✓ | ✓ | R | R | R | R | R |
+| Decision: open ADR PR | ✓ | ✓ | R | R | R | R | R |
+| Need: start / deliver | ✓ | ✓ | R | R | R | R | R |
+| Need: verify / reject delivery (D24) | ✓ | ✓ | V | V | V | V | V |
+| Need: cancel | ✓ | ✓ | C | C | C | C | C |
+| Handoff: acknowledge / dismiss | ✓ | ✓ | R | R | R | R | R |
+| Handoff: apply (D25) | R | R | R | R | R | R | R |
+| Redesign: submit for review | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ |
+| Redesign: approve / reject | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Redesign: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Redesign: mark ported | ✓ | ✓ | ✗ | ✗ | ✓ | ✗ | ✗ |
+| Release: edit included / notes / mark released | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Delete / restore card (D28) | ✓ | ✓ | C | C | C | C | C |
+| Comment | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Report work (docs/16 §7.2) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Edit own comment (15 min) | C | C | C | C | C | C | C |
+| Redact comment | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Link / unlink | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Watch / unwatch | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Read any non-archived card, timeline, docs, search | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Read deleted cards | ✓ | ✓ | C | C | C | C | C |
+| Idea: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Idea: edit / explore / accept / park / reject / reopen / turn into a plan | ✓ | ✓ | C | C | C | C | C |
+| Plan: create | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Plan: edit / submit for review / start / finish / abandon / create tasks from steps | ✓ | ✓ | C | C | C | C | C |
+| Plan: approve | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Plan: request changes | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Plan: add evidence to a step | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Plan: remove a step's evidence | ✓ | ✓ | C | C | C | C | C |
+| Plan: remove evidence you added | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Plan: ask for or attach its explainer video | ✓ | ✓ | C | C | C | C | C |
+| Plan: see Claude's runs on it | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Project: create (D30) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Members: invite, change roles, remove, GitHub identity (only an owner grants, takes or removes the owner role, or gets an owner's reset link) | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Project: edit details | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Project: close, reopen | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Settings: read | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Settings: write | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Sources: manage, run-now, import | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Own API tokens: create/revoke | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Own profile, channels, push, Telegram | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Briefs: read own; save narrative | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Audit log: read | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Docs: reindex now | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+
+`CardFull.allowedActions`, `actions` and `awaitedAction` are computed from this table, so the UI never guesses.
+Rows of `surface: system` (`card.unblock`, `plan.sync_step`, `task.close_as_ported`, `redesign.create`, `doc.create`,
+`change.create`) belong to nobody: adapters run them, or they follow from an action already permitted.
 
 ## 3. Endpoints
 
 Format of each entry:
 
 ```
-METHOD /path                                   auth: session | token | hook | public   role: …   HO: yes|no
+METHOD /path                                   auth: session | token | hook | public   role: …
 body: …          200|201: …          errors: …          effects: …
 ```
 
 `token` means an `mcp` API token is accepted in addition to a session. Unless stated, every
-workspace route requires an active membership (`403 hub.workspaces.not_member`) and refuses
-mutations on an archived workspace (`409 hub.workspaces.archived`).
+workspace route requires an active membership (else `404 hub.workspaces.not_found`) and refuses
+mutations on a closed project (`409 hub.workspaces.closed`). One apply writes one event per card touched (03 §5.2), so the entries below name that one event.
 
 ### 3.1 Health and metrics
 
@@ -299,7 +344,7 @@ GET /health/ready                               auth: public
 200: { data: { status: 'ok', checks: { postgres: 'ok', redis: 'ok', reposVolume: 'ok' } } }
 503: hub.common.unavailable with details.checks
 
-GET /metrics                                    auth: public, internal network only (Caddy denies from LAN)
+GET /metrics                                    auth: `Authorization: Bearer <METRICS_TOKEN>`; no token set or a wrong one answers 404. No /api/v1 prefix.
 200: text/plain Prometheus exposition
 ```
 
@@ -308,7 +353,7 @@ GET /metrics                                    auth: public, internal network o
 ```
 POST /auth/sign-in                              auth: public   rate: 10/min/IP
 body: { email: string; password: string }
-200: { data: { user: Me; totpRequired: false } }                      // sets hub_access + hub_refresh
+200: { data: { user: Me; totpRequired: false } }                      // sets hub_access + hub_refresh + hub_session
 200: { data: { totpRequired: true; challenge: string } }              // no cookies yet; challenge valid 5 min
 errors: identity.invalid_credentials 401 · identity.locked 423 · identity.account_disabled 403
 effects: LoginAttempt row; audit identity.sign_in
@@ -318,10 +363,15 @@ body: { challenge: string; code: string /* 6 digits */ }
 200: { data: { user: Me; totpRequired: false } }                      // sets cookies
 errors: identity.totp_invalid 401
 
+POST /auth/totp/recover                         auth: public   rate: 10/min/IP
+body: { challenge: string; recoveryCode: string }
+200: { data: { user: Me; totpRequired: false } }                      // sets cookies; the code is spent
+errors: identity.totp_invalid 401
+
 POST /auth/refresh                              auth: hub_refresh cookie
 200: { data: { expiresAt: string } }                                  // rotates both cookies
 errors: identity.refresh_invalid 401
-effects: Session row replaced (replacedById); reuse detection revokes the family
+effects: Session row replaced (replacedById); reuse detection revokes the family. A replaced token still rotates for 30 s after its first replacement while its family is alive (D35)
 
 POST /auth/sign-out                             auth: session
 204
@@ -329,8 +379,8 @@ effects: current refresh family revoked; cookies cleared
 
 GET /auth/me                                    auth: session | token
 200: { data: Me }
-type Me = { id; email; displayName; locale; avatarColor; totpEnabled: boolean; createdAt;
-            workspaces: { id; slug; name; keyPrefix; roles: Role[]; timezone; defaultLocale; totpRequired: boolean }[] }
+type Me = { id; email; displayName; locale; avatarColor; totpEnabled: boolean; createdAt; defaultProject: string | null;
+            workspaces: { id; slug; name; keyPrefix; status; roles: Role[]; timezone; defaultLocale; totpRequired: boolean }[] }
 
 POST /auth/password/forgot                      auth: public   rate: 10/min/IP
 body: { email: string }
@@ -343,23 +393,23 @@ body: { token: string; password: string }
 errors: identity.reset_invalid 404 · identity.password_weak 400
 effects: all sessions revoked; audit
 
-POST /auth/password/change                      auth: session   HO: yes
+POST /auth/password/change                      auth: session
 body: { current: string; next: string }
 204
 errors: identity.invalid_credentials 401 · identity.password_weak 400
 effects: other refresh families revoked
 
-POST /auth/totp/setup                           auth: session   HO: yes
+POST /auth/totp/setup                           auth: session
 201: { data: { secret: string; otpauthUrl: string; qrDataUrl: string } }   // secret stored encrypted, not yet enabled
 errors: identity.totp_already_enabled 409
 
-POST /auth/totp/confirm                         auth: session   HO: yes
+POST /auth/totp/confirm                         auth: session
 body: { code: string }
 200: { data: { recoveryCodes: string[] /* 8, shown once, stored hashed */ } }
 errors: identity.totp_invalid 401
 effects: totpEnabledAt set; audit
 
-DELETE /auth/totp                               auth: session   HO: yes
+DELETE /auth/totp                               auth: session
 body: { code: string }
 204     errors: identity.totp_not_enabled 409 · identity.totp_invalid 401 · identity.totp_setup_required 403 (if a role requires it)
 
@@ -386,16 +436,20 @@ PATCH /me                                        auth: session
 body: { displayName?: string; locale?: 'ar' | 'en'; avatarColor?: string }
 200: { data: Me }
 
-GET /me/tokens                                   auth: session
-200: { data: { id; workspace: { slug; name }; name; kind: 'mcp' | 'hook'; prefix; lastUsedAt; createdAt; revokedAt }[] }
+PUT /me/default-project                          auth: session | token   (switch_project, 15 §5)
+body: { slug: string }
+200: { data: Me }
+errors: workspaces.not_found 404
 
-POST /me/tokens                                  auth: session   HO: yes
-body: { workspace: string /* slug */; name: string; kind: 'mcp' | 'hook' }
+GET /me/tokens                                   auth: session
+200: { data: { id; name; kind: 'mcp' | 'hook'; prefix; lastUsedAt; createdAt; revokedAt }[] }
+
+POST /me/tokens                                  auth: session
+body: { name: string; kind: 'mcp' | 'hook' }                          // a token belongs to the member, not a project (15 §5)
 201: { data: { id; token: string /* full, shown once */; prefix; name; kind } }
-errors: workspaces.not_member 403
 effects: audit identity.token.create
 
-DELETE /me/tokens/{id}                           auth: session   HO: yes
+DELETE /me/tokens/{id}                           auth: session
 204    effects: revokedAt; audit
 
 GET /workspaces/{ws}/me/channels                 auth: session
@@ -409,22 +463,25 @@ body: { mode: 'off' | 'immediate' | 'digest'; kinds?: string[] }
 
 ```
 GET /workspaces                                  auth: session | token
-200: { data: Me['workspaces'] }
+200: { data: (Me['workspaces'][number] & { isDefault: boolean; counts: { openDecisions; pendingHandoffs; openNeeds; readyTasks } })[] }
 
-POST /workspaces                                 auth: session   HO: yes
-body: { slug: string /* ^[a-z0-9-]{2,32}$ */; name: string; keyPrefix: string /* ^[A-Z]{2,6}$ */; timezone?: string; defaultLocale?: 'ar' | 'en' }
+POST /workspaces                                 auth: session | token
+body: { slug: string /* ^[a-z0-9-]{2,32}$ */; name: string; keyPrefix: string /* ^[A-Z]{2,6}$ */; timezone?: string; defaultLocale?: 'ar' | 'en';
+        description?: Markdown; goals?: Markdown; links?: { label; url }[]; repoPaths?: string[]; docsPath?: string /* adds a local_path source named docs */ }
 201: { data: Workspace }
 errors: workspaces.slug_taken 409 · workspaces.key_prefix_taken 409
-effects: Membership(owner) for the creator; default settings; audit
+effects: Membership(owner) for the creator; becomes their default project when they have none; settings start at their defaults (no rows); audit
 
 GET /workspaces/{ws}                             auth: session | token
 200: { data: Workspace & { myRoles: Role[]; counts: { openDecisions; pendingHandoffs; openNeeds; readyTasks } } }
 
-PATCH /workspaces/{ws}                           auth: session   role: owner|pm (archive: owner)   HO: yes
-body: { name?: string; timezone?: string; defaultLocale?: 'ar' | 'en' }
+PATCH /workspaces/{ws}                           auth: session | token   role: owner|pm
+body: { name?; timezone?; defaultLocale?; description?: Markdown | null; goals?: Markdown | null; links?; repoPaths?; status?: 'active' | 'paused' }
 200: { data: Workspace }
 
-POST /workspaces/{ws}/archive                    auth: session   role: owner   HO: yes   204
+POST /workspaces/{ws}/close                      auth: session | token   role: owner   200: { data: Workspace }   errors: workspaces.closed 409
+POST /workspaces/{ws}/reopen                     auth: session | token   role: owner   200: { data: Workspace }   errors: common.conflict 409 (not closed)
+// A project is never deleted (D30).
 ```
 
 ### 3.5 Members, invites, GitHub identities
@@ -436,17 +493,17 @@ routed under the workspace.
 GET /workspaces/{ws}/members                     auth: session | token
 200: { data: { userId; email; displayName; avatarColor; roles: Role[]; status; joinedAt; lastSeenAt; githubLogins: string[]; totpEnabled: boolean }[] }
 
-PATCH /workspaces/{ws}/members/{userId}          auth: session   role: owner|pm   HO: yes
+PATCH /workspaces/{ws}/members/{userId}          auth: session   role: owner|pm
 body: { roles: Role[] /* ≥1 */ }
 200: member row
 errors: workspaces.role_invalid 400 · workspaces.last_owner 409 · workspaces.member_removed 409
 effects: audit; the member's open MCP tokens pick up the new roles on the next call
 
-POST /workspaces/{ws}/members/{userId}/remove    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/members/{userId}/remove    auth: session   role: owner|pm
 204    errors: workspaces.last_owner 409
-effects: status=removed; member's API tokens for this workspace revoked; their claimed tasks → unclaimed (event unclaimed, reason member_removed); audit
+effects: status=removed, which ends the member's access here at once (a token belongs to the member, 15 §5, so it stays valid for their other projects); no longer their default project; their claimed tasks → unclaimed by whoever removed them (event unclaimed); audit
 
-PUT /workspaces/{ws}/members/{userId}/github-logins      auth: session   role: owner|pm   HO: yes
+PUT /workspaces/{ws}/members/{userId}/github-logins      auth: session   role: owner|pm
 body: { logins: string[] }
 200: { data: { logins: string[] } }
 effects: GithubIdentity rows replaced; existing change cards with matching authorLogin get authorUserId backfilled (job)
@@ -454,14 +511,14 @@ effects: GithubIdentity rows replaced; existing change cards with matching autho
 GET /workspaces/{ws}/invites                     auth: session   role: owner|pm
 200: { data: { id; email; roles; createdBy; expiresAt; acceptedAt }[] }
 
-POST /workspaces/{ws}/invites                    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/invites                    auth: session   role: owner|pm
 body: { email: string; roles: Role[] }
 201: { data: { id; email; roles; expiresAt; url: string /* https://hub…/ar/invite/<token>, shown once */ } }
 errors: workspaces.role_invalid 400 · common.conflict 409 (active invite for the same email)
 effects: email sent if SMTP configured; audit
 
-POST /workspaces/{ws}/invites/{id}/resend        auth: session   role: owner|pm   HO: yes   200: { data: { url } } (new token, old revoked)
-DELETE /workspaces/{ws}/invites/{id}             auth: session   role: owner|pm   HO: yes   204
+POST /workspaces/{ws}/invites/{id}/resend        auth: session   role: owner|pm   200: { data: { url } } (new token, old revoked)
+DELETE /workspaces/{ws}/invites/{id}             auth: session   role: owner|pm   204
 ```
 
 ### 3.6 Settings
@@ -473,46 +530,48 @@ GET /workspaces/{ws}/settings                    auth: session | token
 GET /workspaces/{ws}/settings/catalogue          auth: session | token
 200: { data: { key; type: 'number' | 'string' | 'boolean' | 'string[]' | 'number[]' | 'object'; schema: JsonSchema; description: { ar; en }; group: string }[] }
 
-PUT /workspaces/{ws}/settings/{key}              auth: session   role: owner|pm   HO: yes
+PUT /workspaces/{ws}/settings/{key}              auth: session   role: owner|pm
 body: { value: unknown }
 200: setting row
 errors: workspaces.setting_unknown 404 · workspaces.setting_invalid 400
 effects: audit settings.update; repeatable jobs re-scheduled when `capture.*`/`digest.*` keys change
 
-DELETE /workspaces/{ws}/settings/{key}           auth: session   role: owner|pm   HO: yes   200: setting row (back to default)
+DELETE /workspaces/{ws}/settings/{key}           auth: session   role: owner|pm   200: setting row (back to default)
 ```
 
 ### 3.7 Sources
 
 ```
-type SourceDto = { id; kind: 'github_repo' | 'openapi' | 'lab' | 'docs_folder'; name; config: Record<string, unknown>; hasSecret: boolean;
+type SourceDto = { id; kind: 'github_repo' | 'openapi' | 'lab' | 'docs_folder' | 'local_path'; name; config: Record<string, unknown>; hasSecret: boolean;
                    enabled; cursor; lastRunAt; lastSuccessAt; lastError; lagSec: number | null; createdAt }
 
 GET /workspaces/{ws}/sources                     auth: session | token   200: { data: SourceDto[] }
 
-POST /workspaces/{ws}/sources                    auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources                    auth: session   role: owner|pm
 body: { kind; name: string /* ^[a-z0-9-]{2,32}$ */; config: Record<string, unknown> /* validated per kind, 03 §4.3 */; secret?: string /* GitHub token; filtered from logs */ }
 201: { data: SourceDto }
-errors: workspaces.source_kind_invalid 400 · workspaces.source_dependency_missing 422 · common.conflict 409 (name)
+errors: workspaces.source_kind_invalid 400 · workspaces.source_dependency_missing 422 · common.conflict 409 (name) · identity.token_scope 403 (`secret` sent with an API token, 15 §2)
 effects: repeatable job registered (06); audit (secret never logged)
 
-PATCH /workspaces/{ws}/sources/{id}              auth: session   role: owner|pm   HO: yes
+PATCH /workspaces/{ws}/sources/{id}              auth: session   role: owner|pm
 body: { name?; config?; secret?: string | null /* null clears */; enabled?: boolean }
 200: { data: SourceDto }
 
-POST /workspaces/{ws}/sources/{id}/test          auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources/{id}/test          auth: session   role: owner|pm
 200: { data: { ok: true; details: { repo?: string; defaultBranch?: string; permissions?: string[]; filesFound?: number } } }
 errors: workspaces.source_connection_failed 422 (details.reason) · github.auth_failed 502
 
-POST /workspaces/{ws}/sources/{id}/run           auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/sources/{id}/run           auth: session   role: owner|pm
 202: { data: { runId: string } }
 errors: workspaces.source_run_in_progress 409 · capture.source_disabled 409
 
 GET /workspaces/{ws}/sources/{id}/runs?cursor&limit        auth: session   role: owner|pm
 200: { data: CaptureRun[] } (03 §8, newest first)
 
-DELETE /workspaces/{ws}/sources/{id}             auth: session   role: owner   HO: yes
-204   (soft: enabled=false + `deletedAt` in config; cards keep their `repo` name)
+GET /workspaces/{ws}/sources/{id}                auth: session | token   200: { data: SourceDto }
+
+DELETE /workspaces/{ws}/sources/{id}             auth: session | token   role: owner|pm
+204   (soft: enabled=false, secret cleared, `deletedAt` in config, the row is renamed so the name is free again; cards keep their `repo` name)
 ```
 
 ### 3.8 Cards (generic)
@@ -520,46 +579,51 @@ DELETE /workspaces/{ws}/sources/{id}             auth: session   role: owner   H
 ```
 GET /workspaces/{ws}/cards                       auth: session | token
 query: { type?: CardType[]; status?: string[]; role?: Role[]; assignee?: string | 'me'; createdBy?: string | 'me'; repo?: string[]; module?: string[];
-         tag?: string[]; q?: string; dueBefore?: string; archived?: boolean (owner/pm only); flags?: ('blocked'|'overdue'|'escalated'|'stale'|'noSummary')[];
+         tag?: string[]; q?: string; dueBefore?: string; flags?: ('blocked'|'overdue'|'escalated'|'stale'|'noSummary')[]; awaiting?: 'me' /* no paging: the whole stack, soonest first */;
          sort?: 'lastEvent' | 'created' | 'due' | 'priority' (default lastEvent desc); cursor?; limit? }
 200: { data: CardSummary[], meta: { pagination } }
 
+GET /workspaces/{ws}/cards/deleted?cursor&limit  auth: session | token   role: §2 "Read deleted cards" (D28: all for owner/pm, your own otherwise)
+200: { data: CardSummary[] } (newest activity first)
+
 POST /workspaces/{ws}/cards                      auth: session | token   Idempotency-Key supported
 body: {
-  type: 'task' | 'decision' | 'need' | 'handoff' | 'release';          // change/redesign/doc: system only → 409 cards.type_mismatch
+  type: 'task' | 'decision' | 'need' | 'handoff' | 'release' | 'idea' | 'plan';   // change/redesign/doc: system only → 409 cards.type_mismatch
   title: string; body?: Markdown; priority?: Priority; ownerRole?: Role; dueAt?: string; tags?: string[]; module?: string; repo?: string;
-  links?: { kind: 'blocks' | 'blocked_by' | 'relates' | 'parent'; key: CardKey }[];
+  links?: { kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates'; key: CardKey }[];   // ≤ 10; a bad one undoes the card
   detail:
     | { specialty: Specialty; effort?: Effort; acceptance?: Markdown; prompt?: Markdown }                                     // task  (ownerRole defaults from specialty)
     | { kind: 'product' | 'technical' | 'financial' | 'design'; question: string; options: DecisionOptionInput[]; deciderRole: Role; adrRepoSourceId?: string }   // decision (dueAt defaults to now + decisions.default_due_days)
     | { kind: 'token' | 'account' | 'contract' | 'value_check' | 'file' | 'access' | 'other'; responsibleRole: Role }        // need
     | { kind: 'contract' | 'component' | 'design' | 'data' | 'other'; fromRole: Role; toRole: Role; severity?: 'breaking' | 'notable' | 'info'; summary: string; prompt?: Markdown; payload?: object; sourceKey?: CardKey }   // handoff
     | { version: string; repo?: string; tag?: string; includedKeys?: CardKey[] }                                              // release
+    | { problem?: Markdown; notes?: Markdown; role?: Role }                                                                   // idea
+    | { steps?: { id?: string; title: string; role?: Role }[]; sourceIdeaKey?: CardKey }                                      // plan
 }
 type DecisionOptionInput = { id?: string /* slug, default from title */; title: string; pros?: string[]; cons?: string[]; cost?: string; recommended?: boolean };
 201: { data: CardFull }
-errors: common.validation 400 · security.secret_detected 422 · decisions.options_min 400 · cards.not_found 404 (link target) · cards.link_cycle 409 · cards.human_only 403 (release by agent)
+errors: common.validation 400 · security.secret_detected 422 · decisions.options_min 400 · cards.not_found 404 (link target) · cards.link_cycle 409
 effects: Card + detail; event created; watchers: creator (+ assignee); notifications: routed_* to holders of ownerRole (decision/need/handoff), task_ready to the specialty role when status=ready; SSE card.created
-initial status: task → `backlog` (or `ready` when `prompt` or `acceptance` given); decision → `open`; need → `requested`; handoff → `pending`; release → `planned`
+initial status: task → `backlog` (or `ready` when `prompt` or `acceptance` given); decision → `open`; need → `requested`; handoff → `pending`; release → `planned`; idea → `open`; plan → `draft`
 
 GET /workspaces/{ws}/cards/{key}                 auth: session | token
-200: { data: CardFull }     errors: cards.not_found 404 (archived cards 404 for non-owner/pm)
+200: { data: CardFull }     errors: cards.not_found 404 (a deleted card answers 404, except to owner, pm and its creator)
 
 PATCH /workspaces/{ws}/cards/{key}               auth: session | token   (field permissions per §2)
 body: { title?; body?; priority?; ownerRole?; dueAt?: string | null; tags?; module?: string | null; assignee?: string | null; repo?; branch? }
 200: { data: CardFull }
 errors: cards.archived 409 · common.forbidden 403 (field not allowed for role) · security.secret_detected 422
-effects: one field_changed event per changed field; watchers notified (watch_update, grouped); ownerRole change → routed_* to the new role
+effects: one field_changed event listing the changed fields, none when nothing changed; a plan's body adds plan_revised instead; ownerRole also updates the detail's copy; watchers notified (watch_update, grouped, H3-01); ownerRole change → routed_* to the new role (H3-01)
 
 POST /workspaces/{ws}/cards/{key}/transition     auth: session | token
 body: { to: string; reason?: string }
 200: { data: CardFull }
-errors: cards.invalid_transition 409 · cards.human_only 403 · cards.type_mismatch 409 (transitions with dedicated endpoints — decide, deliver, verify, acknowledge, approve … — are refused here and must use their endpoint)
+errors: cards.invalid_transition 409 · common.forbidden 403 · cards.type_mismatch 409 (transitions with dedicated endpoints — decide, deliver, verify, acknowledge, approve … — are refused here and must use their endpoint)
 allowed here: task backlog↔ready, in_progress→in_review, in_review→in_progress, *→cancelled (task/need), need requested→in_progress, release planned→released (owner/pm), handoff pending→dismissed is NOT here (use /dismiss)
 effects: status_changed; closedAt set on terminal; blockers resolved → `unblocked` on dependants
 
-POST /workspaces/{ws}/cards/{key}/archive        auth: session   role: owner|pm   HO: yes   200: CardFull   effects: archived event; removed from lists/search
-POST /workspaces/{ws}/cards/{key}/restore        auth: session   role: owner|pm   HO: yes   200: CardFull
+POST /workspaces/{ws}/cards/{key}/delete         auth: session | token   role: owner|pm|creator   body: { reason?: string }   200: CardFull   effects: event archived; archivedAt set; gone from every page, count and search; dependants get unblocked (D28)
+POST /workspaces/{ws}/cards/{key}/restore        auth: session | token   role: owner|pm|creator   200: CardFull   effects: event restored
 
 GET /workspaces/{ws}/cards/{key}/events?cursor&limit         auth: session | token   200: { data: Event[] } (seq asc)
 
@@ -568,14 +632,14 @@ POST /workspaces/{ws}/cards/{key}/comments                   auth: session | tok
 body: { body: Markdown }
 201: { data: Comment }
 errors: security.secret_detected 422 · cards.archived 409
-effects: commented event; commentCount++; mentions (`@user:<id>` and `@role:<role>`) → notifications mention; watchers → watch_update; author auto-watches
+effects: commented event; commentCount++; mentions (`@user:<id>` and `@role:<role>`) → notifications mention, and mentioned members watch (reason mention); watchers → watch_update (H3-01); author watches (reason commenter)
 PATCH /workspaces/{ws}/cards/{key}/comments/{id}             auth: session | token   (author, within 15 min)   body: { body }   200: Comment   errors: cards.comment_not_author 403
-POST /workspaces/{ws}/cards/{key}/comments/{id}/redact       auth: session   role: owner|pm   HO: yes   200: Comment (body null, redacted true)   effects: redacted event
+POST /workspaces/{ws}/cards/{key}/comments/{id}/redact       auth: session | token   role: owner|pm   200: Comment (body null, redacted true)   effects: redacted event; the excerpt on the comment's event is removed too
 
 POST /workspaces/{ws}/cards/{key}/links          auth: session | token
 body: { kind: 'blocks' | 'blocked_by' | 'relates' | 'parent' | 'child' | 'duplicates'; key: CardKey }    // blocked_by/child are stored as the inverse row
 201: { data: CardFull }      errors: cards.link_self 400 · cards.link_exists 409 · cards.link_cycle 409 · cards.not_found 404
-effects: linked event on both cards; `blocked` flag recomputed; watchers notified
+effects: one row; a linked event on each card, naming the link as that card sees it; `blocked` flag follows; watchers notified (H3-01)
 DELETE /workspaces/{ws}/cards/{key}/links        auth: session | token   body: same   200: CardFull   effects: unlinked on both
 
 POST /workspaces/{ws}/cards/{key}/watch          auth: session | token   204   effects: watcher(manual), event watch
@@ -592,8 +656,9 @@ query: { from?: string; to?: string; types?: CardType[]; roles?: Role[] /* cards
          repos?: string[]; modules?: string[]; actors?: string[] /* user ids */; kinds?: string[] /* event kinds */; q?: string;
          mine?: boolean /* events on cards I watch/own/claimed */; cursor?; limit? (default 50) }
 sort: createdAt desc, collapsed: consecutive events of the same card within 30 min → one row with `collapsed: n`
-200: { data: TimelineRow[], meta: { pagination; dayCounts?: { date: string; count: number }[] /* only when from/to given */ } }
-type TimelineRow = { event: Event; card: CardSummary; collapsed: number; collapsedKinds: string[] }
+200: { data: TimelineRow[], meta: { pagination; dayCounts?: { date: string; count: number }[] /* only when both from and to given */ } }
+type TimelineRow = { event: Event /* the newest of the row */; card: CardSummary & { detail }; collapsed: number /* how many more it folds: the "+n" */; collapsedKinds: string[] /* their distinct kinds */ }
+// watch/unwatch and deleted cards are left out unless `kinds` asks for them; a plan's previousBody is not in `data` (see /plans/{key}/revisions).
 
 GET /workspaces/{ws}/timeline/summary            auth: session | token
 query: { period: 'day' | 'week'; date?: string /* anchor, default today */ }
@@ -611,6 +676,10 @@ type DocHit = { card: CardSummary; path: string; chunks: { heading: string | nul
 type TaskDetail = { specialty: Specialty; effort: Effort | null; acceptance: Markdown | null; prompt: Markdown | null; origin: string;
                     claimedBy: { id; displayName } | null; claimedAt; branch; prUrl; startedAt; doneAt }
 
+GET /workspaces/{ws}/tasks                       auth: session | token
+query: { status?: TaskStatus[]; q?; cursor?; limit? (≤ 100) }
+200: (CardSummary & { detail: TaskDetail; blockedBy: string[] })[]   the board and the list; `blockedBy` holds the keys of the open cards blocking each task
+
 GET /workspaces/{ws}/tasks/ready                 auth: session | token
 query: { specialty?: Specialty /* default: all specialties mapped to my roles */; limit? (≤ tasks.ready_limit_per_role) }
 200: { data: (CardSummary & { detail: TaskDetail })[] }   // status=ready, not blocked, priority asc then createdAt asc
@@ -624,21 +693,25 @@ GET /workspaces/{ws}/tasks/{key}/prompt          auth: session | token
 
 PATCH /workspaces/{ws}/tasks/{key}               auth: session | token   (§2 row "edit specialty…")
 body: { specialty?; effort?; acceptance?; prompt?; branch?; prUrl? }
-200: CardFull     effects: field_changed per field
+200: CardFull     effects: one field_changed listing the fields
 
 POST /workspaces/{ws}/tasks/{key}/claim          auth: session | token   Idempotency: natural (claim by same user is a no-op 200)
 body: { branch?: string }
 200: CardFull
 errors: tasks.already_claimed 409 · tasks.specialty_role_mismatch 403 · cards.invalid_transition 409 (not backlog/ready) · cards.archived 409
-effects: status → claimed; assignee = actor; TaskDetail.claimedBy/At/branch; events claimed + status_changed; watcher(assignee); SSE
+errors also: tasks.blocked 409
+effects: status → claimed; assignee = actor; TaskDetail.claimedBy/At/branch; event claimed (with from, to); watcher(assignee); SSE
 
 POST /workspaces/{ws}/tasks/{key}/unclaim        auth: session | token   200: CardFull   errors: tasks.not_claimer 403   effects: status → ready; assignee null; event unclaimed
 
 POST /workspaces/{ws}/tasks/{key}/start          auth: session | token   200: CardFull   claimed → in_progress; startedAt; errors: tasks.not_claimer 403
-POST /workspaces/{ws}/tasks/{key}/submit-review  auth: session | token   body: { prUrl?: string; note?: string }   200   in_progress → in_review; notification task_review to `qa` + pm (kind routed via ownerRole=qa? No: notification kind `watch_update` to watchers + `task_ready`-style `review_requested` to qa holders)
-POST /workspaces/{ws}/tasks/{key}/done           auth: session | token   body: { note?: string }   200   claimed|in_progress|in_review → done; doneAt; closedAt; dependants `unblocked`; watchers notified
+POST /workspaces/{ws}/tasks/{key}/submit-review  auth: session | token   body: { prUrl?: string; note?: string }   200   in_progress → in_review; notification `review_requested` to qa holders
+POST /workspaces/{ws}/tasks/{key}/resume         auth: session | token   role: reviewers (§2)   body: { reason?: string }   200   in_review → in_progress
+POST /workspaces/{ws}/tasks/{key}/done           auth: session | token   body: { note?: string }   200   claimed|in_progress|in_review → done; doneAt; closedAt; dependants `unblocked`; a plan's step follows; from in_review the §2 row is "complete from review"
+POST /workspaces/{ws}/tasks/{key}/mark-ready     auth: session | token   200   backlog → ready; notification task_ready
+POST /workspaces/{ws}/tasks/{key}/mark-backlog   auth: session | token   200   ready → backlog
 POST /workspaces/{ws}/tasks/{key}/cancel         auth: session | token   body: { reason: string }   200   any non-done → cancelled
-POST /workspaces/{ws}/tasks/{key}/reopen         auth: session   role: owner|pm   200   done|cancelled → ready
+POST /workspaces/{ws}/tasks/{key}/reopen         auth: session | token   role: §2   body: { reason?: string }   200   done|cancelled → ready; assignee cleared; a plan's step follows
 ```
 
 ### 3.11 Decisions
@@ -657,20 +730,20 @@ PATCH /workspaces/{ws}/decisions/{key}/options   auth: session | token   (while 
 body: { options: DecisionOptionInput[] }      // full replacement; ids preserved when given
 200: CardFull   errors: decisions.already_decided 409 · decisions.options_min 400   effects: field_changed(options)
 
-POST /workspaces/{ws}/decisions/{key}/decide     auth: session   role: R(deciderRole)|owner   HO: yes
+POST /workspaces/{ws}/decisions/{key}/decide     auth: session | token   role: R(deciderRole)|owner
 body: { optionId: string; rationale: string /* 1..2000 */ }
 200: CardFull
-errors: decisions.not_decider 403 · decisions.already_decided 409 · decisions.option_not_found 404 · cards.human_only 403
-effects: status open → decided; decidedAt/By; events decided + status_changed; ADR skeleton rendered into adrBody when adrBody is null (adrStatus=drafted); cards linked `blocked_by` this decision → `unblocked` + notification unblocked to their assignees/watchers; notification `watch_update` to watchers and `system` to the requester; audit
+errors: decisions.not_decider 403 · decisions.already_decided 409 · decisions.option_not_found 404
+effects: status open → decided; decidedAt/By; event decided (with from, to); ADR skeleton rendered into adrBody when adrBody is null (adrStatus=drafted); cards linked `blocked_by` this decision → one `unblocked` event each, and notification unblocked to the assignee and watchers of those no longer blocked by anything; notification `watch_update` to watchers and `system` to the requester (H3-01); audit
 
-POST /workspaces/{ws}/decisions/{key}/withdraw   auth: session   HO: yes   body: { reason: string }   200   open → withdrawn
-POST /workspaces/{ws}/decisions/{key}/supersede  auth: session   role: owner|pm   HO: yes   body: { byKey: CardKey /* another decision */ }   200   decided → superseded; link relates both ways
+POST /workspaces/{ws}/decisions/{key}/withdraw   auth: session | token   body: { reason: string }   200   open → withdrawn
+POST /workspaces/{ws}/decisions/{key}/supersede  auth: session | token   role: owner|pm   body: { byKey: CardKey /* another decision */ }   200   open|decided → superseded; one `relates` row, with a linked event on each
 
 PUT /workspaces/{ws}/decisions/{key}/adr         auth: session | token   (§2 "draft ADR body")
 body: { body: Markdown /* full ADR markdown, 07 §6.5 format */; path?: string /* default docs/adr/<next-number>-<slug>.md */ }
 200: CardFull     errors: decisions.already_decided? no — allowed before and after decide; adrStatus → drafted   effects: field_changed(adrBody)
 
-POST /workspaces/{ws}/decisions/{key}/adr/open-pr   auth: session   role: R|owner|pm   HO: yes
+POST /workspaces/{ws}/decisions/{key}/adr/open-pr   auth: session | token   role: R|owner|pm   (H3-06: not built yet)
 200: { data: { prUrl: string; branch: string; path: string } }
 errors: decisions.adr_not_drafted 409 · decisions.adr_source_missing 422 · decisions.adr_already_open 409 · github.auth_failed 502 · decisions.adr_pr_failed 502
 effects: branch `hub/adr-<key-lower>` pushed to the ADR repo (needs a token with contents+pull_requests write — see 06 §1.3), PR titled `docs(adr): <title>`; adrStatus pr_opened; event field_changed(adrStatus); later the github adapter sets `merged` when the PR merges
@@ -692,10 +765,10 @@ body: { location: string /* 1..500, secret-filtered */; note?: string }
 200: CardFull   errors: needs.location_required 400 · security.secret_detected 422 · needs.not_responsible 403
 effects: requested|in_progress → delivered; event delivered; notification `watch_update` + `system` to the requester ("ready to verify") routed to the requester's roles? No: to the requester user and to `owner`
 
-POST /workspaces/{ws}/needs/{key}/verify         auth: session   role: R|owner|pm   HO: yes
-body: { note?: string }
-200: CardFull   delivered → verified; closedAt; blocked cards `unblocked`; audit
-POST /workspaces/{ws}/needs/{key}/reject-delivery  auth: session   role: R|owner|pm   HO: yes   body: { reason: string }   200   delivered → in_progress (event status_changed with reason)
+POST /workspaces/{ws}/needs/{key}/verify         auth: session | token   role: §2 (V)
+body: { note?: string /* required when verifying your own delivery (D24) */ }
+200: CardFull   delivered → verified; closedAt; blocked cards `unblocked`; audit   errors: needs.self_verify_note_required 400   event verified records selfVerified
+POST /workspaces/{ws}/needs/{key}/reject-delivery  auth: session | token   role: §2 (V)   body: { reason: string }   200   delivered → in_progress (event status_changed with reason); deliveredBy cleared
 POST /workspaces/{ws}/needs/{key}/cancel         auth: session | token   body: { reason: string }   200   → cancelled
 ```
 
@@ -712,10 +785,10 @@ sort: severity (breaking first), createdAt asc
 POST /workspaces/{ws}/handoffs/{key}/acknowledge auth: session | token   role: R(toRole)|owner|pm
 200: CardFull   errors: handoffs.not_recipient 403 · handoffs.already_acknowledged 409   effects: pending → acknowledged; event acknowledged; notification `watch_update` to the creator/from-role watchers
 
-POST /workspaces/{ws}/handoffs/{key}/apply       auth: session | token   role: R|owner|pm   Idempotency-Key supported
+POST /workspaces/{ws}/handoffs/{key}/apply       auth: session | token   role: R (D25: not owner or pm unless they hold the role)   Idempotency-Key supported
 body: { taskKey?: CardKey /* existing task */; createTask?: { title?: string; specialty?: Specialty } /* creates a task linked `relates`, prompt = handoff prompt */; note?: string }
 200: CardFull (with appliedTask)
-effects: pending|acknowledged → applied; closedAt; event applied; optional task created (origin handoff, status ready, assignee = actor) with event created
+effects: pending|acknowledged → applied; closedAt; event applied; optional task created (origin handoff, status ready, assignee = actor, linked `relates`) with its own event created
 
 POST /workspaces/{ws}/handoffs/{key}/dismiss     auth: session | token   role: R|owner|pm   body: { reason: string }   200   → dismissed; closedAt
 ```
@@ -733,21 +806,57 @@ GET /workspaces/{ws}/redesign/versions           auth: session | token
 query: { app?; page?; status?: string[]; cursor?; limit? }
 200: { data: (CardSummary & { detail: RedesignDetail })[] }
 
-GET /workspaces/{ws}/redesign/{key}/readme       auth: session | token   200: { data: { markdown: Markdown; review: Markdown | null } }   (raw files from the lab folder)
+GET /workspaces/{ws}/redesign/{key}/readme       auth: session | token   200: { data: { markdown: Markdown | null; review: Markdown | null } }   (raw files from the lab folder, front-matter removed)
+
+GET /workspaces/{ws}/redesign/compare?a=KEY&b=KEY   auth: session | token
+200: { data: { a: Side; b: Side; commonShots: string[] /* shot names both have */ } }
+type Side = { card: CardWithDetail; shots: { name; url; width; height }[]; frameUrl: string | null /* `/lab/frame-<app>.html#/<page>/<version>`; null when LAB_URL is unset */ }
+
+GET /workspaces/{ws}/lab/file?path=<lab-relative path>   auth: session | token   200: the image (png, jpg, webp); anything else, or any way out of the root: 404
+// Attachments of kind `screenshot` carry this URL. Local path mode (15 §3).
 
 POST /workspaces/{ws}/redesign/{key}/submit-review   auth: session | token   role: designer|frontend|owner|pm
 200: CardFull   errors: cards.invalid_transition 409 (not draft)   effects: draft → review (front-matter written: `status: review`); event status_changed; notification routed_review to owner
 
-POST /workspaces/{ws}/redesign/{key}/approve     auth: session   role: owner   HO: yes   Idempotency-Key supported
+POST /workspaces/{ws}/redesign/{key}/approve     auth: session | token   role: owner   Idempotency-Key supported
 body: { note?: string; createPortTask?: boolean (default true) }
 200: CardFull
 errors: redesign.owner_only 403 · redesign.not_in_review 409 · redesign.lab_unavailable 503 · redesign.write_failed 500
-effects: review → approved; front-matter `status: approved`; commit + push to the hub repo (06 §5.6); event approved; port task created (specialty = lab.port_task_specialty, origin redesign_port, prompt = port template 07 §6.7) linked `relates`; notification task_ready to that role; audit
+effects: review → approved; front-matter `status: approved` (H2-05, local path mode: no commit, docs/15 §3); event approved; port task created (specialty = lab.port_task_specialty, origin redesign_port, prompt = port template 07 §6.7) linked `relates`; notification task_ready to that role; audit
 
-POST /workspaces/{ws}/redesign/{key}/reject      auth: session   role: owner   HO: yes   body: { note: string }   200   review → rejected; front-matter; event rejected
-POST /workspaces/{ws}/redesign/{key}/request-changes   auth: session   role: owner|pm|qa   HO: yes   body: { note: string }   200   review → draft; event changes_requested; comment created with the note; notification to designer role
-POST /workspaces/{ws}/redesign/{key}/mark-ported auth: session | token   role: frontend|owner|pm   body: { ref: string /* "feat/x@abc123 (Goteav-Dashboard)" */ }   200   approved → ported; front-matter `status: ported`, `ported: <ref>`; event ported; linked port task → done if still open (event status_changed reason ported)
-POST /workspaces/{ws}/redesign/rescan            auth: session   role: owner|pm   HO: yes   202: { data: { runId } }
+POST /workspaces/{ws}/redesign/{key}/reject      auth: session | token   role: owner   body: { note: string }   200   review → rejected; front-matter; event rejected
+POST /workspaces/{ws}/redesign/{key}/request-changes   auth: session | token   role: owner|pm|qa   body: { note: string }   200   review → review (status stays, 01 §4.1 and 10); event changes_requested; comment created with the note; notification to designer role
+POST /workspaces/{ws}/redesign/{key}/mark-ported auth: session | token   role: frontend|owner|pm   body: { ref: string /* "feat/x@abc123 (Goteav-Dashboard)" */ }   200   approved → ported; front-matter `status: ported`, `ported: <ref>`; event ported; linked port task → done from whatever open status (event status_changed reason ported)
+POST /workspaces/{ws}/redesign/rescan            auth: session | token   role: owner|pm   202: { data: { runId } }
+```
+
+### 3.14a Ideas and plans (15 §4)
+
+```
+type IdeaDetail = { problem; notes; role; planCardId; sourceChatId: Uuid | null; sourceMessageId: Uuid | null }
+GET /workspaces/{ws}/ideas?status=&q=&sourceChat=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: IdeaDetail })[] }   sourceChat: the Idea Studio chat an idea was accepted from (owner decision 9c), a uuid, else 400 common.validation
+POST /workspaces/{ws}/cards (type idea)          detail also takes { sourceChatId?: Uuid; sourceMessageId?: Uuid }, written by the Idea Studio's Accept
+PATCH /workspaces/{ws}/ideas/{key}               auth: session | token   body: { title?; body?; priority?; tags?; problem?; notes?; role?; sourceChatId?; sourceMessageId? }   200: CardFull   effects: one field_changed (the source fields named in `changes` too); role routes the card
+POST /workspaces/{ws}/ideas/{key}/explore|accept|reopen   auth: session | token   200: CardFull
+POST /workspaces/{ws}/ideas/{key}/park|reject    auth: session | token   body: { reason?: string }   200: CardFull
+POST /workspaces/{ws}/ideas/{key}/to-plan        auth: session | token   body: { title?: string; body?: Markdown; sourceChatId?: Uuid; sourceMessageId?: Uuid }   200: CardFull   the source fields go to the new plan
+effects: open|exploring → accepted; event idea_to_plan { planKey }; a draft plan created with the idea's title, tags, priority and text, linked `relates`, with its own event created
+
+type PlanStep = { id; title; role?; taskKey?; done; why?: string; size?: 'S' | 'M' | 'L'; after?: string[] /* ids of earlier steps */; acceptance?: string }   // owner decision 9a
+type PlanDetail = { steps: PlanStep[]; revision: number; sourceIdeaId; approvedBy; approvedAt; sourceChatId: Uuid | null; sourceMessageId: Uuid | null }
+GET /workspaces/{ws}/plans?status=&q=&sourceChat=&sourceMessage=&cursor&limit       auth: session | token   200: { data: (CardSummary & { detail: PlanDetail })[] }   sourceChat / sourceMessage: the Plan Studio chat, or the chat reply, a plan was saved from (owner decision 9c), uuids, else 400 common.validation
+POST /workspaces/{ws}/cards (type plan)          detail: { steps: PlanStepInput[]; sourceIdeaKey?; sourceChatId?: Uuid; sourceMessageId?: Uuid }   a step's id is optional; after names ids in the same request, and Hub drops any that is not an earlier step
+// sourceChatId / sourceMessageId (ideas, plans, to-plan): only the writer's own chat in this project, and a message of that chat, else chats.not_found 404 / chats.message_not_found 404; a chat is its member's own, and the studio's next save overwrites the card that names it.
+GET /workspaces/{ws}/plans/{key}/revisions       auth: session | token   200: { data: { revision; body; savedAt; actor; current: boolean }[] } (newest first)
+PATCH /workspaces/{ws}/plans/{key}               auth: session | token   body: { title?; body?; priority?; tags?; steps?: { id?; title; role?; done?; why?; size?; after?; acceptance? }[]; sourceChatId?; sourceMessageId? }   200: CardFull
+effects: a new body adds plan_revised { revision, previousBody } and bumps revision; steps alone plan_steps_changed; a step with a task keeps its taskKey and done, because they follow the task
+POST /workspaces/{ws}/plans/{key}/restore        auth: session | token   body: { revision: number }   200: CardFull   errors: plans.revision_not_found 404   effects: the old text comes back as a new revision, plan_revised { restoredFrom }
+POST /workspaces/{ws}/plans/{key}/submit-review|approve|start|finish   auth: session | token   200: CardFull   approve is owner|pm
+POST /workspaces/{ws}/plans/{key}/request-changes   auth: session | token   role: owner|pm   body: { reason: string }   200: CardFull   errors: common.validation 400 (no reason), cards.invalid_transition 409 (not in review), common.forbidden 403
+effects: in_review → draft; event changes_requested { reason, from, to } (owner decision 9b, 2026-11-19)
+POST /workspaces/{ws}/plans/{key}/abandon        auth: session | token   body: { reason?: string }   200: CardFull
+POST /workspaces/{ws}/plans/{key}/to-tasks       auth: session | token   body: { defaultSpecialty?: Specialty }   200: CardFull
+effects: draft|in_review|approved|in_progress → in_progress; one task per step with no taskKey (origin plan, ready, its own event created, the step's acceptance as its acceptance), linked `parent` to the plan, keys written back; event plan_to_tasks { taskKeys }. Completing or reopening such a task adds plan_steps_changed. `finish` is offered once every step is done.
 ```
 
 ### 3.15 Docs
@@ -761,58 +870,69 @@ sort: path asc
 200: { data: (CardSummary & { detail: DocDetail })[] }
 
 GET /workspaces/{ws}/docs/{key}                  auth: session | token
-200: { data: CardFull & { content: Markdown /* raw file from the clone */; toc: DocDetail['headings'] } }
+200: { data: CardWithDetail & { content: Markdown | null; unavailable: 'missing' | 'secret' | null; docSource: { id; name }; toc: DocDetail['headings']; mentionedBy: CardSummary[] } }
 errors: docs.not_found 404
+// `content` is the file now, front-matter removed. `url` of a GitHub blob does not exist in local path mode (15 §3).
 
 GET /workspaces/{ws}/docs/by-path?source=&path=  auth: session | token   200: same as above   (used by MCP get_doc)
 
+GET /workspaces/{ws}/docs/{key}/image?src=<address as written>   auth: session | token   permission: docs.read
+200: the image bytes (image/png | jpeg | gif | webp | svg+xml, ≤ 10 MB) · Cache-Control: private, max-age=300 · ETag (304 on If-None-Match) · X-Content-Type-Options: nosniff · Content-Security-Policy: default-src 'none'; img-src data:; style-src 'unsafe-inline'; sandbox · Cross-Origin-Resource-Policy: same-origin
+errors: docs.not_found 404 · docs.image_not_found 404 · docs.image_too_large 413 · docs.image_type_refused 415 · docs.image_bad_path 422
+// Decision 13b. `src` is resolved against the document's folder inside a `local_path` source's folder; the real path after links must stay inside it and outside what the indexer leaves out. SVG passes the secret filter. A remote `https:` image never reaches this route: the viewer shows its alt text with a link.
+
 GET /workspaces/{ws}/docs/search?q=&kinds=&limit= auth: session | token   rate: 60/min   200: { data: DocHit[] }
 
-POST /workspaces/{ws}/docs/reindex               auth: session   role: owner|pm   HO: yes   body: { source?: string }   202: { data: { runId } }   errors: docs.reindex_running 409
+POST /workspaces/{ws}/docs/reindex               auth: session | token   role: owner|pm   body: { source?: string }   202: { data: { runId } }   errors: docs.reindex_running 409
+POST /workspaces/{ws}/sources/{id}/run            auth: session | token   role: owner|pm   202: { data: { runId } }   errors: docs.reindex_running 409 · workspaces.source_connection_failed 400 (a kind that waits for its token)
+GET /workspaces/{ws}/capture/runs?source=&limit=  auth: session | token   role: owner|pm   200: { data: { id; sourceId; sourceName; kind; startedAt; finishedAt; status; created; updated; error }[] }
+// The stream says how a run went: `source.run` to owner and pm, and `docs.indexed` { sourceId, created, updated, removed } to everyone. A docs run publishes no per-card messages (`quiet`).
 ```
 
 ### 3.16 Capture
 
 ```
-POST /workspaces/{ws}/capture/session            auth: hook token (kind=hook) | mcp token   rate: 60/min/token
-body: HookSessionPayload  (05 §3.2; summarised)
+POST /capture/session                            auth: hook token (kind=hook) | mcp token   rate: 60/min/token
+project: `X-Hub-Project`, else the project whose repoPaths hold `cwd`, else the member's default (15 §5)
+body: hookSessionPayloadSchema in @hub/contracts/capture, as below
   { sessionId: string; reason: 'clear' | 'resume' | 'logout' | 'prompt_input_exit' | 'other' | 'sigterm'; cwd: string; repo: string | null /* source name resolved from git remote */;
     branch: string | null; headSha: string | null; startedAt: string | null; endedAt: string; durationSec: number | null;
     commits: { sha: string; message: string; at: string }[] /* since session start, ≤ 100 */;
     files: { path: string; status: 'A' | 'M' | 'D' | 'R' }[] /* ≤ 300, from git status + diff --name-status */;
     tool?: { version: string } }
-202: { data: { sessionLogId: string; cardKey: CardKey | null /* set when a card already exists for this session */ } }
+202: { data: { sessionLogId: string; cardKey: CardKey | null /* set when a card already exists for this session */; project: string } }
 errors: capture.payload_invalid 400 · identity.token_scope 403
 effects: SessionLog upsert (hookReceivedAt/hookPayload); delayed job `session.reconcile` at +capture.session.hook_grace_minutes (06 §3)
 
-GET /me/context?cwd=<urlencoded cwd>             auth: hook token | mcp token   (workspace = the token's workspace; no {ws} in the path so the hook needs only HUB_URL + token)
-200: text/plain; charset=utf-8  — compact "what's new for you" (≤ 8 000 chars) rendered by digests for SessionStart injection: unread routed items, ready tasks for my roles, my no-summary sessions, last 10 timeline rows; `cwd` lets Hub add the repo/branch hints of the source whose clonePath/app matches
+GET /me/context?cwd=<urlencoded cwd>             auth: hook token | mcp token   (project chosen as for /capture/session; no {ws} in the path, so the hook needs only the URL and token)
+200: { data: { project: string | null; text: string } }  — ≤ 8 500 chars for SessionStart: the active project, what awaits me, ready tasks, my no-summary sessions, latest changes
 errors: identity.token_scope 403 (session cookie not accepted here)
 ```
 
 ```
 GET /workspaces/{ws}/capture/runs?source=&kind=&cursor&limit   auth: session   role: owner|pm   200: { data: CaptureRun[] }
 
-POST /workspaces/{ws}/capture/import/goteav      auth: session   role: owner   HO: yes
-body: { decisionsYaml: string /* contents */; suggestionsYaml: string; statusFiles: { name: string; content: string }[]; contractChangesMd: string | null; dryRun?: boolean }
-202: { data: { runId } } · dryRun → 200: { data: { wouldCreate: Record<CardType, number>; wouldUpdate: Record<CardType, number>; problems: string[] } }
-errors: capture.import_running 409
-// The CLI wrapper `scripts/import-goteav.ts` reads the files from F:\Goteav and calls this endpoint; see 06 §7.
+// The Goteav import has no route: `pnpm import:goteav` runs it in its own process on the owner's machine (06 §7).
 ```
 
 ### 3.17 Inbox and notifications
 
 ```
-type InboxItem = { id; kind; title; body: string | null; card: CardSummary | null; data: { cardKey?; action?: 'decide' | 'acknowledge' | 'deliver' | 'claim' | 'verify' | 'review' }; groupKey; createdAt; readAt; archivedAt }
+type InboxItem = { id; kind; title; body: string | null; card: CardSummary | null; data: { cardKey?; action?: 'decide' | 'acknowledge' | 'deliver' | 'claim' | 'verify' | 'review'; count?: number; link?: { view: string; query?: Record<string, string> } /* where an item with no card leads */; i18nKey?: string; params?: Record<string, string | number> /* what `title` was rendered from, so a page says it in its own language with the card's title as it is now */ }; groupKey; createdAt; readAt; archivedAt }
 
 GET /workspaces/{ws}/inbox                       auth: session | token
-query: { unread?: boolean; kinds?: string[]; cursor?; limit? }   sort: createdAt desc; grouped client-side by groupKey within 30 min
+query: { unread?: boolean; archived?: boolean /* true is the archive */; kinds?: string[]; cursor?; limit? }   sort: createdAt desc; grouped client-side by groupKey within 30 min
 200: { data: InboxItem[], meta: { pagination: { …; total: number /* unread count */ } } }
 
 GET /workspaces/{ws}/inbox/count                 auth: session | token   200: { data: { unread: number; awaitingMe: { decisions: number; needs: number; handoffs: number; reviews: number } } }
 POST /workspaces/{ws}/inbox/{id}/read            auth: session | token   204
 POST /workspaces/{ws}/inbox/read-all             auth: session | token   body: { before?: string }   204
 POST /workspaces/{ws}/inbox/{id}/archive         auth: session | token   204
+POST /workspaces/{ws}/inbox/{id}/unread          auth: session | token   204   (Undo of read)
+POST /workspaces/{ws}/inbox/{id}/unarchive       auth: session | token   204   (Undo of archive)
+// An item on a deleted card hides with the card, from the list and the count (D28), and comes back with it.
+// Acting on a card marks that card's items read for the one who acted, from any surface. The inverse of the act (unclaim after
+// claim, restore after delete, and so on: `notifications/domain/acts.ts`) restores exactly those, so Undo needs no inbox call (review M1).
 ```
 
 ### 3.18 Push and Telegram
@@ -841,18 +961,18 @@ GET /workspaces/{ws}/briefs/weekly/{isoWeek}     auth: session | token   200: { 
 ### 3.20 Releases
 
 ```
-type ReleaseDetail = { version; repo; tag; releasedAt; included: CardSummary[]; notes: { team: Markdown | null; owner: Markdown | null; accountant: Markdown | null } }
+type ReleaseDetail = { version; repo; tag; releasedAt; includedIds: Uuid[]; included: CardSummary[]; notes: { team: Markdown | null; owner: Markdown | null; accountant: Markdown | null } }
 
 GET /workspaces/{ws}/releases?status=&cursor&limit        auth: session | token   200: { data: (CardSummary & { detail: ReleaseDetail })[] }
 PATCH /workspaces/{ws}/releases/{key}            auth: session | token   role: owner|pm   body: { version?; repo?; tag?; includedKeys?: CardKey[]; notes?: Partial<ReleaseDetail['notes']> }   200: CardFull
 POST /workspaces/{ws}/releases/{key}/generate-notes   auth: session | token   role: owner|pm   200: CardFull   effects: notes skeleton rendered from included cards (07 §6.3) only for audiences still null
-POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   HO: no   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X")
+POST /workspaces/{ws}/releases/{key}/release     auth: session   role: owner|pm   body: { releasedAt?: string }   200   planned → released; notification `system` to all members ("Release X"). `CardFull.actions` offers it with `mode: confirm` and no `destructive` (owner decision 6): the web asks first, naming the version and how many cards it ships
 ```
 
 ### 3.21 Audit
 
 ```
-GET /workspaces/{ws}/audit                       auth: session   role: owner|pm
+GET /workspaces/{ws}/audit                       auth: session | token   role: owner|pm
 query: { actor?: string; action?: string /* prefix match */; targetType?; from?; to?; cursor?; limit? }
 200: { data: { id; actor: ActorRef; via; action; targetType; targetId; summary; ip; userAgent; createdAt }[] }
 ```
@@ -860,8 +980,9 @@ query: { actor?: string; action?: string /* prefix match */; targetType?; from?;
 ### 3.22 Events (SSE)
 
 ```
-GET /workspaces/{ws}/events/stream               auth: session (cookie)   Accept: text/event-stream
+GET /workspaces/{ws}/events/stream               auth: session | token   Accept: text/event-stream
 headers: Last-Event-ID supported (replays from Redis stream buffer of the last 500 events, 10 min)
+a cursor too old to resume answers `event: resync` (no id): refetch everything
 keep-alive: `: ping` every 25 s; server closes after 55 min → client reconnects
 ```
 
@@ -871,43 +992,53 @@ These are required by the pages and were not in §3.1–3.22. They follow the sa
 
 ```
 GET /workspaces/{ws}/today                       auth: session | token
-200: { data: { brief: Brief & { generatedNow: boolean }; awaitingMe: CardSummary[]; readyTasks: CardSummary[]; deadlines: CardSummary[];
-               noSummarySessions: { sessionLogId; sessionId; repo; branch; hookReceivedAt; cardKey }[];
-               changesSince: { since: string; events: TimelineRow[]; total: number }; counters: Counters } }
-// composite for the Today page (09 §4); `brief` is the same object as /briefs/today; `since` = member.lastSeenAt of the previous visit
-// (stored per workspace in Redis `seen:<ws>:<user>` and moved forward by POST /workspaces/{ws}/today/seen)
+200: { data: Today }   // the exact shape is `todaySchema` in @hub/contracts/today.ts
+type Today = { date; timezone; now; brief: Brief & { generatedNow: boolean }; awaitingMe: CardWithDetail[]; readyTasks: CardWithDetail[]; deadlines: CardSummary[];
+               noSummarySessions: { sessionLogId; sessionId; repo; branch; at; durationMin; commits; files; cardKey }[];
+               changesSince: { since: string; events: TimelineRow[] /* at most 50 rows, my own left out */; total: number /* events */ };
+               counters: Counters; team: TeamStats; sources: SourceHealth[] /* enabled, problems first */; weekly: Brief | null /* this week's, once stored */ }
+type TeamStats = { week: { iso; from; to }; totals: { key: 'sessions'|'commits'|'prsMerged'|'decided'|'handoffs'|'closed'; value; prev /* the whole previous ISO week */; available: boolean /* false: no source feeds it */ }[];
+                   flow: { type; created; closed }[]; days: string[] /* 14 local dates */; members: { userId; displayName; avatarColor; roles; lastActiveAt; sessions; commits; cardsClosed; handoffsSent; activity: number[]; focus: { key; title; type } | null }[] }
+type SourceHealth = { id; name; kind; status: 'ok'|'lagging'|'failing'|'never_run'; lagSec; lastSuccessAt; lastError; target; runs24h; cards24h }
+// Composite for the Today page (09 §4). Reading it clears nothing. `since` is the previous visit, kept per project in Redis `seen:<ws>:<user>`.
+// There is no sparkline or trend data and no "online" flag: nothing real feeds them (15 §8).
 
-POST /workspaces/{ws}/today/seen                 auth: session   204   effects: lastSeenAt for this workspace = now
+POST /workspaces/{ws}/today/seen                 auth: session | token   204   effects: the visit: clears `counters.newEvents`. The web calls it on visiting Today or Timeline (review M4). Publishes `inbox.read` to the member's other tabs.
 
 GET /workspaces/{ws}/counters                    auth: session | token
 200: { data: Counters }
-type Counters = { inboxUnread: number; awaitingMe: number; decisionsOpen: number; decisionsOverdue: number; needsOpen: number;
-                  handoffsPending: number; tasksReadyForMe: number; redesignInReview: number; noSummarySessions: number }
-// also pushed on the SSE stream as `counters` (§4) after every change that affects the member
+type Counters = { inboxUnread; awaitingMe; decisionsOpen; decisionsMine; decisionsOverdue /* of mine */; needsOpen /* requested, in progress, delivered */; needsMine;
+                  handoffsPending /* pending, acknowledged */; handoffsMine; tasksReadyForMe; redesignInReview; noSummarySessions; newEvents; onboardingLeft;
+                  invitesPending /* owner, pm */; sourceProblems /* owner, pm */; planningOpen /* ideas open or exploring, plans not finished */ }
+// Derived from state on every read, so a badge cannot drift. Not pushed: every card event and `inbox.*` message makes the web refetch it.
 
-GET /workspaces/{ws}/docs/tree                   auth: session | token
-200: { data: { source: { id; name }; folders: { path: string; docs: (CardSummary & { detail: DocDetail })[]; folders: Folder[] }[] }[] }
-// recursive Folder = { path, docs, folders }; sorted path asc; kinds adr/status grouped under their folder
+GET /workspaces/{ws}/docs/tree?source=           auth: session | token
+200: { data: { source: { id; name }; total: number; root: Folder }[] }
+// recursive Folder = { name; path; docs: CardWithDetail[]; folders: Folder[] }; `root` has name and path ''; folders sorted by name, docs by path
+
+GET /workspaces/{ws}/docs/mentions/{cardKey}      auth: session | token   (H5-03)
+200: { data: { mention: string /* as the card wrote it */; key; path; source; title }[] }   // chips on a card. `docs/x.md` matches a doc indexed as `x.md`.
 
 GET /workspaces/{ws}/onboarding                  auth: session | token
 200: { data: { role: Role; items: { id; kind: 'doc' | 'card' | 'url' | 'action'; title; ref: string /* doc path | card key | url | action id */; done: boolean; doneAt }[] }[] }
 // one group per role the member holds; items from settings `onboarding.paths`; `action` items (e.g. "install the team pack") auto-complete when the matching event exists (first api token used)
+// each item also has `cardKey`: a doc item's card once indexed, else null (show "not indexed yet")
 POST /workspaces/{ws}/onboarding/{itemId}/done   auth: session | token   204   effects: OnboardingProgress upsert
 DELETE /workspaces/{ws}/onboarding/{itemId}/done auth: session           204   (undo)
 
 GET /workspaces/{ws}/system                      auth: session   role: owner|pm
-200: { data: { version: { api; web; lab }; sources: { id; name; kind; enabled; lagSec; lastError; lastSuccessAt }[];
+200: { data: { version: { api; web; lab }; sources: { id; name; kind; enabled; lagSec; lastError; lastSuccessAt; consecutiveFailures }[];
                queues: { name; waiting; active; failed; delayed }[]; outbox: { pending; failed; oldestPendingAgeSec };
-               sse: { connections: number }; backup: { lastAt: string | null; sizeBytes: number | null } /* from infra/scripts/backup.sh status file */;
+               sse: { connections: number }; backup: { lastAt: string | null; sizeBytes: number | null } /* null in this release: no backup job runs (15 §3) */;
                db: { sizeBytes; cards; events }; worker: { alive: boolean; lastHeartbeatAt } } }
 
-GET /workspaces/{ws}/audit?…&format=csv          auth: session   role: owner|pm
-200: text/csv (same filters as 3.21; UTF-8 with BOM; columns id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip)   max 50 000 rows → else 400 audit.export_too_large
+GET /workspaces/{ws}/audit/export.csv?…          auth: session | token   role: owner|pm
+200: text/csv (same filters as 3.21; UTF-8 with BOM; columns id,createdAt,actorKind,actorId,actorName,via,action,targetType,targetId,summary,ip; a cell that looks like a formula is prefixed with ')   max 50 000 rows → else 400 audit.export_too_large
 
-POST /workspaces/{ws}/members/{userId}/disable   auth: session   role: owner   HO: yes   204
+POST /workspaces/{ws}/members/{userId}/disable   auth: session | token   role: owner|pm   204
 effects: User.status=disabled when the user has no other active workspace; otherwise Membership.status=removed (same effects as /remove); sessions + tokens revoked; audit
-POST /workspaces/{ws}/members/{userId}/enable    auth: session   role: owner   HO: yes   204
-POST /workspaces/{ws}/members/{userId}/password-reset-link   auth: session   role: owner|pm   HO: yes
+POST /workspaces/{ws}/members/{userId}/enable    auth: session   role: owner   204
+POST /workspaces/{ws}/members/{userId}/password-reset-link   auth: session   role: owner|pm
 201: { data: { url: string /* shown once, 24 h */ } }   effects: PasswordReset row; audit (url never logged)
 
 POST /me/channels/{channel}/test                 auth: session   (channel ∈ push | telegram | email)
@@ -935,19 +1066,21 @@ Every message: `id: <redis stream id>`, `event: <name>`, `data: <json>`.
 
 | event | data | emitted when |
 | --- | --- | --- |
-| `card.created` | `{ key, type, status, ownerRole, createdBy: ActorRef }` | any card created |
-| `card.updated` | `{ key, type, status, changed: string[] /* field names or 'status' */, lastEventAt }` | any card mutation (one per transaction) |
-| `card.event` | `{ key, event: Event }` | each `card_event` row (the timeline consumes this) |
-| `comment.created` | `{ key, comment: Comment }` | |
-| `inbox.new` | `{ item: InboxItem, unread: number }` | notification for **this** member |
-| `inbox.read` | `{ ids: string[], unread: number }` | read elsewhere (another tab/device) |
+| `card.created` | `{ key, type, status, kind, lastEventAt, actor: { kind, userId, via } }` | a card's `created` event |
+| `card.updated` | same | any other event of a card |
+| `card.event` | `{ key, event: { id, seq, kind, actor, via, createdAt } }` | each `card_event` row (the timeline consumes this) |
+| `comment.created` | `{ key, eventId }` | a comment. These messages carry no text: a page refetches through the API, where the member's permissions apply |
+| `resync` | `{ reason }` | `Last-Event-ID` too old to resume |
+| `inbox.new` | `{ id, kind, cardKey, action, unread }`, no text: the page reads the item through the API | notification for **this** member |
+| `inbox.read` | `{ ids: string[], unread: number }` | read, restored, archived or read-all elsewhere (another tab or device, or acting on the card) |
 | `brief.ready` | `{ kind, date }` | morning/weekly brief stored for this member |
 | `source.run` | `{ sourceId, status: 'running' | 'ok' | 'failed', created, updated, lagSec }` | owner/pm only |
 | `workspace.updated` | `{ counts: Workspace['counts'] }` | throttled to 1/5 s |
+| `project.updated` | `{ scope: 'members' \| 'invites' \| 'settings' \| 'sources' \| 'project' }` | after any change to them, from REST or MCP; open pages reread |
 
-Routing: the worker/API publishes to Redis channel `ws:<workspaceId>` with an envelope
-`{ event, data, audience: 'all' | { userIds: string[] } | { roles: Role[] } }`; the SSE controller
-filters per connection. The client invalidates TanStack Query keys: `['card', key]`,
+Routing: the worker/API publishes to Redis channel `ws:<workspaceId>:events` through `RealtimePublisher`. A card event is
+for every member. Anything else uses `publishEnvelope` with `{ event, data, audience: 'all' | { userIds: string[] } | { roles: Role[] } }`;
+the SSE controller filters per connection. Each message also joins the stream `ws:<workspaceId>:stream`, whose id is the SSE `id:`. The client invalidates TanStack Query keys: `['card', key]`,
 `['timeline']`, `['inbox']`, `['counts']`.
 
 ## 5. OpenAPI export and client generation

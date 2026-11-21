@@ -1,0 +1,219 @@
+{
+  "hub": {
+    "skills": {
+      "not_found": "This skill is not one of Hub's skills.",
+      "personal_not_found": "This personal skill is no longer in your skills folder.",
+      "name_taken": "Hub already has a skill named {name}. Choose another name.",
+      "core_read_only": "{name} is one of Hub's own protocols. It changes with Hub's code, not here.",
+      "stale_base": "This skill changed since you opened it. Reload it, then save again.",
+      "too_large": "This skill is too large to copy: up to {files} files and {megabytes} MB in all.",
+      "not_text": "{file} is not a text file, so the skill was not copied. A skill in Hub is text only.",
+      "unavailable": "Hub's skills folder cannot be reached on the main machine.",
+      "revision_not_found": "This earlier text no longer exists."
+    },
+    "backups": {
+      "not_found": "This backup no longer exists.",
+      "running": "A backup is already running. Wait for it to finish.",
+      "folder_invalid": "Use a full folder path on this machine, such as F:/HubBackups.",
+      "folder_in_repo": "This folder is inside a Git checkout. Choose a folder outside every repository, so a backup is never committed.",
+      "wrong_state": "This backup has changed. Reload the page."
+    },
+    "common": {
+      "validation": "The request is not valid.",
+      "unauthorized": "Sign in to continue.",
+      "forbidden": "You do not have permission to do this.",
+      "not_found": "Not found.",
+      "conflict": "This conflicts with existing data.",
+      "payload_too_large": "The request is too large.",
+      "idempotency_key_reused": "This idempotency key was used with a different body.",
+      "rate_limited": "Too many requests. Try again shortly.",
+      "internal": "Something went wrong on our side.",
+      "unavailable": "The service is not available right now."
+    },
+    "identity": {
+      "invalid_credentials": "Wrong email or password.",
+      "locked": "Too many failed attempts. Try again later.",
+      "totp_required": "Enter your verification code.",
+      "totp_invalid": "The verification code is wrong or expired.",
+      "totp_setup_required": "Your role requires two-step verification. Set it up first.",
+      "totp_already_enabled": "Two-step verification is already on.",
+      "totp_not_enabled": "Two-step verification is not on.",
+      "session_expired": "Your session expired.",
+      "refresh_invalid": "Sign in again.",
+      "token_invalid": "The API token is not valid.",
+      "token_revoked": "The API token was revoked.",
+      "token_scope": "This token cannot call this route.",
+      "account_disabled": "This account is disabled.",
+      "invite_invalid": "This invite is not valid.",
+      "invite_expired": "This invite has expired.",
+      "invite_accepted": "This invite was already accepted.",
+      "invite_revoked": "This invite was revoked. Ask the project owner for a new one.",
+      "invite_other_account": "You are signed in as someone else. Sign out, then open the invite link again to create the invited account.",
+      "email_taken": "This email is already in use.",
+      "password_weak": "Choose a stronger password of at least 12 characters.",
+      "reset_invalid": "This reset link is not valid."
+    },
+    "workspaces": {
+      "not_found": "Project not found.",
+      "no_project": "No project selected. Pass a project, link this folder, or switch to one.",
+      "slug_taken": "This project slug is taken.",
+      "key_prefix_taken": "This key prefix is taken.",
+      "closed": "This project is closed.",
+      "last_owner": "A project needs at least one owner.",
+      "role_invalid": "Unknown role.",
+      "member_removed": "This member was removed.",
+      "setting_unknown": "Unknown setting.",
+      "setting_invalid": "This value is not valid for the setting.",
+      "source_kind_invalid": "Unknown source kind.",
+      "source_dependency_missing": "This source needs a repository source first.",
+      "source_connection_failed": "Could not connect to the source.",
+      "source_run_in_progress": "This source is already running."
+    },
+    "cards": {
+      "not_found": "Card not found.",
+      "type_mismatch": "This action does not apply to this card type.",
+      "invalid_transition": "This card cannot move to that status from where it is.",
+      "archived": "This card is deleted. Restore it first.",
+      "link_self": "A card cannot link to itself.",
+      "link_exists": "This link already exists.",
+      "link_cycle": "This link would form a cycle.",
+      "comment_not_found": "Comment not found.",
+      "comment_not_author": "Only the author can edit this comment.",
+      "external_key_exists": "A card with this external key already exists."
+    },
+    "tasks": {
+      "already_claimed": "This task is already claimed.",
+      "not_claimer": "Only the member who claimed this task can do this.",
+      "blocked": "This task is blocked by an open card.",
+      "specialty_role_mismatch": "This task is outside your roles."
+    },
+    "decisions": {
+      "not_decider": "This decision is routed to another role.",
+      "already_decided": "This decision was already made.",
+      "option_not_found": "That option is not on this decision.",
+      "options_min": "A decision needs at least two options.",
+      "adr_source_missing": "No repository is set up for this ADR.",
+      "adr_not_drafted": "Draft the ADR first.",
+      "adr_already_open": "A pull request is already open for this ADR.",
+      "adr_pr_failed": "GitHub refused the pull request."
+    },
+    "needs": {
+      "not_responsible": "This need is routed to another role.",
+      "location_required": "Say where the value was put.",
+      "self_verify_note_required": "Verifying your own delivery needs a note."
+    },
+    "handoffs": {
+      "not_recipient": "This handoff is routed to another role.",
+      "already_acknowledged": "This handoff was already acknowledged."
+    },
+    "redesign": {
+      "owner_only": "Only the owner can do this.",
+      "not_in_review": "This version is not in review.",
+      "lab_unavailable": "The lab folder is not available.",
+      "write_failed": "Could not write the status to the lab."
+    },
+    "plans": {
+      "step_not_found": "That step is not on this plan.",
+      "revision_not_found": "That revision does not exist.",
+      "unknown_phase": "A step names a phase this plan does not have: {phase}. Add the phase, or leave the step without one.",
+      "phase_in_use": "Steps still belong to the phase {phase}. Move them to another phase, or leave them without one, in the same save.",
+      "evidence_type": "Hub keeps PNG, JPEG or WebP pictures and MP4 or WebM clips. This file is none of them.",
+      "evidence_too_large": "The file is too large: a picture up to 8 MB, a clip up to 40 MB.",
+      "evidence_damaged": "The picture cannot be read. Save it again and send it once more.",
+      "evidence_kind": "A clip is the kind video, and a picture is before or after.",
+      "evidence_full": "This step already has {max} files of evidence. Remove one first.",
+      "evidence_not_found": "That evidence is not on this step.",
+      "evidence_file_not_found": "Hub cannot read that file. It must be inside one of the project's folders on the machine Hub runs on.",
+      "explainer_not_requested": "No explainer video was asked for on this plan. Ask for one from the plan's page first.",
+      "explainer_stale": "This film explains revision {revision}, but the plan asked for revision {asked}. Make it again from the plan as it is.",
+      "explainer_captions": "The captions file is not WebVTT text. It must start with WEBVTT."
+    },
+    "docs": {
+      "not_found": "Document not found.",
+      "reindex_running": "Indexing is already running.",
+      "stale_base": "This document changed after you read it. Read it again, then save.",
+      "draft_not_found": "That draft is not open any more.",
+      "draft_flags_open": "This draft has flagged claims with no answer yet, so it was not saved.",
+      "draft_target_missing": "A draft must name an existing document, or a source and a path for a new file.",
+      "claim_not_in_draft": "A flagged claim must appear in the draft word for word.",
+      "bad_path": "That path is not a Markdown file inside this source.",
+      "source_not_writable": "That source is not a local folder of documents.",
+      "base_required": "Saving over an existing document needs the version you read.",
+      "too_large": "This document is too large to save.",
+      "revision_not_found": "No such revision.",
+      "unavailable": "The device that holds this document is not reachable.",
+      "image_bad_path": "That image address is not a file inside this document’s source.",
+      "image_type_refused": "Only png, jpg, gif, webp and svg images are served.",
+      "image_not_found": "That image is not in this document’s source.",
+      "image_too_large": "That image is larger than 10 MB, so Hub does not serve it."
+    },
+    "capture": {
+      "payload_invalid": "The hook payload is not valid.",
+      "import_running": "An import is already running.",
+      "source_disabled": "This source is disabled."
+    },
+    "notifications": {
+      "push_invalid_subscription": "This push subscription is not valid.",
+      "telegram_code_invalid": "This Telegram code is not valid.",
+      "telegram_already_linked": "Telegram is already linked.",
+      "channel_invalid": "Unknown channel."
+    },
+    "github": {
+      "auth_failed": "GitHub rejected the token.",
+      "rate_limited": "GitHub rate limit reached. Try again later.",
+      "repo_not_found": "Repository not found on GitHub.",
+      "clone_failed": "Could not clone the repository."
+    },
+    "security": {
+      "secret_detected": "This looks like a secret ({pattern} in {field}). Say where the value is kept, not the value."
+    },
+    "audit": {
+      "export_too_large": "Too many rows to export. Narrow the filters."
+    },
+    "chats": {
+      "not_found": "No such chat.",
+      "turn_running": "This chat is already working on a turn. Wait for it, or stop it.",
+      "folder_busy": "The chat \"{title}\" is working in this folder now. Two turns in one folder edit the same files. Wait for it, or send anyway.",
+      "not_running": "This chat has no turn running.",
+      "folder_not_allowed": "That folder is not registered on this project. Link it first.",
+      "approval_not_found": "No such approval.",
+      "approval_answered": "This approval was already answered, on this or another device.",
+      "approval_expired": "This approval has ended: nobody answered in time, or the turn stopped.",
+      "template_not_found": "No such template.",
+      "message_not_found": "That message is not in this chat.",
+      "nothing_to_retry": "There is no earlier message to retry.",
+      "report_contradicted": "This report says a check passed, and the real step failed. Nothing was stored on the card.",
+      "approval_device_offline": "The device went offline, so nothing can run on this answer. Its turn was stopped and marked as cut off. Send again once the device is back.",
+      "suggestion_not_found": "This proposal is no longer in the chat.",
+      "suggestion_answered": "This proposal was already accepted or dismissed."
+    },
+    "devices": {
+      "not_found": "No such device.",
+      "offline": "That device is offline. Start its bridge, then try again.",
+      "timeout": "The device did not answer in time.",
+      "refused": "The device refused this.",
+      "folder_missing": "That folder does not exist on the device.",
+      "vscode_missing": "VS Code was not found on that device. Install it, or copy the prompt instead.",
+      "pairing_not_found": "That code is not valid, or it has expired. Run the command again.",
+      "pairing_closed": "This code was already answered."
+    },
+    "queue": {
+      "run_not_found": "This run no longer exists.",
+      "card_not_runnable": "This card cannot run in the queue. Only an open task, a plan step or a prompt can.",
+      "plan_step_missing": "The plan has no such step.",
+      "wrong_state": "The run has moved on, so this no longer applies. Reread the queue.",
+      "timezone_invalid": "That timezone is not one this machine knows.",
+      "no_worktree": "This run has no copy of its own to remove.",
+      "worktree_dirty": "The run's copy has changes not committed. Commit or discard them in {folder}, then remove it.",
+      "worktree_failed": "Hub could not make or remove the run's copy: {reason}"
+    },
+    "schema": {
+      "no_source": "No schema source is set for this project yet. Set the repository folder first.",
+      "folder_not_allowed": "This folder is not one of the project's folders.",
+      "unreadable": "The schema files could not be read from this folder.",
+      "draft_not_found": "This draft no longer exists.",
+      "draft_wrong_state": "The draft's status has changed, so this is no longer possible. Reload the page."
+    }
+  },
+  "hub.audit.export_too_large": "Too many rows to export. Narrow the filters."
+}

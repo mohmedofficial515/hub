@@ -1,0 +1,19 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Copied from F:/Goteav/backend/pnpm-workspace.yaml: only the build scripts we trust run on install.
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@swc/core'
+  - 'argon2'
+  - 'esbuild'
+  - 'prisma'
+  - 'sharp'
+  - 'cpu-features'
+  - 'ssh2'
+  - 'protobufjs'
+
+patchedDependencies:
+  'nestjs-zod@5.5.0': 'patches/nestjs-zod@5.5.0.patch'

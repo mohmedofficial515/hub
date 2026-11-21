@@ -75,19 +75,19 @@ H0-03  Identity                                                     after: H0-02
 H0-04  Workspaces, roles, settings, sources                         after: H0-03
   Reads:        00 D08, D15, D16 · 03 §3–§4 · 04 (workspaces, members, settings, sources)
   Deliverables: modules/workspaces: create workspace (slug, keyPrefix, timezone, locale), memberships with roles (≥1 owner invariant), settings catalogue (Zod per key from 03 §4.2, defaults, PATCH with validation), sources CRUD (config per kind from 03 §4.3, secretEnc with AES-256-GCM, enable/disable), GithubIdentity mapping on members, OnboardingProgress endpoints
-  Acceptance:   removing the last owner answers 409; settings reject unknown keys and wrong types with 400 + path; source secrets never appear in any response (arch test scans DTOs); workspace slug is in every app URL
+  Acceptance:   removing the last owner answers 409; settings reject unknown keys with 404 and wrong types with 400 + path (04 §3.6); source secrets never appear in any response (arch test scans DTOs); workspace slug is in every app URL
   Tests:        e2e per endpoint; unit for the settings catalogue (every key has a default and a schema); arch: no DTO contains secretEnc/passwordHash/tokenHash
 
 H0-05  Card core, timeline, realtime                                after: H0-04
   Reads:        01 §4, §5.1 · 03 §5, §12 · 04 (cards, timeline, SSE) · 08 (none) · 09 (Timeline, card page — data needs only)
-  Deliverables: modules/cards: CardService.apply (single mutation path: permission + human_only + transition + event + audit + outbox + search refresh + redis publish), card keys (UPDATE … RETURNING on workspace.card_seq), CardQuery (filters from 04), links (blocks/blocked_by/relates/parent/duplicates with cycle check), comments (secret filter, mentions, redaction), watchers (auto reasons), archive/restore, timeline query over card_events with the 30-minute collapse hint, generic endpoints, modules/audit (interceptor + list), modules/realtime (Redis pub/sub → SSE per member, heartbeat, Last-Event-ID resume for 10 minutes)
-  Acceptance:   every mutation produces exactly one card_event with seq n+1 and one audit row in the same transaction (arch test); invalid transitions answer 409 hub.cards.invalid_transition; agent actors are refused on human_only actions with 403 hub.cards.human_only; timeline for 50k seeded events answers < 100 ms (seed script in 11); SSE delivers an event within 500 ms of commit
+  Deliverables: modules/cards: CardService.apply (single mutation path: permission + transition + event + audit + outbox + search refresh + redis publish), card keys (UPDATE … RETURNING on workspace.card_seq), CardQuery (filters from 04), links (blocks/blocked_by/relates/parent/duplicates with cycle check), comments (secret filter, mentions, redaction), watchers (auto reasons), archive/restore, timeline query over card_events with the 30-minute collapse hint, generic endpoints, modules/audit (interceptor + list), modules/realtime (Redis pub/sub → SSE per member, heartbeat, Last-Event-ID resume for 10 minutes)
+  Acceptance:   every mutation produces exactly one card_event with seq n+1 and one audit row in the same transaction (arch test); invalid transitions answer 409 hub.cards.invalid_transition; the actor's kind is recorded and never refuses (D27); timeline for 50k seeded events answers < 100 ms (seed script in 11); SSE delivers an event within 500 ms of commit
   Tests:        unit: transitions per type, link cycle detection, secret filter integration, collapse grouping; e2e: create → comment → link → archive flow for each type; load test script committed
 
 H0-06  Type modules (actions)                                       after: H0-05
   Reads:        01 §4.1–4.2, §5.3 (without ADR PR) · 03 §6 · 04 (tasks, decisions, needs, handoffs, redesign, docs, releases actions and permission matrix)
-  Deliverables: modules/tasks (claim/unclaim/start/submit_review/complete/reopen/cancel, branch binding, ready-for-role list with tasks.ready_limit_per_role), modules/decisions (create with options + decider role + due default, decide with rationale → unblock linked cards, withdraw/supersede; ADR fields persisted, adrStatus=drafted on draft; no GitHub yet), modules/needs (create, start, deliver with location through the secret filter, verify, cancel), modules/handoffs (create manual, acknowledge, apply with optional task creation, dismiss human-only), modules/redesign + docs + releases: entities, create/read, status transitions only (no lab or Git behaviour yet), digests: handoff prompt + ADR skeleton + task prompt render (templates from 07)
-  Acceptance:   permission matrix of 04 §2 is implemented as a table and the arch test checks every (action × role × actorKind) cell against it; decide by a user without the decider role → 403; decide via MCP token → 403 human_only; deliver with a value that looks like a token → 400 hub.security.secret_detected naming the pattern; a decided decision emits unblocked on every card it blocked
+  Deliverables: modules/tasks (claim/unclaim/start/submit_review/complete/reopen/cancel, branch binding, ready-for-role list with tasks.ready_limit_per_role), modules/decisions (create with options + decider role + due default, decide with rationale → unblock linked cards, withdraw/supersede; ADR fields persisted, adrStatus=drafted on draft; no GitHub yet), modules/needs (create, start, deliver with location through the secret filter, verify, cancel), modules/handoffs (create manual, acknowledge, apply with optional task creation, dismiss), modules/redesign + docs + releases: entities, create/read, status transitions only (no lab or Git behaviour yet), digests: handoff prompt + ADR skeleton + task prompt render (templates from 07)
+  Acceptance:   permission matrix of 04 §2 is implemented as a table and the arch test checks every (action × role × actorKind) cell against it; decide by a user without the decider role → 403; decide via an MCP token of a permitted member succeeds and records `via: mcp` (D27); deliver with a value that looks like a token → 400 hub.security.secret_detected naming the pattern; a decided decision emits unblocked on every card it blocked
   Tests:        e2e per action; unit for template renderers with golden files (ar + en)
 
 H0-07  Web skeleton, auth pages, shell                              after: H0-03 (can run in parallel with H0-05/06)
@@ -104,8 +104,8 @@ H0-08  Web pages: timeline, card, tasks, decisions, needs, handoffs, members, se
 
 H0-09  Goteav importer and seed                                     after: H0-06
   Reads:        06 (importer section) · 03 §4.2 (onboarding.paths, modules.catalogue), §5.1 import keys · the source files under F:\Goteav\backend\docs\map\data, docs\status, F:\Goteav\.goteav-ops\contract-changes.md
-  Deliverables: modules/capture importer + scripts/import-goteav.ts (`pnpm import:goteav --workspace goteav --root F:\Goteav`): decisions YAML → decision cards, suggestions YAML → task cards with prompts, status notes → doc cards (kind status) + the release card, contract-changes bullets → applied handoff cards dated from the bullet, modules catalogue, onboarding paths per role; idempotent on re-run; scripts/seed-dev.ts for a demo workspace
-  Acceptance:   running the importer twice creates no duplicates; counts reported (created/updated/skipped); every imported card links back to its source path in body; the Goteav workspace shows 67 tasks from suggestions with their priority/effort and the decisions with options
+  Deliverables: modules/capture importer + apps/api/scripts/import-goteav.ts (`pnpm import:goteav --workspace goteav --root F:/Goteav`): decisions YAML → decision cards, suggestions YAML → task cards with prompts, status notes → doc cards (kind status) + the release card, contract-changes bullets → applied handoff cards dated from the bullet, modules catalogue, onboarding paths per role; idempotent on re-run; scripts/seed-dev.ts for a demo workspace
+  Acceptance:   running the importer twice creates no duplicates; counts reported (created/updated/skipped); every imported card links back to its source path in body; the Goteav workspace shows a task per suggestion (76 on 2026-11-05) with their priority/effort and the decisions with options
   Tests:        unit with fixture copies of the YAML/MD files; e2e import on Testcontainers
 
 H0-10  Compose stack, images, Caddy, host script (first cut)        after: H0-08, H0-09
@@ -126,7 +126,7 @@ needs and handoffs; Today page v1.
 H1-01  MCP server and core tools                                     after: H0-06
   Reads:        01 §7 · 05 (server, conventions, tools: get_project_brief, whats_new, get_card, list_cards, list_tasks, claim_task, update_task, create_task, update_card, comment, link_cards) · 04 §2 (agent column)
   Deliverables: modules/mcp with @modelcontextprotocol/sdk Streamable HTTP mounted at /mcp (stateless), bearer → actor, rate limit, the listed tools with Zod schemas and Markdown outputs exactly as 05, error mapping to MCP tool errors (isError + code)
-  Acceptance:   `claude mcp add --transport http hub https://localhost/mcp --header "Authorization: Bearer <token>"` works from a developer machine; tools/list shows the catalogue with descriptions; claim_task from Claude Code produces the same events as the web; human_only tools are absent from the catalogue (not merely refused)
+  Acceptance:   `claude mcp add --transport http hub https://localhost/mcp --header "Authorization: Bearer <token>"` works from a developer machine; tools/list shows the catalogue with descriptions; claim_task from Claude Code produces the same events as the web; every web mutation has a tool (D27, docs/15 §6)
   Tests:        unit with the SDK in-memory client per tool (happy + permission + validation); e2e over HTTP with a real token; arch: every tool name exists in @hub/contracts/mcp/tools.ts
 
 H1-02  Session logging and reconciliation                            after: H1-01
@@ -138,11 +138,11 @@ H1-02  Session logging and reconciliation                            after: H1-0
 H1-03  Decision, need, handoff, brief and ADR-draft tools            after: H1-01
   Reads:        05 (request_decision, get_decision, create_need, list_needs, create_handoff, list_handoffs, acknowledge_handoff, save_brief, draft_adr) · 03 §10 (Brief)
   Deliverables: the listed tools; Brief table + save_brief; draft_adr stores adrBody and sets adrStatus=drafted (PR comes in H3-06)
-  Acceptance:   an agent can open a decision routed to accountant with a deadline and the card shows "opened by agent (member)"; decide remains impossible via MCP; acknowledge_handoff via MCP allowed, dismiss not
+  Acceptance:   an agent can open a decision routed to accountant with a deadline and the card shows "opened by agent (member)"; decide works through MCP for whoever holds the role, as on the web (D27)
   Tests:        unit per tool; e2e: request_decision → web decide → get_decision returns rationale
 
 H1-04  Prompts and resources                                         after: H1-02, H1-03
-  Reads:        05 (prompts /hub:start, /hub:next, /hub:done, /hub:decision, /hub:need; resources hub://brief/today, hub://card/{key}, hub://decisions/open, hub://handoffs/pending) — /hub:ask and hub://doc arrive in H2-06
+  Reads:        05 (prompts /hub:start, /hub:next, /hub:done, /hub:decision, /hub:need; resources hub://brief/today, hub://card/{key}, hub://decisions/open, hub://handoffs/pending) — /hub:ask and /hub:plan are skills (D26)
   Deliverables: registerPrompt/registerResource implementations with the exact texts in 05
   Acceptance:   `/hub:start` in Claude Code narrates today's sections and lists no-summary sessions; `/hub:done` ends with a log_session call (verified in the SessionLog); prompt texts contain the no-secrets rule
   Tests:        unit: prompt text golden files; manual checklist recorded in the status note
@@ -207,7 +207,7 @@ H2-06  Docs indexer, docs pages, search, ask                         after: H2-0
 
 H2-07  System page and metrics                                       after: H2-02
   Reads:        01 §11 · 09 (Settings › System) · 13 (monitoring)
-  Deliverables: /metrics (prom-client, bearer METRICS_TOKEN), Settings › System (source lag, outbox backlog, last backup, versions), in-app alert when a source has failed 3 runs
+  Deliverables: /metrics (plain Prometheus text, no prom-client: a handful of gauges does not earn a dependency; bearer METRICS_TOKEN), Settings › System (source lag, outbox backlog, last backup, versions), in-app alert when a source has failed 3 runs
   Acceptance:   values update live; a stopped worker is visible within 5 minutes
   Tests:        e2e metrics endpoint; vitest System page states
 

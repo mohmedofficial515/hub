@@ -17,7 +17,7 @@ hub/
 ├── apps/
 │   ├── api/                             # NestJS: REST + MCP + worker (one image, PROCESS_ROLE)
 │   ├── web/                             # Next.js 15 app
-│   └── lab/                             # redesign lab (moved from F:\Goteav\redesign), Vite 8
+│   └── lab/                             # The redesign lab: Vite, versions and screenshots, served by Hub at /lab (docs/16 §6)
 ├── packages/
 │   ├── contracts/                       # @hub/contracts — Zod schemas + TS types shared by api, web, team-pack
 │   └── team-pack/                       # @hub/team-pack — Claude Code plugin + `hub` CLI installer
@@ -42,13 +42,18 @@ typecheck      pnpm -r typecheck
 lint           eslint . && prettier --check .
 test           pnpm -r test
 test:e2e       pnpm --filter @hub/api test:e2e && pnpm --filter @hub/web test:e2e
-check          pnpm lint && pnpm typecheck && pnpm test && pnpm --filter @hub/web api:check
+check          pnpm lint && pnpm typecheck && arch:check && pnpm test && openapi:export && pnpm --filter @hub/web api:check
 api:sync       pnpm --filter @hub/api openapi:export && pnpm --filter @hub/web api:sync
 db:migrate     pnpm --filter @hub/api prisma:migrate
 compose:up     docker compose -f infra/compose.dev.yaml up -d
 ```
 
 ## apps/api
+
+**How to add a card type, an action, an endpoint or an MCP tool: `apps/api/README.md`.** Reality differs
+from the tree below in three small ways: `prisma.config.ts` sits at `apps/api/`; ESLint is one root config
+(`eslint.config.mjs` with `tools/eslint/`), so `apps/web` has no config of its own; and modules gain their
+folders as they gain code.
 
 ```
 apps/api/
@@ -85,6 +90,7 @@ apps/api/
 │   └── modules/
 │       ├── identity/      workspaces/     cards/        tasks/         decisions/     needs/
 │       ├── handoffs/      redesign/       docs/         capture/       github/        notifications/
+│       ├── digests/       today/          search/       scheduler/     system/  (system runs local sources and answers /system and /metrics)
 │       ├── digests/       mcp/            audit/        realtime/      health/
 │       └── <module>/
 │           ├── index.ts                   # PUBLIC API of the module (facade + types)
@@ -137,28 +143,29 @@ apps/web/
 
 ## apps/lab
 
-The current `F:\Goteav\redesign` tree moves here unchanged except paths:
+The lab tree, copied from `F:\Goteav\redesign` in the Workbench release (docs/16 §6), unchanged except paths:
 
 ```
 apps/lab/
 ├── package.json  vite.config.ts  tsconfig.json  README.md  PLAN.md
 ├── lab/  shared/  _templates/  web/<page>/…  dashboard/<page>/…      # as today
-└── .hub/lab.config.json                 # { "sources": { "web": "../../..//goteav-web/src", "dashboard": "../../../goteav-dashboard/src" } } — overridable by env LAB_WEB_SRC / LAB_DASH_SRC
 ```
 
-`vite.config.ts` reads the two source roots from env or `lab.config.json` instead of the hard-coded
-`../web/src` / `../Goteav-Dashboard/src`; on a developer machine with the Goteav checkouts next to
-`hub/` nothing else changes. On the host the `lab` image build clones the two repos at build time
-(`13-operations.md` §5). Base path `/lab/` (`vite build --base=/lab/`).
+`vite.config.ts` reads the two source roots from `LAB_WEB_SRC` and `LAB_DASH_SRC`, by default
+`../../../web/src` and `../../../Goteav-Dashboard/src`, so a machine with the Goteav checkouts next to
+`hub/` needs nothing. Base path `/lab/`, on the dev server too, because Hub's proxy serves it there. The lab
+only reads those projects. Version folders keep their exact bytes (`.gitattributes`), and ESLint and Prettier skip
+`apps/lab`. Its `typecheck` covers the gallery core; `typecheck:versions` is the slow one over every version and the
+sibling projects, and is not part of `pnpm check`. `build:static` is not part of `pnpm build`.
 
 ## packages/contracts
 
 ```
 packages/contracts/src/
 ├── index.ts
-├── cards/  card.ts  task.ts  decision.ts  need.ts  change.ts  handoff.ts  redesign.ts  doc.ts  release.ts   # Zod payload schemas + status enums + transitions tables
-├── roles.ts  events.ts (event kinds)  errors.ts (codes)  secret-patterns.ts
-├── mcp/ tools.ts (input/output schemas of every MCP tool)  prompts.ts
+├── cards/  card.ts  machine.ts  task.ts  decision.ts  need.ts  change.ts  handoff.ts  redesign.ts  doc.ts  release.ts  idea.ts  plan.ts   # Zod payload schemas + status enums + machines (CARD_MACHINES)
+├── roles.ts  actor.ts (Principal, Actor)  permissions.ts (matrix as data)  projects.ts  events.ts (event kinds, realtime message)  errors.ts (codes)  secret-patterns.ts
+├── mcp/ tools.ts (the tool table; input schemas arrive with H1-01)  prompts.ts (H1-01)
 └── capture/ session-log.ts  hook-payload.ts  oasdiff.ts
 ```
 

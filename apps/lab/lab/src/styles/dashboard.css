@@ -1,0 +1,7 @@
+/* Live tokens from the dashboard. vite.config.ts fills in __DASH_SRC__. */
+@import '__DASH_SRC__/app/globals.css';
+
+@source '../../../dashboard';
+@source '../../../shared';
+@source '../frame';
+@source '__DASH_SRC__/components/ui';

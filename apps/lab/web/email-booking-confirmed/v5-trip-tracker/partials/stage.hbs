@@ -1,0 +1,14 @@
+<td width="25%" align="center" style="width:25%;vertical-align:top;text-align:center;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="vertical-align:middle;">{{#unless first}}<div class="{{#if (eq state 'todo')}}todo-line{{else}}done-line{{/if}}" style="height:4px;font-size:0;line-height:0;background-color:{{#if (eq state 'todo')}}#dbe3e8{{else}}#067a7a{{/if}};"></div>{{/unless}}</td>
+    <td width="34" align="center" style="width:34px;">
+      {{#if (eq state 'done')}}<div class="done-node" style="width:34px;height:34px;border-radius:17px;background-color:#067a7a;color:#ffffff;font-size:18px;font-weight:800;line-height:34px;text-align:center;">&#10003;</div>{{/if}}
+      {{#if (eq state 'now')}}<div class="now-node" style="width:34px;height:34px;border-radius:17px;background-color:#1f325c;color:#ffffff;font-size:18px;font-weight:800;line-height:34px;text-align:center;">&#10003;</div>{{/if}}
+      {{#if (eq state 'todo')}}<div class="todo-node" style="width:30px;height:30px;border-radius:17px;border:2px solid #b7c4cf;background-color:#ffffff;font-size:0;line-height:30px;">&nbsp;</div>{{/if}}
+    </td>
+    <td style="vertical-align:middle;">{{#unless last}}<div class="{{#if (eq state 'done')}}done-line{{else}}todo-line{{/if}}" style="height:4px;font-size:0;line-height:0;background-color:{{#if (eq state 'done')}}#067a7a{{else}}#dbe3e8{{/if}};"></div>{{/unless}}</td>
+  </tr>
+  </table>
+  <div class="stage {{#if (eq state 'todo')}}muted{{else}}ink{{/if}}" style="margin-top:8px;padding:0 2px;font-size:13px;line-height:1.35;font-weight:{{#if (eq state 'now')}}800{{else}}600{{/if}};color:{{#if (eq state 'todo')}}#5b6a7e{{else}}#1f325c{{/if}};">{{label}}</div>
+</td>

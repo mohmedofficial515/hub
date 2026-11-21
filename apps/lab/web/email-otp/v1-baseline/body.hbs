@@ -1,0 +1,7 @@
+<h1 style="margin:0 0 16px;font-size:22px;color:#0b3d5c;">{{t 'emails.identity.otp.title'}}</h1>
+{{> greeting}}
+<p style="margin:0 0 16px;">{{t 'emails.identity.otp.body' siteName=siteName}}</p>
+{{> code code=code}}
+<p style="margin:0 0 8px;">{{t 'emails.identity.otp.expires' minutes=expiresInMinutes}}</p>
+<p style="margin:0;color:#6b7280;">{{t 'emails.identity.otp.ignore'}}</p>
+{{> signature}}

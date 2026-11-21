@@ -1,0 +1,236 @@
+{
+  "title": "Agent queue",
+  "tabs": {
+    "label": "Queue views",
+    "queue": "Queue",
+    "live": "Running now",
+    "running": {
+      "one": "1 chat running",
+      "other": "# chats running"
+    }
+  },
+  "summary": "{concurrent} at a time · {used} of {perDay} runs today",
+  "quiet": "Quiet {from}–{to}",
+  "timezone": "Times in {zone}",
+  "newRun": "New run",
+  "pauseAll": "Pause all",
+  "resumeAll": "Resume all",
+  "settings": "Limits",
+  "sections": {
+    "running": "Running",
+    "waiting": "Waiting for your approval",
+    "next": "Next",
+    "recent": "Ended lately"
+  },
+  "sectionHints": {
+    "next": "Drag to change the order, or use Move up and Move down. The first one that is due starts first.",
+    "recent": "Results of the last runs. A task moves to In review only when Hub verified its checks; you complete it."
+  },
+  "empty": {
+    "title": "Nothing in the queue",
+    "body": "Run a task now or schedule it from its card, from Start with these in the panel, or with New run here."
+  },
+  "sectionEmpty": {
+    "running": "Nothing is running.",
+    "waiting": "Nothing waits for you.",
+    "next": "Nothing is in line.",
+    "recent": "No run has ended yet."
+  },
+  "errorThing": "the queue",
+  "banner": {
+    "owner": "The queue is paused. Runs already going finish; nothing new starts until you resume.",
+    "limit": "Your plan’s usage limit is reached, so the queue is paused. It continues once, {at}, oldest first. Nothing is retried before then.",
+    "limitNoTime": "Your plan’s usage limit is reached, so the queue is paused. Claude did not say when it resets: resume when you are ready.",
+    "quiet": "Quiet hours until {to}. Due runs wait, then start oldest first."
+  },
+  "states": {
+    "waiting": "Waiting for your approval",
+    "running": "Running",
+    "next": "In line",
+    "scheduled": "Scheduled",
+    "paused": "Paused",
+    "done": "Finished",
+    "failed": "Ended with an error",
+    "stopped": "Stopped",
+    "interrupted": "Cut off",
+    "cancelled": "Cancelled"
+  },
+  "holds": {
+    "paused_all": "Waits: the queue is paused",
+    "usage_limit": "Waits: the usage limit is reached",
+    "quiet_hours": "Waits: quiet hours",
+    "daily_limit": "Waits: today’s runs are used",
+    "concurrency": "Waits for a running run to finish",
+    "folder_busy": "Waits: another run or chat is working in one of its folders",
+    "device_offline": "Waits: {device} is offline",
+    "signed_out": "Waits: Claude is signed out on {device}",
+    "engine_unavailable": "Waits: Claude Code cannot run on {device}",
+    "folder_not_allowed": "This folder is no longer on the project’s list",
+    "folder_dirty": "Waits: its folder holds {n} changed files not committed, which it would mix with its own"
+  },
+  "when": {
+    "at": "Runs {when}",
+    "weekly": "Every {day} at {time}",
+    "started": "Started {when}",
+    "ended": "Ended {when}"
+  },
+  "days": {
+    "MON": "Monday",
+    "TUE": "Tuesday",
+    "WED": "Wednesday",
+    "THU": "Thursday",
+    "FRI": "Friday",
+    "SAT": "Saturday",
+    "SUN": "Sunday"
+  },
+  "pausedOn": "Paused on",
+  "failures": {
+    "cut_off": "A restart or a lost connection cut it off. It does not start again by itself.",
+    "device_offline": "The device went offline. It does not start again by itself.",
+    "rate_limited": "The usage limit stopped it.",
+    "folder_not_allowed": "Its folder is not on the project’s list.",
+    "other": "It ended with an error. Open its chat for what happened."
+  },
+  "moved": "Moved to In review",
+  "notMoved": "Stayed where it was",
+  "files": {
+    "one": "1 changed file",
+    "other": "# changed files"
+  },
+  "weekly": "Weekly",
+  "actions": {
+    "answer": "Answer",
+    "openChat": "Open chat",
+    "runAgain": "Run again",
+    "more": "More for “{title}”",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "drag": "Drag to reorder",
+    "moreStep": "More for this step",
+    "openChatFor": "Open the chat of “{title}”",
+    "toAutomatic": "Run automatically",
+    "toApproval": "Run with my approval",
+    "stop": "Stop it",
+    "allowDirty": "Start anyway",
+    "removeWorktree": "Remove its copy"
+  },
+  "toasts": {
+    "started": "Run started in {folder}",
+    "queued": "Added to the line: {why}",
+    "scheduled": "Scheduled: {when}",
+    "paused": "Run paused",
+    "resumed": "Run back in line",
+    "cancelled": "Run cancelled",
+    "pausedAll": "Queue paused",
+    "resumedAll": "Queue resumed",
+    "moved": "Moved “{title}” to place {n} of {total}",
+    "saved": "Limits saved",
+    "modeAutomatic": "It will run automatically",
+    "modeApproval": "It will run with your approval",
+    "pendingStarted": "A chat opened on {folder}. Approve the command there.",
+    "allowedDirty": "It starts with the changes in its folder",
+    "worktreeRemoved": "The copy is gone. Its branch {branch} stays"
+  },
+  "runNow": "Run now",
+  "schedule": "Schedule",
+  "dialog": {
+    "title": "Schedule: {title}",
+    "newTitle": "New run",
+    "prompt": "What to do",
+    "promptHint": "Plain words, as you would write in the panel. It runs in Execute.",
+    "when": "When",
+    "now": "Now",
+    "tonight": "Today 22:00",
+    "morning": "Tomorrow 08:00",
+    "weekly": "Every Monday 08:00",
+    "custom": "Choose a time",
+    "date": "Date",
+    "time": "Time",
+    "repeat": "Repeat every week on this day",
+    "folder": "Main folder",
+    "device": "Runs on {device}",
+    "noDevice": "No paired device is online, so a run waits until one is.",
+    "noFolder": "This project has no linked folder. Link one in Settings › Devices.",
+    "missed": "If the device is off then, it starts when it is back, oldest first.",
+    "approval": "With my approval, it pauses on any command that needs you and waits with no time limit, in the Inbox and here.",
+    "timezone": "Times are in {zone}.",
+    "save": "Schedule",
+    "add": "Add",
+    "cancel": "Cancel",
+    "tonightTomorrow": "Tomorrow 22:00",
+    "pastTime": "That time has passed, so it would start at once.",
+    "addNow": "Add now",
+    "mode": "How it runs",
+    "modeApproval": "With my approval",
+    "modeAutomatic": "Automatic",
+    "modeApprovalHint": "Pauses on commit, push, delete, deploy, a new branch or worktree, docker and any command not allowed, and waits for you with no time limit.",
+    "modeAutomaticHint": "Never waits for you. Questions take the recommended option. Anything that needs approval is skipped, never run, and kept as a pending item for you to run later.",
+    "extraFolders": "Also work in",
+    "extraHint": "Other folders of this project, given to Claude Code as more directories. All of them stay held while it runs.",
+    "roles": "Roles",
+    "rolesHint": "Each role’s instructions and reading path go into the run. With none chosen, it takes the card’s own role, if it has one."
+  },
+  "card": {
+    "title": "Runs",
+    "chat": "Open chat",
+    "none": "No runs for this card.",
+    "files": "Changed files"
+  },
+  "limits": {
+    "title": "Agent queue",
+    "intro": "Runs spend the same plan as your own chats, so the limits are low by default. They are yours, across projects.",
+    "concurrent": "Runs at the same time",
+    "perDay": "Runs per day",
+    "quiet": "Quiet hours",
+    "quietOn": "Hold due runs during these hours",
+    "from": "From",
+    "to": "To",
+    "timezone": "Timezone",
+    "machine": "This machine’s ({zone})",
+    "timezoneHint": "Schedules, quiet hours and the daily count use this zone.",
+    "pause": "Pause the queue",
+    "pauseHint": "Runs already going finish. Nothing new starts until you resume.",
+    "save": "Save limits",
+    "isolation": "Where a run works",
+    "isolationHint": "In its own copy, two runs on one repository never touch each other’s files. The copy sits beside the repository as wt-<key> on a branch hub/<key>, and its packages link to the repository’s.",
+    "isolationWorktree": "In its own copy of the repository (recommended)",
+    "isolationFolder": "In the project folder itself, waiting while it holds changes not committed"
+  },
+  "off": {
+    "noDevice": {
+      "why": "No device is paired with Hub yet, so there is nowhere to run.",
+      "fix": "Pair this machine in Settings › Devices."
+    },
+    "noFolder": {
+      "why": "This project has no linked folder.",
+      "fix": "Link a folder in Settings › Devices."
+    }
+  },
+  "meta": {
+    "automatic": "Automatic",
+    "extra": "+{n} folders",
+    "branch": "Its own copy on {branch}",
+    "worktreeRemoved": "Copy removed, branch {branch} kept"
+  },
+  "decisions": {
+    "title": "Decided for you",
+    "pending": "Waiting for you to run",
+    "summary": "Choices taken: {answered} · Commands kept for you: {pending}",
+    "took": "Took “{answer}”",
+    "skipped": "Skipped, not run",
+    "folder": "In {folder}",
+    "why": "Why: {why}",
+    "runIt": "Run it now",
+    "runItHint": "Opens a chat on that folder, where it still asks for your approval.",
+    "opened": "Open its chat"
+  },
+  "cancel": {
+    "title": "Cancel “{title}”?",
+    "running": "It is running now, so its turn stops.",
+    "weekly": "It repeats every week, so the repeat ends too.",
+    "confirm": "Cancel the run"
+  }
+}

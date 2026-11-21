@@ -1,0 +1,19 @@
+<h1 style="margin:0 0 16px;font-size:22px;color:#0b3d5c;">{{t 'emails.bookings.failed.title'}}</h1>
+{{> greeting}}
+<p style="margin:0 0 16px;">{{t 'emails.bookings.failed.body' siteName=siteName reference=reference}}</p>
+{{#if reasonKey}}<p style="margin:0 0 16px;padding:12px 16px;background-color:#fef3c7;border-radius:8px;">{{t reasonKey}}</p>{{/if}}
+{{#if refundChoice}}
+<p style="margin:0 0 8px;">{{t 'emails.bookings.failed.choice.intro' amount=refundChoice.amount currency=refundChoice.currency}}</p>
+<ul style="margin:0 0 16px;padding-inline-start:20px;">
+<li style="margin:0 0 8px;">{{#if refundChoice.walletBonusPercent}}{{t 'emails.bookings.failed.choice.wallet_bonus' percent=refundChoice.walletBonusPercent bonus=refundChoice.walletBonusAmount currency=refundChoice.currency}}{{else}}{{t 'emails.bookings.failed.choice.wallet'}}{{/if}}</li>
+<li style="margin:0;">{{t 'emails.bookings.failed.choice.card' days=refundChoice.cardDays}}</li>
+</ul>
+<p style="margin:0 0 16px;">{{#if refundChoice.defaultWallet}}{{t 'emails.bookings.failed.choice.default_wallet' deadline=refundChoice.deadline}}{{else}}{{t 'emails.bookings.failed.choice.default_card' deadline=refundChoice.deadline}}{{/if}}</p>
+{{> button url=link label=(t 'emails.bookings.failed.choice.cta')}}
+{{else}}
+<p style="margin:0 0 16px;">{{t 'emails.bookings.failed.refund' amount=(default amountPaid "0") currency=(default currency "")}}</p>
+{{/if}}
+<p style="margin:0 0 16px;">{{t 'emails.bookings.failed.next' siteName=siteName}}</p>
+{{#unless refundChoice}}{{> button url=link label=(t 'emails.bookings.failed.cta')}}{{/unless}}
+{{> link_fallback url=link}}
+{{> signature}}

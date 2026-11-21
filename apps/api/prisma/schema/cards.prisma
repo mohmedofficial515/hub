@@ -1,0 +1,150 @@
+model Card {
+  id            String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId   String    @map("workspace_id") @db.Uuid
+  seq           Int                                     // per-workspace sequence
+  key           String                                  // "GTV-123" (denormalised for search and display)
+  type          String                                  // task | decision | need | change | handoff | redesign | doc | release | idea | plan
+  title         String                                  // ≤ 200 chars
+  body          String?                                 // markdown, ≤ 20 000 chars (plan ≤ 100 000), secret-filtered
+  status        String                                  // per-type machine (01-architecture §4.1)
+  priority      String    @default("P2")                // P0 | P1 | P2 | P3
+  ownerRole     String?   @map("owner_role")            // routed role (decider / responsible / to-role / specialty-role)
+  assigneeId    String?   @map("assignee_id") @db.Uuid  // user (tasks: claimer; others: optional)
+  createdByKind String    @map("created_by_kind")       // user | agent | system
+  createdById   String?   @map("created_by_id") @db.Uuid // the member (also for agent)
+  createdVia    String    @map("created_via")           // web | mcp | hook | adapter | import | telegram
+  source        String    @default("manual")            // manual | github | openapi | session | lab | docs | import
+  externalKey   String?   @map("external_key")          // idempotency key for adapters, §5.1
+  module        String?                                 // free tag from a controlled list per workspace (e.g. payments)
+  repo          String?                                 // "backend" | "web" | "dashboard" | "hub" (source name)
+  branch        String?
+  commitSha     String?   @map("commit_sha")
+  dueAt         DateTime? @map("due_at") @db.Timestamptz(3)
+  closedAt      DateTime? @map("closed_at") @db.Timestamptz(3)   // terminal status reached
+  archivedAt    DateTime? @map("archived_at") @db.Timestamptz(3)
+  tags          String[]  @default([])
+  commentCount  Int       @default(0) @map("comment_count")
+  eventSeq      Int       @default(0) @map("event_seq")   // last card_events.seq, bumped by CardService.apply
+  lastEventAt   DateTime  @default(now()) @map("last_event_at") @db.Timestamptz(3)
+  searchVector  Unsupported("tsvector")? @map("search_vector")  // maintained by trigger: title (A) + key (A) + body (B) + tags (C)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  events        CardEvent[]
+  comments      CardComment[]
+  watchers      CardWatcher[]
+  attachments   CardAttachment[]
+  linksFrom     CardLink[] @relation("from")
+  linksTo       CardLink[] @relation("to")
+  task          TaskDetail?
+  decision      DecisionDetail?
+  need          NeedDetail?
+  change        ChangeDetail?
+  handoff       HandoffDetail?
+  redesign      RedesignDetail?
+  doc           DocDetail?
+  release       ReleaseDetail?
+  idea          IdeaDetail?
+  plan          PlanDetail?
+
+  @@unique([workspaceId, seq])
+  @@unique([workspaceId, key])
+  @@unique([workspaceId, externalKey])
+  @@index([workspaceId, lastEventAt(sort: Desc)])
+  @@index([workspaceId, type, status])
+  @@index([workspaceId, ownerRole, status])
+  @@index([workspaceId, assigneeId, status])
+  @@index([workspaceId, dueAt])
+  @@index([searchVector], type: Gin)
+  @@index([tags], type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "cards_title_trgm_idx")
+  @@map("cards")
+}
+
+model CardLink {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  fromCardId  String   @map("from_card_id") @db.Uuid
+  toCardId    String   @map("to_card_id") @db.Uuid
+  kind        String                                    // blocks | relates | parent | duplicates   (blocked_by = inverse view of blocks)
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  from        Card     @relation("from", fields: [fromCardId], references: [id])
+  to          Card     @relation("to", fields: [toCardId], references: [id])
+  @@unique([fromCardId, toCardId, kind])
+  @@index([toCardId, kind])
+  @@map("card_links")
+}
+
+model CardEvent {                                        // append-only; the timeline
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  cardId      String   @map("card_id") @db.Uuid
+  seq         Int                                       // per card, 1..n
+  kind        String                                    // §5.2
+  actorKind   String   @map("actor_kind")               // user | agent | system
+  actorId     String?  @map("actor_id") @db.Uuid
+  via         String                                    // web | mcp | hook | adapter | import | scheduler | telegram
+  data        Json     @default("{}")                   // kind-specific payload, §5.2
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  card        Card     @relation(fields: [cardId], references: [id])
+  @@unique([cardId, seq])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, kind, createdAt(sort: Desc)])
+  @@map("card_events")
+}
+
+model CardComment {
+  id             String    @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId    String    @map("workspace_id") @db.Uuid
+  cardId         String    @map("card_id") @db.Uuid
+  authorKind     String    @map("author_kind")          // user | agent
+  authorId       String    @map("author_id") @db.Uuid
+  via            String
+  body           String                                 // markdown ≤ 10 000, secret-filtered; @mentions as @user:<id>, cards as GTV-123
+  bodyRedactedAt DateTime? @map("body_redacted_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  editedAt       DateTime? @map("edited_at") @db.Timestamptz(3)
+  card           Card      @relation(fields: [cardId], references: [id])
+  @@index([cardId, createdAt])
+  @@map("card_comments")
+}
+
+model CardWatcher {
+  cardId    String   @map("card_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  reason    String                                      // creator | assignee | role | mention | manual
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  card      Card     @relation(fields: [cardId], references: [id])
+  @@id([cardId, userId])
+  @@map("card_watchers")
+}
+
+model CardAttachment {                                   // lab screenshots and review files; no user uploads in v1
+  id        String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  cardId    String   @map("card_id") @db.Uuid
+  kind      String                                      // screenshot | review | file
+  name      String                                      // "desktop-ar-light.png"
+  url       String                                      // "/lab/web/wallet/v2-flight-path/shots/desktop-ar-light.png"
+  mime      String?
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  card      Card     @relation(fields: [cardId], references: [id])
+  file      CardAttachmentFile?
+  @@index([cardId])
+  @@map("card_attachments")
+}
+
+/// The bytes of an uploaded attachment (v5-live-plan, batch 3: a plan step's evidence). Kept in the database, so a backup holds them with the card.
+/// A picture is drawn again by sharp (so no metadata survives) and gets a thumbnail; a clip is kept as it came. Removing the evidence removes this row.
+model CardAttachmentFile {
+  attachmentId String          @id @map("attachment_id") @db.Uuid
+  data         Bytes
+  size         Int
+  sha256       String
+  /// A small WebP of a picture, for a grid of thumbnails. None for a clip.
+  thumb        Bytes?
+  attachment   CardAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  @@map("card_attachment_files")
+}

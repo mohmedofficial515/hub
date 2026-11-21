@@ -1,0 +1,14 @@
+model Brief {
+  id          String   @id @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid         // null for workspace-wide weekly summary
+  kind        String                                    // morning | weekly
+  date        String                                    // "2026-11-04" (workspace local date) or ISO week "2026-W45"
+  sections    Json                                      // template output: { awaitingMe: [...], readyTasks: [...], changes: [...], deadlines: [...], noSummarySessions: [...] }
+  narrative   String?                                   // agent-written markdown saved through hub.save_brief
+  narrativeBy String?  @map("narrative_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  @@unique([workspaceId, userId, kind, date])
+  @@map("briefs")
+}

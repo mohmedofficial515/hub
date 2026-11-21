@@ -1,0 +1,15 @@
+g-refund_policy-1440-ar-light {"sw":1440,"iw":1440,"dir":"rtl","font":"Cairo, Cairo, sans-serif","nSmall":33,"tokH":[45,45,45],"small":[["A","تخطَّ إلى المحتوى",32,16],["BUTTON","كتاب السياسات",142,40],["INPUT","ابحث في الإعدادات",448,40],["BUTTON","معاينة المختبرمعاينة المختبر",141,36],["BUTTON","1المنصة والوصول",232,40],["BUTTON","2العملاء والمسافرون",232,40],["BUTTON","3المدفوعات والمحفظة",232,40],["BUTTON","طرق الدفع",195,36],["BUTTON","بوابات الدفع",195,36],["BUTTON","سياسة الاسترداد",195,36],["BUTTON","الحماية من الاحتيال",195,36],["BUTTON","نزاعات الدفع",195,36]]}
+g-security-1440-ar-light {"sw":1440,"iw":1440,"dir":"rtl","font":"Cairo, Cairo, sans-serif","nSmall":28,"tokH":[45,45,45],"small":[["A","تخطَّ إلى المحتوى",32,16],["BUTTON","كتاب السياسات",142,40],["INPUT","ابحث في الإعدادات",448,40],["BUTTON","معاينة المختبرمعاينة المختبر",141,36],["BUTTON","1المنصة والوصول",232,40],["BUTTON","المنصّة",195,36],["BUTTON","وضع الصيانة",195,36],["BUTTON","الأمان",195,36],["BUTTON","سياسة التحقّق",195,36],["BUTTON","الحماية من الإساءة",195,36],["BUTTON","تنبيهات موجات الأمان",195,36],["BUTTON","2العملاء والمسافرون",232,40]]}
+g-fraud_policy-1440-ar-light {"sw":1440,"iw":1440,"dir":"rtl","font":"Cairo, Cairo, sans-serif","nSmall":34,"tokH":[45,45,45],"small":[["A","تخطَّ إلى المحتوى",32,16],["BUTTON","كتاب السياسات",142,40],["INPUT","ابحث في الإعدادات",448,40],["BUTTON","معاينة المختبرمعاينة المختبر",141,36],["BUTTON","1المنصة والوصول",232,40],["BUTTON","2العملاء والمسافرون",232,40],["BUTTON","3المدفوعات والمحفظة",232,40],["BUTTON","طرق الدفع",195,36],["BUTTON","بوابات الدفع",195,36],["BUTTON","سياسة الاسترداد",195,36],["BUTTON","الحماية من الاحتيال",195,36],["BUTTON","نزاعات الدفع",195,36]]}
+g-flights-1440-ar-light ERR TimeoutError: page.waitForSelector: Timeout 150000ms exceeded.
+Call log:
+[2m  - waiting for locator('main#main h1, main#main h2') to be visible[22m
+[2m    - waiting for "http://127.0.0.1:7320/lab/f
+g-storage-1440-ar-light {"sw":1440,"iw":1440,"dir":"rtl","font":"\"Times New Roman\"","nSmall":0,"tokH":[],"small":[]}
+g-analytics-1440-ar-light ERR TimeoutError: page.screenshot: Timeout 90000ms exceeded.
+Call log:
+[2m  - taking page screenshot[22m
+[2m  - waiting for fonts to load...[22m
+[2m  - fonts loaded[22m
+
+ov-1440-ar-light ERR TimeoutError: page.goto: Timeout 120000ms exceeded. Call log: [2m  - navigating to "http://127.0.0.1:7320/lab/frame-das

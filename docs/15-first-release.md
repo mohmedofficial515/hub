@@ -30,7 +30,9 @@ Done means the owner can do this on their own machine:
 | D30 | **Projects are workspaces, and creating them moves from H6 to this release.** See §5. The UI word is «مشروع» / Project. Routes and code keep `workspace`. |
 | D31 | **Approved design:** `F:/Goteav/redesign/hub/today/v5-peacock-app`, with one change: the coloured band rules beside "Overdue" and "Due in 24 h" on Decisions become neutral. Coloured side or top edges on any card or panel are forbidden everywhere. |
 | D32 | **Repository:** private `mohmedofficial515/hub`. This release works on one branch, `feat/first-release`, off `main`, with a commit per logical change, and the owner merges at the end. This overrides D21 for this release only. |
+| D34 | **TOTP is optional.** Hub runs locally on the owner's machine, so `security.totp_required_roles` defaults to none, and neither sign-in nor MCP is blocked by enrolment. The setting and the enrolment flow stay, so a project can turn it on. |
 | D33 | **Hosting for this release:** the owner's Windows machine, over plain `http://localhost`. Caddy, the internal CA and LAN hosting (D05) stay in the plan but are not required yet. |
+| D35 | **A short grace on refresh.** A reload during a refresh drops the answer and leaves the browser with the old token. For 30 seconds after its first replacement, a replaced refresh token still rotates if its family is alive. After that, reuse revokes the family as before. The trade-off, accepted by the owner: a token stolen and used inside those seconds is not detected at once. |
 
 D06 is unchanged: **Hub itself makes no model calls.** "Thinking and planning" is done by the member's
 own Claude Code, which reads and writes through MCP.
@@ -53,8 +55,8 @@ Limits on D27, for security, which stay even for the owner:
 
 **Local path mode.** A source may be `kind: local_path` with an absolute path instead of a GitHub clone:
 - Docs indexer reads `F:/Goteav/backend/docs`, `F:/Goteav/Goteav-Dashboard/docs`, and `hub/docs`.
-- Lab scanner reads `F:/Goteav/redesign` through the env var `LAB_ROOT`. Screenshots are served through the API from that root, with path traversal blocked. The lab stays where it is and is linked by env var `LAB_URL=http://localhost:6200`. **The move in H2-04 is deferred**, because it edits global agent files.
-- Approve and reject write the status into the version's `README.md` front-matter on disk, with no commit. `redesign/` is not a Git repository. Only the owner may do it, by the same permission as the web.
+- Lab scanner reads `apps/lab`, or the folder in the env var `LAB_ROOT`. Screenshots are served through the API from that root, with path traversal blocked. **The Workbench release moved the lab into Hub and removed `LAB_URL`: docs/16 §6.**
+- Approve and reject write the status into the version's `README.md` front-matter on disk, with no commit. In `apps/lab` that change shows in `git status` until the owner commits it. Only the owner may do it, by the same permission as the web.
 
 **Deferred until the owner supplies tokens or asks:** GitHub polling (H2-01 to H2-03), web push, Telegram, email sending (H3-02 to H3-04, Mailpit is fine for invites in dev), ADR pull requests (H3-06), semantic search (H5-02), VPS (H6-03), LAN hosting. Their settings UI still exists, showing an honest "not connected" state with what is needed. Never fake data on a page: when no source feeds a section, show its empty state.
 
@@ -68,8 +70,8 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 - "Turn into a plan" creates a linked Plan and moves the idea to `accepted`.
 
 **Plan** (`plan`, «خطة»): a written approach that becomes work.
-- Status: `draft → in_review → approved → in_progress → done`, and `abandoned` from any state. `approved` is for owner or pm.
-- Fields: full Markdown `body`, and ordered `steps`: `{ id, title, role?, taskKey?, done }`.
+- Status: `draft → in_review → approved → in_progress → done`, and `abandoned` from any state. `approved` is for owner or pm. `request_changes` sends a plan in review back to `draft` with a required reason, for owner or pm (owner decision 9b, 2026-11-19).
+- Fields: full Markdown `body`, and ordered `steps`: `{ id, title, role?, taskKey?, done, why?, size?, after?, acceptance? }` (9a). `sourceChatId` / `sourceMessageId` name the studio chat the plan was saved from (9c).
 - Every save of `body` adds a `plan_revised` event with the previous text kept, so history shows revisions and can restore one.
 - "Create tasks from steps" creates one task per step without a `taskKey`, links each with `parent`, and writes `taskKey` back. A step is done when its task completes. The plan moves to `in_progress` on the first task and offers `done` when all are finished.
 
@@ -77,6 +79,7 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 - It answers "what are we thinking about, and what is planned next?": ideas by status, and plans with a step progress count.
 - It has no v5 design. Design it from `kit/README.md` with the same rules and quality bar, then have it reviewed.
 - Plan and idea sheets follow the existing `kit/sheet-sections/*` pattern. The plan's Markdown is editable in the sheet.
+- A step shows its `why` as a muted line, its `size` as a badge, "After step n" linking the earlier step, and "Done when: …" for its `acceptance`, on the page and in the sheet (`components/planning/step-details.tsx`). A plan sent back for changes shows a "Changes requested" box with the reason, who asked and when, until it is submitted for review again (`change-request.tsx`).
 
 **MCP:** `create_idea`, `update_idea`, `list_ideas`, `create_plan`, `update_plan` (body, steps, status), `get_plan`, `list_plans`, `plan_to_tasks`. New team pack skill `/hub:plan <topic>`: Claude reads the project through Hub, drafts, asks the user, then saves the plan.
 
@@ -84,7 +87,7 @@ Both are full card types: keys, events, comments, links, watchers, delete and re
 
 A project is a workspace with extra details.
 - **New fields:** `description` (Markdown), `goals`, `links` (`{ label, url }[]`), `repoPaths` (local folders), `status` (`active | paused | closed`). Key prefix and slug as in H0-04.
-- **Web:** `/workspaces` lists projects with awaiting counts and a New project wizard: name, slug, key prefix, timezone, description, role template, optional local docs path. The sidebar's workspace switcher lists projects and has "New project". Settings › General edits the details. Closing a project is reversible; projects are never deleted.
+- **Web:** `/workspaces` lists projects with awaiting counts and a New project wizard: name, slug, key prefix, timezone, description, optional local docs path. The creator becomes the owner; there are no role templates in this release. The sidebar's workspace switcher lists projects and has "New project". Settings › General edits the details. Closing a project is reversible; projects are never deleted.
 - **Permissions:** any signed-in member can create a project and becomes its owner.
 - **MCP:** `list_projects`, `get_project`, `create_project`, `update_project`, `switch_project`.
 
