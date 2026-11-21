@@ -6,15 +6,15 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 import { API_URL } from './ports';
-import { API_FILE, API_PIDS_FILE } from './state';
+import { API_ENTRY, API_FILE, API_PIDS_FILE } from './state';
 
-/** Starts `dist/main` detached with the recorded folder, variables and log, prints its pid, and exits. */
+/** Starts the e2e build's entry detached with the recorded folder, variables and log, prints its pid, and exits. */
 const LAUNCHER = `
 const { spawn } = require('node:child_process');
 const { openSync } = require('node:fs');
 const record = JSON.parse(process.argv[1]);
 const log = openSync(record.log, 'a');
-const child = spawn(process.execPath, ['dist/main'], { cwd: record.cwd, env: record.env, stdio: ['ignore', log, log], detached: true, windowsHide: true });
+const child = spawn(process.execPath, [${JSON.stringify(API_ENTRY)}], { cwd: record.cwd, env: record.env, stdio: ['ignore', log, log], detached: true, windowsHide: true });
 child.unref();
 process.stdout.write(String(child.pid));
 `;

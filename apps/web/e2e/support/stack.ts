@@ -24,7 +24,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { RedisContainer, type StartedRedisContainer } from '@testcontainers/redis';
 
 import { API_PORT, API_URL, LAB_PORT, WEB_PORT, WEB_URL } from './ports';
-import { API_FILE } from './state';
+import { API_ENTRY, API_FILE } from './state';
 
 const WEB_DIR = resolve(__dirname, '../..');
 const API_DIR = resolve(WEB_DIR, '../api');
@@ -184,7 +184,8 @@ export async function startStack(): Promise<RunningStack> {
     TZ: 'Europe/Istanbul',
     HUB_PUBLIC_URL: WEB_URL,
     HUB_ALLOWED_HOSTS: 'localhost,127.0.0.1',
-    DATABASE_URL: `${postgres.getConnectionUri()}?schema=public`,
+    // 127.0.0.1, not the container's `localhost`: Prisma's schema engine on Windows can fail to reach Docker's port by that name (P1001).
+    DATABASE_URL: `${postgres.getConnectionUri().replace('@localhost:', '@127.0.0.1:')}?schema=public`,
     REDIS_URL: redis.getConnectionUrl(),
     HUB_SECRET_KEY: randomBytes(32).toString('base64'),
     HUB_JWT_SECRET: randomBytes(48).toString('base64url'),
@@ -224,7 +225,13 @@ export async function startStack(): Promise<RunningStack> {
   };
   if (!process.env['E2E_SKIP_BUILD']) {
     run('pnpm', ['--filter', '@hub/contracts', 'build'], ROOT, process.env);
-    run('pnpm', ['--filter', '@hub/api', 'build'], ROOT, process.env);
+    // Into `.e2e-dist`, not `dist`, which the owner's running HubServer uses (state.ts `API_ENTRY`).
+    run(
+      'pnpm',
+      ['exec', 'nest', 'build', '-c', 'nest-cli.e2e.json', '-p', 'tsconfig.e2e-build.json'],
+      API_DIR,
+      process.env,
+    );
     run('pnpm', ['exec', 'next', 'build'], WEB_DIR, webEnv);
   }
 
@@ -233,7 +240,7 @@ export async function startStack(): Promise<RunningStack> {
   const labLog = join(logs, 'e2e-lab.log');
   const nextBin = join(WEB_DIR, 'node_modules/next/dist/bin/next');
   const processes = [
-    start(['dist/main'], API_DIR, apiEnv, apiLog),
+    start([API_ENTRY], API_DIR, apiEnv, apiLog),
     start([nextBin, 'start', '-p', String(WEB_PORT)], WEB_DIR, webEnv, webLog),
     start(
       [join(labRoot, 'node_modules/vite/bin/vite.js')],

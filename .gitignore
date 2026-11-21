@@ -18,3 +18,4 @@ playwright-report
 
 # AM Stylo (local designer state)
 .page-companion/
+apps/api/.e2e-dist

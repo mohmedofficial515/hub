@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "main",
+  "compilerOptions": {
+    "builder": {
+      "type": "swc",
+      "options": {
+        "ignore": ["**/*.spec.ts", "**/*.e2e-spec.ts"]
+      }
+    },
+    "typeCheck": false,
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "i18n/**/*.json",
+        "outDir": ".e2e-dist",
+        "watchAssets": false
+      }
+    ]
+  }
+}

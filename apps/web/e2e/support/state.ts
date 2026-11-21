@@ -13,6 +13,11 @@ export const BRIDGE_PIDS_FILE = join(DIR, 'scripted-bridges.txt');
 export const API_FILE = join(DIR, 'api.json');
 /** Every API a test started, so the run's teardown stops them. */
 export const API_PIDS_FILE = join(DIR, 'api-pids.txt');
+/**
+ * The API's entry in its own build folder (`apps/api/nest-cli.e2e.json`), never `dist`: the owner's HubServer runs from `dist`, and a
+ * test build there would replace its files while it runs.
+ */
+export const API_ENTRY = '.e2e-dist/main';
 export const storageFile = (who: string) => join(DIR, `${who}.storage.json`);
 
 export interface Person {
