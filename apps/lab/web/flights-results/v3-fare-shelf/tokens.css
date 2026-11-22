@@ -1,0 +1,285 @@
+/*
+ * v2-fare-shelf tokens (tokens: override).
+ *
+ * The lab reads F:/Goteav/web/src (an older branch) whose globals.css has no semantic roles. This file copies the
+ * primitives and roles from develop's src/app/globals.css (wt-develop, GTV-472) and maps them into Tailwind so the
+ * version can use `bg-action`, `text-brand-ink`, `border-border-strong`, … exactly as the ported code will.
+ * Hex lives only here. TSX uses role classes.
+ *
+ * Why a second Tailwind pass: the frame's web.css builds utilities from the older theme, which does not know
+ * `--color-action` and friends. This file builds utilities for this folder only (source(none) + @source './'),
+ * with the develop theme. It is loaded after web.css, so its utilities win on equal specificity.
+ */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities) source(none);
+@source './';
+
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme inline {
+  --font-sans: 'Cairo', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Radius roles from 05-design-system-audit.md B.1 (rounded-3xl 22px = photo cards, D3). */
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 22px;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-action: var(--action);
+  --color-action-hover: var(--action-hover);
+  --color-action-foreground: var(--action-foreground);
+  --color-action-ink: var(--action-ink);
+  --color-action-soft: var(--action-soft);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-ink: var(--highlight-ink);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-border-strong: var(--border-strong);
+  --color-success: var(--success);
+  --color-success-ink: var(--success-ink);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-ink: var(--info-ink);
+  --color-info-soft: var(--info-soft);
+
+  /* B.2: one resting level (none) and the hover / floating levels. */
+  --shadow-md: var(--elev-2);
+  --shadow-xl: var(--elev-3);
+}
+
+/* ---------- 1. primitives (copied from develop globals.css) ---------- */
+.fr {
+  --navy-50: #f4f7fc;
+  --navy-100: #e7edf9;
+  --navy-200: #cdd9f1;
+  --navy-300: #abbee5;
+  --navy-700: #2f4677;
+  --navy-800: #1f325c;
+  --navy-900: #132345;
+  --navy-950: #09142f;
+
+  --teal-500: #2db2b9;
+  --teal-600: #0f939a;
+  --teal-700: #02767b;
+
+  --gold-400: #e7b74c;
+  --gold-700: #8d6800;
+
+  --ocean-value: #0f4c75;
+  --ocean-light-value: #bbe1fa;
+  --ocean-soft-value: #eef7fe;
+
+  --ink-950: #0a0e21;
+  --ink-900: #0f172b;
+  --ink-800: #172138;
+  --ink-700: #202c46;
+  --ink-600: #263149;
+  --ink-500: #3a4763;
+
+  --neutral-0: #ffffff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-900: #0f172a;
+
+  --green-50: #ecfdf5;
+  --green-400: #34d399;
+  --green-700: #047857;
+  --green-950: #06281f;
+  --amber-50: #fffbeb;
+  --amber-400: #fbbf24;
+  --amber-700: #b45309;
+  --amber-950: #2b1f05;
+  --red-50: #fff1f2;
+  --red-400: #fb7185;
+  --red-700: #be123c;
+  --red-950: #2d0a14;
+}
+
+/* ---------- 2. semantic roles, light (develop values) ---------- */
+.fr {
+  --background: var(--neutral-0);
+  --foreground: var(--neutral-900);
+  --card: var(--neutral-0);
+  --card-foreground: var(--neutral-900);
+  --popover: var(--neutral-0);
+  --popover-foreground: var(--neutral-900);
+  --border: var(--neutral-200);
+  --input: var(--neutral-300);
+  --ring: var(--navy-800);
+
+  --brand: var(--navy-800);
+  --brand-foreground: var(--neutral-0);
+  --brand-ink: var(--navy-800);
+  --brand-soft: var(--navy-50);
+  --action: var(--teal-500);
+  --action-hover: color-mix(in oklab, var(--teal-500) 90%, transparent);
+  --action-foreground: var(--neutral-0); /* owner decision: white on teal, accepted 2.57:1 */
+  --action-ink: var(--teal-500);
+  --action-soft: color-mix(in oklab, var(--teal-500) 10%, transparent);
+  --highlight: var(--gold-400);
+  --highlight-foreground: var(--navy-950);
+  --highlight-ink: var(--gold-400);
+  --highlight-soft: color-mix(in oklab, var(--gold-400) 10%, transparent);
+
+  --surface-2: var(--neutral-50);
+  --surface-3: var(--neutral-100);
+  --ink: var(--neutral-700);
+  --ink-muted: var(--neutral-500);
+  --ink-subtle: var(--neutral-400);
+  --border-strong: var(--neutral-300);
+
+  --success: var(--green-700);
+  --success-ink: var(--green-700);
+  --success-soft: var(--green-50);
+  --warning: var(--amber-700);
+  --warning-ink: var(--amber-700);
+  --warning-soft: var(--amber-50);
+  --danger: var(--red-700);
+  --danger-ink: var(--red-700);
+  --danger-soft: var(--red-50);
+  --info: var(--ocean-value);
+  --info-ink: var(--ocean-value);
+  --info-soft: var(--ocean-soft-value);
+
+  /* Modal backdrop: navy-950 at 55 %, a flat fill (no blur). */
+  --overlay: rgb(9 20 47 / 0.55);
+
+  /* B.2 elevation: neutral, never tinted. Level 0 (cards at rest) has no shadow. */
+  --elev-2: 0 4px 12px -2px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.05);
+  --elev-3: 0 16px 40px -8px rgb(15 23 42 / 0.18);
+}
+
+/* Base of the scope, in the base layer so any utility on the same element wins. */
+@layer base {
+  .fr {
+    font-family: var(--font-sans);
+    background-color: var(--background);
+    color: var(--ink);
+  }
+}
+
+/* ---------- 2b. semantic roles, dark ----------
+ * Owner decision: dark mode sits on #0a0e21 (page) / #0f172b (cards); navy becomes the light tint #cdd9f1.
+ * develop's .dark still keeps the shadcn grey for --background / --card; this version uses the owner's surfaces. */
+.dark .fr {
+  --background: var(--ink-950);
+  --foreground: var(--neutral-50);
+  --card: var(--ink-900);
+  --card-foreground: var(--neutral-50);
+  --popover: var(--ink-900);
+  --popover-foreground: var(--neutral-50);
+  --border: var(--ink-700);
+  --input: var(--ink-500);
+  --ring: var(--navy-200);
+
+  --brand: var(--navy-200);
+  --brand-foreground: var(--navy-950);
+  --brand-ink: var(--navy-200);
+  --brand-soft: var(--navy-900);
+  --surface-2: var(--ink-800);
+  --surface-3: var(--ink-700);
+  --ink: var(--neutral-300);
+  --ink-muted: var(--neutral-400);
+  --ink-subtle: var(--neutral-500);
+  --border-strong: var(--ink-500);
+
+  --success: var(--green-400);
+  --success-ink: var(--green-400);
+  --success-soft: var(--green-950);
+  --warning: var(--amber-400);
+  --warning-ink: var(--amber-400);
+  --warning-soft: var(--amber-950);
+  --danger: var(--red-400);
+  --danger-ink: var(--red-400);
+  --danger-soft: var(--red-950);
+  --info: var(--ocean-light-value);
+  --info-ink: var(--ocean-light-value);
+  --info-soft: #0b2740;
+
+  --elev-2: 0 4px 12px -2px rgb(0 0 0 / 0.4);
+  --elev-3: 0 16px 40px -8px rgb(0 0 0 / 0.55);
+}
+
+/* Arabic: no letter-spacing, taller lines (B.8). */
+[lang='ar'] .fr {
+  letter-spacing: normal;
+  line-height: 1.7;
+}
+
+.fr .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Frame background matches the page in both themes. */
+html:has(.fr),
+html:has(.fr) body {
+  background-color: #ffffff;
+}
+html.dark:has(.fr),
+html.dark:has(.fr) body {
+  background-color: #0a0e21;
+}
+
+/* Sheet entrance (300 ms, one easing, B.9); nothing moves with reduced motion. */
+@keyframes fr-fade-in {
+  from { opacity: 0; }
+}
+@keyframes fr-sheet-up {
+  from { transform: translateY(2rem); opacity: 0; }
+}
+@keyframes fr-sheet-side {
+  from { transform: translateX(var(--fr-sheet-from, 2rem)); opacity: 0; }
+}
+.fr-fade-in {
+  animation: fr-fade-in 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.fr-sheet-in {
+  animation: fr-sheet-up 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (min-width: 48rem) {
+  .fr-sheet-in {
+    animation-name: fr-sheet-side;
+  }
+  [dir='rtl'].fr-sheet-in {
+    --fr-sheet-from: -2rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fr-fade-in,
+  .fr-sheet-in {
+    animation: none;
+  }
+}
