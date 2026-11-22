@@ -1,0 +1,114 @@
+[
+  {
+    "name": "390-ar-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 784,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "390-ar-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 784,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "390-en-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 773,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "390-en-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 773,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "768-ar-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 874,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "768-ar-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 874,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "768-en-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 908,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "768-en-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 908,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "1440-ar-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 607,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "1440-ar-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 607,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "1440-en-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 607,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "1440-en-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 607,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "390-tr-light",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 773,
+    "shadows": 1,
+    "errors": []
+  },
+  {
+    "name": "1440-tr-dark",
+    "kind": "real",
+    "overflow": 0,
+    "searchBottom": 607,
+    "shadows": 1,
+    "errors": []
+  }
+]
