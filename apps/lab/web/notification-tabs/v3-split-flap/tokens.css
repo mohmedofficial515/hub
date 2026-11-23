@@ -1,0 +1,251 @@
+/*
+ * v2-departure-line: the token layers of `develop` (F:/Goteav/wt-develop/web/src/app/globals.css, sections 1-3),
+ * copied because the lab reads the older `F:/Goteav/web/src`, whose globals.css has no roles yet.
+ *
+ * Scoped to `.gv-home` so nothing leaks into the frame. Hex lives only in this file; page.tsx and parts/ use the
+ * roles through Tailwind's variable syntax (`bg-(--surface-brand)`, `text-(--ink-muted)`).
+ *
+ * Owner decisions honoured (GTV-553): the site's current colours unchanged, navy #1f325c for the header, headings
+ * and selection; teal #2db2b9 primary button with WHITE text (accepted 2.57:1); gold #e7b74c for small touches
+ * (here: the route arc only); dark on #0a0e21 / #0f172b with navy as #cdd9f1. No gradients: this version shows no
+ * photograph, so even the one allowed scrim is not needed.
+ *
+ * Version-local additions, marked "lab": `--action-text` (teal-700, for the rare teal word on white, because
+ * brand teal as text is 2.57:1), `--line` and `--line-on-brand` (hairlines). No shadow token: the owner's rule is thin
+ * lines instead of shadows, with no exception (review of v2, blocker 1).
+ */
+
+.gv-home {
+  /* ---------- 1. primitives (globals.css section 1) ---------- */
+  --navy-50: #f4f7fc;
+  --navy-100: #e7edf9;
+  --navy-200: #cdd9f1;
+  --navy-300: #abbee5;
+  --navy-400: #819bcf;
+  --navy-500: #5c79b5;
+  --navy-600: #415c95;
+  --navy-700: #2f4677;
+  --navy-800: #1f325c;
+  --navy-900: #132345;
+  --navy-950: #09142f;
+
+  --teal-50: #edfbfc;
+  --teal-100: #d6f6f7;
+  --teal-200: #b1ecf0;
+  --teal-300: #83dee3;
+  --teal-400: #57cad0;
+  --teal-500: #2db2b9;
+  --teal-600: #0f939a;
+  --teal-700: #02767b;
+  --teal-800: #055b5f;
+  --teal-900: #00474a;
+  --teal-950: #002d2f;
+
+  --gold-50: #fffaef;
+  --gold-100: #fff1d5;
+  --gold-200: #ffe3ab;
+  --gold-300: #f7ce79;
+  --gold-400: #e7b74c;
+  --gold-500: #d1a12d;
+  --gold-600: #b18400;
+  --gold-700: #8d6800;
+  --gold-800: #6d5001;
+  --gold-900: #563e00;
+  --gold-950: #362600;
+
+  --ocean-deep-value: #061b42;
+  --ocean-value: #0f4c75;
+  --ocean-light-value: #bbe1fa;
+  --ocean-soft-value: #eef7fe;
+
+  --ink-950: #0a0e21;
+  --ink-900: #0f172b;
+  --ink-800: #172138;
+  --ink-700: #202c46;
+  --ink-600: #263149;
+  --ink-500: #3a4763;
+
+  --neutral-0: #ffffff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+  --neutral-950: #020617;
+
+  --green-50: #ecfdf5;
+  --green-400: #34d399;
+  --green-700: #047857;
+  --green-950: #06281f;
+  --amber-50: #fffbeb;
+  --amber-400: #fbbf24;
+  --amber-700: #b45309;
+  --amber-950: #2b1f05;
+  --red-50: #fff1f2;
+  --red-400: #fb7185;
+  --red-700: #be123c;
+  --red-950: #2d0a14;
+
+  /* ---------- 2. semantic roles, light (globals.css section 2) ---------- */
+  --brand: var(--navy-800);
+  --brand-foreground: var(--neutral-0);
+  --brand-ink: var(--navy-800);
+  --brand-soft: var(--navy-50);
+  --action: var(--teal-500);
+  --action-hover: color-mix(in oklab, var(--teal-500) 90%, transparent);
+  --action-foreground: var(--neutral-0);
+  --action-ink: var(--teal-500);
+  --action-soft: color-mix(in oklab, var(--teal-500) 10%, transparent);
+  --highlight: var(--gold-400);
+  --highlight-foreground: var(--navy-950);
+  --highlight-ink: var(--gold-400);
+  --highlight-soft: color-mix(in oklab, var(--gold-400) 10%, transparent);
+
+  --surface-2: var(--neutral-50);
+  --surface-3: var(--neutral-100);
+  --surface-brand: var(--navy-800);
+  --surface-brand-deep: var(--ocean-deep-value);
+  --surface-inverse: var(--ink-950);
+  --ink: var(--neutral-700);
+  --ink-muted: var(--neutral-500);
+  --ink-subtle: var(--neutral-400);
+  --border-strong: var(--neutral-300);
+
+  --success: var(--green-700);
+  --success-foreground: var(--neutral-0);
+  --success-ink: var(--green-700);
+  --success-soft: var(--green-50);
+  --warning: var(--amber-700);
+  --warning-foreground: var(--neutral-0);
+  --warning-ink: var(--amber-700);
+  --warning-soft: var(--amber-50);
+  --danger: var(--red-700);
+  --danger-foreground: var(--neutral-0);
+  --danger-ink: var(--red-700);
+  --danger-soft: var(--red-50);
+  --info: var(--ocean-value);
+  --info-foreground: var(--neutral-0);
+  --info-ink: var(--ocean-value);
+  --info-soft: var(--ocean-soft-value);
+
+  --scrim: 9 20 47;
+
+  /* ---------- 3. shadcn names pointed at the roles (section 3) ---------- */
+  --background: var(--neutral-0);
+  --foreground: var(--ink);
+  --card: var(--neutral-0);
+  --card-foreground: var(--ink);
+  --popover: var(--neutral-0);
+  --popover-foreground: var(--ink);
+  --border: var(--neutral-200);
+  --input: var(--neutral-300);
+  --ring: var(--brand);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+
+  /* ---------- lab additions ---------- */
+  --action-text: var(--teal-700); /* 5.4:1 on white */
+  --line: var(--neutral-200);
+  --line-on-brand: color-mix(in oklab, var(--neutral-0) 16%, transparent);
+  --on-brand: var(--neutral-0);
+  --on-brand-muted: var(--navy-200); /* 9.3:1 on navy-800 */
+
+  font-family: 'Cairo', system-ui, sans-serif;
+  background-color: var(--background);
+  color: var(--ink);
+}
+
+/* ---------- dark (globals.css .dark) ---------- */
+.dark .gv-home {
+  --brand: var(--navy-200);
+  --brand-foreground: var(--navy-950);
+  --brand-ink: var(--navy-200);
+  --brand-soft: var(--navy-900);
+  --surface-brand: var(--navy-900);
+  --surface-2: var(--ink-800);
+  --surface-3: var(--ink-700);
+  --ink: var(--neutral-300);
+  --ink-muted: var(--neutral-400);
+  --ink-subtle: var(--neutral-500);
+  --border-strong: var(--ink-500);
+  --success: var(--green-400);
+  --success-foreground: var(--navy-950);
+  --success-ink: var(--green-400);
+  --success-soft: var(--green-950);
+  --warning: var(--amber-400);
+  --warning-foreground: var(--navy-950);
+  --warning-ink: var(--amber-400);
+  --warning-soft: var(--amber-950);
+  --danger: var(--red-400);
+  --danger-foreground: var(--navy-950);
+  --danger-ink: var(--red-400);
+  --danger-soft: var(--red-950);
+  --info: var(--ocean-light-value);
+  --info-foreground: var(--navy-950);
+  --info-ink: var(--ocean-light-value);
+  --info-soft: #0b2740;
+
+  --background: var(--ink-950);
+  --foreground: var(--ink);
+  --card: var(--ink-900);
+  --card-foreground: var(--ink);
+  --popover: var(--ink-900);
+  --popover-foreground: var(--ink);
+  --border: color-mix(in oklab, var(--neutral-0) 10%, transparent);
+  --input: var(--ink-500);
+  --ring: var(--brand);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+
+  --action-text: var(--teal-400); /* 8.6:1 on ink-900 */
+  --line: color-mix(in oklab, var(--neutral-0) 10%, transparent);
+  --on-brand-muted: var(--navy-300);
+}
+
+/* Arabic: no tracking, taller lines (05-design-system-audit.md B.8). */
+.gv-home:lang(ar) {
+  letter-spacing: normal;
+}
+.gv-home .tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gv-home *,
+  .gv-home *::before,
+  .gv-home *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/*
+ * ---------- v3-split-flap additions (lab) ----------
+ * The departures board strip and its flap tiles. Navy board, near-black flaps, gold only for the "boarding" lamp and
+ * the "new" status word. Contrast on the flap (#09142f): navy-200 13.4:1, white 18.6:1, gold-400 9.9:1, navy-300 10.1:1.
+ */
+.gv-home {
+  --board: var(--navy-800);
+  --board-active: var(--navy-700);
+  --board-line: color-mix(in oklab, var(--neutral-0) 14%, transparent);
+  --flap: var(--navy-950);
+  --flap-split: var(--navy-800);
+  --flap-ink: var(--navy-200);
+  --flap-ink-active: var(--neutral-0);
+  --flap-ink-muted: var(--navy-300);
+  --lamp: var(--gold-400);
+  --lamp-off: var(--navy-600);
+}
+.dark .gv-home {
+  --board: var(--navy-900);
+  --board-active: var(--navy-800);
+  --board-line: color-mix(in oklab, var(--neutral-0) 12%, transparent);
+  --flap: var(--ink-950);
+  --flap-split: var(--navy-900);
+  --lamp-off: var(--navy-700);
+}

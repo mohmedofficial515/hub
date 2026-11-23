@@ -1,0 +1,30 @@
+/*
+ * v5-luggage-tags: the tag colours, on top of ../tokens.css (copied verbatim from home-steps v5).
+ * The chosen tag is navy paper with white text. In dark mode navy-800/900 sinks into the ink card, so the chosen
+ * tag lifts to navy-700 (white on navy-700 is 9.6:1). The eyelet ring is the one gold touch.
+ */
+.gv-home {
+  --tag-paper: var(--card);
+  --tag-edge: var(--border-strong);
+  --tag-chosen: var(--navy-800);
+  --tag-chosen-edge: var(--navy-800);
+  --tag-on-chosen: var(--neutral-0);
+  --tag-on-chosen-muted: var(--navy-200);
+  --tag-eyelet: var(--gold-400);
+  --tag-strap: var(--neutral-400);
+  --rail: var(--border-strong);
+  --mark-hover: var(--teal-100);
+}
+
+.dark .gv-home {
+  --tag-chosen: var(--navy-700);
+  --tag-chosen-edge: var(--navy-500);
+  --tag-strap: var(--neutral-500);
+  --mark-hover: var(--teal-950);
+}
+
+.gv-home .lt-paper {
+  transition:
+    fill 260ms ease,
+    stroke 260ms ease;
+}
