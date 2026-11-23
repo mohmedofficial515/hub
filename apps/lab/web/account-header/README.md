@@ -57,3 +57,6 @@ header (32 px), the mobile menu and header dropdown (64 px) and the account side
 |---|---|---|
 | v1-baseline | current header, menu and side card (code + audit shots; signed-in state could not render) | reference |
 | v2-passport-stamp | navy header and hero as one passport cover; side card as the data page with the Postmark avatar | review |
+| v3-passport-stamp | v2 with the ux-critic fixes (disclosure menu, modal drawer, xl breakpoint, theme toggle) | approved |
+| v4-cover-glass | v3 plus a cover photo behind the header and hero (glass bar, glass title plate) and one image editor for cover and avatar | review |
+| v5-cover-clear | v4 with a fully transparent header over the cover, no title plate, adaptive veil from photo brightness, critic fixes; ported to the site 2026-11-23 | ported |

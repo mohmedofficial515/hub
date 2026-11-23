@@ -1,0 +1,9 @@
+/*
+ * Utilities for this version's own class names only. The lab's shared web.css is built once by the running dev server
+ * and did not pick up classes first used in this new folder, so this file builds them from `./` against the theme as
+ * a reference (no theme variables are emitted, the site's own stay in charge). Rules that web.css also has are
+ * identical, so the duplicates are harmless; drop this file when porting.
+ */
+@import 'tailwindcss/theme' theme(reference);
+@import 'tailwindcss/utilities' source(none);
+@source './';
